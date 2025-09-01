@@ -80,7 +80,7 @@ export const auth: AuthOptions = {
           id: admin.id,
           name: admin.name,
           email: admin.email,
-          role: admin.role
+          role: admin?.role || undefined
         };
       },
     })
@@ -95,6 +95,7 @@ export const auth: AuthOptions = {
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
+        token.role = user?.role;
       }
       return token;
     },
@@ -104,6 +105,7 @@ export const auth: AuthOptions = {
           id: token.id as string,
           name: token.name as string, 
           email: token.email as string,
+          role: token.role as $Enums.Role,
         };
       }
       return session;
