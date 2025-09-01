@@ -40,6 +40,7 @@ export const auth: AuthOptions = {
           id: client.id,
           name: client.name,
           email: client.email,
+          role: client.role
         };
       },
     }),

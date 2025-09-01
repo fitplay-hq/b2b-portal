@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "public"."Admin" ALTER COLUMN "role" DROP NOT NULL,
-ALTER COLUMN "role" SET DEFAULT 'ADMIN';

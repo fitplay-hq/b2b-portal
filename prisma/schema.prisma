@@ -65,6 +65,7 @@ model Client {
   password  String   
   phone     String   @unique
   address   String   @db.VarChar(100)
+  role      Role     @default(CLIENT)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -104,4 +105,5 @@ enum Role {
   ADMIN
   HR
   EMPLOYEE
+  CLIENT
 }
