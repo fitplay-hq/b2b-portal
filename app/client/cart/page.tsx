@@ -1,0 +1,474 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Layout from "@/components/layout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { ImageWithFallback } from "@/components/image";
+import {
+  Trash2,
+  Plus,
+  Minus,
+  ShoppingBag,
+  ArrowLeft,
+  FileText,
+  Upload,
+  User,
+  MapPin,
+  MessageSquare,
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  CartItem,
+  PurchaseOrder,
+  getStoredData,
+  setStoredData,
+  generatePONumber,
+} from "@/lib/mockData";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+
+export default function ClientCart() {
+  const user = {
+    id: "1",
+    email: "client@acmecorp.com",
+    name: "John Smith",
+    role: "client",
+    company: "ACME Corporation",
+  };
+
+  const router = useRouter();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+
+  // Form data for PO creation
+  const [formData, setFormData] = useState({
+    createdBy: user?.name || "",
+    deliveryAddress: "",
+    remarks: "",
+    uploadedFile: null as File | null,
+  });
+
+  useEffect(() => {
+    const cart = getStoredData<CartItem[]>(`fitplay_cart_${user?.id}`, []);
+    setCartItems(cart);
+  }, [user?.id]);
+
+  const updateCart = (updatedCart: CartItem[]) => {
+    setCartItems(updatedCart);
+    setStoredData(`fitplay_cart_${user?.id}`, updatedCart);
+  };
+
+  const updateQuantity = (productId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeItem(productId);
+      return;
+    }
+
+    const updatedCart = cartItems.map((item) =>
+      item.product.id === productId
+        ? { ...item, quantity: Math.min(newQuantity, item.product.stock) }
+        : item,
+    );
+    updateCart(updatedCart);
+  };
+
+  const removeItem = (productId: string) => {
+    const updatedCart = cartItems.filter(
+      (item) => item.product.id !== productId,
+    );
+    updateCart(updatedCart);
+    toast.success("Item removed from cart");
+  };
+
+  const clearCart = () => {
+    updateCart([]);
+    setShowCheckoutForm(false);
+    toast.success("Cart cleared");
+  };
+
+  const calculateSubtotal = () => {
+    return cartItems.reduce(
+      (total, item) => total + item.product.price * item.quantity,
+      0,
+    );
+  };
+
+  const calculateTax = (subtotal: number) => {
+    return subtotal * 0.18; // 18% GST for India
+  };
+
+  const subtotal = calculateSubtotal();
+  const tax = calculateTax(subtotal);
+  const total = subtotal + tax;
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, uploadedFile: file }));
+      toast.success(`File "${file.name}" uploaded successfully`);
+    }
+  };
+
+  const createPurchaseOrder = () => {
+    if (!user) return;
+
+    if (!formData.deliveryAddress.trim()) {
+      toast.error("Please enter delivery address");
+      return;
+    }
+
+    const newPO: PurchaseOrder = {
+      id: Date.now().toString(),
+      poNumber: generatePONumber(),
+      clientId: user.id,
+      clientName: user.name,
+      clientEmail: user.email,
+      company: user.company || "",
+      items: cartItems,
+      total: total,
+      status: "pending",
+      deliveryAddress: formData.deliveryAddress,
+      billingContact: formData.createdBy,
+      notes: formData.remarks,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Save PO to storage
+    const existingOrders = getStoredData<PurchaseOrder[]>("fitplay_orders", []);
+    const updatedOrders = [newPO, ...existingOrders];
+    setStoredData("fitplay_orders", updatedOrders);
+
+    // Clear cart
+    updateCart([]);
+
+    toast.success(`Purchase Order ${newPO.poNumber} created successfully!`);
+    router.push("/client/orders");
+  };
+
+  if (cartItems.length === 0) {
+    return (
+      <Layout title="Shopping Cart">
+        <div className="max-w-4xl mx-auto">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <div className="space-y-4">
+                <ShoppingBag className="h-16 w-16 text-muted-foreground mx-auto" />
+                <h2 className="text-xl font-semibold">Your cart is empty</h2>
+                <p className="text-muted-foreground">
+                  Start shopping to add items to your cart
+                </p>
+                <Button asChild>
+                  <Link href="/client/products">Browse Products</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout title="Shopping Cart" isClient>
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/client/products">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Continue Shopping
+              </Link>
+            </Button>
+          </div>
+          <Button variant="outline" size="sm" onClick={clearCart}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Clear Cart
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Cart Items */}
+          <div className="lg:col-span-2 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cart Items ({cartItems.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {cartItems.map((item) => (
+                  <div
+                    key={item.product.id}
+                    className="flex gap-4 p-4 border rounded-lg"
+                  >
+                    <div className="w-20 h-20 flex-shrink-0">
+                      <ImageWithFallback
+                        src={item.product.image}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover rounded"
+                      />
+                    </div>
+
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium">{item.product.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            SKU: {item.product.sku}
+                          </p>
+                          <p className="text-sm font-medium">
+                            ₹{item.product.price.toFixed(2)} each
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeItem(item.product.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              updateQuantity(item.product.id, item.quantity - 1)
+                            }
+                            disabled={item.quantity <= 1}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 1;
+                              updateQuantity(item.product.id, value);
+                            }}
+                            className="w-16 text-center"
+                            min="1"
+                            max={item.product.stock}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              updateQuantity(item.product.id, item.quantity + 1)
+                            }
+                            disabled={item.quantity >= item.product.stock}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="font-medium">
+                            ₹{(item.product.price * item.quantity).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.product.stock - item.quantity} remaining
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Order Summary & Checkout Form */}
+          <div className="space-y-4">
+            {/* Order Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>GST (18%)</span>
+                    <span>₹{tax.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between font-medium">
+                      <span>Total</span>
+                      <span>₹{total.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {!showCheckoutForm ? (
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={() => setShowCheckoutForm(true)}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Create Purchase Order
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={createPurchaseOrder}
+                  >
+                    Submit Purchase Order
+                  </Button>
+                )}
+
+                <div className="text-xs text-muted-foreground text-center">
+                  <p>This will generate a Purchase Order for approval</p>
+                  <p>Payment terms as per existing agreement</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Checkout Form */}
+            {showCheckoutForm && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    PO Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="createdBy"
+                      className="flex items-center gap-2"
+                    >
+                      <User className="h-4 w-4" />
+                      Created By
+                    </Label>
+                    <Input
+                      id="createdBy"
+                      value={formData.createdBy}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          createdBy: e.target.value,
+                        }))
+                      }
+                      placeholder="Your name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="deliveryAddress"
+                      className="flex items-center gap-2"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      Delivery Address *
+                    </Label>
+                    <Textarea
+                      id="deliveryAddress"
+                      value={formData.deliveryAddress}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          deliveryAddress: e.target.value,
+                        }))
+                      }
+                      placeholder="Complete delivery address with pin code"
+                      rows={3}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="remarks"
+                      className="flex items-center gap-2"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Remarks/Notes
+                    </Label>
+                    <Textarea
+                      id="remarks"
+                      value={formData.remarks}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          remarks: e.target.value,
+                        }))
+                      }
+                      placeholder="Any special instructions or requirements"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="fileUpload"
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload File (Optional)
+                    </Label>
+                    <div className="space-y-2">
+                      <Input
+                        id="fileUpload"
+                        type="file"
+                        onChange={handleFileUpload}
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg"
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium"
+                      />
+                      {formData.uploadedFile && (
+                        <p className="text-xs text-green-600">
+                          File uploaded: {formData.uploadedFile.name}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Attach specifications, drawings, or other documents
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCheckoutForm(false)}
+                    className="w-full"
+                  >
+                    Cancel
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Need Help?</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Questions about products or bulk pricing? Contact your sales
+                  representative.
+                </p>
+                <Button variant="outline" size="sm" className="w-full">
+                  Contact Sales
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}
