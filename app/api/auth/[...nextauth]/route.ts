@@ -1,5 +1,5 @@
 // app/api/auth/[...nextauth]/route.ts
-import NextAuth from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import prisma from "@/lib/prisma";
@@ -7,7 +7,7 @@ import { $Enums } from "@/lib/generated/prisma";
 
 type UserRole = $Enums.Role;
 
-const handler = NextAuth({
+export const auth: AuthOptions = {
   providers: [
     // For hr/employee
     CredentialsProvider({
@@ -80,6 +80,7 @@ const handler = NextAuth({
           id: admin.id,
           name: admin.name,
           email: admin.email,
+          role: admin.role
         };
       },
     })
@@ -113,6 +114,8 @@ const handler = NextAuth({
     error: '/auth/error',
   },
   debug: process.env.NODE_ENV === "development", 
-});
+};
+
+const handler = NextAuth(auth)
 
 export { handler as GET, handler as POST };
