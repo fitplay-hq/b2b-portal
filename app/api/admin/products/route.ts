@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
-import { Category } from "@/lib/generated/prisma";
+import { $Enums, Category } from "@/lib/generated/prisma";
 import { getServerSession } from "next-auth";
 
 interface Product {
