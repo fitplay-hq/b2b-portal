@@ -5,8 +5,6 @@ import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { ImageWithFallback } from "@/components/image";
 import {
   Trash2,
@@ -15,20 +13,10 @@ import {
   ShoppingBag,
   ArrowLeft,
   FileText,
-  Upload,
-  User,
-  MapPin,
-  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  CartItem,
-  PurchaseOrder,
-  getStoredData,
-  setStoredData,
-  generatePONumber,
-} from "@/lib/mockData";
-import { usePathname, useRouter } from "next/navigation";
+import { CartItem, getStoredData, setStoredData } from "@/lib/mockData";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function ClientCart() {
@@ -42,15 +30,6 @@ export default function ClientCart() {
 
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
-
-  // Form data for PO creation
-  const [formData, setFormData] = useState({
-    createdBy: user?.name || "",
-    deliveryAddress: "",
-    remarks: "",
-    uploadedFile: null as File | null,
-  });
 
   useEffect(() => {
     const cart = getStoredData<CartItem[]>(`fitplay_cart_${user?.id}`, []);
@@ -71,14 +50,14 @@ export default function ClientCart() {
     const updatedCart = cartItems.map((item) =>
       item.product.id === productId
         ? { ...item, quantity: Math.min(newQuantity, item.product.stock) }
-        : item,
+        : item
     );
     updateCart(updatedCart);
   };
 
   const removeItem = (productId: string) => {
     const updatedCart = cartItems.filter(
-      (item) => item.product.id !== productId,
+      (item) => item.product.id !== productId
     );
     updateCart(updatedCart);
     toast.success("Item removed from cart");
@@ -86,14 +65,13 @@ export default function ClientCart() {
 
   const clearCart = () => {
     updateCart([]);
-    setShowCheckoutForm(false);
     toast.success("Cart cleared");
   };
 
   const calculateSubtotal = () => {
     return cartItems.reduce(
       (total, item) => total + item.product.price * item.quantity,
-      0,
+      0
     );
   };
 
@@ -105,54 +83,9 @@ export default function ClientCart() {
   const tax = calculateTax(subtotal);
   const total = subtotal + tax;
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, uploadedFile: file }));
-      toast.success(`File "${file.name}" uploaded successfully`);
-    }
-  };
-
-  const createPurchaseOrder = () => {
-    if (!user) return;
-
-    if (!formData.deliveryAddress.trim()) {
-      toast.error("Please enter delivery address");
-      return;
-    }
-
-    const newPO: PurchaseOrder = {
-      id: Date.now().toString(),
-      poNumber: generatePONumber(),
-      clientId: user.id,
-      clientName: user.name,
-      clientEmail: user.email,
-      company: user.company || "",
-      items: cartItems,
-      total: total,
-      status: "pending",
-      deliveryAddress: formData.deliveryAddress,
-      billingContact: formData.createdBy,
-      notes: formData.remarks,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Save PO to storage
-    const existingOrders = getStoredData<PurchaseOrder[]>("fitplay_orders", []);
-    const updatedOrders = [newPO, ...existingOrders];
-    setStoredData("fitplay_orders", updatedOrders);
-
-    // Clear cart
-    updateCart([]);
-
-    toast.success(`Purchase Order ${newPO.poNumber} created successfully!`);
-    router.push("/client/orders");
-  };
-
   if (cartItems.length === 0) {
     return (
-      <Layout title="Shopping Cart">
+      <Layout title="Shopping Cart" isClient>
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardContent className="p-8 text-center">
@@ -310,24 +243,14 @@ export default function ClientCart() {
                   </div>
                 </div>
 
-                {!showCheckoutForm ? (
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={() => setShowCheckoutForm(true)}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Create Purchase Order
-                  </Button>
-                ) : (
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={createPurchaseOrder}
-                  >
-                    Submit Purchase Order
-                  </Button>
-                )}
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={() => router.push("/client/checkout")}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Create Purchase Order
+                </Button>
 
                 <div className="text-xs text-muted-foreground text-center">
                   <p>This will generate a Purchase Order for approval</p>
@@ -335,121 +258,6 @@ export default function ClientCart() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Checkout Form */}
-            {showCheckoutForm && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    PO Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="createdBy"
-                      className="flex items-center gap-2"
-                    >
-                      <User className="h-4 w-4" />
-                      Created By
-                    </Label>
-                    <Input
-                      id="createdBy"
-                      value={formData.createdBy}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          createdBy: e.target.value,
-                        }))
-                      }
-                      placeholder="Your name"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="deliveryAddress"
-                      className="flex items-center gap-2"
-                    >
-                      <MapPin className="h-4 w-4" />
-                      Delivery Address *
-                    </Label>
-                    <Textarea
-                      id="deliveryAddress"
-                      value={formData.deliveryAddress}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          deliveryAddress: e.target.value,
-                        }))
-                      }
-                      placeholder="Complete delivery address with pin code"
-                      rows={3}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="remarks"
-                      className="flex items-center gap-2"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      Remarks/Notes
-                    </Label>
-                    <Textarea
-                      id="remarks"
-                      value={formData.remarks}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          remarks: e.target.value,
-                        }))
-                      }
-                      placeholder="Any special instructions or requirements"
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="fileUpload"
-                      className="flex items-center gap-2"
-                    >
-                      <Upload className="h-4 w-4" />
-                      Upload File (Optional)
-                    </Label>
-                    <div className="space-y-2">
-                      <Input
-                        id="fileUpload"
-                        type="file"
-                        onChange={handleFileUpload}
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg"
-                        className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium"
-                      />
-                      {formData.uploadedFile && (
-                        <p className="text-xs text-green-600">
-                          File uploaded: {formData.uploadedFile.name}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Attach specifications, drawings, or other documents
-                      </p>
-                    </div>
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowCheckoutForm(false)}
-                    className="w-full"
-                  >
-                    Cancel
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Quick Actions */}
             <Card>

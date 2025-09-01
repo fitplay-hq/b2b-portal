@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
+  History,
   Package,
   Package2,
   ShoppingCart,
@@ -37,7 +38,7 @@ export default function NavItems({ isClient }: NavItemsProps) {
   return (
     <nav className="space-y-2">
       {navItems.map((item) => {
-        const Icon = item.icon as any;
+        const Icon = item.icon;
         const isActive = pathname === item.href;
 
         return (
@@ -51,6 +52,7 @@ export default function NavItems({ isClient }: NavItemsProps) {
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
             )}
           >
+            <Icon className="h-4  w-4" />
             {item.label}
           </Link>
         );

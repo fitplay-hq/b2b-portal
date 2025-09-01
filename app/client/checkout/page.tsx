@@ -42,6 +42,11 @@ export default function ClientCheckout() {
 
   useEffect(() => {
     const cart = getStoredData<CartItem[]>(`fitplay_cart_${user?.id}`, []);
+    if (cart.length === 0) {
+      router.push("/client/cart");
+      toast.error("Your cart is empty");
+    }
+
     setCartItems(cart);
 
     // Generate PO number
@@ -49,18 +54,12 @@ export default function ClientCheckout() {
 
     // Pre-fill billing contact with user info
     setBillingContact(`${user?.name} - ${user?.email}`);
-
-    // Redirect if cart is empty
-    if (cart.length === 0) {
-      router.push("/client/cart");
-      toast.error("Your cart is empty");
-    }
-  }, [user, router]);
+  }, [user?.name, user?.email]);
 
   const calculateSubtotal = () => {
     return cartItems.reduce(
       (total, item) => total + item.product.price * item.quantity,
-      0,
+      0
     );
   };
 
@@ -104,7 +103,7 @@ export default function ClientCheckout() {
       // Save order
       const existingOrders = getStoredData<PurchaseOrder[]>(
         "fitplay_orders",
-        MOCK_ORDERS,
+        MOCK_ORDERS
       );
       const updatedOrders = [...existingOrders, newOrder];
       setStoredData("fitplay_orders", updatedOrders);
