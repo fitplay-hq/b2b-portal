@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -48,13 +47,13 @@ export default function ClientOrderHistory() {
     // Load user's orders
     const allOrders = getStoredData<PurchaseOrder[]>(
       "fitplay_orders",
-      MOCK_ORDERS,
+      MOCK_ORDERS
     );
     const userOrders = allOrders
       .filter((order) => order.clientId === user?.id)
       .sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
     setOrders(userOrders);
@@ -73,8 +72,8 @@ export default function ClientOrderHistory() {
               item.product.name
                 .toLowerCase()
                 .includes(searchTerm.toLowerCase()) ||
-              item.product.sku.toLowerCase().includes(searchTerm.toLowerCase()),
-          ),
+              item.product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+          )
       );
     }
 
@@ -136,7 +135,7 @@ export default function ClientOrderHistory() {
   const pendingOrders = orders.filter((o) => o.status === "pending").length;
 
   return (
-    <Layout title="Order History">
+    <Layout title="Order History" isClient>
       <div className="space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

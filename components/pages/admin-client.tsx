@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -186,7 +188,7 @@ export default function AdminClients() {
   const totalClients = clients.length;
 
   return (
-    <Layout title="Client Management">
+    <Layout title="Client Management" isClient={false}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
