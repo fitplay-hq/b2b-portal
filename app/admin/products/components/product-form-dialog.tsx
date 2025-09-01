@@ -17,8 +17,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PRODUCT_CATEGORIES } from "@/lib/mockData";
+import { $Enums } from "@/lib/generated/prisma";
 
 import { useProductForm } from "@/hooks/use-product-form";
+import { Prisma } from "@/lib/generated/prisma";
+import { X } from "lucide-react";
 type ProductFormProps = ReturnType<typeof useProductForm>;
 
 export function ProductFormDialog({
@@ -30,6 +33,32 @@ export function ProductFormDialog({
   setFormData,
   handleSubmit,
 }: ProductFormProps) {
+  const handleSpecChange = (
+    index: number,
+    field: "key" | "value",
+    value: string
+  ) => {
+    const newSpecs = formData.specifications.map((spec, i) => {
+      if (i === index) {
+        return { ...spec, [field]: value };
+      }
+      return spec;
+    });
+    setFormData({ ...formData, specifications: newSpecs });
+  };
+
+  const addSpecification = () => {
+    setFormData({
+      ...formData,
+      specifications: [...formData.specifications, { key: "", value: "" }],
+    });
+  };
+
+  const removeSpecification = (index: number) => {
+    const newSpecs = formData.specifications.filter((_, i) => i !== index);
+    setFormData({ ...formData, specifications: newSpecs });
+  };
+
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent className="max-w-2xl">
@@ -119,9 +148,7 @@ export function ProductFormDialog({
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PRODUCT_CATEGORIES.filter(
-                    (cat) => cat !== "All Categories"
-                  ).map((cat) => (
+                  {Object.values($Enums.Category).map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>
@@ -144,17 +171,43 @@ export function ProductFormDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="specifications">Specifications</Label>
-            <Textarea
-              id="specifications"
-              value={formData.specifications}
-              onChange={(e) =>
-                setFormData({ ...formData, specifications: e.target.value })
-              }
-              rows={3}
-              placeholder="e.g., RAM: 16GB, Storage: 512GB SSD"
-            />
+          <div className="space-y-3 rounded-md border p-4">
+            <Label>Specifications</Label>
+            {formData.specifications.map((spec, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  placeholder="e.g., RAM"
+                  value={spec.key}
+                  onChange={(e) =>
+                    handleSpecChange(index, "key", e.target.value)
+                  }
+                />
+                <Input
+                  placeholder="e.g., 16GB"
+                  value={spec.value}
+                  onChange={(e) =>
+                    handleSpecChange(index, "value", e.target.value)
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeSpecification(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addSpecification}
+              className="mt-2"
+            >
+              Add Specification
+            </Button>
           </div>
 
           <div className="space-y-2">
