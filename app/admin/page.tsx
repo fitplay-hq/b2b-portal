@@ -6,3 +6,5 @@ export default async function Page() {
 
   return <AdminDashboard products={products} />;
 }
+
+export const revalidate = 0;
