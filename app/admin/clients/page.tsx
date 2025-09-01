@@ -30,9 +30,10 @@ import {
   Client,
 } from "@/lib/mockData";
 import Link from "next/link";
-import { Product } from "@/lib/generated/prisma";
+import { useProducts } from "@/data/product/admin.hooks";
 
-export default function AdminDashboard({ products }: { products: Product[] }) {
+export default function AdminDashboard() {
+  const { products } = useProducts();
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [clients] = useState<Client[]>(MOCK_CLIENTS);
 
@@ -43,6 +44,14 @@ export default function AdminDashboard({ products }: { products: Product[] }) {
     );
     setOrders(allOrders);
   }, []);
+
+  if (!products) {
+    return (
+      <Layout title="Admin Dashboard" isClient={false}>
+        Loading
+      </Layout>
+    );
+  }
 
   // Calculate metrics
   const totalOrders = orders.length;

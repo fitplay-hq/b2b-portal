@@ -7,16 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import { useProductFilters } from "@/hooks/use-product-filters";
 import { useProductForm } from "@/hooks/use-product-form";
-import { deleteProduct } from "@/data/product/admin.actions";
 
 import { StatsGrid } from "./components/stats-grid";
 import { ProductFilters } from "./components/product-filters";
 import { ProductList } from "./components/product-list";
 import { ProductFormDialog } from "./components/product-form-dialog";
-import { useProducts } from "@/data/product/admin.hooks";
+import { useDeleteProduct, useProducts } from "@/data/product/admin.hooks";
 
 export default function AdminProductsPage() {
   const { products, error, isLoading, mutate } = useProducts();
+  const { deleteProduct } = useDeleteProduct();
 
   const { filteredProducts, ...filterProps } = useProductFilters(products);
   const formControls = useProductForm({ onSuccess: () => mutate() });
@@ -27,7 +27,7 @@ export default function AdminProductsPage() {
         label: "Delete",
         onClick: async () => {
           try {
-            await deleteProduct(productId);
+            await deleteProduct({ id: productId });
             toast.success("Product deleted successfully!");
             mutate(); // Re-fetch data
           } catch (error) {
