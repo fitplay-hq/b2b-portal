@@ -23,12 +23,12 @@ export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession();
 
-        // if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-        //     return NextResponse.json(
-        //         { error: "Unauthorized" },
-        //         { status: 401 }
-        //     );
-        // }
+        if (!session || !session?.user || session?.user?.role !== "ADMIN") {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
 
         const id = req.nextUrl.searchParams.get("id");
         if (!id) {
@@ -53,12 +53,12 @@ export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession();
 
-        // if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-        //     return NextResponse.json(
-        //         { error: "Unauthorized" },
-        //         { status: 401 }
-        //     );
-        // }
+        if (!session || !session?.user || session?.user?.role !== "ADMIN") {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
 
 
         const body = await req.json();
@@ -88,12 +88,12 @@ export async function PATCH(req: NextRequest) {
     try {
         const session = await getServerSession();
 
-        // if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-        //     return NextResponse.json(
-        //         { error: "Unauthorized" },
-        //         { status: 401 }
-        //     );
-        // }
+        if (!session || !session?.user || session?.user?.role !== "ADMIN") {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
 
         const body = await req.json();
         const result = CreateProductSchema.safeParse(body);
@@ -123,12 +123,12 @@ export async function DELETE(req: NextRequest) {
     try {
         const session = await getServerSession();
 
-        // if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-        //     return NextResponse.json(
-        //         { error: "Unauthorized" },
-        //         { status: 401 }
-        //     );
-        // }
+        if (!session || !session?.user || session?.user?.role !== "ADMIN") {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
 
         const id = req.nextUrl.searchParams.get("id");
         if (!id) {
