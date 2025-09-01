@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Product, Prisma, Category } from "@/lib/generated/prisma";
 import { toast } from "sonner";
-import { createProduct, updateProduct } from "../actions/product.actions";
+import { useCreateProduct, useUpdateProduct } from "@/data/product/admin.hooks";
 
 interface UseProductFormProps {
   onSuccess: () => void;
 }
 
 export function useProductForm({ onSuccess }: UseProductFormProps) {
+  const { createProduct } = useCreateProduct();
+  const { updateProduct } = useUpdateProduct();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,6 +22,8 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     categories: "",
     description: "",
     image: "",
+    brand: "",
+    specifications: "",
   });
 
   const openNewDialog = () => {
@@ -32,6 +36,8 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       categories: "",
       description: "",
       image: "",
+      brand: "",
+      specifications: "",
     });
     setIsDialogOpen(true);
   };
@@ -46,6 +52,8 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       categories: product.categories,
       description: product.description,
       image: product.images[0] || "",
+      brand: product.brand,
+      specifications: (product.specification as string) ?? "",
     });
     setIsDialogOpen(true);
   };
@@ -62,34 +70,42 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       setIsSubmitting(false);
       return;
     }
-    
+
     try {
       if (editingProduct) {
         // Update logic
         const productUpdateData: Prisma.ProductUpdateInput = {
-            id: editingProduct.id,
-            name: formData.name,
-            sku: formData.sku,
-            price,
-            availableStock,
-            categories: formData.categories as Category,
-            description: formData.description,
-            images: [formData.image || "https://images.unsplash.com/photo-1526401485004-46910ecc8e51?w=400"],
+          id: editingProduct.id,
+          name: formData.name,
+          sku: formData.sku,
+          price,
+          availableStock,
+          categories: formData.categories as Category,
+          description: formData.description,
+          images: [
+            formData.image ||
+              "https://images.unsplash.com/photo-1526401485004-46910ecc8e51?w=400",
+          ],
+          brand: formData.brand,
+          specification: formData.specifications,
         };
         await updateProduct(productUpdateData);
         toast.success("Product updated successfully!");
       } else {
         // Create logic
         const productCreateData: Prisma.ProductCreateInput = {
-            name: formData.name,
-            sku: formData.sku,
-            price,
-            availableStock,
-            categories: formData.categories as Category,
-            description: formData.description,
-            images: [formData.image || "https://images.unsplash.com/photo-1526401485004-46910ecc8e51?w=400"],
-            brand: "", // Add default or form field
-            specification: "{}", // Add default or form field
+          name: formData.name,
+          sku: formData.sku,
+          price,
+          availableStock,
+          categories: formData.categories as Category,
+          description: formData.description,
+          images: [
+            formData.image ||
+              "https://images.unsplash.com/photo-1526401485004-46910ecc8e51?w=400",
+          ],
+          brand: formData.brand,
+          specification: formData.specifications,
         };
         await createProduct(productCreateData);
         toast.success("Product added successfully!");
@@ -97,12 +113,14 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       onSuccess(); // Re-fetch data
       setIsDialogOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "An unknown error occurred.");
+      toast.error(
+        error instanceof Error ? error.message : "An unknown error occurred."
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   return {
     isDialogOpen,
     setIsDialogOpen,
@@ -115,3 +133,4 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     handleSubmit,
   };
 }
+

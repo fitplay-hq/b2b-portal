@@ -1,28 +1,22 @@
 "use client";
 
-import useSwr from "swr";
 import { toast } from "sonner";
 
-import { Product } from "@/lib/generated/prisma";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import { useProductFilters } from "@/hooks/use-product-filters";
 import { useProductForm } from "@/hooks/use-product-form";
-import { getProducts, deleteProduct } from "@/actions/product.actions";
+import { deleteProduct } from "@/data/product/admin.actions";
 
-import { StatsGrid } from "./stats-grid";
-import { ProductFilters } from "./product-filters";
-import { ProductList } from "./product-list";
-import { ProductFormDialog } from "./product-form-dialog";
+import { StatsGrid } from "./components/stats-grid";
+import { ProductFilters } from "./components/product-filters";
+import { ProductList } from "./components/product-list";
+import { ProductFormDialog } from "./components/product-form-dialog";
+import { useProducts } from "@/data/product/admin.hooks";
 
 export default function AdminProductsPage() {
-  const {
-    data: products,
-    error,
-    isLoading,
-    mutate,
-  } = useSwr<Product[]>("/api/admin/products", getProducts);
+  const { products, error, isLoading, mutate } = useProducts();
 
   const { filteredProducts, ...filterProps } = useProductFilters(products);
   const formControls = useProductForm({ onSuccess: () => mutate() });
@@ -94,10 +88,7 @@ export default function AdminProductsPage() {
         />
       </div>
 
-      {/* The dialog is now its own component, cleanly managed by its hook */}
       <ProductFormDialog {...formControls} />
     </Layout>
   );
 }
-
-export const revalidate = 0; // ISR off, always dynamic

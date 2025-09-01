@@ -1,6 +1,6 @@
 import { Prisma } from "@/lib/generated/prisma";
 
-export async function getProducts() {
+export async function getProducts(url: string) {
   const response = await fetch("/api/admin/products");
   if (!response.ok) {
     throw new Error("Failed to update product");
@@ -8,7 +8,7 @@ export async function getProducts() {
   return await response.json();
 }
 
-export async function createProduct(productData: Prisma.ProductCreateInput) {
+export async function createProduct(url: string, productData: Prisma.ProductCreateInput) {
   const response = await fetch("/api/admin/products/product", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -20,7 +20,7 @@ export async function createProduct(productData: Prisma.ProductCreateInput) {
   return await response.json();
 }
 
-export async function updateProduct(productData: Prisma.ProductUpdateInput) {
+export async function updateProduct(url: string, productData: Prisma.ProductUpdateInput) {
   const response = await fetch("/api/admin/products/product", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -32,7 +32,7 @@ export async function updateProduct(productData: Prisma.ProductUpdateInput) {
   return await response.json();
 }
 
-export async function deleteProduct(productId: string) {
+export async function deleteProduct(url: string, productId: string) {
   const response = await fetch(`/api/admin/products/product?id=${productId}`, {
     method: "DELETE",
   });

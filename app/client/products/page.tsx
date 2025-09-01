@@ -1,27 +1,21 @@
 "use client";
 
-import useSwr from "swr";
-import { Product } from "@/lib/generated/prisma";
 import Layout from "@/components/layout";
 import { Loader2 } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 import { useProductFilters } from "@/hooks/use-product-filters";
 import { useQuantityDialog } from "@/hooks/use-quantity-dialog";
-import { getProducts } from "@/actions/product.actions";
 
-import { PageHeader } from "./page-header";
-import { ProductGrid } from "./product-grid";
-import { QuantityDialog } from "./quantity-dialog";
+import { PageHeader } from "./components/page-header";
+import { ProductGrid } from "./components/product-grid";
+import { QuantityDialog } from "./components/quantity-dialog";
+import { useProducts } from "@/data/product/client.hooks";
 
 // In a real app, this would come from an auth context
 const mockUser = { id: "1" };
 
 export default function ClientProductsPage() {
-  const {
-    data: products,
-    error,
-    isLoading,
-  } = useSwr<Product[]>("/api/admin/products", getProducts);
+  const { products, error, isLoading } = useProducts();
 
   const { totalCartItems, addToCart, getCartQuantity } = useCart(mockUser.id);
   const { filteredProducts, ...filterProps } = useProductFilters(products);
@@ -76,5 +70,3 @@ export default function ClientProductsPage() {
     </Layout>
   );
 }
-
-export const revalidate = 0; // ISR off, always dynamic

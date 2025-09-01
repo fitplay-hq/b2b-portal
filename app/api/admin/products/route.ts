@@ -26,8 +26,6 @@ export async function POST(req: NextRequest) {
 
     const session = await getServerSession();
 
-    console.log({ session })
-
     if (!session || !session?.user || session?.user?.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -76,14 +74,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    // const session = await getServerSession();
 
-    if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    // if (!session || !session?.user || session?.user?.role !== "ADMIN") {
+    //   return NextResponse.json(
+    //     { error: "Unauthorized" },
+    //     { status: 401 }
+    //   );
+    // }
     const products = await prisma.product.findMany();
     return NextResponse.json(products);
   } catch (error: any) {

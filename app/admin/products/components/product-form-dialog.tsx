@@ -44,8 +44,7 @@ export function ProductFormDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {/* Form fields remain largely the same */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Product Name</Label>
               <Input
@@ -64,6 +63,17 @@ export function ProductFormDialog({
                 value={formData.sku}
                 onChange={(e) =>
                   setFormData({ ...formData, sku: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="brand">Brand</Label>
+              <Input
+                id="brand"
+                value={formData.brand}
+                onChange={(e) =>
+                  setFormData({ ...formData, brand: e.target.value })
                 }
                 required
               />
@@ -131,6 +141,19 @@ export function ProductFormDialog({
               }
               rows={3}
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="specifications">Specifications</Label>
+            <Textarea
+              id="specifications"
+              value={formData.specifications}
+              onChange={(e) =>
+                setFormData({ ...formData, specifications: e.target.value })
+              }
+              rows={3}
+              placeholder="e.g., RAM: 16GB, Storage: 512GB SSD"
             />
           </div>
 
