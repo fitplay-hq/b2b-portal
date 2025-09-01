@@ -7,6 +7,11 @@ interface UseProductFormProps {
   onSuccess: () => void;
 }
 
+type Specification = {
+  key: string;
+  value: string;
+};
+
 export function useProductForm({ onSuccess }: UseProductFormProps) {
   const { createProduct } = useCreateProduct();
   const { updateProduct } = useUpdateProduct();
@@ -23,7 +28,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     description: "",
     image: "",
     brand: "",
-    specifications: "",
+    specifications: [] as Specification[],
   });
 
   const openNewDialog = () => {
@@ -37,13 +42,25 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       description: "",
       image: "",
       brand: "",
-      specifications: "",
+      specifications: [],
     });
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (product: Product) => {
     setEditingProduct(product);
+    let specs: Specification[] = [];
+    if (
+      product.specification &&
+      typeof product.specification === "object" &&
+      !Array.isArray(product.specification)
+    ) {
+      specs = Object.entries(product.specification).map(([key, value]) => ({
+        key,
+        value: String(value),
+      }));
+    }
+
     setFormData({
       name: product.name,
       sku: product.sku,
@@ -53,9 +70,35 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       description: product.description,
       image: product.images[0] || "",
       brand: product.brand,
-      specifications: (product.specification as string) ?? "",
+      specifications: specs,
     });
     setIsDialogOpen(true);
+  };
+
+  const handleSpecChange = (
+    index: number,
+    field: "key" | "value",
+    value: string
+  ) => {
+    const newSpecs = formData.specifications.map((spec, i) => {
+      if (i === index) {
+        return { ...spec, [field]: value };
+      }
+      return spec;
+    });
+    setFormData((prev) => ({ ...prev, specifications: newSpecs }));
+  };
+
+  const addSpecification = () => {
+    setFormData((prev) => ({
+      ...prev,
+      specifications: [...prev.specifications, { key: "", value: "" }],
+    }));
+  };
+
+  const removeSpecification = (index: number) => {
+    const newSpecs = formData.specifications.filter((_, i) => i !== index);
+    setFormData((prev) => ({ ...prev, specifications: newSpecs }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,9 +114,18 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       return;
     }
 
+    const specificationJson = formData.specifications.reduce(
+      (acc, { key, value }) => {
+        if (key.trim()) {
+          acc[key.trim()] = value;
+        }
+        return acc;
+      },
+      {} as { [key: string]: string }
+    );
+
     try {
       if (editingProduct) {
-        // Update logic
         const productUpdateData: Prisma.ProductUpdateInput = {
           id: editingProduct.id,
           name: formData.name,
@@ -87,12 +139,11 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
               "https://images.unsplash.com/photo-1526401485004-46910ecc8e51?w=400",
           ],
           brand: formData.brand,
-          specification: formData.specifications,
+          specification: specificationJson,
         };
         await updateProduct(productUpdateData);
         toast.success("Product updated successfully!");
       } else {
-        // Create logic
         const productCreateData: Prisma.ProductCreateInput = {
           name: formData.name,
           sku: formData.sku,
@@ -105,12 +156,12 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
               "https://images.unsplash.com/photo-1526401485004-46910ecc8e51?w=400",
           ],
           brand: formData.brand,
-          specification: formData.specifications,
+          specification: specificationJson,
         };
         await createProduct(productCreateData);
         toast.success("Product added successfully!");
       }
-      onSuccess(); // Re-fetch data
+      onSuccess();
       setIsDialogOpen(false);
     } catch (error) {
       toast.error(
@@ -131,6 +182,8 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     openNewDialog,
     openEditDialog,
     handleSubmit,
+    handleSpecChange,
+    addSpecification,
+    removeSpecification,
   };
 }
-
