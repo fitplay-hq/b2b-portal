@@ -16,6 +16,7 @@ declare module "next-auth" {
     id: string
     name?: string // Make optional since it might not always be present
     email: string
+    role?: $Enums.Role
   }
 }
 
@@ -24,5 +25,6 @@ declare module "next-auth/jwt" {
     id: string
     name?: string
     email: string
+    role?: $Enums.Role
   }
 }
