@@ -8,13 +8,13 @@ export async function GET(req: NextRequest) {
 
     try {
         const session = await getServerSession();
-
-        if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-            return NextResponse.json(
+        
+            if (!session || !session?.user?.email) {
+              return NextResponse.json(
                 { error: "Unauthorized" },
                 { status: 401 }
-            );
-        }
+              );
+            }
         const products = await prisma.product.findMany({
             where: {
                 name: {
