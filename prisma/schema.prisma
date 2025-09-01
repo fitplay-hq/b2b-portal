@@ -79,8 +79,8 @@ model Product {
   description    String
   specification  Json
   categories     Category
-  avgRating      Float
-  noOfReviews    Int
+  avgRating      Float?
+  noOfReviews    Int?
   brand          String    @db.VarChar(30)
   companies      Company[]
   createdAt      DateTime  @default(now())
