@@ -6,3 +6,5 @@ export default async function Page() {
 
   return <ClientProducts products={products} />;
 }
+
+export const revalidate = 0; // ISR off, always dynamic
