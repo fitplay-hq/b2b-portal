@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { Category } from "@/lib/generated/prisma";
 import {z} from "zod";
+import { auth } from "@/app/api/auth/[...nextauth]/route";
 
 const CreateProductSchema = z.object({
     id: z.string().uuid(),
@@ -21,7 +22,7 @@ const CreateProductSchema = z.object({
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession();
+        const session = await getServerSession(auth);
 
         if (!session || !session?.user || session?.user?.role !== "ADMIN") {
             return NextResponse.json(
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession();
+        const session = await getServerSession(auth);
 
         if (!session || !session?.user || session?.user?.role !== "ADMIN") {
             return NextResponse.json(
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
     try {
-        const session = await getServerSession();
+        const session = await getServerSession(auth);
 
         if (!session || !session?.user || session?.user?.role !== "ADMIN") {
             return NextResponse.json(
@@ -121,7 +122,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
     try {
-        const session = await getServerSession();
+        const session = await getServerSession(auth);
 
         if (!session || !session?.user || session?.user?.role !== "ADMIN") {
             return NextResponse.json(

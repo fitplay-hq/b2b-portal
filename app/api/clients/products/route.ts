@@ -1,10 +1,11 @@
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "../../auth/[...nextauth]/route";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(auth);
 
     if (!session || !session?.user?.email) {
       return NextResponse.json(

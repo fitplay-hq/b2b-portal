@@ -1,3 +1,4 @@
+import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
@@ -7,7 +8,7 @@ export async function GET(req: NextRequest) {
     const query = searchParams.get("query");
 
     try {
-        const session = await getServerSession();
+        const session = await getServerSession(auth);
         
             if (!session || !session?.user?.email) {
               return NextResponse.json(

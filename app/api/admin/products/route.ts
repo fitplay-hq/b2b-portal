@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import { $Enums, Category } from "@/lib/generated/prisma";
 import { getServerSession } from "next-auth";
+import { auth } from "../../auth/[...nextauth]/route";
 
 interface Product {
   id: string;
@@ -24,7 +25,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const session = await getServerSession();
+    const session = await getServerSession(auth);
+    console.log("Session:", session);
 
     if (!session || !session?.user || session?.user?.role !== "ADMIN") {
       return NextResponse.json(
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(auth);
 
     if (!session || !session?.user || session?.user?.role !== "ADMIN") {
       return NextResponse.json(

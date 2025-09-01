@@ -81,7 +81,7 @@ export const auth: AuthOptions = {
           id: admin.id,
           name: admin.name,
           email: admin.email,
-          role: admin?.role || undefined
+          role: admin.role ?? "ADMIN"
         };
       },
     })
@@ -98,6 +98,7 @@ export const auth: AuthOptions = {
         token.email = user.email;
         token.role = user?.role;
       }
+      console.log("JWT callback:", { token, user });
       return token;
     },
     async session({ session, token }) {
@@ -109,6 +110,7 @@ export const auth: AuthOptions = {
           role: token.role as $Enums.Role,
         };
       }
+      console.log("Session callback:", { token, session });
       return session;
     }
   },
