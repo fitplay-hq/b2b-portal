@@ -1,10 +1,10 @@
 import { revalidatePath } from "next/cache";
 import { Prisma, Product } from "./generated/prisma/index";
 import { baseUrl } from '@/lib/constants'
+import prisma from "./prisma";
 
 export async function getProducts() {
-  const response = await fetch(`${baseUrl}/api/admin/products`);
-  const products = (await response.json()) as any as Product[];
+  const products = await prisma.product.findMany();
   
   return products
 }

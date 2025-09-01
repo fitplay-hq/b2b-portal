@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { PRODUCT_CATEGORIES, setStoredData } from "@/lib/mockData";
 import { Category, Prisma, Product } from "@/lib/generated/prisma";
 import { useRouter } from "next/navigation";
+import useSwr from "swr";
 
 export default function AdminProducts({ products }: { products: Product[] }) {
   const router = useRouter();

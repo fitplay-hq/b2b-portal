@@ -23,6 +23,8 @@ export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession();
 
+        console.log({ session })
+
         if (!session || !session?.user || session?.user?.role !== "ADMIN") {
             return NextResponse.json(
                 { error: "Unauthorized" },
@@ -53,12 +55,15 @@ export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession();
 
+        console.log({ session })
+
         if (!session || !session?.user || session?.user?.role !== "ADMIN") {
             return NextResponse.json(
                 { error: "Unauthorized" },
                 { status: 401 }
             );
         }
+
 
         const body = await req.json();
         const result = CreateProductSchema.safeParse(body);
