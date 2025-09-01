@@ -27,9 +27,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const success = await signIn("email", {
+      const success = await signIn("users", {
         email,
         password,
+        redirect: false,
       });
       if (!success) {
         setError("Invalid email or password");
@@ -39,11 +40,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDemoLogin = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword("password");
   };
 
   return (
@@ -104,33 +100,6 @@ export default function LoginPage() {
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-
-            <div className="mt-6 pt-6 border-t">
-              <p className="text-sm text-muted-foreground mb-3">
-                Demo Accounts:
-              </p>
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => handleDemoLogin("client@acmecorp.com")}
-                >
-                  Client Demo (ACME Corp)
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => handleDemoLogin("admin@fitplay.com")}
-                >
-                  Admin Demo
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Password: password
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
