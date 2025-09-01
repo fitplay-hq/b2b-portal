@@ -8,7 +8,7 @@ declare module "next-auth" {
       id: string
       name?: string
       email: string
-      role?: $Enums.Role | null
+      role?: $Enums.Role 
     } & DefaultSession["user"]
   }
 
