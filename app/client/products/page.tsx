@@ -76,3 +76,5 @@ export default function ClientProductsPage() {
     </Layout>
   );
 }
+
+export const revalidate = 0; // ISR off, always dynamic

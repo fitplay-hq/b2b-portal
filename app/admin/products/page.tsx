@@ -99,3 +99,5 @@ export default function AdminProductsPage() {
     </Layout>
   );
 }
+
+export const revalidate = 0; // ISR off, always dynamic

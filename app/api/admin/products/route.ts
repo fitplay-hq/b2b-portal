@@ -4,7 +4,6 @@ import prisma from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import { $Enums, Category } from "@/lib/generated/prisma";
 import { getServerSession } from "next-auth";
-import { getProducts } from "@/lib/actions";
 
 interface Product {
   id: string;
@@ -30,11 +29,11 @@ export async function POST(req: NextRequest) {
     console.log({ session })
 
     if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
     if (!Array.isArray(body)) {
       return NextResponse.json(
@@ -77,7 +76,15 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const products = await getProducts();
+    const session = await getServerSession();
+
+    if (!session || !session?.user || session?.user?.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+    const products = await prisma.product.findMany();
     return NextResponse.json(products);
   } catch (error: any) {
     return NextResponse.json(
