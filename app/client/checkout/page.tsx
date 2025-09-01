@@ -42,7 +42,6 @@ export default function ClientCheckout() {
 
   useEffect(() => {
     const cart = getStoredData<CartItem[]>(`fitplay_cart_${user?.id}`, []);
-    console.log(cart);
     if (cart.length === 0) {
       router.push("/client/cart");
       toast.error("Your cart is empty");
