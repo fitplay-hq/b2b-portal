@@ -30,7 +30,7 @@ export function MetricsGrid({
       />
       <MetricCard
         title="Total Revenue"
-        value={`$${totalRevenue.toFixed(2)}`}
+        value={`₹${totalRevenue.toFixed(2)}`}
         description="From all orders"
         Icon={TrendingUp}
       />

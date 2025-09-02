@@ -66,7 +66,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {order.company} •{" "}
-                  {new Date(order.createdAt).toLocaleDateString()} • $
+                  {new Date(order.createdAt).toLocaleDateString()} • ₹
                   {order.total.toFixed(2)}
                 </p>
               </div>

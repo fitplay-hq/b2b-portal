@@ -16,7 +16,7 @@ import {
   XCircle,
   Building2,
   Calendar,
-  DollarSign,
+  IndianRupee,
   Download,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -91,7 +91,7 @@ const OrderSummary = ({ order }: { order: PurchaseOrder }) => {
             {order.items.length} items
           </span>
           <span className="flex items-center gap-1.5">
-            <DollarSign className="h-3 w-3" />
+            <IndianRupee className="h-3 w-3" />
             {order.total.toFixed(2)}
           </span>
         </div>
@@ -142,9 +142,9 @@ const OrderDetails = ({
                   SKU: {item.product.sku}
                 </p>
                 <p className="text-sm">
-                  ${item.product.price.toFixed(2)} × {item.quantity} ={" "}
+                  ₹{item.product.price.toFixed(2)} × {item.quantity} ={" "}
                   <strong>
-                    ${(item.product.price * item.quantity).toFixed(2)}
+                    ₹{(item.product.price * item.quantity).toFixed(2)}
                   </strong>
                 </p>
               </div>
