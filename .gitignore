@@ -42,3 +42,5 @@ next-env.d.ts
 
 b2b-milestones.md
 lib/generated/
+
+prisma/generated

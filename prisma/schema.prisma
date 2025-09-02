@@ -4,6 +4,10 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
+generator zod {
+  provider = "prisma-zod-generator"
+}
+
 generator client {
   provider = "prisma-client-js"
   output   = "../lib/generated/prisma"
@@ -18,8 +22,8 @@ model User {
   id        String    @id @default(uuid())
   name      String    @db.VarChar(30)
   email     String    @unique
-  password  String    
-  phone     String    @unique 
+  password  String
+  phone     String    @unique
   role      Role
   gender    Gender?
   birthDate DateTime?
@@ -34,7 +38,7 @@ model Admin {
   id        String   @id @default(uuid())
   name      String   @default("admin")
   email     String   @unique
-  password  String   
+  password  String
   role      Role?    @default(ADMIN)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -62,7 +66,7 @@ model Client {
   id        String   @id @default(uuid())
   name      String   @db.VarChar(50)
   email     String   @unique
-  password  String   
+  password  String
   phone     String   @unique
   address   String   @db.VarChar(100)
   role      Role     @default(CLIENT)
