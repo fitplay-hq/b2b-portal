@@ -2,7 +2,6 @@
 
 import Layout from "@/components/layout";
 import { Loader2 } from "lucide-react";
-import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { useDashboardMetrics } from "@/hooks/use-dashboard-metrics";
 
 import { MetricsGrid } from "./components/metric-grid";
@@ -11,8 +10,7 @@ import { QuickActions } from "./components/quick-actions";
 import { RecentOrders } from "./components/recent-orders";
 
 export default function AdminDashboardPage() {
-  const { data, isLoading, error } = useDashboardData();
-  const metrics = useDashboardMetrics(data);
+  const { metrics, isLoading, error } = useDashboardMetrics();
 
   const WelcomeHeader = () => (
     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">

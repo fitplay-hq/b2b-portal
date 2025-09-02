@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Product } from '@/lib/generated/prisma';
 import { PurchaseOrder, Client } from '@/lib/mockData';
+import { useDashboardData } from './use-dashboard-data';
 
 interface DashboardData {
   products: Product[];
@@ -8,8 +9,20 @@ interface DashboardData {
   clients: Client[];
 }
 
-export function useDashboardMetrics({ products, orders, clients }: DashboardData) {
+export function useDashboardMetrics() {
+  const { data, isLoading, error } = useDashboardData();
+
+  const { orders, products, clients } = data
+
   return useMemo(() => {
+    if (isLoading || error) {
+      return {
+        data: null,
+        isLoading,
+        error
+      }
+    }
+
     const totalOrders = orders.length;
     const pendingOrders = orders.filter((o) => o.status === 'pending').length;
     const approvedOrders = orders.filter((o) => o.status === 'approved').length;
@@ -29,15 +42,19 @@ export function useDashboardMetrics({ products, orders, clients }: DashboardData
     const completionRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
     
     return {
-      totalOrders,
-      pendingOrders,
-      approvedOrders,
-      completedOrders,
-      totalRevenue,
-      lowStockProducts,
-      activeClients,
-      recentOrders,
-      completionRate,
+      metrics: {
+        totalOrders,
+        pendingOrders,
+        approvedOrders,
+        completedOrders,
+        totalRevenue,
+        lowStockProducts,
+        activeClients,
+        recentOrders,
+        completionRate,
+      },
+      isLoading,
+      error
     };
   }, [products, orders, clients]);
 }
