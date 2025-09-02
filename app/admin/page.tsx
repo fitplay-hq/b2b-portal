@@ -21,7 +21,7 @@ export default function AdminDashboardPage() {
     </div>
   );
 
-  if (isLoading) {
+  if (isLoading || !metrics) {
     return (
       <Layout title="Admin Dashboard" isClient={false}>
         <div className="flex justify-center items-center h-64">
