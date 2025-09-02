@@ -8,7 +8,6 @@ export default async function Page() {
     redirect("/login");
   }
 
-  console.log("Session:", session?.user);
   if (session.user.role === "ADMIN") {
     redirect("/admin");
   } else {

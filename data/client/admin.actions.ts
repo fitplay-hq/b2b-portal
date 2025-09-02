@@ -1,5 +1,5 @@
-import { Prisma, Client } from "@/lib/generated/prisma";
-import { MOCK_CLIENTS } from "@/lib/mockData";
+import { Prisma } from "@/lib/generated/prisma";
+import { Client, MOCK_CLIENTS } from "@/lib/mockData";
 
 export async function getClients(url: string) {
   return MOCK_CLIENTS
@@ -10,7 +10,7 @@ export async function getClients(url: string) {
   // return await response.json() as Client[];
 }
 
-export async function createClient(url: string, clientData: Prisma.ClientCreateInput) {
+export async function createClient(url: string, clientData: Omit<Client, 'id' | 'createdAt'>) {
   // const response = await fetch(url, {
   //   method: "POST",
   //   headers: { "Content-Type": "application/json" },
@@ -22,7 +22,7 @@ export async function createClient(url: string, clientData: Prisma.ClientCreateI
   // return await response.json();
 }
 
-export async function updateClient(url: string, clientData: Prisma.ClientUpdateInput) {
+export async function updateClient(url: string, clientData: Omit<Client, 'createdAt'>) {
   // const response = await fetch(url, {
   //   method: "PATCH",
   //   headers: { "Content-Type": "application/json" },

@@ -1,7 +1,7 @@
 import useSWR, { mutate as globalMutate } from "swr";
 import useSWRMutation from "swr/mutation";
 import { createClient, deleteClient, getClients, updateClient } from "./admin.actions";
-import { Prisma } from "@/lib/generated/prisma";
+import { Client } from "@/lib/mockData";
 
 /**
  * Hook to fetch a list of clients.
@@ -26,7 +26,7 @@ export function useClients() {
 export function useCreateClient() {
   const { trigger, isMutating, error } = useSWRMutation(
     "/api/admin/clients/client",
-    (url, { arg }: { arg: Prisma.ClientCreateInput }) => createClient(url, arg),
+    (url, { arg }: { arg: Omit<Client, 'id' | 'createdAt'> }) => createClient(url, arg),
     {
       onSuccess: () => {
         globalMutate('/api/admin/clients')
@@ -47,7 +47,7 @@ export function useCreateClient() {
 export function useUpdateClient() {
   const { trigger, isMutating, error } = useSWRMutation(
     "/api/admin/clients/client",
-    (url, { arg }: { arg: Prisma.ClientUpdateInput }) => updateClient(url, arg),
+    (url, { arg }: { arg: Omit<Client, 'createdAt'> }) => updateClient(url, arg),
     {
       onSuccess: () => {
         globalMutate('/api/admin/clients')

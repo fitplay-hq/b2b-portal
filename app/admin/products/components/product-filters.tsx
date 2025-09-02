@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PRODUCT_CATEGORIES } from "@/lib/mockData";
+import { $Enums } from "@/lib/generated/prisma";
 import { Search } from "lucide-react";
 
 interface ProductFiltersProps {
@@ -45,7 +45,7 @@ export function ProductFilters({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PRODUCT_CATEGORIES.map((category) => (
+                {Object.values($Enums.Category).map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
                   </SelectItem>
