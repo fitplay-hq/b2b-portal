@@ -244,11 +244,11 @@ export default function ClientCheckout() {
                         {item.product.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        ${item.product.price} × {item.quantity}
+                        ₹{item.product.price} × {item.quantity}
                       </p>
                     </div>
                     <div className="text-sm font-medium">
-                      ${(item.product.price * item.quantity).toFixed(2)}
+                      ₹{(item.product.price * item.quantity).toFixed(2)}
                     </div>
                   </div>
                 ))}
@@ -258,16 +258,16 @@ export default function ClientCheckout() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Tax (8%)</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span>₹{tax.toFixed(2)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-medium">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>₹{total.toFixed(2)}</span>
                   </div>
                 </div>
               </CardContent>

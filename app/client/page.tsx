@@ -122,7 +122,7 @@ export default function ClientDashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${totalSpent.toFixed(2)}</div>
+              <div className="text-2xl font-bold">₹{totalSpent.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">All time spending</p>
             </CardContent>
           </Card>
