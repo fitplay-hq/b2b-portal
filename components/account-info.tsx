@@ -8,13 +8,18 @@ import {
 } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Skeleton } from "./ui/skeleton";
 import { Building, LogIn, LogOut, User } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
 export default function AccountInfo() {
   const { data } = useSession();
 
-  if (!data?.user) {
+  if (!data) {
+    return <Skeleton className="w-28 h-10" />;
+  }
+
+  if (!data.user) {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
