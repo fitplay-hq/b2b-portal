@@ -36,7 +36,7 @@ export function useOrderManagement(orders: PurchaseOrder[] = [], mutate: KeyedMu
         status: dialogState.newStatus as PurchaseOrder['status'],
         notes: dialogState.notes,
       });
-      toast.success(`Order ${dialogState.order.poNumber} status updated.`);
+      toast.success(`Order ${dialogState.order.id} status updated.`);
       closeStatusDialog();
     } catch (error) {
       toast.error("Failed to update status.");

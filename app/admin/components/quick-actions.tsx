@@ -21,7 +21,7 @@ export function QuickActions() {
       />
       <ActionCard
         title="Process Orders"
-        description="Review and approve pending purchase orders"
+        description="Review and approve pending dispatch orders"
         href="/admin/orders"
         Icon={ShoppingCart}
       />

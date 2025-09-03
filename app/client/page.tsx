@@ -181,7 +181,7 @@ export default function ClientDashboard() {
             <CardHeader>
               <CardTitle>Order History</CardTitle>
               <CardDescription>
-                Track your purchase orders and delivery status
+                Track your dispatch orders and delivery status
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -197,7 +197,7 @@ export default function ClientDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Recent Orders</CardTitle>
-              <CardDescription>Your latest purchase orders</CardDescription>
+              <CardDescription>Your latest dispatch orders</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

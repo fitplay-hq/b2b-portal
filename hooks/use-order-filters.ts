@@ -11,7 +11,6 @@ export function useOrderFilters(orders: PurchaseOrder[] = []) {
 
     if (lowercasedTerm) {
       filtered = filtered.filter(order =>
-        order.poNumber.toLowerCase().includes(lowercasedTerm) ||
         order.clientName.toLowerCase().includes(lowercasedTerm) ||
         order.company.toLowerCase().includes(lowercasedTerm) ||
         order.items.some(item =>

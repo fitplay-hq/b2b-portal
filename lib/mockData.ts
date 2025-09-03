@@ -16,7 +16,6 @@ export interface CartItem {
 
 export interface PurchaseOrder {
   id: string;
-  poNumber: string;
   clientId: string;
   clientName: string;
   clientEmail: string;

@@ -64,16 +64,14 @@ export default function ClientOrderHistory() {
     let filtered = orders;
 
     if (searchTerm) {
-      filtered = filtered.filter(
-        (order) =>
-          order.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.items.some(
-            (item) =>
-              item.product.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-              item.product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-          )
+      filtered = filtered.filter((order) =>
+        order.items.some(
+          (item) =>
+            item.product.name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            item.product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+        )
       );
     }
 
@@ -245,7 +243,7 @@ export default function ClientOrderHistory() {
                           <div className="space-y-1">
                             <div className="flex items-center gap-3">
                               <CardTitle className="text-lg">
-                                {order.poNumber}
+                                {order.id}
                               </CardTitle>
                               <Badge className={getStatusColor(order.status)}>
                                 {order.status.charAt(0).toUpperCase() +

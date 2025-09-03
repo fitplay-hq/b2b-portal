@@ -41,7 +41,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
           <div>
             <CardTitle>Recent Orders</CardTitle>
             <CardDescription>
-              Latest purchase orders from clients
+              Latest dispatch orders from clients
             </CardDescription>
           </div>
           <Button asChild variant="outline" size="sm">
@@ -58,7 +58,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
-                  <p className="font-medium">{order.poNumber}</p>
+                  <p className="font-medium">{order.id}</p>
                   <Badge className={getStatusColor(order.status)}>
                     {order.status.charAt(0).toUpperCase() +
                       order.status.slice(1)}

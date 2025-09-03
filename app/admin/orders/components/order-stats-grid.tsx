@@ -52,7 +52,7 @@ export function OrderStatsGrid({
       <StatCard
         title="Total Orders"
         value={totalOrders}
-        description="All purchase orders"
+        description="All dispatch orders"
         Icon={FileText}
       />
       <StatCard

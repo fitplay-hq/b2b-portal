@@ -71,7 +71,7 @@ const OrderSummary = ({ order }: { order: PurchaseOrder }) => {
     <div className="flex w-full items-start justify-between gap-4">
       <div className="space-y-1">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <CardTitle className="text-lg">{order.poNumber}</CardTitle>
+          <CardTitle className="text-lg">{order.id}</CardTitle>
           <Badge className={color}>
             <Icon className="mr-1.5 h-4 w-4" />
             {statusText}

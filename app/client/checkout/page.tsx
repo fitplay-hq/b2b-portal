@@ -85,7 +85,6 @@ export default function ClientCheckout() {
       // Create purchase order
       const newOrder: PurchaseOrder = {
         id: Date.now().toString(),
-        poNumber,
         clientId: user!.id,
         clientName: user!.name,
         clientEmail: user!.email,
@@ -114,10 +113,10 @@ export default function ClientCheckout() {
       // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      toast.success("Purchase Order created successfully!");
+      toast.success("Dispatch Order created successfully!");
       router.push("/client/orders");
     } catch (error) {
-      toast.error("Failed to create purchase order");
+      toast.error("Failed to create dispatch order");
     } finally {
       setLoading(false);
     }
@@ -137,7 +136,7 @@ export default function ClientCheckout() {
             Back to Cart
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Create Purchase Order</h1>
+            <h1 className="text-2xl font-bold">Create Dispatch Order</h1>
             <p className="text-muted-foreground">
               Review your order and provide delivery details
             </p>
@@ -153,19 +152,50 @@ export default function ClientCheckout() {
             {/* PO Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Purchase Order Information</CardTitle>
+                <CardTitle>Dispatch Order Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="poNumber">PO Number</Label>
-                  <Input
-                    id="poNumber"
-                    value={poNumber}
-                    onChange={(e) => setPONumber(e.target.value)}
-                    placeholder="Auto-generated PO number"
-                    required
-                  />
-                </div>
+                {cartItems.map((item) => (
+                  <div
+                    key={item.product.id}
+                    className="flex gap-4 p-4 border rounded-lg"
+                  >
+                    <div className="w-20 h-20 flex-shrink-0">
+                      <ImageWithFallback
+                        src={item.product.image}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover rounded"
+                      />
+                    </div>
+
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium">{item.product.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            SKU: {item.product.sku}
+                          </p>
+                          <p className="text-sm font-medium">
+                            ₹{item.product.price.toFixed(2)} each
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2"></div>
+
+                        <div className="text-right">
+                          <p className="font-medium">
+                            ₹{(item.product.price * item.quantity).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.quantity} quantity
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
@@ -283,12 +313,12 @@ export default function ClientCheckout() {
                   disabled={loading}
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  {loading ? "Creating PO..." : "Create Purchase Order"}
+                  {loading ? "Creating DO..." : "Create Dispatch Order"}
                 </Button>
 
                 <div className="mt-4 text-xs text-muted-foreground text-center space-y-1">
                   <p>
-                    Your purchase order will be sent to Fitplay for approval.
+                    Your dispatch order will be sent to Fitplay for approval.
                   </p>
                   <p>You will receive an email confirmation once submitted.</p>
                 </div>

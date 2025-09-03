@@ -44,7 +44,7 @@ export default function AdminOrdersPage() {
         <div>
           <h1 className="text-2xl font-bold">Order Management</h1>
           <p className="text-muted-foreground">
-            Review and manage purchase orders from clients
+            Review and manage dispatch orders from clients
           </p>
         </div>
 

@@ -13,6 +13,7 @@ import {
   ShoppingBag,
   ArrowLeft,
   FileText,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CartItem, getStoredData, setStoredData } from "@/lib/mockData";
@@ -248,12 +249,12 @@ export default function ClientCart() {
                   size="lg"
                   onClick={() => router.push("/client/checkout")}
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Create Purchase Order
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Next
                 </Button>
 
                 <div className="text-xs text-muted-foreground text-center">
-                  <p>This will generate a Purchase Order for approval</p>
+                  <p>This will generate a Dispatch Order for approval</p>
                   <p>Payment terms as per existing agreement</p>
                 </div>
               </CardContent>
