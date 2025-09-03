@@ -1,4 +1,4 @@
-import { Prisma, Product } from "@/lib/generated/prisma";
+import { Order, Prisma, Product } from "@/lib/generated/prisma";
 import { MOCK_ORDERS } from "@/lib/mockData";
 
 export async function getOrders(url: string) {
@@ -11,15 +11,15 @@ export async function getOrders(url: string) {
 }
 
 export async function createOrder(url: string, orderData: any) {
-  // const response = await fetch(url, {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(orderData),
-  // });
-  // if (!response.ok) {
-  //   throw new Error("Failed to create product");
-  // }
-  // return await response.json();
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(orderData),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create product");
+  }
+  return await response.json();
 }
 
 export async function updateOrder(url: string, orderData: Prisma.ProductUpdateInput) {

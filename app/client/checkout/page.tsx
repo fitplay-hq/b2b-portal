@@ -20,6 +20,8 @@ import {
   MOCK_ORDERS,
 } from "@/lib/mockData";
 import { useRouter } from "next/navigation";
+import { Prisma } from "@/lib/generated/prisma";
+import { createOrder } from "@/data/order/admin.actions";
 
 export default function ClientCheckout() {
   const user = {
@@ -104,8 +106,21 @@ export default function ClientCheckout() {
       // Clear cart
       setStoredData(`fitplay_cart_${user?.id}`, []);
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const _orderItems: Prisma.OrderItemCreateManyOrderInput[] = cartItems.map(
+        (item) => ({
+          productId: item.product.id,
+          price: item.product.price,
+          quantity: item.quantity,
+        })
+      );
+
+      const _order = {
+        deliveryAddress: deliveryAddress.trim(),
+        totalAmount: total,
+        items: _orderItems,
+      };
+
+      await createOrder("/api/clients/orders/order", _order);
 
       toast.success("Dispatch Order created successfully!");
       router.push("/client/orders");
