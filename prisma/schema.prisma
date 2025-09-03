@@ -86,7 +86,7 @@ model Product {
   categories     Category
   avgRating      Float?
   noOfReviews    Int?
-  brand          String    @db.VarChar(30)
+  brand          String?    @db.VarChar(30)
   companies      Company[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
