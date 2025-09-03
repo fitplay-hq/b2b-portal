@@ -113,7 +113,7 @@ export const auth: AuthOptions = {
     }
   },
   pages: {
-    signIn: '/auth/signin',
+    signIn: '/login',
     error: '/auth/error',
   },
   debug: process.env.NODE_ENV === "development", 
