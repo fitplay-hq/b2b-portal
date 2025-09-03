@@ -44,3 +44,5 @@ b2b-milestones.md
 lib/generated/
 
 prisma/generated
+
+products.json

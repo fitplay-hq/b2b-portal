@@ -52,7 +52,7 @@ model VerificationToken {
   createdAt  DateTime @default(now())
 }
 
-model Company {   //Companies for fitplay
+model Company {
   id        String    @id @default(uuid())
   name      String    @db.VarChar(50)
   address   String    @db.VarChar(100)
@@ -62,13 +62,13 @@ model Company {   //Companies for fitplay
   products  Product[]
 }
 
-model Client {    
+model Client {
   id          String   @id @default(uuid())
   name        String   @db.VarChar(50) //Client name like Shruti belonging to Microsoft company
   email       String   @unique
   password    String
   phone       String   @unique
-  companyName String   @db.VarChar(100)   //b2b client companies eg, Microsoft
+  companyName String   @db.VarChar(100) //b2b client companies eg, Microsoft
   address     String   @db.VarChar(100)
   role        Role     @default(CLIENT)
   createdAt   DateTime @default(now())
@@ -86,10 +86,18 @@ model Product {
   categories     Category
   avgRating      Float?
   noOfReviews    Int?
-  brand          String?    @db.VarChar(30)
+  brand          String?   @db.VarChar(30)
   companies      Company[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  orders         Order?    @relation(fields: [orderId], references: [id])
+  orderId        String?
+}
+
+model Order {
+  id          String    @id @default(uuid())
+  products    Product[]
+  totalAmount Float
 }
 
 enum Category {
