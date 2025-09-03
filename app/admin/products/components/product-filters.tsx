@@ -40,6 +40,9 @@ export function ProductFilters({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem key="All Categories" value="All Categories">
+              All Categories
+            </SelectItem>
             {Object.values($Enums.Category).map((category) => (
               <SelectItem key={category} value={category}>
                 {category}
