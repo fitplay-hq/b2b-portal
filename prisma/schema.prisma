@@ -73,31 +73,47 @@ model Client {
   role        Role     @default(CLIENT)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  orders      Order[]
 }
 
 model Product {
-  id             String    @id @default(uuid())
-  name           String    @db.VarChar(50)
+  id             String      @id @default(uuid())
+  name           String      @db.VarChar(50)
   images         String[]
   price          Int
-  sku            String    @unique @db.VarChar(100)
+  sku            String      @unique @db.VarChar(100)
   availableStock Int
   description    String
   categories     Category
   avgRating      Float?
   noOfReviews    Int?
-  brand          String?   @db.VarChar(30)
+  brand          String?     @db.VarChar(30)
   companies      Company[]
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  orders         Order?    @relation(fields: [orderId], references: [id])
-  orderId        String?
+  orderItems     OrderItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 }
 
 model Order {
-  id          String    @id @default(uuid())
-  products    Product[]
-  totalAmount Float
+  id              String      @id @default(uuid())
+  totalAmount     Float
+  deliveryAddress String
+  note            String?
+  client          Client      @relation(fields: [clientId], references: [id])
+  clientId        String
+  orderItems      OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int     @default(1)
+  price     Float // snapshot of product price at purchase time
 }
 
 enum Category {
