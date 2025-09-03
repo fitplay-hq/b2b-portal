@@ -99,6 +99,7 @@ model Order {
   totalAmount     Float
   deliveryAddress String
   note            String?
+  status          Status     @default(PENDING)
   client          Client      @relation(fields: [clientId], references: [id])
   clientId        String
   orderItems      OrderItem[]
@@ -125,6 +126,12 @@ enum Category {
   travelAndTech
   books
   welcomeKit
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum Gender {
