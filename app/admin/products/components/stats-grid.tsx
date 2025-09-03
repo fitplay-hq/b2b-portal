@@ -1,4 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Product } from "@/lib/generated/prisma";
 import { Package, AlertTriangle } from "lucide-react";
 import { useMemo } from "react";
@@ -17,7 +25,7 @@ export function StatsGrid({ products }: StatsGridProps) {
   }, [products]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
       <StatCard
         title="Total Products"
         value={stats.total}
@@ -58,14 +66,18 @@ function StatCard({
 }) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={`h-4 w-4 ${iconColor}`} />
+      <CardHeader>
+        <CardDescription>{title}</CardDescription>
+        <CardTitle className="text-2xl font-bold">{value}</CardTitle>
+        <CardAction>
+          <Icon className={`h-6 w-6 ${iconColor}`} />
+        </CardAction>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
+      <CardFooter>
+        <p className="text-sm text-muted-foreground font-medium">
+          {description}
+        </p>
+      </CardFooter>
     </Card>
   );
 }
