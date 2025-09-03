@@ -76,13 +76,8 @@ export default function ClientCart() {
     );
   };
 
-  const calculateTax = (subtotal: number) => {
-    return subtotal * 0.18; // 18% GST for India
-  };
-
   const subtotal = calculateSubtotal();
-  const tax = calculateTax(subtotal);
-  const total = subtotal + tax;
+  const total = subtotal;
 
   if (cartItems.length === 0) {
     return (
@@ -228,14 +223,12 @@ export default function ClientCart() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Subtotal</span>
-                    <span>₹{subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>GST (18%)</span>
-                    <span>₹{tax.toFixed(2)}</span>
-                  </div>
+                  {cartItems.map((item) => (
+                    <div className="flex justify-between text-sm">
+                      <span>{item.product.name}</span>
+                      <span>₹{item.product.price}</span>
+                    </div>
+                  ))}
                   <div className="border-t pt-2">
                     <div className="flex justify-between font-medium">
                       <span>Total</span>

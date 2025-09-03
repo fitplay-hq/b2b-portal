@@ -56,20 +56,14 @@ export default function ClientCheckout() {
     setBillingContact(`${user?.name} - ${user?.email}`);
   }, [user?.name, user?.email]);
 
-  const calculateSubtotal = () => {
+  const calculateTotal = () => {
     return cartItems.reduce(
       (total, item) => total + item.product.price * item.quantity,
       0
     );
   };
 
-  const calculateTax = (subtotal: number) => {
-    return subtotal * 0.08; // 8% tax rate
-  };
-
-  const subtotal = calculateSubtotal();
-  const tax = calculateTax(subtotal);
-  const total = subtotal + tax;
+  const total = calculateTotal();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,20 +279,9 @@ export default function ClientCheckout() {
 
                 <Separator />
 
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Subtotal</span>
-                    <span>₹{subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Tax (8%)</span>
-                    <span>₹{tax.toFixed(2)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-medium">
-                    <span>Total</span>
-                    <span>₹{total.toFixed(2)}</span>
-                  </div>
+                <div className="flex justify-between font-medium">
+                  <span>Total</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
               </CardContent>
             </Card>
