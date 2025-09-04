@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import {
   ArrowLeft,
   FileText,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CartItem, getStoredData, setStoredData } from "@/lib/mockData";
@@ -21,16 +23,40 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function ClientCart() {
-  const user = {
-    id: "1",
-    email: "client@acmecorp.com",
-    name: "John Smith",
-    role: "client",
-    company: "ACME Corporation",
-  };
-
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  // Handle authentication
+  if (status === "loading") {
+    return (
+      <Layout title="Shopping Cart" isClient>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (status === "unauthenticated" || !session?.user) {
+    return (
+      <Layout title="Shopping Cart" isClient>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">
+            Please sign in to view your cart
+          </p>
+        </div>
+      </Layout>
+    );
+  }
+
+  const user = {
+    id: session.user.id || "1",
+    email: session.user.email || "",
+    name: session.user.name || "",
+    role: "client",
+    company: (session.user as any)?.company || "Company",
+  };
 
   useEffect(() => {
     const cart = getStoredData<CartItem[]>(`fitplay_cart_${user?.id}`, []);

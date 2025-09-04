@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ImageWithFallback } from "@/components/image";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   CartItem,
@@ -24,22 +25,47 @@ import { Prisma } from "@/lib/generated/prisma";
 import { createOrder } from "@/data/order/admin.actions";
 
 export default function ClientCheckout() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Handle authentication loading state
+  if (status === "loading") {
+    return (
+      <Layout title="Checkout" isClient>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Handle unauthenticated users
+  if (status === "unauthenticated" || !session?.user) {
+    return (
+      <Layout title="Checkout" isClient>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">
+            Please sign in to continue to checkout
+          </p>
+        </div>
+      </Layout>
+    );
+  }
+
   const user = {
-    id: "1",
-    email: "client@acmecorp.com",
-    name: "John Smith",
+    id: session.user.id || "1",
+    email: session.user.email || "",
+    name: session.user.name || "",
     role: "client",
-    company: "ACME Corporation",
+    company: (session.user as any)?.company || "Company",
   };
 
-  const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Form state
   const [poNumber, setPONumber] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [billingContact, setBillingContact] = useState("");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
@@ -54,8 +80,7 @@ export default function ClientCheckout() {
     // Generate PO number
     setPONumber(generatePONumber());
 
-    // Pre-fill billing contact with user info
-    setBillingContact(`${user?.name} - ${user?.email}`);
+    // Client info is now displayed as read-only, no pre-filling needed
   }, [user?.name, user?.email]);
 
   const calculateTotal = () => {
@@ -89,7 +114,7 @@ export default function ClientCheckout() {
         total,
         status: "pending",
         deliveryAddress: deliveryAddress.trim(),
-        billingContact: billingContact.trim(),
+        billingContact: `${user.name} - ${user.email} (${user.company})`,
         notes: notes.trim(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -228,23 +253,31 @@ export default function ClientCheckout() {
               </CardContent>
             </Card>
 
-            {/* Billing Information */}
+            {/* Client Information (Read-only) */}
             <Card>
               <CardHeader>
-                <CardTitle>Billing Contact</CardTitle>
+                <CardTitle>Client Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="billingContact">
-                    Billing Contact Information
-                  </Label>
-                  <Input
-                    id="billingContact"
-                    value={billingContact}
-                    onChange={(e) => setBillingContact(e.target.value)}
-                    placeholder="Name and email for billing inquiries"
-                    required
-                  />
+                  <Label>Contact Name</Label>
+                  <div className="text-sm font-medium border rounded px-3 py-2 bg-muted/50">
+                    {user.name}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Email Address</Label>
+                  <div className="text-sm font-medium border rounded px-3 py-2 bg-muted/50">
+                    {user.email}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Company</Label>
+                  <div className="text-sm font-medium border rounded px-3 py-2 bg-muted/50">
+                    {user.company}
+                  </div>
                 </div>
 
                 <div className="space-y-2">

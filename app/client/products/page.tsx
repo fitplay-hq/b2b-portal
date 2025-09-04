@@ -2,6 +2,7 @@
 
 import Layout from "@/components/layout";
 import { Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useCart } from "@/hooks/use-cart";
 import { useProductFilters } from "@/hooks/use-product-filters";
 import { useQuantityDialog } from "@/hooks/use-quantity-dialog";
@@ -11,13 +12,35 @@ import { ProductGrid } from "./components/product-grid";
 import { QuantityDialog } from "./components/quantity-dialog";
 import { useProducts } from "@/data/product/client.hooks";
 
-// In a real app, this would come from an auth context
-const mockUser = { id: "1" };
-
 export default function ClientProductsPage() {
+  const { data: session, status } = useSession();
   const { products, error, isLoading } = useProducts();
 
-  const { totalCartItems, addToCart, getCartQuantity } = useCart(mockUser.id);
+  // Handle authentication
+  if (status === "loading") {
+    return (
+      <Layout title="Products" isClient>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (status === "unauthenticated" || !session?.user) {
+    return (
+      <Layout title="Products" isClient>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">
+            Please sign in to view products
+          </p>
+        </div>
+      </Layout>
+    );
+  }
+
+  const userId = session.user.id || "1";
+  const { totalCartItems, addToCart, getCartQuantity } = useCart(userId);
   const { filteredProducts, ...filterProps } = useProductFilters(products);
   const quantityDialog = useQuantityDialog();
 
