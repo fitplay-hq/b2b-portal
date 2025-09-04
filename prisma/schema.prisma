@@ -131,7 +131,7 @@ enum Category {
 enum Status {
   PENDING
   APPROVED
-  REJECTED
+  CANCELLED
 }
 
 enum Gender {

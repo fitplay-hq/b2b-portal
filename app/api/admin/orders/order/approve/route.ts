@@ -11,7 +11,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { orderId } = await req.json();
+    const { orderId, status } = await req.json();
 
     if (!orderId) {
       return NextResponse.json(
@@ -40,7 +40,7 @@ export async function PATCH(req: NextRequest) {
       // 1. Approve order
       const approvedOrder = await tx.order.update({
         where: { id: orderId },
-        data: { status: "APPROVED" },
+        data: { status: status || "PENDING" },
       });
 
       // 2. Reduce stock for each product
