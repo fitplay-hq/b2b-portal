@@ -39,7 +39,7 @@ const getStatusVisuals = (
         color: "border-transparent bg-blue-100 text-blue-800",
         Icon: CheckCircle,
       };
-    case "REJECTED":
+    case "CANCELLED":
       return {
         color: "border-transparent bg-red-100 text-red-800",
         Icon: XCircle,
