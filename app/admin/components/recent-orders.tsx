@@ -9,15 +9,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PurchaseOrder } from "@/lib/mockData";
+import { AdminOrder } from "@/data/order/admin.actions";
+import { Order } from "@/lib/generated/prisma";
 
 // This helper function is now co-located with the component that uses it.
-const getStatusColor = (status: PurchaseOrder["status"]) => {
+const getStatusColor = (status: Order["status"]) => {
   switch (status) {
-    case "pending":
+    case "PENDING":
       return "border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80";
-    case "approved":
-      return "border-transparent bg-blue-100 text-blue-800 hover:bg-blue-100/80";
-    case "completed":
+    case "APPROVED":
       return "border-transparent bg-green-100 text-green-800 hover:bg-green-100/80";
     default:
       return "border-transparent bg-gray-100 text-gray-800 hover:bg-gray-100/80";
@@ -25,7 +25,7 @@ const getStatusColor = (status: PurchaseOrder["status"]) => {
 };
 
 interface RecentOrdersProps {
-  orders: PurchaseOrder[];
+  orders: AdminOrder[];
 }
 
 export function RecentOrders({ orders }: RecentOrdersProps) {
@@ -65,9 +65,9 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {order.company} •{" "}
+                  {order.client.companyName} •{" "}
                   {new Date(order.createdAt).toLocaleDateString()} • ₹
-                  {order.total.toFixed(2)}
+                  {order.totalAmount.toFixed(2)}
                 </p>
               </div>
               <Button asChild variant="secondary" size="sm">

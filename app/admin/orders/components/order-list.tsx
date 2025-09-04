@@ -2,12 +2,13 @@ import { PurchaseOrder } from "@/lib/mockData";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText } from "lucide-react";
 import { OrderCard } from "./order-card";
+import { AdminOrder } from "@/data/order/admin.actions";
 
 interface OrderListProps {
-  orders: PurchaseOrder[];
+  orders: AdminOrder[];
   expandedOrders: Set<string>;
   toggleOrderExpansion: (orderId: string) => void;
-  openStatusDialog: (order: PurchaseOrder) => void;
+  openStatusDialog: (order: AdminOrder) => void;
 }
 
 export function OrderList({ orders, ...props }: OrderListProps) {

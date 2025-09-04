@@ -3,12 +3,6 @@ import { Product } from '@/lib/generated/prisma';
 import { PurchaseOrder, Client } from '@/lib/mockData';
 import { useDashboardData } from './use-dashboard-data';
 
-interface DashboardData {
-  products: Product[];
-  orders: PurchaseOrder[];
-  clients: Client[];
-}
-
 export function useDashboardMetrics() {
   const { data, isLoading, error } = useDashboardData();
 
@@ -24,13 +18,13 @@ export function useDashboardMetrics() {
     }
 
     const totalOrders = orders.length;
-    const pendingOrders = orders.filter((o) => o.status === 'pending').length;
-    const approvedOrders = orders.filter((o) => o.status === 'approved').length;
-    const completedOrders = orders.filter((o) => o.status === 'completed').length;
+    const pendingOrders = orders.filter((o) => o.status === 'PENDING').length;
+    const approvedOrders = orders.filter((o) => o.status === 'APPROVED').length;
+    const rejectedOrders = orders.filter((o) => o.status === 'REJECTED').length;
 
     const totalRevenue = orders
-      .filter((o) => o.status !== 'cancelled')
-      .reduce((sum, order) => sum + order.total, 0);
+      .filter((o) => o.status !== 'REJECTED')
+      .reduce((sum, order) => sum + order.totalAmount, 0);
 
     const lowStockProducts = products.filter((p) => p.availableStock < 50).length;
     const activeClients = clients.filter((c) => c.status === 'active').length;
@@ -39,14 +33,14 @@ export function useDashboardMetrics() {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5);
 
-    const completionRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
+    const completionRate = totalOrders > 0 ? (approvedOrders / totalOrders) * 100 : 0;
     
     return {
       metrics: {
         totalOrders,
         pendingOrders,
         approvedOrders,
-        completedOrders,
+        rejectedOrders,
         totalRevenue,
         lowStockProducts,
         activeClients,

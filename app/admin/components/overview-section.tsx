@@ -6,10 +6,10 @@ import { ForwardRefExoticComponent, RefAttributes } from "react";
 interface OverviewSectionProps {
   pendingOrders: number;
   approvedOrders: number; // Assuming you'd calculate this in the hook too
-  completedOrders: number;
   completionRate: number;
   lowStockProducts: number;
   activeClients: number;
+  rejectedOrders: number;
 }
 
 export function OverviewSection({

@@ -1,7 +1,6 @@
 import useSWR, { mutate as globalMutate } from "swr";
 import useSWRMutation from "swr/mutation";
-import { createOrder, deleteOrder, getOrders, updateOrder } from "./admin.actions";
-import { Prisma } from "@/lib/generated/prisma";
+import { createOrder, deleteOrder, getOrder, getOrders, updateOrder } from "./admin.actions";
 
 /**
  * Hook to fetch a list of orders.
@@ -18,6 +17,20 @@ export function useOrders() {
     isLoading,
     mutate,
   };
+}
+
+/**
+ * Hook to fetch an order
+ */
+export function useOrder() {
+  const { data, error, isLoading, mutate } = useSWR("/api/admin/orders/order", (url, { arg }: {arg: { id: string }}) => getOrder(url, arg.id))
+
+  return {
+    order: data,
+    error,
+    isLoading,
+    mutate
+  }
 }
 
 /**

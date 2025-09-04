@@ -3,12 +3,13 @@ import { toast } from "sonner";
 import { PurchaseOrder } from "@/lib/mockData";
 import { useUpdateOrder } from "@/data/order/admin.hooks";
 import { KeyedMutator } from "swr";
+import { AdminOrder } from "@/data/order/admin.actions";
 
-export function useOrderManagement(orders: PurchaseOrder[] = [], mutate: KeyedMutator<any>) {
+export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutator<any>) {
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [dialogState, setDialogState] = useState({
     isOpen: false,
-    order: null as PurchaseOrder | null,
+    order: null as AdminOrder | null,
     newStatus: "",
     notes: "",
   });
@@ -20,7 +21,7 @@ export function useOrderManagement(orders: PurchaseOrder[] = [], mutate: KeyedMu
     setExpandedOrders(newExpanded);
   };
 
-  const openStatusDialog = (order: PurchaseOrder) => {
+  const openStatusDialog = (order: AdminOrder) => {
     setDialogState({ isOpen: true, order, newStatus: order.status, notes: "" });
   };
 
@@ -33,7 +34,7 @@ export function useOrderManagement(orders: PurchaseOrder[] = [], mutate: KeyedMu
     try {
       await updateOrder({
         orderId: dialogState.order.id,
-        status: dialogState.newStatus as PurchaseOrder['status'],
+        status: dialogState.newStatus as AdminOrder['status'],
         notes: dialogState.notes,
       });
       toast.success(`Order ${dialogState.order.id} status updated.`);
@@ -45,11 +46,11 @@ export function useOrderManagement(orders: PurchaseOrder[] = [], mutate: KeyedMu
 
   const metrics = useMemo(() => ({
     totalOrders: orders.length,
-    pendingOrders: orders.filter((o) => o.status === "pending").length,
-    completedOrders: orders.filter((o) => o.status === "completed").length,
+    pendingOrders: orders.filter((o) => o.status === "PENDING").length,
+    completedOrders: orders.filter((o) => o.status === "APPROVED").length,
     totalRevenue: orders
-      .filter((o) => o.status !== "cancelled")
-      .reduce((sum, order) => sum + order.total, 0),
+      .filter((o) => o.status !== "REJECTED")
+      .reduce((sum, order) => sum + order.totalAmount, 0),
   }), [orders]);
 
   return {

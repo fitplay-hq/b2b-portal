@@ -17,20 +17,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { PurchaseOrder } from "@/lib/mockData";
 import { SetStateAction } from "react";
+import { AdminOrder } from "@/data/order/admin.actions";
+import { $Enums, Order } from "@/lib/generated/prisma";
 
-const ORDER_STATUSES: PurchaseOrder["status"][] = [
-  "pending",
-  "approved",
-  "in-progress",
-  "completed",
-  "cancelled",
-];
+const ORDER_STATUSES: Order["status"][] = Object.values($Enums.Status);
 
 // Define the props based on the state and handlers from the useOrderManagement hook
 interface UpdateStatusDialogProps {
   dialogState: {
     isOpen: boolean;
-    order: PurchaseOrder | null;
+    order: AdminOrder | null;
     newStatus: string;
     notes: string;
   };
@@ -56,8 +52,7 @@ export function UpdateStatusDialog({
         <DialogHeader>
           <DialogTitle>Update Order Status</DialogTitle>
           <DialogDescription>
-            Change the status for order{" "}
-            <strong>{dialogState.order.poNumber}</strong>.
+            Change the status for order <strong>{dialogState.order.id}</strong>.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">

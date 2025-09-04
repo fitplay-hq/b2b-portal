@@ -1,25 +1,62 @@
-import { Order, Prisma, Product } from "@/lib/generated/prisma";
-import { MOCK_ORDERS } from "@/lib/mockData";
+import { $Enums, Order, Prisma } from "@/lib/generated/prisma";
+
+export interface AdminOrder {
+    client: {
+        name: string;
+        id: string;
+        email: string;
+        companyName: string;
+    };
+    orderItems: {
+      product: {
+          name: string;
+          id: string;
+          images: string[];
+          sku: string;
+          price: number;
+      };
+      id: string;
+      quantity: number;
+      price: number;
+      productId: string;
+      orderId: string;
+    }[]
+    id: string;
+    totalAmount: number;
+    deliveryAddress: string;
+    note: string | null;
+    status: $Enums.Status;
+    clientId: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
 
 export async function getOrders(url: string) {
-  return MOCK_ORDERS
-  // const response = await fetch(url);
-  // if (!response.ok) {
-  //   throw new Error("Failed to update product");
-  // }
-  // return await response.json()
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("Failed to get products");
+  }
+  return await response.json() as AdminOrder[]
+}
+
+export async function getOrder(url: string, id: string) {
+  const response = await fetch(`${url}?id=${id}`)
+  if (!response.ok) {
+    throw new Error("Failed to get product")
+  }
+  return await response.json() as Order
 }
 
 export async function createOrder(url: string, orderData: any) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(orderData),
-  });
-  if (!response.ok) {
-    throw new Error("Failed to create product");
-  }
-  return await response.json();
+  // const response = await fetch(url, {
+  //   method: "POST",
+  //   headers: { "Content-Type": "application/json" },
+  //   body: JSON.stringify(orderData),
+  // });
+  // if (!response.ok) {
+  //   throw new Error("Failed to create product");
+  // }
+  // return await response.json();
 }
 
 export async function updateOrder(url: string, orderData: Prisma.ProductUpdateInput) {

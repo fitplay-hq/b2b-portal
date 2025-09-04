@@ -7,7 +7,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ImageWithFallback } from "@/components/image";
-import { PurchaseOrder } from "@/lib/mockData";
 import {
   ChevronDown,
   Clock,
@@ -20,48 +19,35 @@ import {
   Download,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { AdminOrder } from "@/data/order/admin.actions";
+import { Order } from "@/lib/generated/prisma";
 
 // --- Helper Function ---
 // A utility to get style and icon based on order status
 const getStatusVisuals = (
-  status: PurchaseOrder["status"]
+  status: Order["status"]
 ): { color: string; Icon: LucideIcon } => {
   switch (status) {
-    case "pending":
+    case "PENDING":
       return {
         color: "border-transparent bg-yellow-100 text-yellow-800",
         Icon: Clock,
       };
-    case "approved":
+    case "APPROVED":
       return {
         color: "border-transparent bg-blue-100 text-blue-800",
         Icon: CheckCircle,
       };
-    case "in-progress":
-      return {
-        color: "border-transparent bg-purple-100 text-purple-800",
-        Icon: Package,
-      };
-    case "completed":
-      return {
-        color: "border-transparent bg-green-100 text-green-800",
-        Icon: CheckCircle,
-      };
-    case "cancelled":
+    case "REJECTED":
       return {
         color: "border-transparent bg-red-100 text-red-800",
         Icon: XCircle,
-      };
-    default:
-      return {
-        color: "border-transparent bg-gray-100 text-gray-800",
-        Icon: Clock,
       };
   }
 };
 
 // --- Sub-component for the Card's Visible Header ---
-const OrderSummary = ({ order }: { order: PurchaseOrder }) => {
+const OrderSummary = ({ order }: { order: AdminOrder }) => {
   const { color, Icon } = getStatusVisuals(order.status);
   const statusText =
     order.status.charAt(0).toUpperCase() +
@@ -80,7 +66,7 @@ const OrderSummary = ({ order }: { order: PurchaseOrder }) => {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Building2 className="h-3 w-3" />
-            {order.company}
+            {order.client.companyName}
           </span>
           <span className="flex items-center gap-1.5">
             <Calendar className="h-3 w-3" />
@@ -88,11 +74,11 @@ const OrderSummary = ({ order }: { order: PurchaseOrder }) => {
           </span>
           <span className="flex items-center gap-1.5">
             <Package className="h-3 w-3" />
-            {order.items.length} items
+            {order.orderItems.length} items
           </span>
           <span className="flex items-center gap-1.5">
             <IndianRupee className="h-3 w-3" />
-            {order.total.toFixed(2)}
+            {order.totalAmount.toFixed(2)}
           </span>
         </div>
       </div>
@@ -109,7 +95,7 @@ const OrderDetails = ({
   order,
   onOpenStatusDialog,
 }: {
-  order: PurchaseOrder;
+  order: AdminOrder;
   onOpenStatusDialog: () => void;
 }) => (
   <CardContent className="pt-0">
@@ -126,13 +112,13 @@ const OrderDetails = ({
       <div>
         <h4 className="mb-3 font-medium">Order Items</h4>
         <div className="space-y-3">
-          {order.items.map((item) => (
+          {order.orderItems.map((item) => (
             <div
               key={item.product.id}
               className="flex gap-3 rounded-lg bg-muted/40 p-3"
             >
               <ImageWithFallback
-                src={item.product.image}
+                src={item.product.images[0]}
                 alt={item.product.name}
                 className="h-16 w-16 rounded object-cover"
               />
@@ -162,15 +148,13 @@ const OrderDetails = ({
         </div>
         <div>
           <h4 className="font-medium mb-2">Billing Contact</h4>
-          <p className="text-sm text-muted-foreground">
-            {order.billingContact}
-          </p>
+          <p className="text-sm text-muted-foreground">{order.client.email}</p>
         </div>
-        {order.notes && (
+        {order.note && (
           <div className="md:col-span-2">
             <h4 className="font-medium mb-2">Notes from Client</h4>
             <p className="text-sm text-muted-foreground whitespace-pre-line">
-              {order.notes}
+              {order.note}
             </p>
           </div>
         )}
@@ -194,7 +178,7 @@ const OrderDetails = ({
 
 // --- Main Collapsible Container Component ---
 interface OrderCardProps {
-  order: PurchaseOrder;
+  order: AdminOrder;
   isExpanded: boolean;
   onToggleExpansion: () => void;
   onOpenStatusDialog: () => void;
