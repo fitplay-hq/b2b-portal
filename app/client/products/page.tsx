@@ -9,6 +9,7 @@ import { useQuantityDialog } from "@/hooks/use-quantity-dialog";
 
 import { PageHeader } from "./components/page-header";
 import { ProductGrid } from "./components/product-grid";
+import { ProductFilters } from "./components/product-filters";
 import { QuantityDialog } from "./components/quantity-dialog";
 import { useProducts } from "@/data/product/client.hooks";
 
@@ -74,12 +75,11 @@ export default function ClientProductsPage() {
       <div className="space-y-6">
         <PageHeader totalCartItems={totalCartItems} />
 
-        {/* Assuming ProductFilterBar is similar to the admin one */}
-        {/* <ProductFilterBar {...filterProps} /> */}
-
-        <div className="text-sm text-muted-foreground">
-          Showing {filteredProducts.length} of {products?.length ?? 0} products
-        </div>
+        <ProductFilters
+          {...filterProps}
+          resultsCount={filteredProducts.length}
+          totalCount={products?.length ?? 0}
+        />
 
         <ProductGrid
           products={filteredProducts}

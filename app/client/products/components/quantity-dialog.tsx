@@ -87,9 +87,7 @@ export function QuantityDialog({ dialog, onConfirm }: QuantityDialogProps) {
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-sm font-semibold">
-            Total: ₹{(selectedProduct.price * quantity).toFixed(2)}
-          </p>
+          <p className="text-sm font-semibold">Quantity: {quantity}</p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={closeDialog}>
