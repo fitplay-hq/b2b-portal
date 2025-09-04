@@ -34,6 +34,7 @@ export default function ClientCart() {
     );
     setCartItems(cart);
   }, [session?.user?.id]);
+  console.log({ cartItems });
 
   const updateCart = (updatedCart: CartItem[]) => {
     setCartItems(updatedCart);
@@ -48,9 +49,13 @@ export default function ClientCart() {
 
     const updatedCart = cartItems.map((item) =>
       item.product.id === productId
-        ? { ...item, quantity: Math.min(newQuantity, item.product.stock) }
+        ? {
+            ...item,
+            quantity: Math.min(newQuantity, item.product.availableStock),
+          }
         : item
     );
+    console.log({ updatedCart });
     updateCart(updatedCart);
   };
 
@@ -66,16 +71,6 @@ export default function ClientCart() {
     updateCart([]);
     toast.success("Cart cleared");
   };
-
-  const calculateSubtotal = () => {
-    return cartItems.reduce(
-      (total, item) => total + item.product.price * item.quantity,
-      0
-    );
-  };
-
-  const subtotal = calculateSubtotal();
-  const total = subtotal;
 
   // Handle authentication
   if (status === "loading") {
@@ -187,9 +182,13 @@ export default function ClientCart() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() =>
-                              updateQuantity(item.product.id, item.quantity - 1)
-                            }
+                            onClick={() => {
+                              console.log(item.product.id, item.quantity);
+                              updateQuantity(
+                                item.product.id,
+                                item.quantity - 1
+                              );
+                            }}
                             disabled={item.quantity <= 1}
                           >
                             <Minus className="h-3 w-3" />
