@@ -7,11 +7,6 @@ interface UseProductFormProps {
   onSuccess: () => void;
 }
 
-type Specification = {
-  key: string;
-  value: string;
-};
-
 export function useProductForm({ onSuccess }: UseProductFormProps) {
   const { createProduct } = useCreateProduct();
   const { updateProduct } = useUpdateProduct();

@@ -131,10 +131,6 @@ export function ProductFormDialog({
             />
           </div>
 
-          <div className="space-y-3 rounded-md border p-4">
-            <Label>Specifications</Label>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="image">Image URL</Label>
             <Input
