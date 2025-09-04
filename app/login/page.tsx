@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,9 +16,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Package } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { redirect } from "next/navigation";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callback");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -30,28 +32,40 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      let success;
+      let result;
       if (isAdmin) {
-        success = await signIn("admin", {
+        result = await signIn("admin", {
           email,
           password,
           redirect: false,
         });
       } else {
-        success = await signIn("clients", {
+        result = await signIn("clients", {
           email,
           password,
           redirect: false,
         });
       }
-      if (!success) {
-        setError("Invalid email or password");
+
+      if (result?.error) {
+        setError(result.error || "Invalid email or password");
+      } else if (result?.ok) {
+        // Successful login - redirect to callback URL or role-based default
+        if (callbackUrl) {
+          // Decode the callback URL if it was encoded
+          const decodedCallback = decodeURIComponent(callbackUrl);
+          window.location.href = decodedCallback;
+        } else if (isAdmin) {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = "/client";
+        }
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
+      console.error("Login error:", err);
     } finally {
       setLoading(false);
-      redirect("/");
     }
   };
 
