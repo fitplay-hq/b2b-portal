@@ -7,17 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { $Enums } from "@/lib/generated/prisma";
 import { Search } from "lucide-react";
 
 // The list of possible order statuses
-const ORDER_STATUSES = [
-  "all",
-  "pending",
-  "approved",
-  "in-progress",
-  "completed",
-  "cancelled",
-];
+const ORDER_STATUSES = ["all", ...Object.keys($Enums.Status)];
 
 // Define the props the component will receive from its controlling hook
 interface OrderFiltersProps {
