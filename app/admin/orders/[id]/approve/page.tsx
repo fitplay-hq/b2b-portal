@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useOrder, useApproveOrder } from "@/data/order/admin.hooks";
+import { useOrder, useUpdateOrderStatus } from "@/data/order/admin.hooks";
 import { useParams, useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,12 +17,13 @@ const ApproveOrderPage = () => {
   const id = params.id as string;
 
   const { order, error, isLoading } = useOrder(id);
-  const { approveOrder, isUpdating, updateError } = useApproveOrder();
+  const { updateOrderStatus, isUpdating, updateError } = useUpdateOrderStatus();
 
   const handleApprove = async () => {
     try {
-      await approveOrder({
+      await updateOrderStatus({
         orderId: id,
+        status: "APPROVED",
       });
       toast.success("Order approved successfully.");
       router.push("/admin/orders");
