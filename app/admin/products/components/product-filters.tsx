@@ -10,6 +10,35 @@ import {
 import { $Enums } from "@/lib/generated/prisma";
 import { Search } from "lucide-react";
 
+// Function to convert enum values to human-friendly names
+export const getHumanFriendlyCategoryName = (category: string): string => {
+  // Use the actual enum values from Prisma with friendly names
+  const friendlyNames: Record<string, string> = {
+    stationery: "Stationery",
+    accessories: "Accessories",
+    funAndStickers: "Fun & Stickers",
+    drinkware: "Drinkware",
+    apparel: "Apparel",
+    travelAndTech: "Travel & Tech",
+    books: "Books",
+    welcomeKit: "Welcome Kit",
+  };
+
+  // Check if we have a specific friendly name for this category
+  if (friendlyNames[category]) {
+    return friendlyNames[category];
+  }
+
+  // Fallback: Handle unknown categories
+  // Convert camelCase to Title Case by splitting on capital letters
+  return category
+    .replace(/([a-z])([A-Z])/g, "$1 $2") // Add space between lowercase and uppercase
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1 $2") // Handle consecutive uppercase letters
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
 interface ProductFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
@@ -45,7 +74,7 @@ export function ProductFilters({
             </SelectItem>
             {Object.values($Enums.Category).map((category) => (
               <SelectItem key={category} value={category}>
-                {category}
+                {getHumanFriendlyCategoryName(category)}
               </SelectItem>
             ))}
           </SelectContent>
