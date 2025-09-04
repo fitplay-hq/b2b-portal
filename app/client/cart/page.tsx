@@ -27,45 +27,17 @@ export default function ClientCart() {
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Handle authentication
-  if (status === "loading") {
-    return (
-      <Layout title="Shopping Cart" isClient>
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </Layout>
-    );
-  }
-
-  if (status === "unauthenticated" || !session?.user) {
-    return (
-      <Layout title="Shopping Cart" isClient>
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">
-            Please sign in to view your cart
-          </p>
-        </div>
-      </Layout>
-    );
-  }
-
-  const user = {
-    id: session.user.id || "1",
-    email: session.user.email || "",
-    name: session.user.name || "",
-    role: "client",
-    company: (session.user as any)?.company || "Company",
-  };
-
   useEffect(() => {
-    const cart = getStoredData<CartItem[]>(`fitplay_cart_${user?.id}`, []);
+    const cart = getStoredData<CartItem[]>(
+      `fitplay_cart_${session?.user?.id}`,
+      []
+    );
     setCartItems(cart);
-  }, [user?.id]);
+  }, [session?.user?.id]);
 
   const updateCart = (updatedCart: CartItem[]) => {
     setCartItems(updatedCart);
-    setStoredData(`fitplay_cart_${user?.id}`, updatedCart);
+    setStoredData(`fitplay_cart_${session?.user?.id}`, updatedCart);
   };
 
   const updateQuantity = (productId: string, newQuantity: number) => {
@@ -104,6 +76,29 @@ export default function ClientCart() {
 
   const subtotal = calculateSubtotal();
   const total = subtotal;
+
+  // Handle authentication
+  if (status === "loading") {
+    return (
+      <Layout title="Shopping Cart" isClient>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (status === "unauthenticated" || !session?.user) {
+    return (
+      <Layout title="Shopping Cart" isClient>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">
+            Please sign in to view your cart
+          </p>
+        </div>
+      </Layout>
+    );
+  }
 
   if (cartItems.length === 0) {
     return (

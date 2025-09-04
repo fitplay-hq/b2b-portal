@@ -17,6 +17,16 @@ export default function ClientProductsPage() {
   const { data: session, status } = useSession();
   const { products, error, isLoading } = useProducts();
 
+  const userId = session?.user.id || "1";
+  const { totalCartItems, addToCart, getCartQuantity } = useCart(userId);
+  const { filteredProducts, ...filterProps } = useProductFilters(products);
+  const quantityDialog = useQuantityDialog();
+
+  const handleClearFilters = () => {
+    filterProps.setSearchTerm("");
+    filterProps.setSelectedCategory("All Categories");
+  };
+
   // Handle authentication
   if (status === "loading") {
     return (
@@ -39,16 +49,6 @@ export default function ClientProductsPage() {
       </Layout>
     );
   }
-
-  const userId = session.user.id || "1";
-  const { totalCartItems, addToCart, getCartQuantity } = useCart(userId);
-  const { filteredProducts, ...filterProps } = useProductFilters(products);
-  const quantityDialog = useQuantityDialog();
-
-  const handleClearFilters = () => {
-    filterProps.setSearchTerm("");
-    filterProps.setSelectedCategory("All Categories");
-  };
 
   if (isLoading) {
     return (
