@@ -13,9 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { PurchaseOrder } from "@/lib/mockData";
 import { SetStateAction } from "react";
 import { AdminOrder } from "@/data/order/admin.actions";
 import { $Enums, Order } from "@/lib/generated/prisma";
@@ -73,7 +71,7 @@ export function UpdateStatusDialog({
                     value={status}
                     className="capitalize"
                   >
-                    {status.replace("-", " ")}
+                    {status.replace("-", " ").toLowerCase()}
                   </SelectItem>
                 ))}
               </SelectContent>
