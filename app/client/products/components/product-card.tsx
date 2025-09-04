@@ -10,6 +10,36 @@ import { ImageWithFallback } from "@/components/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
+import { $Enums } from "@/lib/generated/prisma";
+
+// Function to convert enum values to human-friendly names
+const getHumanFriendlyCategoryName = (category: string): string => {
+  // Use the actual enum values from Prisma with friendly names
+  const friendlyNames: Record<string, string> = {
+    stationery: "Stationery",
+    accessories: "Accessories",
+    funAndStickers: "Fun & Stickers",
+    drinkware: "Drinkware",
+    apparel: "Apparel",
+    travelAndTech: "Travel & Tech",
+    books: "Books",
+    welcomeKit: "Welcome Kit",
+  };
+
+  // Check if we have a specific friendly name for this category
+  if (friendlyNames[category]) {
+    return friendlyNames[category];
+  }
+
+  // Fallback: Handle unknown categories
+  // Convert camelCase to Title Case by splitting on capital letters
+  return category
+    .replace(/([a-z])([A-Z])/g, "$1 $2") // Add space between lowercase and uppercase
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1 $2") // Handle consecutive uppercase letters
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
 
 interface ProductCardProps {
   product: Product;
@@ -46,12 +76,14 @@ export function ProductCard({
             {product.name}
           </CardTitle>
           <Badge variant="secondary" className="text-xs shrink-0">
-            {product.categories}
+            {getHumanFriendlyCategoryName(product.categories)}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground mt-2">SKU: {product.sku}</p>
         <div className="flex items-end justify-between mt-4">
-          <p className="text-lg font-bold">₹{product.price}</p>
+          <p className="text-sm text-muted-foreground">
+            Stock: {product.availableStock}
+          </p>
           {cartQuantity > 0 && (
             <p className="text-xs font-semibold text-blue-600">
               {cartQuantity} in cart

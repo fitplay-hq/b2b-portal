@@ -1,4 +1,3 @@
-import { Card, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -8,10 +7,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { $Enums } from "@/lib/generated/prisma";
-import { Search } from "lucide-react";
+import { Search, Filter } from "lucide-react";
+
+interface ProductFiltersProps {
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  selectedCategory: string;
+  setSelectedCategory: (category: string) => void;
+  resultsCount: number;
+  totalCount: number;
+}
 
 // Function to convert enum values to human-friendly names
-export const getHumanFriendlyCategoryName = (category: string): string => {
+const getHumanFriendlyCategoryName = (category: string): string => {
   // Use the actual enum values from Prisma with friendly names
   const friendlyNames: Record<string, string> = {
     stationery: "Stationery",
@@ -39,39 +47,40 @@ export const getHumanFriendlyCategoryName = (category: string): string => {
     .join(" ");
 };
 
-interface ProductFiltersProps {
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
-  selectedCategory: string;
-  setSelectedCategory: (category: string) => void;
-}
-
 export function ProductFilters({
   searchTerm,
   setSearchTerm,
   selectedCategory,
   setSelectedCategory,
+  resultsCount,
+  totalCount,
 }: ProductFiltersProps) {
   return (
-    <div className="flex flex-col sm:flex-row gap-4">
-      <div className="flex-1 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
-        <Input
-          placeholder="Search products or SKUs..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+    <div className="space-y-4 bg-card rounded-lg border p-4">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <Filter className="h-4 w-4" />
+        Filter Products
       </div>
-      <div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
+          <Input
+            placeholder="Search products or SKUs..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Category Filter */}
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem key="All Categories" value="All Categories">
-              All Categories
-            </SelectItem>
+            <SelectItem value="All Categories">All Categories</SelectItem>
             {Object.values($Enums.Category).map((category) => (
               <SelectItem key={category} value={category}>
                 {getHumanFriendlyCategoryName(category)}
@@ -79,6 +88,11 @@ export function ProductFilters({
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Results Count */}
+      <div className="text-sm text-muted-foreground border-t pt-3">
+        Showing {resultsCount} of {totalCount} products
       </div>
     </div>
   );

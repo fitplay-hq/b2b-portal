@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/image";
 import { Product } from "@/lib/generated/prisma";
 import { Edit, Trash2 } from "lucide-react";
+import { getHumanFriendlyCategoryName } from "./product-filters";
 
 interface ProductItemProps {
   product: Product;
@@ -24,7 +25,9 @@ export function ProductItem({ product, onEdit, onDelete }: ProductItemProps) {
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-medium">{product.name}</h3>
-            <Badge variant="secondary">{product.categories}</Badge>
+            <Badge variant="secondary">
+              {getHumanFriendlyCategoryName(product.categories)}
+            </Badge>
             {product.availableStock === 0 && (
               <Badge variant="destructive">Out of Stock</Badge>
             )}
@@ -35,8 +38,7 @@ export function ProductItem({ product, onEdit, onDelete }: ProductItemProps) {
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            SKU: {product.sku} • ₹{product.price} • Stock:{" "}
-            {product.availableStock}
+            SKU: {product.sku} • Stock: {product.availableStock}
           </p>
         </div>
       </div>

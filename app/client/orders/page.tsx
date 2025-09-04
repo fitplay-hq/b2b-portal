@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { useOrders } from "@/data/order/client.hooks";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Order } from "@/lib/generated/prisma";
+import { $Enums, Order } from "@/lib/generated/prisma";
 
 export default function ClientOrderHistory() {
   const { orders, isLoading } = useOrders();
@@ -207,12 +207,9 @@ export default function ClientOrderHistory() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="APPROVED">Approved</SelectItem>
-                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                    {Object.keys($Enums.Status).map((status) => (
+                      <SelectItem value={status}>{status}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

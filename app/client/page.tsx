@@ -21,46 +21,10 @@ export default function ClientDashboard() {
   const { data: session, status } = useSession();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Handle authentication loading state
-  if (status === "loading") {
-    return (
-      <Layout title="Dashboard" isClient>
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </Layout>
-    );
-  }
-
-  // Handle unauthenticated users
-  if (status === "unauthenticated" || !session?.user) {
-    return (
-      <Layout title="Dashboard" isClient>
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">
-            Please sign in to access your dashboard
-          </p>
-        </div>
-      </Layout>
-    );
-  }
-
-  const user = {
-    id: session.user.id || "1",
-    email: session.user.email || "",
-    name: session.user.name || "",
-    role: "client",
-    company: (session.user as any)?.company || "Company",
-  };
-
   // Use the useOrders hook as requested
-  const { orders: allOrders, isLoading, error } = useOrders();
+  const { orders, isLoading, error } = useOrders();
 
-  // Filter orders for the current user (assuming orders have clientId field)
-  const orders = useMemo(() => {
-    if (!allOrders) return [];
-    return allOrders.filter((order) => order.clientId === user.id);
-  }, [allOrders, user.id]);
+  const user = session?.user;
 
   useEffect(() => {
     // Load cart items (keeping this as it's not related to orders)
@@ -68,14 +32,14 @@ export default function ClientDashboard() {
     setCartItems(cart);
   }, [user?.id]);
 
-  const totalOrders = orders.length;
-  const pendingOrders = orders.filter(
+  const totalOrders = orders?.length;
+  const pendingOrders = orders?.filter(
     (order) => order.status === "PENDING"
   ).length;
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const recentOrders = orders
-    .sort(
+    ?.sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
@@ -94,11 +58,24 @@ export default function ClientDashboard() {
     }
   };
 
-  if (isLoading) {
+  if (status === "loading" || isLoading) {
     return (
       <Layout title="Dashboard" isClient>
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Handle unauthenticated users
+  if (status === "unauthenticated" || !session?.user) {
+    return (
+      <Layout title="Dashboard" isClient>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">
+            Please sign in to access your dashboard
+          </p>
         </div>
       </Layout>
     );
@@ -123,8 +100,7 @@ export default function ClientDashboard() {
             Welcome back, {user?.name}!
           </h1>
           <p className="text-muted-foreground">
-            Manage your orders and browse our product catalog from{" "}
-            {user?.company}
+            Manage your orders and browse our product catalog
           </p>
         </div>
 
@@ -165,9 +141,15 @@ export default function ClientDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
+<<<<<<< HEAD
                 {totalOrders - pendingOrders}
               </div>
               <p className="text-xs text-muted-foreground">Completed orders</p>
+=======
+                ₹{totalSpent?.toFixed(2)}
+              </div>
+              <p className="text-xs text-muted-foreground">All time spending</p>
+>>>>>>> main
             </CardContent>
           </Card>
 
@@ -237,7 +219,7 @@ export default function ClientDashboard() {
         </div>
 
         {/* Recent Orders */}
-        {recentOrders.length > 0 && (
+        {recentOrders && recentOrders.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Recent Orders</CardTitle>
@@ -245,7 +227,7 @@ export default function ClientDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentOrders.map((order) => (
+                {recentOrders?.map((order) => (
                   <div
                     key={order.id}
                     className="flex items-center justify-between p-4 border rounded-lg"

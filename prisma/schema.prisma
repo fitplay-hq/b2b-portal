@@ -80,7 +80,7 @@ model Product {
   id             String      @id @default(uuid())
   name           String      @db.VarChar(50)
   images         String[]
-  price          Int
+  price          Int?
   sku            String      @unique @db.VarChar(100)
   availableStock Int
   description    String
@@ -99,7 +99,7 @@ model Order {
   totalAmount     Float
   deliveryAddress String
   note            String?
-  status          Status     @default(PENDING)
+  status          Status      @default(PENDING)
   client          Client      @relation(fields: [clientId], references: [id])
   clientId        String
   orderItems      OrderItem[]
