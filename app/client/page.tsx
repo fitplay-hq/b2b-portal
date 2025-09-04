@@ -9,13 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  ShoppingCart,
-  Package,
-  History,
-  TrendingUp,
-  Loader2,
-} from "lucide-react";
+import { ShoppingCart, Package, History, Loader2 } from "lucide-react";
 import { getStoredData, CartItem } from "@/lib/mockData";
 import Link from "next/link";
 import Layout from "@/components/layout";
@@ -78,7 +72,6 @@ export default function ClientDashboard() {
   const pendingOrders = orders.filter(
     (order) => order.status === "PENDING"
   ).length;
-  const totalSpent = orders.reduce((sum, order) => sum + order.totalAmount, 0);
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const recentOrders = orders
@@ -165,12 +158,16 @@ export default function ClientDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">
+                Active Orders
+              </CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₹{totalSpent.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">All time spending</p>
+              <div className="text-2xl font-bold">
+                {totalOrders - pendingOrders}
+              </div>
+              <p className="text-xs text-muted-foreground">Completed orders</p>
             </CardContent>
           </Card>
 
@@ -256,8 +253,7 @@ export default function ClientDashboard() {
                     <div className="space-y-1">
                       <p className="font-medium">{order.id}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString()} • ₹
-                        {order.totalAmount.toFixed(2)}
+                        {new Date(order.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <Badge className={getStatusColor(order.status)}>

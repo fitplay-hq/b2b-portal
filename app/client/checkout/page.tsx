@@ -209,9 +209,7 @@ export default function ClientCheckout() {
                           <p className="text-sm text-muted-foreground">
                             SKU: {item.product.sku}
                           </p>
-                          <p className="text-sm font-medium">
-                            ₹{item.product.price.toFixed(2)} each
-                          </p>
+                          <p className="text-sm font-medium">Product Item</p>
                         </div>
                       </div>
 
@@ -219,9 +217,7 @@ export default function ClientCheckout() {
                         <div className="flex items-center gap-2"></div>
 
                         <div className="text-right">
-                          <p className="font-medium">
-                            ₹{(item.product.price * item.quantity).toFixed(2)}
-                          </p>
+                          <p className="font-medium">Qty: {item.quantity}</p>
                           <p className="text-xs text-muted-foreground">
                             {item.quantity} quantity
                           </p>
@@ -320,7 +316,7 @@ export default function ClientCheckout() {
                       </p>
                     </div>
                     <div className="text-sm font-medium">
-                      ₹{(item.product.price * item.quantity).toFixed(2)}
+                      Qty: {item.quantity}
                     </div>
                   </div>
                 ))}
@@ -328,8 +324,10 @@ export default function ClientCheckout() {
                 <Separator />
 
                 <div className="flex justify-between font-medium">
-                  <span>Total</span>
-                  <span>₹{total.toFixed(2)}</span>
+                  <span>Total Items</span>
+                  <span>
+                    {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+                  </span>
                 </div>
               </CardContent>
             </Card>

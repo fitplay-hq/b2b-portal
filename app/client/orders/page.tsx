@@ -109,7 +109,7 @@ export default function ClientOrderHistory() {
     const typedOrders = orders as Order[];
     const totalOrders = typedOrders.length;
     const totalSpent = typedOrders
-      .filter((o) => o.status !== "REJECTED" && o.status !== "CANCELLED")
+      .filter((o) => o.status !== "PENDING") // Keep approved orders
       .reduce((sum, order) => sum + order.totalAmount, 0);
     const pendingOrders = typedOrders.filter(
       (o) => o.status === "PENDING"
@@ -164,10 +164,10 @@ export default function ClientOrderHistory() {
               <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                ₹{stats.totalSpent.toFixed(2)}
-              </div>
-              <p className="text-xs text-muted-foreground">Across all orders</p>
+              <div className="text-2xl font-bold">{stats.totalSpent}</div>
+              <p className="text-xs text-muted-foreground">
+                Approved orders total
+              </p>
             </CardContent>
           </Card>
 
@@ -264,14 +264,7 @@ export default function ClientOrderHistory() {
                                 {new Date(order.createdAt).toLocaleDateString()}
                               </span>
                               <span>•</span>
-                              <span>
-                                {order.orderItems.length} item
-                                {order.orderItems.length !== 1 ? "s" : ""}
-                              </span>
-                              <span>•</span>
-                              <span className="font-medium">
-                                ₹{order.totalAmount.toFixed(2)}
-                              </span>
+                              <span>Item</span>
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {getStatusDescription(order.status)}
@@ -291,37 +284,16 @@ export default function ClientOrderHistory() {
                     <CollapsibleContent>
                       <CardContent className="pt-0">
                         <div className="space-y-4">
-                          {/* Order Items */}
+                          {/* Order Summary */}
                           <div>
-                            <h4 className="font-medium mb-3">Order Items</h4>
-                            <div className="space-y-3">
-                              {order.orderItems.map((item) => (
-                                <div
-                                  key={item.product.id}
-                                  className="flex gap-3 p-3 bg-muted/30 rounded-lg"
-                                >
-                                  <div className="w-16 h-16 flex-shrink-0">
-                                    <ImageWithFallback
-                                      src={item.product.images[0]}
-                                      alt={item.product.name}
-                                      className="w-full h-full object-cover rounded"
-                                    />
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="font-medium">
-                                      {item.product.name}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                      SKU: {item.product.sku}
-                                    </p>
-                                    <p className="text-sm">
-                                      ₹{item.price.toFixed(2)} × {item.quantity}{" "}
-                                      = ₹
-                                      {(item.price * item.quantity).toFixed(2)}
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
+                            <h4 className="font-medium mb-3">Order Details</h4>
+                            <div className="text-sm text-muted-foreground">
+                              <p>Order ID: {order.id}</p>
+                              <p>Status: {order.status}</p>
+                              <p>
+                                Date:{" "}
+                                {new Date(order.createdAt).toLocaleDateString()}
+                              </p>
                             </div>
                           </div>
 

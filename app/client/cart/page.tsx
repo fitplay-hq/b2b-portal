@@ -175,9 +175,7 @@ export default function ClientCart() {
                           <p className="text-sm text-muted-foreground">
                             SKU: {item.product.sku}
                           </p>
-                          <p className="text-sm font-medium">
-                            ₹{item.product.price.toFixed(2)} each
-                          </p>
+                          <p className="text-sm font-medium">Product item</p>
                         </div>
                         <Button
                           variant="ghost"
@@ -225,11 +223,9 @@ export default function ClientCart() {
                         </div>
 
                         <div className="text-right">
-                          <p className="font-medium">
-                            ₹{(item.product.price * item.quantity).toFixed(2)}
-                          </p>
+                          <p className="font-medium">Qty: {item.quantity}</p>
                           <p className="text-xs text-muted-foreground">
-                            {item.product.stock - item.quantity} remaining
+                            Stock: {item.product.stock}
                           </p>
                         </div>
                       </div>
@@ -252,13 +248,18 @@ export default function ClientCart() {
                   {cartItems.map((item) => (
                     <div className="flex justify-between text-sm">
                       <span>{item.product.name}</span>
-                      <span>₹{item.product.price}</span>
+                      <span>Qty: {item.quantity}</span>
                     </div>
                   ))}
                   <div className="border-t pt-2">
                     <div className="flex justify-between font-medium">
-                      <span>Total</span>
-                      <span>₹{total.toFixed(2)}</span>
+                      <span>Total Items</span>
+                      <span>
+                        {cartItems.reduce(
+                          (sum, item) => sum + item.quantity,
+                          0
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>
