@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { PurchaseOrder } from "@/lib/mockData";
-import { useApproveOrder, useUpdateOrder } from "@/data/order/admin.hooks";
+import { useUpdateOrderStatus } from "@/data/order/admin.hooks";
 import { KeyedMutator } from "swr";
 import { AdminOrder } from "@/data/order/admin.actions";
 
@@ -11,10 +11,8 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
     isOpen: false,
     order: null as AdminOrder | null,
     newStatus: "",
-    notes: "",
   });
-  const { updateOrder } = useUpdateOrder()
-  const { approveOrder } = useApproveOrder()
+  const { updateOrderStatus } = useUpdateOrderStatus()
 
   const toggleOrderExpansion = (orderId: string) => {
     const newExpanded = new Set(expandedOrders);
@@ -23,27 +21,20 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
   };
 
   const openStatusDialog = (order: AdminOrder) => {
-    setDialogState({ isOpen: true, order, newStatus: order.status, notes: "" });
+    setDialogState({ isOpen: true, order, newStatus: order.status });
   };
 
   const closeStatusDialog = () => {
-    setDialogState({ isOpen: false, order: null, newStatus: "", notes: "" });
+    setDialogState({ isOpen: false, order: null, newStatus: "" });
   };
 
   const handleStatusUpdate = async () => {
     if (!dialogState.order) return;
     try {
-      if (dialogState.newStatus as AdminOrder['status'] === 'APPROVED') {
-        await approveOrder({
-          orderId: dialogState.order.id
-        })
-      } else {
-        await updateOrder({
-          orderId: dialogState.order.id,
-          status: dialogState.newStatus as AdminOrder['status'],
-          notes: dialogState.notes,
-        });
-      }
+      await updateOrderStatus({
+        orderId: dialogState.order.id,
+        status: dialogState.newStatus as AdminOrder['status'],
+      });
       toast.success(`Order ${dialogState.order.id} status updated.`);
       closeStatusDialog();
     } catch (error) {

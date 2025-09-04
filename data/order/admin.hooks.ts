@@ -1,6 +1,7 @@
 import useSWR, { mutate as globalMutate } from "swr";
 import useSWRMutation from "swr/mutation";
-import { approveOrder, createOrder, deleteOrder, getOrder, getOrders, updateOrder } from "./admin.actions";
+import { updateOrderStatus, createOrder, deleteOrder, getOrder, getOrders, updateOrder } from "./admin.actions";
+import { $Enums } from "@/lib/generated/prisma";
 
 /**
  * Hook to fetch a list of orders.
@@ -78,10 +79,10 @@ export function useUpdateOrder() {
   };
 }
 
-export function useApproveOrder() {
+export function useUpdateOrderStatus() {
   const { trigger, isMutating, error } = useSWRMutation(
     "/api/admin/orders/order/approve",
-    (url, { arg }: { arg: { orderId: string } }) => approveOrder(url, arg.orderId),
+    (url, { arg }: { arg: { orderId: string, status: $Enums.Status } }) => updateOrderStatus(url, arg),
     {
       onSuccess: () => {
         globalMutate('/api/admin/orders')
@@ -90,7 +91,7 @@ export function useApproveOrder() {
   );
 
   return {
-    approveOrder: trigger,
+    updateOrderStatus: trigger,
     isUpdating: isMutating,
     updateError: error,
   };

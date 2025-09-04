@@ -28,7 +28,6 @@ interface UpdateStatusDialogProps {
     isOpen: boolean;
     order: AdminOrder | null;
     newStatus: string;
-    notes: string;
   };
   setDialogState: React.Dispatch<SetStateAction<any>>;
   closeStatusDialog: () => void;
@@ -80,7 +79,7 @@ export function UpdateStatusDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label htmlFor="notes">Status Update Notes (Optional)</Label>
             <Textarea
               id="notes"
@@ -94,7 +93,7 @@ export function UpdateStatusDialog({
               placeholder="Add any notes about this status change..."
               rows={3}
             />
-          </div>
+          </div> */}
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={closeStatusDialog}>
               Cancel

@@ -59,13 +59,11 @@ export async function createOrder(url: string, orderData: any) {
   return await response.json();
 }
 
-export async function approveOrder(url: string, orderId: string) {
+export async function updateOrderStatus(url: string, data: { orderId: string; status: $Enums.Status }) {
   const response = await fetch(url, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      orderId
-    }),
+    body: JSON.stringify(data),
   });
   if (!response.ok) {
     throw new Error("Failed to create product");
