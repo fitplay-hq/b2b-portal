@@ -91,33 +91,37 @@ export default function AdminProductsPage() {
 
   return (
     <Layout title="Product Management" isClient={false}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Product Management</h1>
-            <p className="text-muted-foreground">
-              Manage your product catalog and inventory
-            </p>
+      <div className="flex flex-col h-full gap-6">
+        <div className="shrink-0 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Product Management</h1>
+              <p className="text-muted-foreground">
+                Manage your product catalog and inventory
+              </p>
+            </div>
+            <div className="flex space-x-4">
+              <Button onClick={formControls.openNewDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Product
+              </Button>
+              <BulkUploadButton<Prisma.ProductCreateInput[]>
+                onUpload={handleBulkUpload}
+              />
+            </div>
           </div>
-          <div className="flex space-x-4">
-            <Button onClick={formControls.openNewDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
-            </Button>
-            <BulkUploadButton<Prisma.ProductCreateInput[]>
-              onUpload={handleBulkUpload}
-            />
-          </div>
-        </div>
 
-        <StatsGrid products={products || []} />
-        <ProductFilters {...filterProps} />
-        <ProductList
-          products={filteredProducts}
-          onEdit={formControls.openEditDialog}
-          onDelete={handleDelete}
-          hasProductsInitially={(products?.length ?? 0) > 0}
-        />
+          <StatsGrid products={products || []} />
+          <ProductFilters {...filterProps} />
+        </div>
+        <div className="flex-1 overflow-y-auto pr-2">
+          <ProductList
+            products={filteredProducts}
+            onEdit={formControls.openEditDialog}
+            onDelete={handleDelete}
+            hasProductsInitially={(products?.length ?? 0) > 0}
+          />
+        </div>
       </div>
 
       <ProductFormDialog {...formControls} />
