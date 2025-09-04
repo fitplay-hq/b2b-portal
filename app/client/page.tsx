@@ -9,47 +9,76 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Package, History, TrendingUp } from "lucide-react";
 import {
-  getStoredData,
-  MOCK_ORDERS,
-  PurchaseOrder,
-  CartItem,
-} from "@/lib/mockData";
+  ShoppingCart,
+  Package,
+  History,
+  TrendingUp,
+  Loader2,
+} from "lucide-react";
+import { getStoredData, CartItem } from "@/lib/mockData";
 import Link from "next/link";
 import Layout from "@/components/layout";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { useOrders } from "@/data/order/client.hooks";
 
 export default function ClientDashboard() {
-  const user = {
-    id: "1",
-    email: "client@acmecorp.com",
-    name: "John Smith",
-    role: "client",
-    company: "ACME Corporation",
-  };
-  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const { data: session, status } = useSession();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  useEffect(() => {
-    // Load user's orders
-    const allOrders = getStoredData<PurchaseOrder[]>(
-      "fitplay_orders",
-      MOCK_ORDERS
+  // Handle authentication loading state
+  if (status === "loading") {
+    return (
+      <Layout title="Dashboard" isClient>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
     );
-    const userOrders = allOrders.filter((order) => order.clientId === user?.id);
-    setOrders(userOrders);
+  }
 
-    // Load cart items
+  // Handle unauthenticated users
+  if (status === "unauthenticated" || !session?.user) {
+    return (
+      <Layout title="Dashboard" isClient>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">
+            Please sign in to access your dashboard
+          </p>
+        </div>
+      </Layout>
+    );
+  }
+
+  const user = {
+    id: session.user.id || "1",
+    email: session.user.email || "",
+    name: session.user.name || "",
+    role: "client",
+    company: (session.user as any)?.company || "Company",
+  };
+
+  // Use the useOrders hook as requested
+  const { orders: allOrders, isLoading, error } = useOrders();
+
+  // Filter orders for the current user (assuming orders have clientId field)
+  const orders = useMemo(() => {
+    if (!allOrders) return [];
+    return allOrders.filter((order) => order.clientId === user.id);
+  }, [allOrders, user.id]);
+
+  useEffect(() => {
+    // Load cart items (keeping this as it's not related to orders)
     const cart = getStoredData<CartItem[]>(`fitplay_cart_${user?.id}`, []);
     setCartItems(cart);
   }, [user?.id]);
 
   const totalOrders = orders.length;
   const pendingOrders = orders.filter(
-    (order) => order.status === "pending"
+    (order) => order.status === "PENDING"
   ).length;
-  const totalSpent = orders.reduce((sum, order) => sum + order.total, 0);
+  const totalSpent = orders.reduce((sum, order) => sum + order.totalAmount, 0);
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const recentOrders = orders
@@ -61,18 +90,36 @@ export default function ClientDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending":
+      case "PENDING":
         return "bg-yellow-100 text-yellow-800";
-      case "approved":
+      case "APPROVED":
         return "bg-blue-100 text-blue-800";
-      case "in-progress":
-        return "bg-purple-100 text-purple-800";
-      case "completed":
-        return "bg-green-100 text-green-800";
+      case "REJECTED":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
+
+  if (isLoading) {
+    return (
+      <Layout title="Dashboard" isClient>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout title="Dashboard" isClient>
+        <div className="text-center text-destructive">
+          Failed to load orders. Please try again later.
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title="Dashboard" isClient>
@@ -209,8 +256,8 @@ export default function ClientDashboard() {
                     <div className="space-y-1">
                       <p className="font-medium">{order.id}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString()} • $
-                        {order.total.toFixed(2)}
+                        {new Date(order.createdAt).toLocaleDateString()} • ₹
+                        {order.totalAmount.toFixed(2)}
                       </p>
                     </div>
                     <Badge className={getStatusColor(order.status)}>
