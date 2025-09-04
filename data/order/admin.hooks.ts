@@ -1,6 +1,6 @@
 import useSWR, { mutate as globalMutate } from "swr";
 import useSWRMutation from "swr/mutation";
-import { createOrder, deleteOrder, getOrder, getOrders, updateOrder } from "./admin.actions";
+import { approveOrder, createOrder, deleteOrder, getOrder, getOrders, updateOrder } from "./admin.actions";
 
 /**
  * Hook to fetch a list of orders.
@@ -70,6 +70,24 @@ export function useUpdateOrder() {
 
   return {
     updateOrder: trigger,
+    isUpdating: isMutating,
+    updateError: error,
+  };
+}
+
+export function useApproveOrder() {
+  const { trigger, isMutating, error } = useSWRMutation(
+    "/api/admin/orders/order/approve",
+    (url, { arg }: { arg: { orderId: string } }) => approveOrder(url, arg.orderId),
+    {
+      onSuccess: () => {
+        globalMutate('/api/admin/orders')
+      }
+    }
+  );
+
+  return {
+    approveOrder: trigger,
     isUpdating: isMutating,
     updateError: error,
   };

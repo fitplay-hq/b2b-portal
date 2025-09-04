@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { PurchaseOrder } from "@/lib/mockData";
-import { useUpdateOrder } from "@/data/order/admin.hooks";
+import { useApproveOrder, useUpdateOrder } from "@/data/order/admin.hooks";
 import { KeyedMutator } from "swr";
 import { AdminOrder } from "@/data/order/admin.actions";
 
@@ -14,6 +14,7 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
     notes: "",
   });
   const { updateOrder } = useUpdateOrder()
+  const { approveOrder } = useApproveOrder()
 
   const toggleOrderExpansion = (orderId: string) => {
     const newExpanded = new Set(expandedOrders);
@@ -32,11 +33,17 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
   const handleStatusUpdate = async () => {
     if (!dialogState.order) return;
     try {
-      await updateOrder({
-        orderId: dialogState.order.id,
-        status: dialogState.newStatus as AdminOrder['status'],
-        notes: dialogState.notes,
-      });
+      if (dialogState.newStatus as AdminOrder['status'] === 'APPROVED') {
+        await approveOrder({
+          orderId: dialogState.order.id
+        })
+      } else {
+        await updateOrder({
+          orderId: dialogState.order.id,
+          status: dialogState.newStatus as AdminOrder['status'],
+          notes: dialogState.notes,
+        });
+      }
       toast.success(`Order ${dialogState.order.id} status updated.`);
       closeStatusDialog();
     } catch (error) {
