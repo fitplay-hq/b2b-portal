@@ -24,7 +24,6 @@ import {
   ChevronUp,
   Calendar,
   Package,
-  IndianRupee,
 } from "lucide-react";
 import { useOrders } from "@/data/order/client.hooks";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -102,20 +101,16 @@ export default function ClientOrderHistory() {
     if (!orders) {
       return {
         totalOrders: 0,
-        totalSpent: 0,
         pendingOrders: 0,
       };
     }
     const typedOrders = orders as Order[];
     const totalOrders = typedOrders.length;
-    const totalSpent = typedOrders
-      .filter((o) => o.status !== "PENDING") // Keep approved orders
-      .reduce((sum, order) => sum + order.totalAmount, 0);
     const pendingOrders = typedOrders.filter(
       (o) => o.status === "PENDING"
     ).length;
 
-    return { totalOrders, totalSpent, pendingOrders };
+    return { totalOrders, pendingOrders };
   }, [orders]);
 
   if (isLoading) {
@@ -142,7 +137,7 @@ export default function ClientOrderHistory() {
     <Layout title="Order History" isClient>
       <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -154,19 +149,6 @@ export default function ClientOrderHistory() {
               <div className="text-2xl font-bold">{stats.totalOrders}</div>
               <p className="text-xs text-muted-foreground">
                 All purchase orders
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-              <IndianRupee className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalSpent}</div>
-              <p className="text-xs text-muted-foreground">
-                Approved orders total
               </p>
             </CardContent>
           </Card>

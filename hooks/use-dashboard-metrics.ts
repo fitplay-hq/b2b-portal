@@ -22,9 +22,7 @@ export function useDashboardMetrics() {
     const approvedOrders = orders.filter((o) => o.status === 'APPROVED').length;
     const rejectedOrders = orders.filter((o) => o.status === 'REJECTED').length;
 
-    const totalRevenue = orders
-      .filter((o) => o.status !== 'REJECTED')
-      .reduce((sum, order) => sum + order.totalAmount, 0);
+    const totalProducts = products.length;
 
     const lowStockProducts = products.filter((p) => p.availableStock < 50).length;
     const activeClients = clients.filter((c) => c.status === 'active').length;
@@ -41,7 +39,7 @@ export function useDashboardMetrics() {
         pendingOrders,
         approvedOrders,
         rejectedOrders,
-        totalRevenue,
+        totalProducts,
         lowStockProducts,
         activeClients,
         recentOrders,

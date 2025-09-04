@@ -4,14 +4,14 @@ import { MetricCard } from "./metric-card";
 interface MetricsGridProps {
   totalOrders: number;
   pendingOrders: number;
-  totalRevenue: number;
+  totalProducts: number;
   activeClients: number;
 }
 
 export function MetricsGrid({
   totalOrders,
   pendingOrders,
-  totalRevenue,
+  totalProducts,
   activeClients,
 }: MetricsGridProps) {
   return (
@@ -29,9 +29,9 @@ export function MetricsGrid({
         Icon={Clock}
       />
       <MetricCard
-        title="Total Revenue"
-        value={totalRevenue.toFixed(0)}
-        description="Revenue data available"
+        title="Total Products"
+        value={totalProducts}
+        description="Product catalog size"
         Icon={TrendingUp}
       />
       <MetricCard
