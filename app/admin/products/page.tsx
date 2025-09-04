@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Boxes, Upload } from "lucide-react";
 import { useProductFilters } from "@/hooks/use-product-filters";
 import { useProductForm } from "@/hooks/use-product-form";
 
@@ -12,14 +12,41 @@ import { StatsGrid } from "./components/stats-grid";
 import { ProductFilters } from "./components/product-filters";
 import { ProductList } from "./components/product-list";
 import { ProductFormDialog } from "./components/product-form-dialog";
-import { useDeleteProduct, useProducts } from "@/data/product/admin.hooks";
+import {
+  useCreateProducts,
+  useDeleteProduct,
+  useProducts,
+} from "@/data/product/admin.hooks";
+import { Prisma } from "@/lib/generated/prisma";
+import { BulkUploadButton } from "./components/bulk-upload-button";
 
 export default function AdminProductsPage() {
   const { products, error, isLoading, mutate } = useProducts();
   const { deleteProduct } = useDeleteProduct();
+  const { createProducts } = useCreateProducts();
 
   const { filteredProducts, ...filterProps } = useProductFilters(products);
   const formControls = useProductForm({ onSuccess: () => mutate() });
+
+  const handleBulkUpload = async (
+    uploadedProducts: Prisma.ProductCreateInput[]
+  ) => {
+    // Here you would add validation logic for the uploaded data
+    if (!Array.isArray(uploadedProducts) || uploadedProducts.length === 0) {
+      toast.error("Invalid file format or no products found in the file.");
+      return;
+    }
+
+    try {
+      await createProducts(uploadedProducts);
+      toast.success(`${uploadedProducts.length} products added successfully!`);
+    } catch (error) {
+      toast.error(
+        "Failed to add products. Please check the console for details."
+      );
+      console.error("Bulk upload failed:", error);
+    }
+  };
 
   const handleDelete = (productId: string) => {
     toast("Are you sure you want to delete this product?", {
@@ -72,10 +99,15 @@ export default function AdminProductsPage() {
               Manage your product catalog and inventory
             </p>
           </div>
-          <Button onClick={formControls.openNewDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Product
-          </Button>
+          <div className="flex space-x-4">
+            <Button onClick={formControls.openNewDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Product
+            </Button>
+            <BulkUploadButton<Prisma.ProductCreateInput[]>
+              onUpload={handleBulkUpload}
+            />
+          </div>
         </div>
 
         <StatsGrid products={products || []} />

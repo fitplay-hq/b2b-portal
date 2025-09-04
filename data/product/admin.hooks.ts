@@ -1,6 +1,6 @@
 import useSWR, { mutate as globalMutate } from "swr";
 import useSWRMutation from "swr/mutation";
-import { createProduct, deleteProduct, getProducts, updateProduct } from "./admin.actions";
+import { createProduct, createProducts, deleteProduct, getProducts, updateProduct } from "./admin.actions";
 import { Prisma } from "@/lib/generated/prisma";
 
 /**
@@ -17,6 +17,22 @@ export function useProducts() {
     error,
     isLoading,
     mutate,
+  };
+}
+
+/**
+ * Hook to create products in bulk.
+ */
+export function useCreateProducts() {
+  const { data, error, isMutating } = useSWRMutation(
+    "/api/admin/products",
+    (url, {arg}: {arg: Prisma.ProductCreateInput[]}) => createProducts(url, arg)
+  );
+
+  return {
+    createProducts: data,
+    isCreating: isMutating,
+    createError: error
   };
 }
 

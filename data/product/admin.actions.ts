@@ -8,6 +8,18 @@ export async function getProducts(url: string) {
   return await response.json() as Product[];
 }
 
+export async function createProducts(url: string, productsData: Prisma.ProductCreateInput[]) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(productsData),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create products");
+  }
+  return await response.json();
+}
+
 export async function createProduct(url: string, productData: Prisma.ProductCreateInput) {
   const response = await fetch(url, {
     method: "POST",
