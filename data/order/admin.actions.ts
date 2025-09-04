@@ -48,15 +48,15 @@ export async function getOrder(url: string, id: string) {
 }
 
 export async function createOrder(url: string, orderData: any) {
-  // const response = await fetch(url, {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(orderData),
-  // });
-  // if (!response.ok) {
-  //   throw new Error("Failed to create product");
-  // }
-  // return await response.json();
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(orderData),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create product");
+  }
+  return await response.json();
 }
 
 export async function updateOrder(url: string, orderData: Prisma.ProductUpdateInput) {
