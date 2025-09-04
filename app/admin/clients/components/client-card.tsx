@@ -63,7 +63,7 @@ export function ClientCard({
           </div>
           <div className="flex items-center gap-4 pt-1 text-sm">
             <span className="text-muted-foreground">
-              {stats.totalOrders} orders • ₹{stats.totalSpent.toFixed(2)} spent
+              {stats.totalOrders} orders
             </span>
             {stats.pendingOrders > 0 && (
               <Badge variant="outline" className="text-xs">

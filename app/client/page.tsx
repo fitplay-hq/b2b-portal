@@ -141,15 +141,9 @@ export default function ClientDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-<<<<<<< HEAD
                 {totalOrders - pendingOrders}
               </div>
               <p className="text-xs text-muted-foreground">Completed orders</p>
-=======
-                ₹{totalSpent?.toFixed(2)}
-              </div>
-              <p className="text-xs text-muted-foreground">All time spending</p>
->>>>>>> main
             </CardContent>
           </Card>
 
