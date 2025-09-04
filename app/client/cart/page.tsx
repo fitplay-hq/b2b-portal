@@ -152,7 +152,7 @@ export default function ClientCart() {
                   >
                     <div className="w-20 h-20 flex-shrink-0">
                       <ImageWithFallback
-                        src={item.product.image}
+                        src={item.product.images[0]}
                         alt={item.product.name}
                         className="w-full h-full object-cover rounded"
                       />
