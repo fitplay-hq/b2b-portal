@@ -24,7 +24,6 @@ import {
   ChevronUp,
   Calendar,
   Package,
-  IndianRupee,
 } from "lucide-react";
 import { useOrders } from "@/data/order/client.hooks";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -102,20 +101,16 @@ export default function ClientOrderHistory() {
     if (!orders) {
       return {
         totalOrders: 0,
-        totalSpent: 0,
         pendingOrders: 0,
       };
     }
     const typedOrders = orders as Order[];
     const totalOrders = typedOrders.length;
-    const totalSpent = typedOrders
-      .filter((o) => o.status !== "REJECTED")
-      .reduce((sum, order) => sum + order.totalAmount, 0);
     const pendingOrders = typedOrders.filter(
       (o) => o.status === "PENDING"
     ).length;
 
-    return { totalOrders, totalSpent, pendingOrders };
+    return { totalOrders, pendingOrders };
   }, [orders]);
 
   if (isLoading) {
@@ -142,7 +137,7 @@ export default function ClientOrderHistory() {
     <Layout title="Order History" isClient>
       <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -155,19 +150,6 @@ export default function ClientOrderHistory() {
               <p className="text-xs text-muted-foreground">
                 All purchase orders
               </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-              <IndianRupee className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ₹{stats.totalSpent.toFixed(2)}
-              </div>
-              <p className="text-xs text-muted-foreground">Across all orders</p>
             </CardContent>
           </Card>
 
@@ -261,14 +243,7 @@ export default function ClientOrderHistory() {
                                 {new Date(order.createdAt).toLocaleDateString()}
                               </span>
                               <span>•</span>
-                              <span>
-                                {order.orderItems.length} item
-                                {order.orderItems.length !== 1 ? "s" : ""}
-                              </span>
-                              <span>•</span>
-                              <span className="font-medium">
-                                ₹{order.totalAmount.toFixed(2)}
-                              </span>
+                              <span>Item</span>
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {getStatusDescription(order.status)}
@@ -288,37 +263,16 @@ export default function ClientOrderHistory() {
                     <CollapsibleContent>
                       <CardContent className="pt-0">
                         <div className="space-y-4">
-                          {/* Order Items */}
+                          {/* Order Summary */}
                           <div>
-                            <h4 className="font-medium mb-3">Order Items</h4>
-                            <div className="space-y-3">
-                              {order.orderItems.map((item) => (
-                                <div
-                                  key={item.product.id}
-                                  className="flex gap-3 p-3 bg-muted/30 rounded-lg"
-                                >
-                                  <div className="w-16 h-16 flex-shrink-0">
-                                    <ImageWithFallback
-                                      src={item.product.images[0]}
-                                      alt={item.product.name}
-                                      className="w-full h-full object-cover rounded"
-                                    />
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="font-medium">
-                                      {item.product.name}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                      SKU: {item.product.sku}
-                                    </p>
-                                    <p className="text-sm">
-                                      ₹{item.price.toFixed(2)} × {item.quantity}{" "}
-                                      = ₹
-                                      {(item.price * item.quantity).toFixed(2)}
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
+                            <h4 className="font-medium mb-3">Order Details</h4>
+                            <div className="text-sm text-muted-foreground">
+                              <p>Order ID: {order.id}</p>
+                              <p>Status: {order.status}</p>
+                              <p>
+                                Date:{" "}
+                                {new Date(order.createdAt).toLocaleDateString()}
+                              </p>
                             </div>
                           </div>
 

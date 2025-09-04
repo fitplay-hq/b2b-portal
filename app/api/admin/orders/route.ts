@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
                                 name: true,
                                 images: true,
                                 sku: true,
-                                price: true
                             },
                         },
                     },

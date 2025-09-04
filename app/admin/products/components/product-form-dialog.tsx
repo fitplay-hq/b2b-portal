@@ -71,19 +71,6 @@ export function ProductFormDialog({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Price (₹)</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                value={formData.price}
-                onChange={(e) =>
-                  setFormData({ ...formData, price: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="stock">Stock</Label>
               <Input
                 id="stock"

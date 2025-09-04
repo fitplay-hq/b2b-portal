@@ -51,9 +51,6 @@ export function QuantityDialog({ dialog, onConfirm }: QuantityDialogProps) {
           <div>
             <h3 className="font-medium">{selectedProduct.name}</h3>
             <p className="text-sm text-muted-foreground">
-              ₹{selectedProduct.price} each
-            </p>
-            <p className="text-sm text-muted-foreground">
               {selectedProduct.availableStock} in stock
             </p>
           </div>
