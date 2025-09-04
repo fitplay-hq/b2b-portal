@@ -54,15 +54,6 @@ export default function ClientCheckout() {
     // Client info is now displayed as read-only, no pre-filling needed
   }, [session?.user?.name, session?.user?.email]);
 
-  const calculateTotal = () => {
-    return cartItems.reduce(
-      (total, item) => total + item.product.price * item.quantity,
-      0
-    );
-  };
-
-  const total = calculateTotal();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -77,14 +68,13 @@ export default function ClientCheckout() {
       const _orderItems: Prisma.OrderItemCreateManyOrderInput[] = cartItems.map(
         (item) => ({
           productId: item.product.id,
-          price: item.product.price,
+          price: 0,
           quantity: item.quantity,
         })
       );
 
       const _order = {
         deliveryAddress: deliveryAddress.trim(),
-        totalAmount: total,
         items: _orderItems,
       };
 
@@ -163,7 +153,7 @@ export default function ClientCheckout() {
                   >
                     <div className="w-20 h-20 flex-shrink-0">
                       <ImageWithFallback
-                        src={item.product.image}
+                        src={item.product.images[0]}
                         alt={item.product.name}
                         className="w-full h-full object-cover rounded"
                       />
@@ -262,7 +252,7 @@ export default function ClientCheckout() {
                   <div key={item.product.id} className="flex gap-3">
                     <div className="w-12 h-12 flex-shrink-0">
                       <ImageWithFallback
-                        src={item.product.image}
+                        src={item.product.images[0]}
                         alt={item.product.name}
                         className="w-full h-full object-cover rounded"
                       />
