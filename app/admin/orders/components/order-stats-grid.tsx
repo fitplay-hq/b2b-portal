@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Clock, CheckCircle, IndianRupee } from "lucide-react";
+import { FileText, Clock, CheckCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 // Props for a single reusable StatCard
@@ -70,13 +70,10 @@ export function OrderStatsGrid({
         iconColor="text-green-600"
       />
       <StatCard
-        title="Total Revenue"
-        value={`₹${totalRevenue.toLocaleString("en-IN", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`}
-        description="From all orders"
-        Icon={IndianRupee}
+        title="Order Metrics"
+        value={totalRevenue.toFixed(0)}
+        description="Order count metrics"
+        Icon={FileText}
       />
     </div>
   );

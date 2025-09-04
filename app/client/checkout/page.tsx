@@ -28,38 +28,6 @@ export default function ClientCheckout() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Handle authentication loading state
-  if (status === "loading") {
-    return (
-      <Layout title="Checkout" isClient>
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </Layout>
-    );
-  }
-
-  // Handle unauthenticated users
-  if (status === "unauthenticated" || !session?.user) {
-    return (
-      <Layout title="Checkout" isClient>
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">
-            Please sign in to continue to checkout
-          </p>
-        </div>
-      </Layout>
-    );
-  }
-
-  const user = {
-    id: session.user.id || "1",
-    email: session.user.email || "",
-    name: session.user.name || "",
-    role: "client",
-    company: (session.user as any)?.company || "Company",
-  };
-
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -69,19 +37,22 @@ export default function ClientCheckout() {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    const cart = getStoredData<CartItem[]>(`fitplay_cart_${user?.id}`, []);
-    if (cart.length === 0) {
-      router.push("/client/cart");
-      toast.error("Your cart is empty");
+    if (!session || !session.user) {
+      setCartItems([]);
+    } else {
+      const cart = getStoredData<CartItem[]>(
+        `fitplay_cart_${session.user.id}`,
+        []
+      );
+      if (cart.length === 0) {
+        router.push("/client/cart");
+        toast.error("Your cart is empty");
+      }
+
+      setCartItems(cart);
     }
-
-    setCartItems(cart);
-
-    // Generate PO number
-    setPONumber(generatePONumber());
-
     // Client info is now displayed as read-only, no pre-filling needed
-  }, [user?.name, user?.email]);
+  }, [session?.user?.name, session?.user?.email]);
 
   const calculateTotal = () => {
     return cartItems.reduce(
@@ -103,34 +74,6 @@ export default function ClientCheckout() {
     setLoading(true);
 
     try {
-      // Create purchase order
-      const newOrder: PurchaseOrder = {
-        id: Date.now().toString(),
-        clientId: user!.id,
-        clientName: user!.name,
-        clientEmail: user!.email,
-        company: user!.company || "",
-        items: cartItems,
-        total,
-        status: "pending",
-        deliveryAddress: deliveryAddress.trim(),
-        billingContact: `${user.name} - ${user.email} (${user.company})`,
-        notes: notes.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      // Save order
-      const existingOrders = getStoredData<PurchaseOrder[]>(
-        "fitplay_orders",
-        MOCK_ORDERS
-      );
-      const updatedOrders = [...existingOrders, newOrder];
-      setStoredData("fitplay_orders", updatedOrders);
-
-      // Clear cart
-      setStoredData(`fitplay_cart_${user?.id}`, []);
-
       const _orderItems: Prisma.OrderItemCreateManyOrderInput[] = cartItems.map(
         (item) => ({
           productId: item.product.id,
@@ -155,6 +98,30 @@ export default function ClientCheckout() {
       setLoading(false);
     }
   };
+
+  // Handle authentication loading state
+  if (status === "loading") {
+    return (
+      <Layout title="Checkout" isClient>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Handle unauthenticated users
+  if (status === "unauthenticated" || !session?.user) {
+    return (
+      <Layout title="Checkout" isClient>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">
+            Please sign in to continue to checkout
+          </p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title="Checkout" isClient>
@@ -209,9 +176,7 @@ export default function ClientCheckout() {
                           <p className="text-sm text-muted-foreground">
                             SKU: {item.product.sku}
                           </p>
-                          <p className="text-sm font-medium">
-                            ₹{item.product.price.toFixed(2)} each
-                          </p>
+                          <p className="text-sm font-medium">Product Item</p>
                         </div>
                       </div>
 
@@ -219,9 +184,7 @@ export default function ClientCheckout() {
                         <div className="flex items-center gap-2"></div>
 
                         <div className="text-right">
-                          <p className="font-medium">
-                            ₹{(item.product.price * item.quantity).toFixed(2)}
-                          </p>
+                          <p className="font-medium">Qty: {item.quantity}</p>
                           <p className="text-xs text-muted-foreground">
                             {item.quantity} quantity
                           </p>
@@ -262,21 +225,14 @@ export default function ClientCheckout() {
                 <div className="space-y-2">
                   <Label>Contact Name</Label>
                   <div className="text-sm font-medium border rounded px-3 py-2 bg-muted/50">
-                    {user.name}
+                    {session.user.name}
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Email Address</Label>
                   <div className="text-sm font-medium border rounded px-3 py-2 bg-muted/50">
-                    {user.email}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Company</Label>
-                  <div className="text-sm font-medium border rounded px-3 py-2 bg-muted/50">
-                    {user.company}
+                    {session.user.email}
                   </div>
                 </div>
 
@@ -315,12 +271,9 @@ export default function ClientCheckout() {
                       <p className="text-sm font-medium truncate">
                         {item.product.name}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        ₹{item.product.price} × {item.quantity}
-                      </p>
                     </div>
                     <div className="text-sm font-medium">
-                      ₹{(item.product.price * item.quantity).toFixed(2)}
+                      Qty: {item.quantity}
                     </div>
                   </div>
                 ))}
@@ -328,8 +281,10 @@ export default function ClientCheckout() {
                 <Separator />
 
                 <div className="flex justify-between font-medium">
-                  <span>Total</span>
-                  <span>₹{total.toFixed(2)}</span>
+                  <span>Total Items</span>
+                  <span>
+                    {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+                  </span>
                 </div>
               </CardContent>
             </Card>

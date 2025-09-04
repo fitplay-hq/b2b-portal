@@ -14,7 +14,7 @@ const resend = new Resend(resendApiKey);
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { deliveryAddress, items, totalAmount } = body
+  const { deliveryAddress, items } = body
 
   const session = await getServerSession(auth);
 
@@ -63,12 +63,12 @@ export async function POST(req: NextRequest) {
       id: orderId,
       clientId,
       deliveryAddress,
-      totalAmount,
+      totalAmount: 0,
       orderItems: {
         create: items.map((item: any) => ({
           productId: item.productId,
           quantity: item.quantity,
-          price: item.price
+          price: 0
         }))
       }
     },

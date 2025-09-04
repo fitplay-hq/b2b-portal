@@ -34,6 +34,7 @@ export default function ClientCart() {
     );
     setCartItems(cart);
   }, [session?.user?.id]);
+  console.log({ cartItems });
 
   const updateCart = (updatedCart: CartItem[]) => {
     setCartItems(updatedCart);
@@ -48,9 +49,13 @@ export default function ClientCart() {
 
     const updatedCart = cartItems.map((item) =>
       item.product.id === productId
-        ? { ...item, quantity: Math.min(newQuantity, item.product.stock) }
+        ? {
+            ...item,
+            quantity: Math.min(newQuantity, item.product.availableStock),
+          }
         : item
     );
+    console.log({ updatedCart });
     updateCart(updatedCart);
   };
 
@@ -66,16 +71,6 @@ export default function ClientCart() {
     updateCart([]);
     toast.success("Cart cleared");
   };
-
-  const calculateSubtotal = () => {
-    return cartItems.reduce(
-      (total, item) => total + item.product.price * item.quantity,
-      0
-    );
-  };
-
-  const subtotal = calculateSubtotal();
-  const total = subtotal;
 
   // Handle authentication
   if (status === "loading") {
@@ -170,9 +165,7 @@ export default function ClientCart() {
                           <p className="text-sm text-muted-foreground">
                             SKU: {item.product.sku}
                           </p>
-                          <p className="text-sm font-medium">
-                            ₹{item.product.price.toFixed(2)} each
-                          </p>
+                          <p className="text-sm font-medium">Product item</p>
                         </div>
                         <Button
                           variant="ghost"
@@ -189,9 +182,13 @@ export default function ClientCart() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() =>
-                              updateQuantity(item.product.id, item.quantity - 1)
-                            }
+                            onClick={() => {
+                              console.log(item.product.id, item.quantity);
+                              updateQuantity(
+                                item.product.id,
+                                item.quantity - 1
+                              );
+                            }}
                             disabled={item.quantity <= 1}
                           >
                             <Minus className="h-3 w-3" />
@@ -220,11 +217,9 @@ export default function ClientCart() {
                         </div>
 
                         <div className="text-right">
-                          <p className="font-medium">
-                            ₹{(item.product.price * item.quantity).toFixed(2)}
-                          </p>
+                          <p className="font-medium">Qty: {item.quantity}</p>
                           <p className="text-xs text-muted-foreground">
-                            {item.product.stock - item.quantity} remaining
+                            Stock: {item.product.stock}
                           </p>
                         </div>
                       </div>
@@ -247,13 +242,18 @@ export default function ClientCart() {
                   {cartItems.map((item) => (
                     <div className="flex justify-between text-sm">
                       <span>{item.product.name}</span>
-                      <span>₹{item.product.price}</span>
+                      <span>Qty: {item.quantity}</span>
                     </div>
                   ))}
                   <div className="border-t pt-2">
                     <div className="flex justify-between font-medium">
-                      <span>Total</span>
-                      <span>₹{total.toFixed(2)}</span>
+                      <span>Total Items</span>
+                      <span>
+                        {cartItems.reduce(
+                          (sum, item) => sum + item.quantity,
+                          0
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>

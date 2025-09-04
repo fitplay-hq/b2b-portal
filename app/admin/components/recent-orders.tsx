@@ -66,8 +66,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {order.client.companyName} •{" "}
-                  {new Date(order.createdAt).toLocaleDateString()} • ₹
-                  {order.totalAmount.toFixed(2)}
+                  {new Date(order.createdAt).toLocaleDateString()}
                 </p>
               </div>
               <Button asChild variant="secondary" size="sm">

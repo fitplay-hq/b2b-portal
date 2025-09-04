@@ -15,7 +15,6 @@ import {
   XCircle,
   Building2,
   Calendar,
-  IndianRupee,
   Download,
   ExternalLink,
 } from "lucide-react";
@@ -78,10 +77,6 @@ const OrderSummary = ({ order }: { order: AdminOrder }) => {
             <Package className="h-3 w-3" />
             {order.orderItems.length} items
           </span>
-          <span className="flex items-center gap-1.5">
-            <IndianRupee className="h-3 w-3" />
-            {order.totalAmount.toFixed(2)}
-          </span>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2 text-muted-foreground">
@@ -143,12 +138,7 @@ const OrderDetails = ({
                 <p className="text-sm text-muted-foreground">
                   SKU: {item.product.sku}
                 </p>
-                <p className="text-sm">
-                  ₹{item.product.price.toFixed(2)} × {item.quantity} ={" "}
-                  <strong>
-                    ₹{(item.product.price * item.quantity).toFixed(2)}
-                  </strong>
-                </p>
+                <p className="text-sm">Quantity: {item.quantity}</p>
               </div>
             </div>
           ))}
