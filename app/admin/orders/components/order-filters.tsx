@@ -52,7 +52,7 @@ export function OrderFilters({
                     value={status}
                     className="capitalize"
                   >
-                    {status.replace("-", " ")}
+                    {status.replace("-", " ").toLowerCase()}
                   </SelectItem>
                 ))}
               </SelectContent>
