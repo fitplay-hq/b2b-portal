@@ -45,7 +45,7 @@ export async function updateProduct(url: string, productData: Prisma.ProductUpda
 }
 
 export async function deleteProduct(url: string, productId: string) {
-  const response = await fetch(`url?id=${productId}`, {
+  const response = await fetch(`${url}?id=${productId}`, {
     method: "DELETE",
   });
   if (!response.ok) {
