@@ -80,13 +80,15 @@ export default function AccountInfo() {
           </div>
         </div>
 
-        <div className="px-2 py-2">
-          <div className="flex items-center gap-2 text-sm">
-            <Building className="h-4 w-4 text-muted-foreground" />
-            {/* TODO: Update to use the company returned from session */}
-            <p className="text-muted-foreground">Github</p>
+        {user.role && user.role === "ADMIN" && (
+          <div className="px-2 py-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Building className="h-4 w-4 text-muted-foreground" />
+              {/* TODO: Update to use the company returned from session */}
+              <p className="text-muted-foreground">Fitplay</p>
+            </div>
           </div>
-        </div>
+        )}
 
         <DropdownMenuSeparator />
 

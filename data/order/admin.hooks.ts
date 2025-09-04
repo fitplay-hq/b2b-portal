@@ -20,10 +20,13 @@ export function useOrders() {
 }
 
 /**
- * Hook to fetch an order
+ * Hook to fetch an order by ID
  */
-export function useOrder() {
-  const { data, error, isLoading, mutate } = useSWR("/api/admin/orders/order", (url, { arg }: {arg: { id: string }}) => getOrder(url, arg.id))
+export function useOrder(orderId?: string) {
+  const { data, error, isLoading, mutate } = useSWR(
+    orderId ? `/api/admin/orders/order?id=${orderId}` : null,
+    (url) => getOrder(url, orderId!)
+  )
 
   return {
     order: data,
@@ -59,7 +62,7 @@ export function useCreateOrder() {
  */
 export function useUpdateOrder() {
   const { trigger, isMutating, error } = useSWRMutation(
-    "/api/admin/orders/product",
+    "/api/admin/orders/order",
     (url, { arg }: { arg: any }) => updateOrder(url, arg),
     {
       onSuccess: () => {
@@ -98,7 +101,7 @@ export function useApproveOrder() {
  */
 export function useDeleteOrder() {
   const { trigger, isMutating, error } = useSWRMutation(
-    "/api/admin/orders/product",
+    "/api/admin/orders/order",
     (url, { arg }: { arg: { id: string } }) => deleteOrder(url, arg.id),
     {
       onSuccess: () => {

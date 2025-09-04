@@ -40,11 +40,11 @@ export async function getOrders(url: string) {
 }
 
 export async function getOrder(url: string, id: string) {
-  const response = await fetch(`${url}?id=${id}`)
+  const response = await fetch(url)
   if (!response.ok) {
     throw new Error("Failed to get product")
   }
-  return await response.json() as Order
+  return await response.json() as AdminOrder
 }
 
 export async function createOrder(url: string, orderData: any) {
@@ -61,7 +61,7 @@ export async function createOrder(url: string, orderData: any) {
 
 export async function approveOrder(url: string, orderId: string) {
   const response = await fetch(url, {
-    method: "POST",
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       orderId

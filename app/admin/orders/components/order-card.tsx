@@ -17,10 +17,12 @@ import {
   Calendar,
   IndianRupee,
   Download,
+  ExternalLink,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AdminOrder } from "@/data/order/admin.actions";
 import { Order } from "@/lib/generated/prisma";
+import Link from "next/link";
 
 // --- Helper Function ---
 // A utility to get style and icon based on order status
@@ -100,10 +102,24 @@ const OrderDetails = ({
 }) => (
   <CardContent className="pt-0">
     <div className="space-y-6">
-      <div className="flex items-center gap-2 border-b pb-4">
+      <div className="flex flex-wrap items-center gap-2 border-b pb-4">
+        <Link href={`/admin/orders/${order.id}`}>
+          <Button size="sm" variant="secondary">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View Details
+          </Button>
+        </Link>
         <Button size="sm" onClick={onOpenStatusDialog}>
           Update Status
         </Button>
+        {order.status === "PENDING" && (
+          <Link href={`/admin/orders/${order.id}/approve`}>
+            <Button size="sm" variant="default">
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Approve Order
+            </Button>
+          </Link>
+        )}
         <Button size="sm" variant="outline">
           <Download className="mr-2 h-4 w-4" />
           Export PDF
