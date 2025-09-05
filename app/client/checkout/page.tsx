@@ -313,6 +313,17 @@ export default function ClientCheckout() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="note">Additional Notes (Optional)</Label>
+                  <Textarea
+                    id="note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Special delivery instructions, timeline requirements, etc."
+                    rows={3}
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -359,8 +370,6 @@ export default function ClientCheckout() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Client Information (Read-only) */}
           </div>
 
           {/* Order Summary */}
