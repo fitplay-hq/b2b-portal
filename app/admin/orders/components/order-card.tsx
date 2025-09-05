@@ -115,10 +115,6 @@ const OrderDetails = ({
             </Button>
           </Link>
         )}
-        <Button size="sm" variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Export PDF
-        </Button>
       </div>
       <div>
         <h4 className="mb-3 font-medium">Order Items</h4>
