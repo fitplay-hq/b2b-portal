@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ImageWithFallback } from "@/components/image";
 import { ArrowLeft, FileText, Loader2 } from "lucide-react";
@@ -33,8 +40,17 @@ export default function ClientCheckout() {
 
   // Form state
   const [poNumber, setPONumber] = useState("");
+  const [consigneeName, setConsigneeName] = useState("");
+  const [consigneePhone, setConsigneePhone] = useState("");
+  const [consigneeEmail, setConsigneeEmail] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [notes, setNotes] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [modeOfDelivery, setModeOfDelivery] = useState<"AIR" | "SURFACE">(
+    "SURFACE"
+  );
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!session || !session.user) {
@@ -57,8 +73,38 @@ export default function ClientCheckout() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!consigneeName.trim()) {
+      toast.error("Please enter consignee name");
+      return;
+    }
+
+    if (!consigneePhone.trim()) {
+      toast.error("Please enter consignee phone number");
+      return;
+    }
+
+    if (!consigneeEmail.trim()) {
+      toast.error("Please enter consignee email");
+      return;
+    }
+
     if (!deliveryAddress.trim()) {
       toast.error("Please enter a delivery address");
+      return;
+    }
+
+    if (!city.trim()) {
+      toast.error("Please enter city");
+      return;
+    }
+
+    if (!state.trim()) {
+      toast.error("Please enter state");
+      return;
+    }
+
+    if (!pincode.trim()) {
+      toast.error("Please enter pincode");
       return;
     }
 
@@ -74,7 +120,15 @@ export default function ClientCheckout() {
       );
 
       const _order = {
+        consigneeName: consigneeName.trim(),
+        consigneePhone: consigneePhone.trim(),
+        consigneeEmail: consigneeEmail.trim(),
         deliveryAddress: deliveryAddress.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        pincode: pincode.trim(),
+        modeOfDelivery,
+        note: note.trim() || null,
         items: _orderItems,
       };
 
@@ -198,8 +252,108 @@ export default function ClientCheckout() {
                     id="deliveryAddress"
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
-                    placeholder="Enter complete delivery address including street, city, state, and ZIP code"
+                    placeholder="Enter complete delivery address"
                     rows={4}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City *</Label>
+                    <Input
+                      id="city"
+                      type="text"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="City"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State *</Label>
+                    <Input
+                      id="state"
+                      type="text"
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      placeholder="State"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="pincode">Pincode *</Label>
+                    <Input
+                      id="pincode"
+                      type="text"
+                      value={pincode}
+                      onChange={(e) => setPincode(e.target.value)}
+                      placeholder="PIN Code"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="modeOfDelivery">Mode of Delivery *</Label>
+                  <Select
+                    value={modeOfDelivery}
+                    onValueChange={(value: "AIR" | "SURFACE") =>
+                      setModeOfDelivery(value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select delivery mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SURFACE">Surface</SelectItem>
+                      <SelectItem value="AIR">Air</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Consignee Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Consignee Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="consigneeName">Consignee Name * </Label>
+                  <Input
+                    id="consigneeName"
+                    type="text"
+                    value={consigneeName}
+                    onChange={(e) => setConsigneeName(e.target.value)}
+                    placeholder="Enter consignee name"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="consigneePhone">Phone Number *</Label>
+                  <Input
+                    id="consigneePhone"
+                    type="tel"
+                    value={consigneePhone}
+                    onChange={(e) => setConsigneePhone(e.target.value)}
+                    placeholder="10-digit phone number"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="consigneeEmail">Email Address *</Label>
+                  <Input
+                    id="consigneeEmail"
+                    type="email"
+                    value={consigneeEmail}
+                    onChange={(e) => setConsigneeEmail(e.target.value)}
+                    placeholder="consignee@example.com"
                     required
                   />
                 </div>
@@ -227,11 +381,11 @@ export default function ClientCheckout() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                  <Label htmlFor="note">Additional Notes (Optional)</Label>
                   <Textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                    id="note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
                     placeholder="Special delivery instructions, timeline requirements, etc."
                     rows={3}
                   />
