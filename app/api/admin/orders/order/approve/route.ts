@@ -20,7 +20,6 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // ✅ Get order with its items + products
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -36,32 +35,16 @@ export async function PATCH(req: NextRequest) {
         { status: 404 }
       );
     }
-    const updatedOrder = await prisma.$transaction(async (tx) => {
-      // 1. Approve order
-      const approvedOrder = await tx.order.update({
-        where: { id: orderId },
-        data: { status: status || "PENDING" },
-      });
 
-      // 2. Reduce stock for each product
-      for (const item of order.orderItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            availableStock: {
-              decrement: item.quantity,
-            },
-          },
-        });
-      }
-
-      return approvedOrder;
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: { status: status || "PENDING" },
     });
 
     return NextResponse.json(
       {
         order: updatedOrder,
-        message: "Order approved and stock updated successfully",
+        message: "Order approved successfully",
       },
       { status: 200 }
     );

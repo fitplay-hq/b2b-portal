@@ -74,32 +74,48 @@ export async function POST(req: NextRequest) {
 
     const orderId = `GH-FP${year}-${String(nextSequence).padStart(3, "0")}`;
 
-    const order = await prisma.order.create({
-      data: {
-        id: orderId,
-        clientId,
-        consigneeName,
-        consigneePhone,
-        consigneeEmail,
-        city,
-        state,
-        pincode,
-        modeOfDelivery,
-        deliveryAddress,
-        deliveryReference,
-        packagingInstructions,
-        note,
-        totalAmount: 0,
-        orderItems: {
-          create: items.map((item: any) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price ?? 0,
-          }))
-        }
-      },
-      include: { orderItems: true }
-    })
+    const order = await prisma.$transaction(async (tx) => {
+      const newOrder = await tx.order.create({
+        data: {
+          id: orderId,
+          clientId,
+          consigneeName,
+          consigneePhone,
+          consigneeEmail,
+          city,
+          state,
+          pincode,
+          modeOfDelivery,
+          deliveryAddress,
+          deliveryReference,
+          packagingInstructions,
+          note,
+          totalAmount: 0,
+          orderItems: {
+            create: items.map((item: any) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price ?? 0,
+            }))
+          }
+        },
+        include: { orderItems: true }
+      });
+
+      // ✅ Reduce stock here instead of approval
+      for (const item of newOrder.orderItems) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            availableStock: {
+              decrement: item.quantity,
+            },
+          },
+        });
+      }
+
+      return newOrder;
+    });
 
     const products = await prisma.product.findMany({
       where: {
@@ -144,7 +160,7 @@ export async function POST(req: NextRequest) {
       throw new Error("Missing admin email");
     }
 
-     await Promise.all([
+    await Promise.all([
       resend.emails.send({
         from: "aditya@fitplaysolutions.com",
         to: clientEmail,
