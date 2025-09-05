@@ -17,7 +17,20 @@ let toggleTracker = true;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { deliveryAddress, items, consigneeName, consigneePhone, consigneeEmail, city, state, pincode, modeOfDelivery } = body
+    const { 
+      deliveryAddress, 
+      items, 
+      consigneeName, 
+      consigneePhone, 
+      consigneeEmail, 
+      city, 
+      state, 
+      pincode, 
+      modeOfDelivery,
+      note ='',
+      deliveryReference = '', 
+      packagingInstructions = '' 
+    } = body
 
     const session = await getServerSession(auth);
 
@@ -73,6 +86,9 @@ export async function POST(req: NextRequest) {
         pincode,
         modeOfDelivery,
         deliveryAddress,
+        deliveryReference,
+        packagingInstructions,
+        note,
         totalAmount: 0,
         orderItems: {
           create: items.map((item: any) => ({
