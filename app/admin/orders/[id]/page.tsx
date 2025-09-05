@@ -126,15 +126,49 @@ const OrderDetailsPage = () => {
               </div>
             </div>
             <div className="border-t pt-4">
-              <h3 className="font-semibold mb-2">Summary</h3>
-              <p>
-                <strong>Delivery Address:</strong> {order.deliveryAddress}
-              </p>
-              {order.note && (
+              <h3 className="font-semibold mb-2">Delivery Address</h3>
+              <div className="space-y-2">
                 <p>
-                  <strong>Note:</strong> {order.note}
+                  <strong>Consignee:</strong> {order.consigneeName}
                 </p>
-              )}
+                <p>
+                  <strong>Phone:</strong> {order.consigneePhone}
+                </p>
+                <p>
+                  <strong>Email:</strong> {order.consigneeEmail}
+                </p>
+                <p>
+                  <strong>Address:</strong> {order.deliveryAddress}
+                </p>
+                <p>
+                  <strong>City:</strong> {order.city}
+                </p>
+                <p>
+                  <strong>State:</strong> {order.state}
+                </p>
+                <p>
+                  <strong>Pincode:</strong> {order.pincode}
+                </p>
+                <p>
+                  <strong>Mode of Delivery:</strong> {order.modeOfDelivery}
+                </p>
+                {order.deliveryReference && (
+                  <p>
+                    <strong>Reference:</strong> {order.deliveryReference}
+                  </p>
+                )}
+                {order.packagingInstructions && (
+                  <p>
+                    <strong>Packaging Instructions:</strong>{" "}
+                    {order.packagingInstructions}
+                  </p>
+                )}
+                {order.note && (
+                  <p>
+                    <strong>Client Note:</strong> {order.note}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>

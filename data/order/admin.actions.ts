@@ -23,7 +23,16 @@ export interface AdminOrder {
     }[]
     id: string;
     totalAmount: number;
+    consigneeName: string;
+    consigneePhone: string;
+    consigneeEmail: string;
     deliveryAddress: string;
+    city: string;
+    state: string;
+    pincode: string;
+    modeOfDelivery: $Enums.Modes;
+    deliveryReference: string | null;
+    packagingInstructions: string | null;
     note: string | null;
     status: $Enums.Status;
     clientId: string;

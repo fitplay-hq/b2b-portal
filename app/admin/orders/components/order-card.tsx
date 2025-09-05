@@ -148,9 +148,42 @@ const OrderDetails = ({
       <div className="grid grid-cols-1 gap-x-4 gap-y-6 pt-4 border-t md:grid-cols-2">
         <div>
           <h4 className="font-medium mb-2">Delivery Address</h4>
-          <p className="text-sm text-muted-foreground whitespace-pre-line">
-            {order.deliveryAddress}
-          </p>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>
+              <strong>Consignee:</strong> {order.consigneeName}
+            </p>
+            <p>
+              <strong>Phone:</strong> {order.consigneePhone}
+            </p>
+            <p>
+              <strong>Email:</strong> {order.consigneeEmail}
+            </p>
+            <p>
+              <strong>Address:</strong> {order.deliveryAddress}
+            </p>
+            <p>
+              <strong>City:</strong> {order.city}
+            </p>
+            <p>
+              <strong>State:</strong> {order.state}
+            </p>
+            <p>
+              <strong>Pincode:</strong> {order.pincode}
+            </p>
+            <p>
+              <strong>Mode:</strong> {order.modeOfDelivery}
+            </p>
+            {order.deliveryReference && (
+              <p>
+                <strong>Reference:</strong> {order.deliveryReference}
+              </p>
+            )}
+            {order.packagingInstructions && (
+              <p>
+                <strong>Packaging:</strong> {order.packagingInstructions}
+              </p>
+            )}
+          </div>
         </div>
         <div>
           <h4 className="font-medium mb-2">Billing Contact</h4>
