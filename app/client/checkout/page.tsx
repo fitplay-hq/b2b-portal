@@ -257,7 +257,6 @@ export default function ClientCheckout() {
                     onChange={(e) => setDeliveryReference(e.target.value)}
                     placeholder="Any delivery reference for future use"
                     rows={4}
-                    required
                   />
                 </div>
               </CardContent>
