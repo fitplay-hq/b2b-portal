@@ -361,37 +361,6 @@ export default function ClientCheckout() {
             </Card>
 
             {/* Client Information (Read-only) */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Client Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Contact Name</Label>
-                  <div className="text-sm font-medium border rounded px-3 py-2 bg-muted/50">
-                    {session.user.name}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Email Address</Label>
-                  <div className="text-sm font-medium border rounded px-3 py-2 bg-muted/50">
-                    {session.user.email}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="note">Additional Notes (Optional)</Label>
-                  <Textarea
-                    id="note"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Special delivery instructions, timeline requirements, etc."
-                    rows={3}
-                  />
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Order Summary */}
