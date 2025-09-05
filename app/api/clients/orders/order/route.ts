@@ -155,16 +155,21 @@ export async function POST(req: NextRequest) {
 
     const adminEmail = process.env.ADMIN_EMAIL;
     const clientEmail = session?.user?.email;
+    const ccEmail = process.env.CC_EMAIL_1;
 
     if (!adminEmail) {
       throw new Error("Missing admin email");
     }
 
+    if (!ccEmail) {
+      throw new Error("Missing CC email");
+    }
+
     await Promise.all([
       resend.emails.send({
-        from: "aditya@fitplaysolutions.com",
+        from: adminEmail,
         to: clientEmail,
-        cc: ["adinarang10@gmail.com"],
+        cc: [ccEmail],
         subject: "New Order Awaiting Approval",
         html: `
           <h2>New Dispatch Order</h2>
