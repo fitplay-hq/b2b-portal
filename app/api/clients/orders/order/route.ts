@@ -12,10 +12,12 @@ if (!resendApiKey) {
 
 const resend = new Resend(resendApiKey);
 
+let toggleTracker = true;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { deliveryAddress, items } = body
+    const { deliveryAddress, items, consigneeName, consigneePhone, consigneeEmail, city, state, pincode, modeOfDelivery } = body
 
     const session = await getServerSession(auth);
 
@@ -63,6 +65,13 @@ export async function POST(req: NextRequest) {
       data: {
         id: orderId,
         clientId,
+        consigneeName,
+        consigneePhone,
+        consigneeEmail,
+        city,
+        state,
+        pincode,
+        modeOfDelivery,
         deliveryAddress,
         totalAmount: 0,
         orderItems: {
@@ -107,6 +116,11 @@ export async function POST(req: NextRequest) {
       </table>
     `;
 
+    const footerMessage = toggleTracker ? "Please reply confirmation to this new dispatch order."
+    : "Please reply confirmation to this new dispatch order mail.";
+
+    toggleTracker = !toggleTracker;
+
     const adminEmail = process.env.ADMIN_EMAIL;
     const clientEmail = session?.user?.email;
 
@@ -114,7 +128,7 @@ export async function POST(req: NextRequest) {
       throw new Error("Missing admin email");
     }
 
-    await Promise.all([
+     await Promise.all([
       resend.emails.send({
         from: "aditya@fitplaysolutions.com",
         to: clientEmail,
@@ -123,10 +137,21 @@ export async function POST(req: NextRequest) {
         html: `
           <h2>New Dispatch Order</h2>
           <p>A new order <b>${order.id}</b> has been created by ${session.user?.name || "Unknown Client"}.</p>
-          <p>Delivery Address: <b>${deliveryAddress}</b></p>
-          <p><b>Order Summary</b></p>
-          <p>Please reply in confirmation to this new dispatch order.</p>
+          
+          <h3>Consignee Details</h3>
+          <p><b>Name:</b> ${consigneeName}</p>
+          <p><b>Phone:</b> ${consigneePhone}</p>
+          <p><b>Email:</b> ${consigneeEmail}</p>
+          <p><b>Mode of Delivery:</b> ${modeOfDelivery}</p>
+          
+          <h3>Delivery Address</h3>
+          <p>${deliveryAddress}, ${city}, ${state}, ${pincode}</p>
+
+          <h3>Order Summary</h3>
           ${orderTable}
+
+          <p>${footerMessage}</p>
+          <p style="display: none;">&#8203;</p>
         `,
       }),
     ])
