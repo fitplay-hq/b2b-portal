@@ -277,19 +277,73 @@ export default function ClientOrderHistory() {
                           </div>
 
                           {/* Order Details */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                          <div className="grid grid-cols-1 gap-x-4 gap-y-6 pt-4 border-t md:grid-cols-2">
                             <div>
                               <h4 className="font-medium mb-2">
                                 Delivery Address
                               </h4>
-                              <p className="text-sm text-muted-foreground whitespace-pre-line">
-                                {order.deliveryAddress}
-                              </p>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                {order.consigneeName && (
+                                  <p>
+                                    <strong>Consignee:</strong>{" "}
+                                    {order.consigneeName}
+                                  </p>
+                                )}
+                                {order.consigneePhone && (
+                                  <p>
+                                    <strong>Phone:</strong>{" "}
+                                    {order.consigneePhone}
+                                  </p>
+                                )}
+                                {order.consigneeEmail && (
+                                  <p>
+                                    <strong>Email:</strong>{" "}
+                                    {order.consigneeEmail}
+                                  </p>
+                                )}
+                                <p>
+                                  <strong>Address:</strong>{" "}
+                                  {order.deliveryAddress}
+                                </p>
+                                {order.city && (
+                                  <p>
+                                    <strong>City:</strong> {order.city}
+                                  </p>
+                                )}
+                                {order.state && (
+                                  <p>
+                                    <strong>State:</strong> {order.state}
+                                  </p>
+                                )}
+                                {order.pincode && (
+                                  <p>
+                                    <strong>Pincode:</strong> {order.pincode}
+                                  </p>
+                                )}
+                                {order.modeOfDelivery && (
+                                  <p>
+                                    <strong>Mode:</strong>{" "}
+                                    {order.modeOfDelivery}
+                                  </p>
+                                )}
+                                {order.deliveryReference && (
+                                  <p>
+                                    <strong>Reference:</strong>{" "}
+                                    {order.deliveryReference!}
+                                  </p>
+                                )}
+                                {order.packagingInstructions && (
+                                  <p>
+                                    <strong>Packaging:</strong>{" "}
+                                    {order.packagingInstructions!}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             {order.note && (
                               <div className="md:col-span-2">
                                 <h4 className="font-medium mb-2">Notes</h4>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-muted-foreground whitespace-pre-line">
                                   {order.note}
                                 </p>
                               </div>
