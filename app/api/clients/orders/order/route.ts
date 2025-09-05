@@ -106,27 +106,35 @@ export async function POST(req: NextRequest) {
       </table>
     `;
 
-  const adminEmail = process.env.ADMIN_EMAIL;
+  const fromMail = process.env.FROM_EMAIL;
+  const ccMail1 = process.env.CC_EMAIL_1;
   const clientEmail = session?.user?.email;
 
-  if (!adminEmail) {
+  if (!fromMail) {
     throw new Error("Missing admin email");
   }
 
   await Promise.all([
     resend.emails.send({
-      from: "aditya@fitplaysolutions.com",
+      from: fromMail,
       to: clientEmail,
-      cc: ["adinarang10@gmail.com"],
+      cc: [ccMail1!],
       subject: "New Order Awaiting Approval",
       html: `
-          <h2>New Dispatch Order</h2>
-          <p>A new order <b>${order.id}</b> has been created by ${session.user?.name || "Unknown Client"}.</p>
-          <p>Delivery Address: <b>${deliveryAddress}</b></p>
-          <p><b>Order Summary</b></p>
-          ${orderTable}
-          <p>Please reply in confirmation to this new dispatch order.</p>
-        `,
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5;">
+      <h2>New Dispatch Order</h2>
+      <p>A new order <b>${order.id}</b> has been created by ${session.user?.name || "Unknown Client"}.</p>
+      <p>Delivery Address: <b>${deliveryAddress}</b></p>
+      <p style="margin:0; padding:0; display:block; color:#000; font-family:Arial, sans-serif; font-size:14px;">Please reply in confirmation to this new dispatch order.
+      </p>
+      <p><b>Order Summary</b></p>
+      ${orderTable}
+      </body>
+      </html>
+      `,
+
     }),
   ])
 
