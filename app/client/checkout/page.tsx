@@ -47,6 +47,7 @@ export default function ClientCheckout() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [pincode, setPincode] = useState("");
+  const [deliveryReference, setDeliveryReference] = useState("");
   const [modeOfDelivery, setModeOfDelivery] = useState<"AIR" | "SURFACE">(
     "SURFACE"
   );
@@ -124,6 +125,7 @@ export default function ClientCheckout() {
         consigneePhone: consigneePhone.trim(),
         consigneeEmail: consigneeEmail.trim(),
         deliveryAddress: deliveryAddress.trim(),
+        deliveryReference: deliveryReference.trim(),
         city: city.trim(),
         state: state.trim(),
         pincode: pincode.trim(),
@@ -237,6 +239,27 @@ export default function ClientCheckout() {
                     </div>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Delivery Reference</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryReference">
+                    Delivery Reference (Optional)
+                  </Label>
+                  <Textarea
+                    id="deliveryReference"
+                    value={deliveryReference}
+                    onChange={(e) => setDeliveryReference(e.target.value)}
+                    placeholder="Any delivery reference for future use"
+                    rows={4}
+                    required
+                  />
+                </div>
               </CardContent>
             </Card>
 
