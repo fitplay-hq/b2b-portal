@@ -41,7 +41,7 @@ model Admin {
   password  String
   role      Role?    @default(ADMIN)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt()
 }
 
 model VerificationToken {
@@ -97,11 +97,18 @@ model Product {
 model Order {
   id              String      @id @default(uuid())
   totalAmount     Float
-  deliveryAddress String
+  consigneeName   String      @default("Name")
+  consigneePhone  String      @default("0000000000")
+  consigneeEmail  String      @default("email@example.com")
+  deliveryAddress String      @default("Address")
+  city            String      @default("City")
+  state           String      @default("State")
+  pincode         String      @default("000000")
+  modeOfDelivery  Modes       @default(SURFACE)
   note            String?
   status          Status      @default(PENDING)
-  client          Client      @relation(fields: [clientId], references: [id])
-  clientId        String
+  client          Client?     @relation(fields: [clientId], references: [id])
+  clientId        String?
   orderItems      OrderItem[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -132,6 +139,11 @@ enum Status {
   PENDING
   APPROVED
   CANCELLED
+}
+
+enum Modes {
+  AIR
+  SURFACE
 }
 
 enum Gender {
