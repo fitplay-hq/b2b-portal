@@ -13,77 +13,78 @@ if (!resendApiKey) {
 const resend = new Resend(resendApiKey);
 
 export async function POST(req: NextRequest) {
-  const body = await req.json()
-  const { deliveryAddress, items } = body
+  try {
+    const body = await req.json()
+    const { deliveryAddress, items } = body
 
-  const session = await getServerSession(auth);
+    const session = await getServerSession(auth);
 
-  if (!session || !session?.user?.email) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
-  const clientId = session?.user?.id;
+    if (!session || !session?.user?.email) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+    const clientId = session?.user?.id;
 
-  if (!clientId) {
-    return NextResponse.json(
-      { error: "Client ID missing" },
-      { status: 401 }
-    );
-  }
+    if (!clientId) {
+      return NextResponse.json(
+        { error: "Client ID missing" },
+        { status: 401 }
+      );
+    }
 
-  const year = new Date().getFullYear();
+    const year = new Date().getFullYear();
 
-  const lastOrder = await prisma.order.findFirst({
-    where: {
-      id: {
-        startsWith: `GH-FP${year}-`,
+    const lastOrder = await prisma.order.findFirst({
+      where: {
+        id: {
+          startsWith: `GH-FP${year}-`,
+        },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-  let nextSequence = 1;
-  if (lastOrder) {
-    const parts = lastOrder.id.split("-");
-    const lastSeq = parseInt(parts[parts.length - 1], 10);
+    let nextSequence = 1;
+    if (lastOrder) {
+      const parts = lastOrder.id.split("-");
+      const lastSeq = parseInt(parts[parts.length - 1], 10);
 
-    if (!isNaN(lastSeq)) {
-      nextSequence = lastSeq + 1;
-    }
-  }
-
-  const orderId = `GH-FP${year}-${String(nextSequence).padStart(3, "0")}`;
-
-  const order = await prisma.order.create({
-    data: {
-      id: orderId,
-      clientId,
-      deliveryAddress,
-      totalAmount: 0,
-      orderItems: {
-        create: items.map((item: any) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          price: 0
-        }))
-      }
-    },
-    include: { orderItems: true }
-  })
-
-  const products = await prisma.product.findMany({
-    where: {
-      id: {
-        in: order.orderItems.map(item => item.productId)
+      if (!isNaN(lastSeq)) {
+        nextSequence = lastSeq + 1;
       }
     }
-  });
 
-  const orderTable = `
+    const orderId = `GH-FP${year}-${String(nextSequence).padStart(3, "0")}`;
+
+    const order = await prisma.order.create({
+      data: {
+        id: orderId,
+        clientId,
+        deliveryAddress,
+        totalAmount: 0,
+        orderItems: {
+          create: items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price ?? 0,
+          }))
+        }
+      },
+      include: { orderItems: true }
+    })
+
+    const products = await prisma.product.findMany({
+      where: {
+        id: {
+          in: order.orderItems.map(item => item.productId)
+        }
+      }
+    });
+
+    const orderTable = `
       <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 16px;">
         <thead>
           <tr>
@@ -93,52 +94,51 @@ export async function POST(req: NextRequest) {
         </thead>
         <tbody>
           ${products
-      .map(
-        (item) => `
+        .map(
+          (item) => `
             <tr>
               <td>${item.name}</td>
               <td align="center">${order.orderItems.find(i => i.productId === item.id)?.quantity}</td>
             </tr>
           `
-      )
-      .join("")}
+        )
+        .join("")}
         </tbody>
       </table>
     `;
 
-  const fromMail = process.env.FROM_EMAIL;
-  const ccMail1 = process.env.CC_EMAIL_1;
-  const clientEmail = session?.user?.email;
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const clientEmail = session?.user?.email;
 
-  if (!fromMail) {
-    throw new Error("Missing admin email");
+    if (!adminEmail) {
+      throw new Error("Missing admin email");
+    }
+
+    await Promise.all([
+      resend.emails.send({
+        from: "aditya@fitplaysolutions.com",
+        to: clientEmail,
+        cc: ["adinarang10@gmail.com"],
+        subject: "New Order Awaiting Approval",
+        html: `
+          <h2>New Dispatch Order</h2>
+          <p>A new order <b>${order.id}</b> has been created by ${session.user?.name || "Unknown Client"}.</p>
+          <p>Delivery Address: <b>${deliveryAddress}</b></p>
+          <p><b>Order Summary</b></p>
+          <p>Please reply in confirmation to this new dispatch order.</p>
+          ${orderTable}
+        `,
+      }),
+    ])
+
+    return NextResponse.json(order)
+  } catch (error) {
+    console.error("Error creating order:", error);
+    return NextResponse.json(
+      { error: "Failed to create order" },
+      { status: 500 }
+    );
   }
-
-  await Promise.all([
-    resend.emails.send({
-      from: fromMail,
-      to: clientEmail,
-      cc: [ccMail1!],
-      subject: "New Order Awaiting Approval",
-      html: `
-      <!DOCTYPE html>
-      <html>
-      <body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5;">
-      <h2>New Dispatch Order</h2>
-      <p>A new order <b>${order.id}</b> has been created by ${session.user?.name || "Unknown Client"}.</p>
-      <p>Delivery Address: <b>${deliveryAddress}</b></p>
-      <p style="margin:0; padding:0; display:block; color:#000; font-family:Arial, sans-serif; font-size:14px;">Please reply in confirmation to this new dispatch order.
-      </p>
-      <p><b>Order Summary</b></p>
-      ${orderTable}
-      </body>
-      </html>
-      `,
-
-    }),
-  ])
-
-  return NextResponse.json(order)
 }
 
 export async function GET(req: NextRequest) {

@@ -27,6 +27,7 @@ export const auth: AuthOptions = {
         });
 
         if (!client) {
+          console.log("Invalid password attempt for client:", credentials.email);
           throw new Error("No client found");
         }
 
