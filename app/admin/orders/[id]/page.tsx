@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useOrder, useUpdateOrder } from "@/data/order/admin.hooks";
+import { useOrder, useUpdateOrderStatus } from "@/data/order/admin.hooks";
 import { useParams } from "next/navigation";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
 import { Loader2, ArrowLeft, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { $Enums } from "@/lib/generated/prisma";
 
 const OrderDetailsPage = () => {
   const params = useParams();
@@ -24,16 +25,15 @@ const OrderDetailsPage = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>("");
 
   const { order, error, isLoading } = useOrder(id);
-  const { updateOrder, isUpdating, updateError } = useUpdateOrder();
+  const { updateOrderStatus, isUpdating } = useUpdateOrderStatus();
 
   const handleStatusUpdate = async () => {
     if (!order || !selectedStatus) return;
 
     try {
-      await updateOrder({
+      await updateOrderStatus({
         orderId: id,
-        status: selectedStatus as any,
-        notes: "",
+        status: selectedStatus as $Enums.Status,
       });
       setSelectedStatus("");
     } catch (error) {
@@ -176,11 +176,11 @@ const OrderDetailsPage = () => {
                   <SelectValue placeholder="Update status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="APPROVED">Approved</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
-                  <SelectItem value="SHIPPED">Shipped</SelectItem>
-                  <SelectItem value="DELIVERED">Delivered</SelectItem>
+                  {Object.keys($Enums.Status).map((status) => (
+                    <SelectItem value={status}>
+                      {status.toLowerCase()}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button
