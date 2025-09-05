@@ -24,13 +24,13 @@ export function useProducts() {
  * Hook to create products in bulk.
  */
 export function useCreateProducts() {
-  const { data, error, isMutating } = useSWRMutation(
+  const { trigger, error, isMutating } = useSWRMutation(
     "/api/admin/products",
     (url, {arg}: {arg: Prisma.ProductCreateInput[]}) => createProducts(url, arg)
   );
 
   return {
-    createProducts: data,
+    createProducts: trigger,
     isCreating: isMutating,
     createError: error
   };
