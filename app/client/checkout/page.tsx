@@ -287,15 +287,23 @@ export default function ClientCheckout() {
                     <Label htmlFor="pincode">Pincode *</Label>
                     <Input
                       id="pincode"
-                      type="text"
+                      type="number"
                       value={pincode}
+                      maxLength={6}
                       onChange={(e) => setPincode(e.target.value)}
                       placeholder="PIN Code"
                       required
                     />
                   </div>
                 </div>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Packaging Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="modeOfDelivery">Mode of Delivery *</Label>
                   <Select
