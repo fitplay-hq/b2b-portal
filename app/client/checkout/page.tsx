@@ -51,6 +51,7 @@ export default function ClientCheckout() {
   const [modeOfDelivery, setModeOfDelivery] = useState<"AIR" | "SURFACE">(
     "SURFACE"
   );
+  const [requiredByDate, setRequiredByDate] = useState<string>("");
   const [note, setNote] = useState("");
 
   useEffect(() => {
@@ -109,6 +110,11 @@ export default function ClientCheckout() {
       return;
     }
 
+    if (!requiredByDate.trim()) {
+      toast.error("Please select a required by date");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -130,6 +136,7 @@ export default function ClientCheckout() {
         state: state.trim(),
         pincode: pincode.trim(),
         modeOfDelivery,
+        requiredByDate: requiredByDate,
         note: note.trim() || null,
         items: _orderItems,
       };
@@ -311,6 +318,18 @@ export default function ClientCheckout() {
                       required
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="requiredByDate">Required By Date *</Label>
+                  <Input
+                    id="requiredByDate"
+                    value={requiredByDate}
+                    onChange={(e) => setRequiredByDate(e.target.value)}
+                    placeholder="Select required delivery date"
+                    type="date"
+                    required
+                  />
                 </div>
               </CardContent>
             </Card>
