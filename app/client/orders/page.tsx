@@ -273,6 +273,12 @@ export default function ClientOrderHistory() {
                                 Date:{" "}
                                 {new Date(order.createdAt).toLocaleDateString()}
                               </p>
+                              <p>
+                                Required By Date:{" "}
+                                {new Date(
+                                  order.requiredByDate
+                                ).toLocaleDateString()}
+                              </p>
                             </div>
                           </div>
 
