@@ -17,6 +17,7 @@ import {
   Calendar,
   Download,
   ExternalLink,
+  CalendarDays,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AdminOrder } from "@/data/order/admin.actions";
@@ -73,6 +74,12 @@ const OrderSummary = ({ order }: { order: AdminOrder }) => {
             <Calendar className="h-3 w-3" />
             {new Date(order.createdAt).toLocaleDateString()}
           </span>
+          {order.requiredByDate && (
+            <span className="flex items-center gap-1.5">
+              <CalendarDays className="h-3 w-3" />
+              Due: {new Date(order.requiredByDate).toLocaleDateString()}
+            </span>
+          )}
           <span className="flex items-center gap-1.5">
             <Package className="h-3 w-3" />
             {order.orderItems.length} items
