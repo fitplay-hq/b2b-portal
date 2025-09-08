@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
       consigneeEmail, 
       city, 
       state, 
-      pincode, 
+      pincode,
+      requiredByDate,
       modeOfDelivery,
       note ='',
       deliveryReference = '', 
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
           city,
           state,
           pincode,
+          requiredByDate,
           modeOfDelivery,
           deliveryAddress,
           deliveryReference,
@@ -180,7 +182,8 @@ export async function POST(req: NextRequest) {
           <p><b>Phone:</b> ${consigneePhone}</p>
           <p><b>Email:</b> ${consigneeEmail}</p>
           <p><b>Mode of Delivery:</b> ${modeOfDelivery}</p>
-          
+          <p><b>Required By Date:</b> ${new Date(requiredByDate).toLocaleDateString()}</p>
+
           <h3>Delivery Address</h3>
           <p>${deliveryAddress}, ${city}, ${state}, ${pincode}</p>
 

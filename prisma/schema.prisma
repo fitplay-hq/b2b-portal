@@ -105,6 +105,7 @@ model Order {
   state                 String      @default("State")
   pincode               String      @default("000000")
   modeOfDelivery        Modes       @default(SURFACE)
+  requiredByDate        DateTime
   deliveryReference     String?
   packagingInstructions String?
   note                  String?
