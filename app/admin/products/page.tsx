@@ -143,6 +143,8 @@ export default function AdminProductsPage() {
         <div className="flex-1 overflow-y-auto pr-2">
           <ProductList
             products={filteredProducts}
+            allProducts={products ?? []}
+            selectedCategory={filterProps.selectedCategory}
             onEdit={formControls.openEditDialog}
             onDelete={handleDelete}
             onManageInventory={handleOpenInventoryDialog}
