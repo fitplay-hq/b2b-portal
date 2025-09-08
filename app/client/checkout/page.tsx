@@ -246,19 +246,13 @@ export default function ClientCheckout() {
               <CardHeader>
                 <CardTitle>Delivery Reference</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="deliveryReference">
-                    Delivery Reference (Optional)
-                  </Label>
-                  <Textarea
-                    id="deliveryReference"
-                    value={deliveryReference}
-                    onChange={(e) => setDeliveryReference(e.target.value)}
-                    placeholder="Any delivery reference for future use"
-                    rows={4}
-                  />
-                </div>
+              <CardContent className="space-y-4 py-1">
+                <Input
+                  id="deliveryReference"
+                  value={deliveryReference}
+                  onChange={(e) => setDeliveryReference(e.target.value)}
+                  placeholder="Any delivery reference for future use"
+                />
               </CardContent>
             </Card>
 
