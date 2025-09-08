@@ -256,14 +256,14 @@ export default function ClientCheckout() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Delivery Reference</CardTitle>
+                <CardTitle>Order Reference</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 py-1">
                 <Input
                   id="deliveryReference"
                   value={deliveryReference}
                   onChange={(e) => setDeliveryReference(e.target.value)}
-                  placeholder="Any delivery reference for future use"
+                  placeholder="Any order reference for future use"
                 />
               </CardContent>
             </Card>
