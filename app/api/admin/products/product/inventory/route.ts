@@ -12,11 +12,11 @@ export async function PATCH(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { productId, quantity } = body;
+        const { productId, quantity, reason } = body;
 
-        if (!productId || typeof quantity !== "number" || quantity < 0) {
+        if (!productId || typeof quantity !== "number" || quantity < 0 || !reason) {
             return NextResponse.json(
-                { error: "Invalid product ID or quantity" },
+                { error: "Invalid product ID, quantity or reason" },
                 { status: 400 },
             );
         }
@@ -24,7 +24,10 @@ export async function PATCH(req: NextRequest) {
         // Update the product inventory
         const productData = await prisma.product.update({
             where: { id: productId },
-            data: { availableStock: { increment: quantity } },
+            data: {
+                availableStock: { increment: quantity },
+                inventoryUpdateReason: reason
+            },
         });
 
         return NextResponse.json(

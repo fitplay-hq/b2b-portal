@@ -77,21 +77,22 @@ model Client {
 }
 
 model Product {
-  id             String      @id @default(uuid())
-  name           String      @db.VarChar(50)
-  images         String[]
-  price          Int?
-  sku            String      @unique @db.VarChar(100)
-  availableStock Int
-  description    String
-  categories     Category
-  avgRating      Float?
-  noOfReviews    Int?
-  brand          String?     @db.VarChar(30)
-  companies      Company[]
-  orderItems     OrderItem[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                    String      @id @default(uuid())
+  name                  String      @db.VarChar(50)
+  images                String[]
+  price                 Int?
+  sku                   String      @unique @db.VarChar(100)
+  availableStock        Int
+  inventoryUpdateReason Reason?
+  description           String
+  categories            Category
+  avgRating             Float?
+  noOfReviews           Int?
+  brand                 String?     @db.VarChar(30)
+  companies             Company[]
+  orderItems            OrderItem[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 }
 
 model Order {
@@ -147,6 +148,12 @@ enum Status {
 enum Modes {
   AIR
   SURFACE
+}
+
+enum Reason {
+  NEW_PURCHASE
+  PHYSICAL_STOCK_CHECK
+  RETURN_FROM_PREVIOUS_DISPATCH
 }
 
 enum Gender {
