@@ -126,6 +126,11 @@ export default function ClientCheckout() {
         })
       );
 
+      // Convert date string to ISO DateTime format for Prisma
+      const dateTimeForPrisma = requiredByDate
+        ? new Date(requiredByDate + "T23:59:59.999Z").toISOString()
+        : new Date().toISOString();
+
       const _order = {
         consigneeName: consigneeName.trim(),
         consigneePhone: consigneePhone.trim(),
@@ -136,7 +141,7 @@ export default function ClientCheckout() {
         state: state.trim(),
         pincode: pincode.trim(),
         modeOfDelivery,
-        requiredByDate: requiredByDate,
+        requiredByDate: dateTimeForPrisma,
         note: note.trim() || null,
         items: _orderItems,
       };
