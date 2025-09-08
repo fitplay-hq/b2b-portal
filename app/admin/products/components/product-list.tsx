@@ -7,6 +7,7 @@ interface ProductListProps {
   products: Product[];
   onEdit: (product: Product) => void;
   onDelete: (productId: string) => void;
+  onManageInventory: (product: Product) => void;
   hasProductsInitially: boolean;
 }
 
@@ -14,6 +15,7 @@ export function ProductList({
   products,
   onEdit,
   onDelete,
+  onManageInventory,
   hasProductsInitially,
 }: ProductListProps) {
   return (
@@ -30,6 +32,7 @@ export function ProductList({
                 product={product}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onManageInventory={onManageInventory}
               />
             ))
           ) : (

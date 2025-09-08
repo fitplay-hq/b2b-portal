@@ -1,6 +1,6 @@
 import useSWR, { mutate as globalMutate } from "swr";
 import useSWRMutation from "swr/mutation";
-import { createProduct, createProducts, deleteProduct, getProducts, updateProduct } from "./admin.actions";
+import { createProduct, createProducts, deleteProduct, getProducts, updateProduct, updateInventory } from "./admin.actions";
 import { Prisma } from "@/lib/generated/prisma";
 
 /**
@@ -96,5 +96,26 @@ export function useDeleteProduct() {
     deleteProduct: trigger,
     isDeleting: isMutating,
     deleteError: error,
+  };
+}
+
+/**
+ * Hook to update product inventory.
+ */
+export function useUpdateInventory() {
+  const { trigger, isMutating, error } = useSWRMutation(
+    "/api/admin/products/product/inventory",
+    (url, { arg }: { arg: { productId: string; quantity: number; reason: string; direction: 1 | -1 } }) => updateInventory(url, arg),
+    {
+      onSuccess: () => {
+        globalMutate('/api/admin/products')
+      }
+    }
+  );
+
+  return {
+    updateInventory: trigger,
+    isUpdatingInventory: isMutating,
+    updateInventoryError: error,
   };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { toast } from "sonner";
 
 import Layout from "@/components/layout";
@@ -12,6 +13,7 @@ import { StatsGrid } from "./components/stats-grid";
 import { ProductFilters } from "./components/product-filters";
 import { ProductList } from "./components/product-list";
 import { ProductFormDialog } from "./components/product-form-dialog";
+import { UpdateInventoryDialog } from "./components/update-inventory-dialog";
 import {
   useCreateProducts,
   useDeleteProduct,
@@ -19,11 +21,21 @@ import {
 } from "@/data/product/admin.hooks";
 import { Prisma } from "@/lib/generated/prisma";
 import { BulkUploadButton } from "./components/bulk-upload-button";
+import type { Product } from "@/lib/generated/prisma";
 
 export default function AdminProductsPage() {
   const { products, error, isLoading, mutate } = useProducts();
   const { deleteProduct } = useDeleteProduct();
   const { createProducts } = useCreateProducts();
+
+  // Inventory dialog state
+  const [inventoryDialog, setInventoryDialog] = useState<{
+    isOpen: boolean;
+    product: Product | null;
+  }>({
+    isOpen: false,
+    product: null,
+  });
 
   const { filteredProducts, ...filterProps } = useProductFilters(products);
   const formControls = useProductForm({ onSuccess: () => mutate() });
@@ -66,6 +78,20 @@ export default function AdminProductsPage() {
         label: "Cancel",
         onClick: async () => {},
       },
+    });
+  };
+
+  const handleOpenInventoryDialog = (product: Product) => {
+    setInventoryDialog({
+      isOpen: true,
+      product,
+    });
+  };
+
+  const handleCloseInventoryDialog = () => {
+    setInventoryDialog({
+      isOpen: false,
+      product: null,
     });
   };
 
@@ -119,12 +145,18 @@ export default function AdminProductsPage() {
             products={filteredProducts}
             onEdit={formControls.openEditDialog}
             onDelete={handleDelete}
+            onManageInventory={handleOpenInventoryDialog}
             hasProductsInitially={(products?.length ?? 0) > 0}
           />
         </div>
       </div>
 
       <ProductFormDialog {...formControls} />
+      <UpdateInventoryDialog
+        product={inventoryDialog.product}
+        isOpen={inventoryDialog.isOpen}
+        onClose={handleCloseInventoryDialog}
+      />
     </Layout>
   );
 }

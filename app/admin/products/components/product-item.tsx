@@ -2,16 +2,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/image";
 import { Product } from "@/lib/generated/prisma";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Package } from "lucide-react";
 import { getHumanFriendlyCategoryName } from "./product-filters";
 
 interface ProductItemProps {
   product: Product;
   onEdit: (product: Product) => void;
   onDelete: (productId: string) => void;
+  onManageInventory: (product: Product) => void;
 }
 
-export function ProductItem({ product, onEdit, onDelete }: ProductItemProps) {
+export function ProductItem({
+  product,
+  onEdit,
+  onDelete,
+  onManageInventory,
+}: ProductItemProps) {
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg">
       <div className="flex items-center gap-4">
@@ -46,6 +52,14 @@ export function ProductItem({ product, onEdit, onDelete }: ProductItemProps) {
         <Button variant="outline" size="sm" onClick={() => onEdit(product)}>
           <Edit className="h-4 w-4 md:mr-2" />
           <span className="hidden md:inline">Edit</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onManageInventory(product)}
+        >
+          <Package className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">Inventory</span>
         </Button>
         <Button
           variant="outline"

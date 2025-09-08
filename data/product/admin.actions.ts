@@ -53,3 +53,20 @@ export async function deleteProduct(url: string, productId: string) {
   }
   return await response.json();
 }
+
+export async function updateInventory(url: string, inventoryData: {
+  productId: string;
+  quantity: number;
+  reason: string;
+  direction: 1 | -1;
+}) {
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(inventoryData),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update inventory");
+  }
+  return await response.json();
+}
