@@ -3,11 +3,10 @@ import { toast } from 'sonner';
 import { Client } from '@/lib/mockData';
 import { useCreateClient, useUpdateClient } from '@/data/client/admin.hooks';
 
-const initialFormData: Omit<Client, 'id' | 'createdAt'> = {
+const initialFormData = {
     company: "",
     email: "",
     name: "",
-    status: "active"
 }
 
 export function useClientForm() {
@@ -26,10 +25,6 @@ export function useClientForm() {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleStatusChange = (value: 'active' | 'inactive') => {
-    setFormData(prev => ({ ...prev, status: value }));
-  };
-
   const openNewDialog = () => {
     setEditingClient(null);
     setFormData(initialFormData);
@@ -42,7 +37,6 @@ export function useClientForm() {
       name: client.name,
       email: client.email,
       company: client.company,
-      status: client.status,
     });
     setIsDialogOpen(true);
   };
@@ -55,10 +49,19 @@ export function useClientForm() {
 
     try {
       if (editingClient) {
-        await updateClient({ id: editingClient.id, ...formData });
+        await updateClient({
+          id: editingClient.id,
+          name: formData.name,
+          email: formData.email,
+          companyName: formData.company,
+        });
         toast.success('Client updated successfully.');
       } else {
-        await createClient(formData);
+        await createClient({
+          name: formData.name,
+          email: formData.email,
+          companyName: formData.company,
+        });
         toast.success('Client added successfully.');
       }
       closeDialog();
@@ -79,6 +82,5 @@ export function useClientForm() {
     closeDialog,
     handleSubmit,
     handleFieldChange,
-    handleStatusChange,
   };
 }

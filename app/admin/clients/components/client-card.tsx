@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Client } from "@/lib/mockData";
+import { Client } from "@/lib/generated/prisma";
 import { Building2, Calendar, Edit, Mail, Trash2 } from "lucide-react";
 
 interface ClientCardProps {
@@ -29,10 +29,12 @@ export function ClientCard({
     .toUpperCase();
 
   // Logic for styling the status badge based on client status
+  // const statusBadgeClass =
+  // client.status === "active"
+  // ? "border-transparent bg-green-100 text-green-800 hover:bg-green-100/80"
+  // : "border-transparent bg-red-100 text-red-800 hover:bg-red-100/80";
   const statusBadgeClass =
-    client.status === "active"
-      ? "border-transparent bg-green-100 text-green-800 hover:bg-green-100/80"
-      : "border-transparent bg-red-100 text-red-800 hover:bg-red-100/80";
+    "border-transparent bg-green-100 text-green-800 hover:bg-green-100/80";
 
   return (
     <div className="flex flex-col items-start justify-between gap-4 rounded-lg border p-4 sm:flex-row sm:items-center">
@@ -43,9 +45,7 @@ export function ClientCard({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h3 className="font-medium">{client.name}</h3>
-            <Badge className={statusBadgeClass}>
-              {client.status.charAt(0).toUpperCase() + client.status.slice(1)}
-            </Badge>
+            <Badge className={statusBadgeClass}>Active</Badge>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
@@ -54,7 +54,7 @@ export function ClientCard({
             </span>
             <span className="flex items-center gap-1.5">
               <Building2 className="h-3 w-3" />
-              {client.company}
+              {client.companyName}
             </span>
             <span className="flex items-center gap-1.5">
               <Calendar className="h-3 w-3" />

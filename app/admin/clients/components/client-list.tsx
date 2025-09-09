@@ -1,4 +1,4 @@
-import { Client } from "@/lib/mockData";
+import { Client } from "@/lib/generated/prisma";
 import { ClientCard } from "./client-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 

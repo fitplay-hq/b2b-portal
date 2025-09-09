@@ -8,13 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useClientForm } from "@/hooks/use-client-form";
 
 // Use the return type of the hook for clean and strongly-typed props
@@ -28,7 +21,6 @@ export function ClientFormDialog({
   closeDialog,
   handleSubmit,
   handleFieldChange,
-  handleStatusChange,
 }: ClientFormDialogProps) {
   return (
     <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
@@ -74,19 +66,6 @@ export function ClientFormDialog({
               onChange={handleFieldChange}
               required
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select value={formData.status} onValueChange={handleStatusChange}>
-              <SelectTrigger id="status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

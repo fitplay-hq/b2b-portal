@@ -1,9 +1,8 @@
+import { Client } from '@/lib/generated/prisma';
 import { useState, useMemo } from 'react';
-import { Client } from '@/lib/mockData';
 
 export function useClientFilters(clients: Client[] = []) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
 
   const filteredClients = useMemo(() => {
     let filtered = clients;
@@ -13,14 +12,11 @@ export function useClientFilters(clients: Client[] = []) {
       filtered = filtered.filter(client =>
         client.name.toLowerCase().includes(term) ||
         client.email.toLowerCase().includes(term) ||
-        client.company.toLowerCase().includes(term)
+        client.companyName.toLowerCase().includes(term)
       );
     }
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(client => client.status === statusFilter);
-    }
     return filtered;
-  }, [clients, searchTerm, statusFilter]);
+  }, [clients, searchTerm]);
 
-  return { searchTerm, setSearchTerm, statusFilter, setStatusFilter, filteredClients };
+  return { searchTerm, setSearchTerm, filteredClients };
 }

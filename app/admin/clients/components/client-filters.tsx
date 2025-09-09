@@ -13,15 +13,11 @@ import { Search } from "lucide-react";
 interface ClientFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  statusFilter: string;
-  setStatusFilter: (status: string) => void;
 }
 
 export function ClientFilters({
   searchTerm,
   setSearchTerm,
-  statusFilter,
-  setStatusFilter,
 }: ClientFiltersProps) {
   return (
     <Card>
@@ -35,18 +31,6 @@ export function ClientFilters({
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
-          </div>
-          <div className="sm:w-48">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </CardHeader>

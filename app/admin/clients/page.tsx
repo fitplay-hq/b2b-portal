@@ -51,7 +51,7 @@ export default function AdminClientsPage() {
 
   if (isLoading) {
     return (
-      <Layout title="Product Management" isClient={false}>
+      <Layout title="Client Management" isClient={false}>
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -61,9 +61,9 @@ export default function AdminClientsPage() {
 
   if (clientsError || ordersError) {
     return (
-      <Layout title="Product Management" isClient={false}>
+      <Layout title="Client Management" isClient={false}>
         <div className="text-center text-destructive">
-          Failed to load products. Please try again later.
+          Failed to load client. Please try again later.
         </div>
       </Layout>
     );
