@@ -1,6 +1,6 @@
 import useSWR, { mutate as globalMutate } from "swr";
 import useSWRMutation from "swr/mutation";
-import { createProduct, createProducts, deleteProduct, getProducts, updateProduct, updateInventory } from "./admin.actions";
+import { createProduct, createProducts, getProducts, updateProduct } from "./admin.actions";
 import { Prisma } from "@/lib/generated/prisma";
 
 /**

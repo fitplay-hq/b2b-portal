@@ -54,6 +54,25 @@ export async function deleteProduct(url: string, productId: string) {
   return await response.json();
 }
 
+type InventoryUpdate = {
+  productId: string;
+  quantity: number;
+  direction: "incr" | "dec";
+  inventoryUpdateReason: "NEW_PURCHASE" | "PHYSICAL_STOCK_CHECK" | "RETURN_FROM_PREVIOUS_DISPATCH";
+};
+
+export async function updateBulkInventory(url: string, inventoryUpdates: InventoryUpdate[]) {
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(inventoryUpdates),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update bulk inventory");
+  }
+  return await response.json();
+}
+
 export async function updateInventory(url: string, inventoryData: {
   productId: string;
   quantity: number;

@@ -20,7 +20,7 @@ import {
   useProducts,
 } from "@/data/product/admin.hooks";
 import { Prisma } from "@/lib/generated/prisma";
-import { BulkUploadButton } from "./components/bulk-upload-button";
+import { BulkActionsDropdown } from "./components/bulk-actions-dropdown";
 import type { Product } from "@/lib/generated/prisma";
 
 export default function AdminProductsPage() {
@@ -40,25 +40,7 @@ export default function AdminProductsPage() {
   const { filteredProducts, ...filterProps } = useProductFilters(products);
   const formControls = useProductForm({ onSuccess: () => mutate() });
 
-  const handleBulkUpload = async (
-    uploadedProducts: Prisma.ProductCreateInput[]
-  ) => {
-    // Here you would add validation logic for the uploaded data
-    if (!Array.isArray(uploadedProducts) || uploadedProducts.length === 0) {
-      toast.error("Invalid file format or no products found in the file.");
-      return;
-    }
-
-    try {
-      await createProducts(uploadedProducts);
-      toast.success(`${uploadedProducts.length} products added successfully!`);
-    } catch (error) {
-      toast.error(
-        "Failed to add products. Please check the console for details."
-      );
-      console.error("Bulk upload failed:", error);
-    }
-  };
+  // Bulk upload functionality moved to BulkActionsDropdown component
 
   const handleDelete = (productId: string) => {
     toast("Are you sure you want to delete this product?", {
@@ -131,9 +113,7 @@ export default function AdminProductsPage() {
                 <Plus className="h-4 w-4 mr-2" />
                 Add Product
               </Button>
-              <BulkUploadButton<Prisma.ProductCreateInput[]>
-                onUpload={handleBulkUpload}
-              />
+              <BulkActionsDropdown />
             </div>
           </div>
 
