@@ -20,12 +20,12 @@ export function useDashboardMetrics() {
     const totalOrders = orders.length;
     const pendingOrders = orders.filter((o) => o.status === 'PENDING').length;
     const approvedOrders = orders.filter((o) => o.status === 'APPROVED').length;
-    const rejectedOrders = orders.filter((o) => o.status === 'REJECTED').length;
+    const rejectedOrders = orders.filter((o) => o.status === 'CANCELLED').length;
 
     const totalProducts = products.length;
 
     const lowStockProducts = products.filter((p) => p.availableStock < 50).length;
-    const activeClients = clients.filter((c) => c.status === 'active').length;
+    const activeClients = clients.length;
 
     const recentOrders = [...orders]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
