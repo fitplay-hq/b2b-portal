@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Client } from '@/lib/mockData';
+import { Client, Prisma } from '@/lib/generated/prisma';
 import { useCreateClient, useUpdateClient } from '@/data/client/admin.hooks';
 
-const initialFormData = {
-    company: "",
-    email: "",
-    name: "",
+const initialData: Prisma.ClientUpdateInput = {
+  address: "",
+  companyName: "",
+  email: "",
+  name: "",
+  phone: "",
 }
 
 export function useClientForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [isEditDialog, setIsEditDialog] = useState(false)
+  const [clientData, setClientData] = useState<Prisma.ClientUpdateInput>(initialData);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState(initialFormData)
 
   const { createClient } = useCreateClient()
   const { updateClient } = useUpdateClient()
@@ -22,22 +24,17 @@ export function useClientForm() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    setClientData(prev => prev ? { ...prev, [id]: value } : prev);
   };
 
   const openNewDialog = () => {
-    setEditingClient(null);
-    setFormData(initialFormData);
+    setIsEditDialog(false)
+    setClientData(initialData)
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (client: Client) => {
-    setEditingClient(client);
-    setFormData({
-      name: client.name,
-      email: client.email,
-      company: client.company,
-    });
+    setIsEditDialog(true)
     setIsDialogOpen(true);
   };
   
@@ -48,21 +45,15 @@ export function useClientForm() {
     setIsSubmitting(true);
 
     try {
-      if (editingClient) {
-        await updateClient({
-          id: editingClient.id,
-          name: formData.name,
-          email: formData.email,
-          companyName: formData.company,
-        });
-        toast.success('Client updated successfully.');
-      } else {
-        await createClient({
-          name: formData.name,
-          email: formData.email,
-          companyName: formData.company,
-        });
-        toast.success('Client added successfully.');
+      if (clientData) {
+        if (isEditDialog) {
+          console.log(clientData)
+          await updateClient(clientData);
+          toast.success('Client updated successfully.');
+        } else {
+          await createClient(clientData);
+          toast.success('Client added successfully.');
+        }
       }
       closeDialog();
     } catch (error) {
@@ -74,9 +65,9 @@ export function useClientForm() {
 
   return {
     isDialogOpen,
-    editingClient,
+    isEditDialog,
     isSubmitting,
-    formData,
+    clientData,
     openNewDialog,
     openEditDialog,
     closeDialog,

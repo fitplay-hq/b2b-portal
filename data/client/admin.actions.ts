@@ -9,15 +9,14 @@ export async function getClients(url: string) {
   return result.data as Client[]
 }
 
-export async function createClient(url: string, clientData: Omit<Prisma.ClientCreateInput, 'password' | 'phone' | 'address'>) {
-  // Transform clientData back to API format (ignoring status since it's not in the database)
+export async function createClient(url: string, clientData: Prisma.ClientCreateInput) {
   const apiData = {
     name: clientData.name,
     email: clientData.email,
-    companyName: clientData.companyName, // Map company back to companyName
-    password: "defaultPassword123", // Default password for new clients
-    phone: "0000000000", // Default phone - this should be updated in the form
-    address: "Default Address", // Default address - this should be updated in the form
+    companyName: clientData.companyName,
+    password: clientData.password,
+    phone: clientData.phone,
+    address: clientData.address,
   };
 
   const response = await fetch(url, {

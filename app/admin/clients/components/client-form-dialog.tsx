@@ -15,9 +15,9 @@ type ClientFormDialogProps = ReturnType<typeof useClientForm>;
 
 export function ClientFormDialog({
   isDialogOpen,
-  editingClient,
+  clientData,
   isSubmitting,
-  formData,
+  isEditDialog,
   closeDialog,
   handleSubmit,
   handleFieldChange,
@@ -27,10 +27,10 @@ export function ClientFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {editingClient ? "Edit Client" : "Add New Client"}
+            {isEditDialog ? "Edit Client" : "Add New Client"}
           </DialogTitle>
           <DialogDescription>
-            {editingClient
+            {isEditDialog
               ? "Update the client information below."
               : "Fill in the details for the new client account."}
           </DialogDescription>
@@ -41,7 +41,7 @@ export function ClientFormDialog({
             <Label htmlFor="name">Full Name</Label>
             <Input
               id="name"
-              value={formData.name}
+              value={clientData?.name}
               onChange={handleFieldChange}
               required
             />
@@ -52,7 +52,7 @@ export function ClientFormDialog({
             <Input
               id="email"
               type="email"
-              value={formData.email}
+              value={clientData?.email}
               onChange={handleFieldChange}
               required
             />
@@ -61,8 +61,42 @@ export function ClientFormDialog({
           <div className="space-y-2">
             <Label htmlFor="company">Company Name</Label>
             <Input
-              id="company"
-              value={formData.company}
+              id="companyName"
+              value={clientData?.companyName}
+              onChange={handleFieldChange}
+              required
+            />
+          </div>
+
+          {!isEditDialog && (
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={clientData?.password}
+                onChange={handleFieldChange}
+                required
+                placeholder=""
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              value={clientData?.phone}
+              onChange={handleFieldChange}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address">Address</Label>
+            <Input
+              id="address"
+              value={clientData?.address}
               onChange={handleFieldChange}
               required
             />
@@ -80,7 +114,7 @@ export function ClientFormDialog({
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting
                 ? "Saving..."
-                : editingClient
+                : isEditDialog
                 ? "Update Client"
                 : "Add Client"}
             </Button>

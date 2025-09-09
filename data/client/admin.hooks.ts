@@ -26,7 +26,7 @@ export function useClients() {
 export function useCreateClient() {
   const { trigger, isMutating, error } = useSWRMutation(
     "/api/admin/clients/client",
-    (url, { arg }: { arg: Omit<Prisma.ClientCreateInput, 'password' | 'phone' | 'address'> }) => createClient(url, arg),
+    (url, { arg }: { arg: Prisma.ClientCreateInput }) => createClient(url, arg),
     {
       onSuccess: () => {
         globalMutate('/api/admin/clients')
