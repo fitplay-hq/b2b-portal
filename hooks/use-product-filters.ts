@@ -6,7 +6,7 @@ export type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "lowes
 export function useProductFilters(products: Product[] = []) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
-  const [sortBy, setSortBy] = useState<SortOption>();
+  const [sortBy, setSortBy] = useState<SortOption>('category');
 
   const filteredProducts = useMemo(() => {
     let filtered = products;
