@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json()
+        console.log({body})
         const {
             clientEmail,
             deliveryAddress,
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
             deliveryReference = '',
             packagingInstructions = ''
         } = body
+
 
         if (!clientEmail) {
             return NextResponse.json({ error: "Client email is required" }, { status: 400 });

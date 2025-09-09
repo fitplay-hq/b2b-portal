@@ -57,6 +57,7 @@ export async function getOrder(url: string, id: string) {
 }
 
 export async function createOrder(url: string, orderData: any) {
+  console.log(orderData)
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

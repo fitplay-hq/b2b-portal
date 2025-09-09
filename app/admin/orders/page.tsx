@@ -9,6 +9,9 @@ import { OrderStatsGrid } from "./components/order-stats-grid";
 import { OrderFilters } from "./components/order-filters";
 import { OrderList } from "./components/order-list";
 import { UpdateStatusDialog } from "./components/update-status-dialog";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import Link from "next/link";
 
 export default function AdminOrdersPage() {
   // 1. DATA FETCHING
@@ -41,11 +44,21 @@ export default function AdminOrdersPage() {
   return (
     <Layout title="Order Management" isClient={false}>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Order Management</h1>
-          <p className="text-muted-foreground">
-            Review and manage dispatch orders from clients
-          </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Order Management</h1>
+            <p className="text-muted-foreground">
+              Review and manage dispatch orders from clients
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <Button asChild>
+              <Link href="/admin/orders/create">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Dispatch Order
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <OrderStatsGrid {...metrics} />
