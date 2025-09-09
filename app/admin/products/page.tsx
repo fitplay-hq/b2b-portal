@@ -144,7 +144,7 @@ export default function AdminProductsPage() {
           <ProductList
             products={filteredProducts}
             allProducts={products ?? []}
-            selectedCategory={filterProps.selectedCategory}
+            selectedSort={filterProps.sortBy}
             onEdit={formControls.openEditDialog}
             onDelete={handleDelete}
             onManageInventory={handleOpenInventoryDialog}

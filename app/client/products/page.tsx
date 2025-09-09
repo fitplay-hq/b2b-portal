@@ -84,7 +84,7 @@ export default function ClientProductsPage() {
         <ProductGrid
           products={filteredProducts}
           allProducts={products ?? []}
-          selectedCategory={filterProps.selectedCategory}
+          selectedSort={filterProps.sortBy}
           getCartQuantity={getCartQuantity}
           onAddToCartClick={quantityDialog.openDialog}
           onClearFilters={handleClearFilters}

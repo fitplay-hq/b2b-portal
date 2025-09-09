@@ -2,31 +2,29 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Product, Category } from "@/lib/generated/prisma";
 import { ProductItem } from "./product-item";
 import { EmptyState } from "./empty-state";
+import { SortOption } from "@/hooks/use-product-filters";
 
 interface ProductListProps {
   products: Product[];
   allProducts: Product[];
-  selectedCategory: string;
   onEdit: (product: Product) => void;
   onDelete: (productId: string) => void;
   onManageInventory: (product: Product) => void;
   hasProductsInitially: boolean;
+  selectedSort: SortOption | undefined;
 }
 
 export function ProductList({
   products,
   allProducts,
-  selectedCategory,
+  selectedSort,
   onEdit,
   onDelete,
   onManageInventory,
   hasProductsInitially,
 }: ProductListProps) {
   // If not "All Categories" or filtered, show normal list
-  if (
-    selectedCategory !== "All Categories" ||
-    products.length !== allProducts.length
-  ) {
+  if (selectedSort !== "category" || products.length !== allProducts.length) {
     return (
       <Card>
         <CardHeader>

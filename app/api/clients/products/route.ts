@@ -13,7 +13,21 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
-    const products = await prisma.product.findMany();
+
+    const { searchParams } = new URL(req.url);
+    const sortBy = searchParams.get("sortBy") || "name";
+    const sortOrder = searchParams.get("sortOrder") || "asc";
+
+    // Define allowed sort fields for security
+    const allowedSortFields = ["name", "availableStock", "createdAt", "updatedAt"];
+    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "name";
+    const safeSortOrder = sortOrder === "desc" ? "desc" : "asc";
+
+    const products = await prisma.product.findMany({
+      orderBy: {
+        [safeSortBy]: safeSortOrder,
+      },
+    });
     return NextResponse.json(products);
   } catch (error: any) {
     return NextResponse.json(

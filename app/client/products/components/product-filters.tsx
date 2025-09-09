@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SortOption } from "@/hooks/use-product-filters";
 import { $Enums } from "@/lib/generated/prisma";
 import { Search, Filter } from "lucide-react";
 
@@ -14,6 +15,8 @@ interface ProductFiltersProps {
   setSearchTerm: (term: string) => void;
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
+  sortBy: SortOption | undefined;
+  setSortBy: (sortBy: SortOption) => void;
   resultsCount: number;
   totalCount: number;
 }
@@ -52,6 +55,8 @@ export function ProductFilters({
   setSearchTerm,
   selectedCategory,
   setSelectedCategory,
+  sortBy,
+  setSortBy,
   resultsCount,
   totalCount,
 }: ProductFiltersProps) {
@@ -62,7 +67,7 @@ export function ProductFilters({
         Filter Products
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
@@ -73,6 +78,23 @@ export function ProductFilters({
             className="pl-10"
           />
         </div>
+
+        {/* Sort By */}
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger>
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="category">Category</SelectItem>
+            <SelectItem value="name-asc">Name</SelectItem>
+            <SelectItem value="highest-stock">Highest Stock</SelectItem>
+            <SelectItem value="lowest-stock">Lowest Stock</SelectItem>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="oldest">Oldest</SelectItem>
+            <SelectItem value="latest-update">Latest Update</SelectItem>
+            <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+          </SelectContent>
+        </Select>
 
         {/* Category Filter */}
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>

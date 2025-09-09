@@ -3,23 +3,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import { ProductCard } from "./product-card";
+import { SortOption } from "@/hooks/use-product-filters";
 
 interface ProductGridProps {
   products: Product[];
   allProducts: Product[];
-  selectedCategory: string;
   getCartQuantity: (productId: string) => number;
   onAddToCartClick: (product: Product) => void;
   onClearFilters: () => void;
+  selectedSort: SortOption | undefined;
 }
 
 export function ProductGrid({
   products,
   allProducts,
-  selectedCategory,
   getCartQuantity,
   onAddToCartClick,
   onClearFilters,
+  selectedSort,
 }: ProductGridProps) {
   if (products.length === 0) {
     return (
@@ -40,10 +41,7 @@ export function ProductGrid({
   }
 
   // If not "All Categories" or products come from filtered set, show normal grid
-  if (
-    selectedCategory !== "All Categories" ||
-    products.length !== allProducts.length
-  ) {
+  if (selectedSort !== "category" || products.length !== allProducts.length) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {products.map((product) => (
