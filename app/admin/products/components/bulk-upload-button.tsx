@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button"; // Assuming your button path
 import { Upload } from "lucide-react";
 import { toast } from "sonner"; // Using sonner for notifications, as in your previous code
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 // Define the props for the component
 // It takes an 'onUpload' callback function to pass the parsed data to the parent
@@ -74,10 +75,10 @@ export function BulkUploadButton<T>({
 
   return (
     <>
-      <Button onClick={handleButtonClick}>
+      <DropdownMenuItem onClick={handleButtonClick}>
         <Upload className="h-4 w-4 mr-2" />
         {buttonText}
-      </Button>
+      </DropdownMenuItem>
 
       {/* This is the actual file input, but it's hidden from the user */}
       <input

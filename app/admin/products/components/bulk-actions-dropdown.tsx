@@ -11,6 +11,8 @@ import {
 import { ChevronDown, Upload, Package, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { BulkInventoryDialog } from "./bulk-inventory-dialog";
+import { BulkUploadButton } from "./bulk-upload-button";
+import { Prisma } from "@/lib/generated/prisma";
 
 export function BulkActionsDropdown() {
   const [isLoading, setIsLoading] = useState(false);
@@ -39,14 +41,6 @@ export function BulkActionsDropdown() {
     }
   };
 
-  const handleBulkProductsClick = async () => {
-    // Trigger file input for products
-    const input = document.getElementById(
-      "bulk-products-file-input"
-    ) as HTMLInputElement;
-    if (input) input.click();
-  };
-
   const handleBulkInventoryClick = () => {
     // Open the bulk inventory update dialog
     setShowInventoryDialog(true);
@@ -68,9 +62,10 @@ export function BulkActionsDropdown() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handleBulkProductsClick}>
-            <Upload className="h-4 w-4 mr-2" />
-            Bulk Add Products
+          <DropdownMenuItem asChild>
+            <BulkUploadButton<Prisma.ProductCreateInput[]>
+              onUpload={handleBulkProductUpload}
+            />
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleBulkInventoryClick}>
             <Package className="h-4 w-4 mr-2" />
