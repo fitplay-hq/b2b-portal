@@ -23,7 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Package, Plus, Minus, Search, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import { useProducts } from "@/data/product/admin.hooks";
+import { useProducts, useBulkInventory } from "@/data/product/admin.hooks";
 import type { Product } from "@/lib/generated/prisma";
 
 // Simple debounce hook
@@ -68,10 +68,11 @@ export function BulkInventoryDialog({
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>(
     []
   );
-  const [isUpdating, setIsUpdating] = useState(false);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const { products, isLoading: isSearching } = useProducts();
+  const { updateBulkInventory, isBulkUpdating, bulkUpdateError } =
+    useBulkInventory();
 
   // Filter products based on search term
   const searchResults =
@@ -128,25 +129,17 @@ export function BulkInventoryDialog({
       return;
     }
 
-    setIsUpdating(true);
-
     try {
       const inventoryUpdates = selectedProducts.map((product) => ({
         productId: product.id,
         quantity: product.quantity,
-        direction: product.direction === "add" ? "incr" : "dec",
+        direction: (product.direction === "add" ? "incr" : "dec") as
+          | "incr"
+          | "dec",
         inventoryUpdateReason: product.reason,
       }));
 
-      const response = await fetch("/api/admin/products", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(inventoryUpdates),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update bulk inventory");
-      }
+      await updateBulkInventory(inventoryUpdates);
 
       toast.success(
         `Successfully updated inventory for ${selectedProducts.length} product(s)`
@@ -156,8 +149,6 @@ export function BulkInventoryDialog({
     } catch (error) {
       toast.error("Failed to update inventory");
       console.error("Bulk inventory update error:", error);
-    } finally {
-      setIsUpdating(false);
     }
   };
 
@@ -435,15 +426,15 @@ export function BulkInventoryDialog({
             <Button
               variant="outline"
               onClick={handleClose}
-              disabled={isUpdating}
+              disabled={isBulkUpdating}
             >
               Cancel
             </Button>
             <Button
               onClick={handleBulkUpdate}
-              disabled={isUpdating || selectedProducts.length === 0}
+              disabled={isBulkUpdating || selectedProducts.length === 0}
             >
-              {isUpdating ? (
+              {isBulkUpdating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Updating...
