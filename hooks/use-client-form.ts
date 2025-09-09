@@ -35,6 +35,7 @@ export function useClientForm() {
 
   const openEditDialog = (client: Client) => {
     setIsEditDialog(true)
+    setClientData(client)
     setIsDialogOpen(true);
   };
   
