@@ -104,7 +104,6 @@ pnpm lint     # run linter
 
 ## Backend (API Routes)
 
-
 Existing (high-level)
 
 - `api/auth`: NextAuth (admin/client)
@@ -195,3 +194,111 @@ Where Things Live
 - Prisma not found: `npx prisma generate`
 - Auth callbacks: check `NEXTAUTH_URL`/`NEXTAUTH_SECRET`; clear cookies
 - DB drift: `prisma db push` in dev; review migrations for prod
+
+# B2B Portal Project Task Log
+
+This log chronicles the development progress of the B2B Portal project from its inception through recent updates, based on Git commit history. Organized into Backend and Frontend features for clarity.
+
+## Backend Features Implemented
+
+### 1. Project Initialization
+
+- Bootstrapped the project using Create Next App and set up core entities (Client, Products).
+
+### 2. Database & ORM Setup
+
+- Configured the Prisma client and tables; refined schema for clients, products, and orders.
+
+### 3. Authentication & Authorization
+
+- Implemented authentication APIs, configured roles for admin and clients.
+
+### 4. Product Management APIs
+
+- Built CRUD endpoints and search functionality for products for both admin and clients.
+
+### 5. Order System Core Features
+
+- Created the Orders table schema and basic Create Order API.
+
+### 6. Order Workflow Enhancements
+
+- Added approval, tracking, cancellation, and delivery-related details (delivery date, reference, packaging).
+
+### 7. Inventory Integration
+
+- Enabled automated inventory updates during order workflows and allowed manual updates (including bulk updates).
+
+### 8. Email Functionality
+
+- Integrated mailing workflows with real credentials, refined price handling and emailing logic.
+
+### 9. Schema Corrections & Consistency
+
+- Iteratively fixed inconsistencies in database schemas and adjusted functionality based on schema refinements.
+
+### 10. Branch Merges & Conflict Resolution
+
+- Regularly merged updates from the backend branch into main and resolved merge conflicts.
+
+### 11. Cleanup & Dependency Management
+
+- Removed duplicate dependencies and unwanted generated files (e.g., Prisma client files).
+
+### 12. Environment Configuration Updates
+
+- Updated environment variable names and placements to ensure consistent usage across the project.
+
+### 13. Create dispatch order API by Admin
+
+- Created an API for admin to create a dispatch order and send email to client and cc to admin.
+
+## Frontend Features Implemented
+
+### 1. Next.js Migration and Core Setup
+
+- Migrated entire frontend codebase from standard React to Next.js framework for improved performance and SEO
+- Implemented client-side data fetching patterns
+- Configured Next.js middleware for proper session management and secure authentication flows
+
+### 2. Admin Dashboard Development
+
+- Created modular admin components including metric grids, quick action panels, and recent orders sections
+
+### 3. Product Management Interface
+
+- Implemented advanced product list views with multiple filtering options and search
+- Created product form dialogs
+- Built bulk product upload functionality with CSV file parsing, validation, and error handling
+- Added bulk inventory editing interfaces with upload buttons, batch update dialogs, and bulk action dropdowns
+
+### 4. Order Management System UI
+
+- Designed complete order creation workflow with quantity selection dialogs and shopping cart management
+- Created dispatch order interface for admin for generating shipping orders for clients
+- Implemented order status update dialogs
+
+### 5. Client Management Interface
+
+- Constructed full client CRUD (Create, Read, Update, Delete) operations interface for admin users
+- Implemented client statistics grids showing performance metrics and order volumes
+
+### 6. Inventory Control Interfaces
+
+- Developed inventory update dialogs with detailed reason tracking and manual adjustment controls
+- Added real-time inventory tracking indicators on product cards and list views with stock alerts
+
+### 7. Client Portal Features
+
+- cart and checkout pages with quantity management and secure order placement
+- Added client order approval and tracking interfaces with email notifications
+
+### 8. Advanced Features and Technical Integrations
+
+- Integrated real-time data fetching with SWR hooks for optimized API performance and caching
+- Implemented bulk operations across products and inventory with progress tracking and error recovery
+- Created comprehensive custom hooks for data management (cart, filters, product forms, etc.)
+- Developed type-safe data actions and state management for consistent application behavior
+- session handling middleware for secure authentication and automatic logout functionality
+
+---
