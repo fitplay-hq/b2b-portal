@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { $Enums } from "@/lib/generated/prisma";
-import { UploadButton } from "@/components/uploadthing";
+import { UploadDropzone } from "@/components/uploadthing";
 import { toast } from "sonner";
 
 import { useProductForm } from "@/hooks/use-product-form";
@@ -127,7 +127,7 @@ export function ProductFormDialog({
                 <Label className="text-sm text-muted-foreground">
                   Upload Image
                 </Label>
-                <UploadButton
+                <UploadDropzone
                   endpoint="imageUploader"
                   onClientUploadComplete={(res) => {
                     if (res && res[0]) {
