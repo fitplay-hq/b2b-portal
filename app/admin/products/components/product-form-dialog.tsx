@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { $Enums } from "@/lib/generated/prisma";
+import { UploadButton } from "@/components/uploadthing";
+import { toast } from "sonner";
 
 import { useProductForm } from "@/hooks/use-product-form";
 type ProductFormProps = ReturnType<typeof useProductForm>;
@@ -118,17 +120,55 @@ export function ProductFormDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="image">Image URL</Label>
-            <Input
-              id="image"
-              type="url"
-              value={formData.image}
-              onChange={(e) =>
-                setFormData({ ...formData, image: e.target.value })
-              }
-              placeholder="https://..."
-            />
+          <div className="space-y-4">
+            <Label>Product Image</Label>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <Label className="text-sm text-muted-foreground">
+                  Upload Image
+                </Label>
+                <UploadButton
+                  endpoint="imageUploader"
+                  onClientUploadComplete={(res) => {
+                    if (res && res[0]) {
+                      setFormData((x) => ({ ...x, image: res[0].ufsUrl }));
+                      toast.success("Image uploaded successfully!");
+                    }
+                  }}
+                  onUploadError={(error: Error) => {
+                    console.error("Upload error:", error);
+                    toast.error("Failed to upload image. Please try again.");
+                  }}
+                  className="w-full ut-button:bg-primary ut-button:text-primary-foreground ut-button:hover:bg-primary/90 ut-button:ut-readying:bg-muted"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-border"></div>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                  or
+                </span>
+                <div className="flex-1 h-px bg-border"></div>
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="image"
+                  className="text-sm text-muted-foreground"
+                >
+                  Image URL
+                </Label>
+                <Input
+                  id="image"
+                  type="url"
+                  value={formData.image}
+                  onChange={(e) =>
+                    setFormData({ ...formData, image: e.target.value })
+                  }
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
