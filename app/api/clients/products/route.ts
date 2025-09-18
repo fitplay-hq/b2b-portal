@@ -8,19 +8,9 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession(auth);
 
     if (!session || !session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // get client info
-    const client = await prisma.client.findUnique({
-      where: { email: session.user.email },
-      select: { companyID: true },
-    });
-
-    if (!client || !client.companyID) {
       return NextResponse.json(
-        { error: "Client does not belong to any company" },
-        { status: 403 }
+        { error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
@@ -28,23 +18,16 @@ export async function GET(req: NextRequest) {
     const sortBy = searchParams.get("sortBy") || "name";
     const sortOrder = searchParams.get("sortOrder") || "asc";
 
+    // Define allowed sort fields for security
     const allowedSortFields = ["name", "availableStock", "createdAt", "updatedAt"];
     const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "name";
     const safeSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
     const products = await prisma.product.findMany({
-      where: {
-        companies: {
-          some: {
-            id: client.companyID,
-          },
-        },
-      },
       orderBy: {
         [safeSortBy]: safeSortOrder,
       },
     });
-
     return NextResponse.json(products);
   } catch (error: any) {
     return NextResponse.json(
