@@ -18,6 +18,7 @@ import { Loader2, ArrowLeft, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { $Enums } from "@/lib/generated/prisma";
+import { formatStatus } from "@/lib/utils";
 
 const OrderDetailsPage = () => {
   const params = useParams();
@@ -95,7 +96,7 @@ const OrderDetailsPage = () => {
                   {new Date(order.createdAt).toLocaleDateString()}
                 </p>
               </div>
-              <Badge>{order.status}</Badge>
+              <Badge>{formatStatus(order.status)}</Badge>
             </div>
           </CardHeader>
           <CardContent className="grid gap-6">
@@ -105,7 +106,7 @@ const OrderDetailsPage = () => {
                 <strong>Order ID:</strong> {order.id}
               </p>
               <p>
-                <strong>Status:</strong> {order.status}
+                <strong>Status:</strong> {formatStatus(order.status)}
               </p>
               <p>
                 <strong>Date:</strong>{" "}
@@ -178,7 +179,7 @@ const OrderDetailsPage = () => {
                 <SelectContent>
                   {Object.keys($Enums.Status).map((status) => (
                     <SelectItem value={status}>
-                      {status.toLowerCase()}
+                      {formatStatus(status)}
                     </SelectItem>
                   ))}
                 </SelectContent>

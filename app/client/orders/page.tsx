@@ -28,6 +28,7 @@ import {
 import { useOrders } from "@/data/order/client.hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { $Enums, Order } from "@/lib/generated/prisma";
+import { formatStatus } from "@/lib/utils";
 
 export default function ClientOrderHistory() {
   const { orders, isLoading } = useOrders();
@@ -190,7 +191,9 @@ export default function ClientOrderHistory() {
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     {Object.keys($Enums.Status).map((status) => (
-                      <SelectItem value={status}>{status}</SelectItem>
+                      <SelectItem value={status}>
+                        {formatStatus(status)}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -234,8 +237,7 @@ export default function ClientOrderHistory() {
                                 {order.id}
                               </CardTitle>
                               <Badge className={getStatusColor(order.status)}>
-                                {order.status.charAt(0).toUpperCase() +
-                                  order.status.slice(1).toLowerCase()}
+                                {formatStatus(order.status)}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -268,7 +270,7 @@ export default function ClientOrderHistory() {
                             <h4 className="font-medium mb-3">Order Details</h4>
                             <div className="text-sm text-muted-foreground">
                               <p>Order ID: {order.id}</p>
-                              <p>Status: {order.status}</p>
+                              <p>Status: {formatStatus(order.status)}</p>
                               <p>
                                 Date:{" "}
                                 {new Date(order.createdAt).toLocaleDateString()}

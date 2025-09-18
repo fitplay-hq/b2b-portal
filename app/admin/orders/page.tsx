@@ -9,6 +9,7 @@ import { OrderStatsGrid } from "./components/order-stats-grid";
 import { OrderFilters } from "./components/order-filters";
 import { OrderList } from "./components/order-list";
 import { UpdateStatusDialog } from "./components/update-status-dialog";
+import { formatStatus } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";

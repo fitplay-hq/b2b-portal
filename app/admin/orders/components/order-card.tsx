@@ -23,6 +23,7 @@ import type { LucideIcon } from "lucide-react";
 import { AdminOrder } from "@/data/order/admin.actions";
 import { Order } from "@/lib/generated/prisma";
 import Link from "next/link";
+import { formatStatus } from "@/lib/utils";
 
 // --- Helper Function ---
 // A utility to get style and icon based on order status
@@ -51,9 +52,7 @@ const getStatusVisuals = (
 // --- Sub-component for the Card's Visible Header ---
 const OrderSummary = ({ order }: { order: AdminOrder }) => {
   const { color, Icon } = getStatusVisuals(order.status);
-  const statusText =
-    order.status.charAt(0).toUpperCase() +
-    order.status.slice(1).replace("-", " ");
+  const statusText = formatStatus(order.status);
 
   return (
     <div className="flex w-full items-start justify-between gap-4">
