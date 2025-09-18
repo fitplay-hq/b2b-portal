@@ -59,12 +59,16 @@ export const auth: AuthOptions = {
           throw new Error("Email and password are required");
         }
 
+        if (credentials.email !== process.env.ADMIN_EMAIL) {
+          throw new Error("Unauthorized admin email");
+        }
+
         const admin = await prisma.admin.findUnique({
           where: { email: credentials.email },
         });
 
         if (!admin) {
-          throw new Error("No admin found or Invalid Admin email");
+          throw new Error("No admin found");
         }
 
         const isValid = await compare(credentials.password, admin.password);
