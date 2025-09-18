@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { PurchaseOrder } from "@/lib/mockData";
 import { AdminOrder } from "@/data/order/admin.actions";
 import { Order } from "@/lib/generated/prisma";
+import { formatStatus } from "@/lib/utils";
 
 // This helper function is now co-located with the component that uses it.
 const getStatusColor = (status: Order["status"]) => {
@@ -60,8 +61,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                 <div className="flex items-center gap-3">
                   <p className="font-medium">{order.id}</p>
                   <Badge className={getStatusColor(order.status)}>
-                    {order.status.charAt(0).toUpperCase() +
-                      order.status.slice(1)}
+                    {formatStatus(order.status)}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">

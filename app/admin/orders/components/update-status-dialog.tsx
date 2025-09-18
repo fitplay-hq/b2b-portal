@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { SetStateAction } from "react";
 import { AdminOrder } from "@/data/order/admin.actions";
 import { $Enums, Order } from "@/lib/generated/prisma";
+import { formatStatus } from "@/lib/utils";
 
 const ORDER_STATUSES: Order["status"][] = Object.values($Enums.Status);
 
@@ -71,7 +72,7 @@ export function UpdateStatusDialog({
                     value={status}
                     className="capitalize"
                   >
-                    {status.replace("-", " ").toLowerCase()}
+                    {formatStatus(status)}
                   </SelectItem>
                 ))}
               </SelectContent>

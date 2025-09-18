@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { $Enums } from "@/lib/generated/prisma";
 import { Search } from "lucide-react";
+import { formatStatus } from "@/lib/utils";
 
 // The list of possible order statuses
 const ORDER_STATUSES = ["all", ...Object.keys($Enums.Status)];
