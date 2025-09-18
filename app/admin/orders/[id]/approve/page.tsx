@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { formatStatus } from "@/lib/utils";
 
 const ApproveOrderPage = () => {
   const params = useParams();
@@ -83,7 +84,7 @@ const ApproveOrderPage = () => {
                   {new Date(order.createdAt).toLocaleDateString()}
                 </p>
               </div>
-              <Badge>{order.status}</Badge>
+              <Badge>{formatStatus(order.status)}</Badge>
             </div>
           </CardHeader>
           <CardContent className="grid gap-6">

@@ -16,6 +16,7 @@ import Layout from "@/components/layout";
 import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useOrders } from "@/data/order/client.hooks";
+import { formatStatus } from "@/lib/utils";
 
 export default function ClientDashboard() {
   const { data: session, status } = useSession();
@@ -233,8 +234,7 @@ export default function ClientDashboard() {
                       </p>
                     </div>
                     <Badge className={getStatusColor(order.status)}>
-                      {order.status.charAt(0).toUpperCase() +
-                        order.status.slice(1)}
+                      {formatStatus(order.status)}
                     </Badge>
                   </div>
                 ))}
