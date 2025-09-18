@@ -46,6 +46,31 @@ const getStatusVisuals = (
         color: "border-transparent bg-red-100 text-red-800",
         Icon: XCircle,
       };
+    case "READY_FOR_DISPATCH":
+      return {
+        color: "border-transparent bg-purple-100 text-purple-800",
+        Icon: Download,
+      };
+    case "DISPATCHED":
+      return {
+        color: "border-transparent bg-green-100 text-green-800",
+        Icon: Package,
+      };
+    case "AT_DESTINATION":
+      return {
+        color: "border-transparent bg-green-100 text-green-800",
+        Icon: Package,
+      };
+    case "DELIVERED":
+      return {
+        color: "border-transparent bg-green-200 text-green-900",
+        Icon: Building2,
+      };
+    default:
+      return {
+        color: "border-transparent bg-gray-100 text-gray-800",
+        Icon: Clock,
+      };
   }
 };
 
