@@ -11,6 +11,7 @@ import { ProductAccessSummary } from "../components/product-access-summary";
 import { ProductSelectionTable } from "../components/product-selection-table";
 import { useCompany, useUpdateCompany } from "@/data/company/admin.hooks";
 import { useProducts } from "@/data/product/admin.hooks";
+import { mutate as globalMutate } from "swr";
 
 interface Product {
   id: string;
@@ -78,6 +79,9 @@ export default function EditCompanyPage() {
         name: formData.name,
         address: formData.address,
       });
+
+      // Invalidate the specific company cache
+      globalMutate(`/api/admin/companies/${companyId}`);
 
       // Sync selected products with company's product assignments
       if (company?.products) {

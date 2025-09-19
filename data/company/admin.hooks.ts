@@ -46,18 +46,18 @@ export function useCreateCompany() {
  */
 export function useUpdateCompany() {
   const { trigger, isMutating, error } = useSWRMutation(
-    (arg: { id: string; name: string; address: string }) => `/api/admin/companies/${arg.id}`,
-    (url, { arg }) => updateCompany(arg),
+    "update-company",
+    (key, { arg }: { arg: { id: string; name: string; address: string } }) => updateCompany(arg),
     {
       onSuccess: (data, key) => {
         globalMutate('/api/admin/companies')
-        globalMutate(key)
+        // The specific company cache will be invalidated when needed
       }
     }
   );
 
   return {
-    updateCompany: trigger as any,
+    updateCompany: trigger,
     isUpdating: isMutating,
     updateError: error,
   };
