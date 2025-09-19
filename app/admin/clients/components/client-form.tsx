@@ -34,6 +34,7 @@ interface ClientFormProps {
     companyName: string;
     phone: string;
     address: string;
+    isShowPrice?: boolean;
     isNewCompany?: boolean;
     companyAddress?: string;
     selectedCompanyId?: string;
@@ -223,21 +224,17 @@ export function ClientForm({
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="password">
-            {isNewClient
-              ? "Password *"
-              : "New Password (leave empty to keep current)"}
-          </Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleInputChange}
-            {...(isNewClient && { required: true })}
-            placeholder={isNewClient ? "Enter password" : "Enter new password"}
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="isShowPrice"
+            checked={formData.isShowPrice || false}
+            onCheckedChange={(checked) =>
+              handleCheckboxChange?.(checked as boolean)
+            }
           />
+          <Label htmlFor="isShowPrice" className="text-sm">
+            Show product and order prices to this client
+          </Label>
         </div>
 
         <div className="space-y-2">

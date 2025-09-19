@@ -32,6 +32,12 @@ export async function GET(req: NextRequest) {
     const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "name";
     const safeSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
+    // Get client with isShowPrice
+    const clientWithPriceFlag = await prisma.client.findUnique({
+      where: { email: session.user.email },
+      select: { isShowPrice: true },
+    });
+
     const products = await prisma.product.findMany({
       where: {
         companies: {
@@ -45,7 +51,18 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(products);
+    // Conditionally include price based on client's isShowPrice setting
+    const productsWithConditionalPrice = products.map(product => {
+      if (clientWithPriceFlag?.isShowPrice) {
+        return product;
+      } else {
+        // Remove price from response
+        const { price, ...productWithoutPrice } = product;
+        return productWithoutPrice;
+      }
+    });
+
+    return NextResponse.json(productsWithConditionalPrice);
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Something went wrong" },

@@ -166,9 +166,18 @@ const OrderDetails = ({
                   SKU: {item.product.sku}
                 </p>
                 <p className="text-sm">Quantity: {item.quantity}</p>
+                <p className="text-sm">Price: ₹{item.price.toFixed(2)}</p>
               </div>
             </div>
           ))}
+        </div>
+        <div className="mt-4 pt-4 border-t">
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Total Amount:</span>
+            <span className="font-bold text-lg">
+              ₹{order.totalAmount.toFixed(2)}
+            </span>
+          </div>
         </div>
       </div>
 
