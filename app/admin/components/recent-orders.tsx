@@ -65,7 +65,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {order.client?.companyName || "Unknown Company"} •{" "}
+                  {order.client?.company?.name || "Unknown Company"} •{" "}
                   {new Date(order.createdAt).toLocaleDateString()}
                 </p>
               </div>

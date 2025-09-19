@@ -6,6 +6,11 @@ export interface AdminOrder {
         id: string;
         email: string;
         companyName: string;
+        company: {
+            id: string;
+            name: string;
+            address: string;
+        };
     };
     orderItems: {
       product: {

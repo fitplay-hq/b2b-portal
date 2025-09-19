@@ -92,7 +92,7 @@ const OrderSummary = ({ order }: { order: AdminOrder }) => {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Building2 className="h-3 w-3" />
-            {order.client?.companyName || "Unknown Company"}
+            {order.client?.company?.name || "Unknown Company"}
           </span>
           <span className="flex items-center gap-1.5">
             <Calendar className="h-3 w-3" />
