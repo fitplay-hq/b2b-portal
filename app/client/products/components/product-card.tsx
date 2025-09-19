@@ -81,9 +81,14 @@ export function ProductCard({
         </div>
         <p className="text-sm text-muted-foreground mt-2">SKU: {product.sku}</p>
         <div className="flex items-end justify-between mt-4">
-          <p className="text-sm text-muted-foreground">
-            Stock: {product.availableStock}
-          </p>
+          <div className="flex flex-col gap-1">
+            <p className="text-sm text-muted-foreground">
+              Stock: {product.availableStock}
+            </p>
+            {product.price && (
+              <p className="text-sm font-medium">Price: ₹{product.price}</p>
+            )}
+          </div>
           {cartQuantity > 0 && (
             <p className="text-xs font-semibold text-blue-600">
               {cartQuantity} in cart

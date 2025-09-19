@@ -18,6 +18,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
+    price: "",
     availableStock: "",
     categories: "",
     description: "",
@@ -29,6 +30,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     setFormData({
       name: "",
       sku: "",
+      price: "",
       availableStock: "",
       categories: "",
       description: "",
@@ -43,6 +45,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     setFormData({
       name: product.name,
       sku: product.sku,
+      price: product.price?.toString() || "",
       availableStock: product.availableStock.toString(),
       categories: product.categories,
       description: product.description,
@@ -56,9 +59,16 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     setIsSubmitting(true);
 
     const availableStock = parseInt(formData.availableStock);
+    const price = formData.price ? parseInt(formData.price) : undefined;
 
     if (isNaN(availableStock)) {
       toast.error("Please enter valid numbers for stock.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (formData.price && isNaN(price!)) {
+      toast.error("Please enter a valid price.");
       setIsSubmitting(false);
       return;
     }
@@ -69,6 +79,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           id: editingProduct.id,
           name: formData.name,
           sku: formData.sku,
+          price,
           availableStock,
           categories: formData.categories as Category,
           description: formData.description,
@@ -83,6 +94,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
         const productCreateData: Prisma.ProductCreateInput = {
           name: formData.name,
           sku: formData.sku,
+          price,
           availableStock,
           categories: formData.categories as Category,
           description: formData.description,

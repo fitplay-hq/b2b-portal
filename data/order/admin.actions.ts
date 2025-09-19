@@ -6,6 +6,11 @@ export interface AdminOrder {
         id: string;
         email: string;
         companyName: string;
+        company: {
+            id: string;
+            name: string;
+            address: string;
+        };
     };
     orderItems: {
       product: {
@@ -101,4 +106,16 @@ export async function deleteOrder(url: string, orderId: string) {
   //   throw new Error("Failed to delete product");
   // }
   // return await response.json();
+}
+
+export async function sendOrderEmail(url: string, data: { orderId: string; clientEmail: string }) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to send email");
+  }
+  return await response.json();
 }

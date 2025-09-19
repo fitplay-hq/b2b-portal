@@ -9,14 +9,12 @@ interface ClientListProps {
     totalSpent: number;
     pendingOrders: number;
   };
-  onEdit: (client: Client) => void;
   onDelete: (clientId: string) => void;
 }
 
 export function ClientList({
   clients,
   getClientStats,
-  onEdit,
   onDelete,
 }: ClientListProps) {
   if (clients.length === 0) {
@@ -37,7 +35,6 @@ export function ClientList({
             key={client.id}
             client={client}
             stats={getClientStats(client.id)}
-            onEdit={() => onEdit(client)}
             onDelete={() => onDelete(client.id)}
           />
         ))}

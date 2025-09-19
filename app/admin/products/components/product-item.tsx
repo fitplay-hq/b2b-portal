@@ -45,6 +45,12 @@ export function ProductItem({
           </div>
           <p className="text-sm text-muted-foreground">
             SKU: {product.sku} • Stock: {product.availableStock}
+            {product.price && (
+              <>
+                {" • "}
+                Price: ₹{product.price}
+              </>
+            )}
           </p>
         </div>
       </div>

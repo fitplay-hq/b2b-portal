@@ -9,6 +9,7 @@ const initialData: Prisma.ClientUpdateInput = {
   email: "",
   name: "",
   phone: "",
+  isShowPrice: false,
 }
 
 export function useClientForm() {
@@ -19,6 +20,10 @@ export function useClientForm() {
 
   const { createClient } = useCreateClient()
   const { updateClient } = useUpdateClient()
+
+  const handleCheckboxChange = (checked: boolean) => {
+    setClientData(prev => prev ? { ...prev, isShowPrice: checked } : prev);
+  };
 
   const handleFieldChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -51,11 +56,18 @@ export function useClientForm() {
     try {
       if (clientData) {
         if (isEditDialog) {
-          console.log(clientData)
-          await updateClient(clientData);
+          // For update, use ClientUpdateInput, remove properties not allowed in update
+          const updateData = { ...clientData };
+          delete (updateData as any).password; // password can't be updated this way
+          await updateClient(updateData);
           toast.success('Client updated successfully.');
         } else {
-          await createClient(clientData);
+          // For create, use ClientCreateInput, ensure required fields are present
+          const createData = { ...clientData } as Prisma.ClientCreateInput;
+          if (!createData.password) {
+            throw new Error('Password is required for new clients');
+          }
+          await createClient(createData);
           toast.success('Client added successfully.');
         }
       }
@@ -77,5 +89,6 @@ export function useClientForm() {
     closeDialog,
     handleSubmit,
     handleFieldChange,
+    handleCheckboxChange,
   };
 }

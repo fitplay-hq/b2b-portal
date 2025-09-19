@@ -29,6 +29,7 @@ import { useOrders } from "@/data/order/client.hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { $Enums, Order } from "@/lib/generated/prisma";
 import { formatStatus } from "@/lib/utils";
+import type { OrderWithItems } from "@/data/order/client.actions";
 
 export default function ClientOrderHistory() {
   const { orders, isLoading } = useOrders();
@@ -39,7 +40,7 @@ export default function ClientOrderHistory() {
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
 
-    let filtered: Order[] = orders as Order[];
+    let filtered: OrderWithItems[] = orders as OrderWithItems[];
 
     if (statusFilter !== "all") {
       filtered = filtered.filter((order) => order.status === statusFilter);
@@ -105,7 +106,7 @@ export default function ClientOrderHistory() {
         pendingOrders: 0,
       };
     }
-    const typedOrders = orders as Order[];
+    const typedOrders = orders as OrderWithItems[];
     const totalOrders = typedOrders.length;
     const pendingOrders = typedOrders.filter(
       (o) => o.status === "PENDING"
@@ -283,6 +284,52 @@ export default function ClientOrderHistory() {
                               </p>
                             </div>
                           </div>
+
+                          {/* Order Items */}
+                          <div>
+                            <h4 className="font-medium mb-3">Order Items</h4>
+                            <div className="space-y-3">
+                              {order.orderItems.map((item) => (
+                                <div
+                                  key={item.product.id}
+                                  className="flex gap-3 rounded-lg bg-muted/40 p-3"
+                                >
+                                  <ImageWithFallback
+                                    src={item.product.images[0]}
+                                    alt={item.product.name}
+                                    className="h-16 w-16 rounded object-cover"
+                                  />
+                                  <div>
+                                    <p className="font-medium">
+                                      {item.product.name}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Quantity: {item.quantity}
+                                    </p>
+                                    {item.price > 0 && (
+                                      <p className="text-sm">
+                                        Price: ₹{item.price.toFixed(2)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Total Amount */}
+                          {order.totalAmount > 0 && (
+                            <div className="pt-4 border-t">
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium">
+                                  Total Amount:
+                                </span>
+                                <span className="font-bold text-lg">
+                                  ₹{order.totalAmount.toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Order Details */}
                           <div className="grid grid-cols-1 gap-x-4 gap-y-6 pt-4 border-t md:grid-cols-2">

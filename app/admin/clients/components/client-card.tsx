@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Client } from "@/lib/generated/prisma";
 import { Building2, Calendar, Edit, Mail, Trash2 } from "lucide-react";
+import Link from "next/link";
 
 interface ClientCardProps {
   client: Client;
@@ -11,16 +12,10 @@ interface ClientCardProps {
     totalSpent: number;
     pendingOrders: number;
   };
-  onEdit: () => void;
   onDelete: () => void;
 }
 
-export function ClientCard({
-  client,
-  stats,
-  onEdit,
-  onDelete,
-}: ClientCardProps) {
+export function ClientCard({ client, stats, onDelete }: ClientCardProps) {
   // Logic to get initials for the avatar fallback
   const initials = client.name
     .split(" ")
@@ -74,9 +69,11 @@ export function ClientCard({
         </div>
       </div>
       <div className="flex w-full shrink-0 gap-2 sm:w-auto">
-        <Button variant="outline" size="sm" onClick={onEdit} className="flex-1">
-          <Edit className="mr-2 h-4 w-4" /> Edit
-        </Button>
+        <Link href={`/admin/clients/${client.id}`} className="flex-1">
+          <Button variant="outline" size="sm" className="w-full">
+            <Edit className="mr-2 h-4 w-4" /> Edit
+          </Button>
+        </Link>
         <Button
           variant="outline"
           size="sm"

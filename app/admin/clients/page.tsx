@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
@@ -8,13 +9,14 @@ import { useClients, useDeleteClient } from "@/data/client/admin.hooks";
 import { useOrders } from "@/data/order/admin.hooks";
 import { useClientFilters } from "@/hooks/use-client-filters";
 import { useClientManagement } from "@/hooks/use-client-management";
-import { useClientForm } from "@/hooks/use-client-form";
-import { ClientFormDialog } from "./components/client-form-dialog";
 import { ClientStatsGrid } from "./components/client-stats-grid";
 import { ClientList } from "./components/client-list";
 import { ClientFilters } from "./components/client-filters";
+import Link from "next/link";
 
 export default function AdminClientsPage() {
+  const router = useRouter();
+
   // 1. DATA FETCHING
   const {
     clients,
@@ -29,7 +31,6 @@ export default function AdminClientsPage() {
   // 2. LOGIC & STATE
   const { filteredClients, ...filterProps } = useClientFilters(clients);
   const { stats, getClientStats } = useClientManagement(clients, orders);
-  const form = useClientForm();
 
   const handleDelete = async (clientId: string) => {
     const clientOrders = orders?.filter((o) => o.clientId === clientId) || [];
@@ -80,10 +81,12 @@ export default function AdminClientsPage() {
               Manage client accounts and permissions
             </p>
           </div>
-          <Button onClick={form.openNewDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Client
-          </Button>
+          <Link href="/admin/clients/new">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Client
+            </Button>
+          </Link>
         </div>
 
         <ClientStatsGrid {...stats} />
@@ -91,11 +94,9 @@ export default function AdminClientsPage() {
         <ClientList
           clients={filteredClients}
           getClientStats={getClientStats}
-          onEdit={form.openEditDialog}
           onDelete={handleDelete}
         />
       </div>
-      <ClientFormDialog {...form} />
     </Layout>
   );
 }
