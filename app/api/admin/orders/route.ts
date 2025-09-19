@@ -32,6 +32,13 @@ export async function GET(req: NextRequest) {
                         name: true,
                         email: true,
                         companyName: true,
+                        company: {
+                            select: {
+                                id: true,
+                                name: true,
+                                address: true
+                            }
+                        }
                     },
                 },
             },
