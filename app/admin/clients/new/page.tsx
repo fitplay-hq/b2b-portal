@@ -31,9 +31,9 @@ export default function NewClientPage() {
     companyName: "",
     phone: "",
     address: "",
-    isNewCompany: true, // Default to creating new company
     companyAddress: "",
-    selectedCompanyId: "",
+    selectedCompanyId: "create-new",
+    isNewCompany: true, // Default to creating new company
   });
 
   // Use SWR hooks for data fetching
@@ -48,10 +48,6 @@ export default function NewClientPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, isNewCompany: checked }));
-  };
-
   const handleShowPriceChange = (checked: boolean) => {
     setFormData((prev) => ({ ...prev, isShowPrice: checked }));
   };
@@ -59,12 +55,12 @@ export default function NewClientPage() {
   const handleCompanySelect = async (companyId: string) => {
     const selectedCompany = companies?.find((c: any) => c.id === companyId);
 
-    if (companyId === "") {
+    if (companyId === "create-new") {
       // Creating new company - clear selected products
       setSelectedProducts([]);
       setFormData((prev) => ({
         ...prev,
-        selectedCompanyId: "",
+        selectedCompanyId: companyId,
         companyName: "",
         companyAddress: "",
         isNewCompany: true,
@@ -118,7 +114,7 @@ export default function NewClientPage() {
 
       // If products are selected and we have a company ID, assign products to the company
       if (selectedProducts.length > 0 && clientResponse?.companyID) {
-        await fetch("/api/admin/companies/products", {
+        const productResponse = await fetch("/api/admin/companies/products", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -127,6 +123,16 @@ export default function NewClientPage() {
             productIds: selectedProducts,
           }),
         });
+
+        if (!productResponse.ok) {
+          const errorData = await productResponse.json();
+          console.error("Failed to assign products to company:", errorData);
+          throw new Error(
+            `Failed to assign products to company: ${
+              errorData.error || "Unknown error"
+            }`
+          );
+        }
       }
 
       router.push("/admin/clients");
@@ -177,7 +183,6 @@ export default function NewClientPage() {
               <ClientForm
                 formData={formData}
                 handleInputChange={handleInputChange}
-                handleCheckboxChange={handleCheckboxChange}
                 handleShowPriceChange={handleShowPriceChange}
                 handleCompanySelect={handleCompanySelect}
                 companies={companies}

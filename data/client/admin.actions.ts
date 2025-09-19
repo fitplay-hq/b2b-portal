@@ -9,7 +9,7 @@ export async function getClients(url: string) {
   return result.data as Client[]
 }
 
-export async function createClient(url: string, clientData: Prisma.ClientCreateInput & { isNewCompany?: boolean; companyAddress?: string }) {
+export async function createClient(url: string, clientData: Prisma.ClientCreateInput & { isNewCompany?: boolean; companyAddress?: string; isShowPrice?: boolean }) {
   const apiData = {
     name: clientData.name,
     email: clientData.email,
@@ -19,6 +19,7 @@ export async function createClient(url: string, clientData: Prisma.ClientCreateI
     address: clientData.address,
     isNewCompany: clientData.isNewCompany || false,
     companyAddress: clientData.companyAddress,
+    isShowPrice: clientData.isShowPrice || false,
   };
 
   const response = await fetch(url, {

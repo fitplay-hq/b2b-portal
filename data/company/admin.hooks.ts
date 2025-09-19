@@ -46,17 +46,18 @@ export function useCreateCompany() {
  */
 export function useUpdateCompany() {
   const { trigger, isMutating, error } = useSWRMutation(
-    "/api/admin/companies/[id]",
-    (url, { arg }: { arg: { id: string; name: string; address: string } }) => updateCompany(url, arg),
+    (arg: { id: string; name: string; address: string }) => `/api/admin/companies/${arg.id}`,
+    (url, { arg }) => updateCompany(arg),
     {
-      onSuccess: () => {
+      onSuccess: (data, key) => {
         globalMutate('/api/admin/companies')
+        globalMutate(key)
       }
     }
   );
 
   return {
-    updateCompany: trigger,
+    updateCompany: trigger as any,
     isUpdating: isMutating,
     updateError: error,
   };
@@ -95,11 +96,12 @@ export function useCompany(companyId: string | null) {
  */
 export function useDeleteCompany() {
   const { trigger, isMutating, error } = useSWRMutation(
-    "/api/admin/companies/[id]",
-    (url, { arg }: { arg: string }) => deleteCompany(url, arg),
+    (arg: string) => `/api/admin/companies/${arg}`,
+    (url, { arg }) => deleteCompany(arg),
     {
-      onSuccess: () => {
+      onSuccess: (data, key) => {
         globalMutate('/api/admin/companies')
+        globalMutate(key)
       }
     }
   );

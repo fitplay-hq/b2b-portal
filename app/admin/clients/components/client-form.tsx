@@ -35,14 +35,12 @@ interface ClientFormProps {
     phone: string;
     address: string;
     isShowPrice?: boolean;
-    isNewCompany?: boolean;
     companyAddress?: string;
     selectedCompanyId?: string;
   };
   handleInputChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
-  handleCheckboxChange?: (checked: boolean) => void;
   handleShowPriceChange?: (checked: boolean) => void;
   handleCompanySelect?: (companyId: string) => void;
   companies?: Company[];
@@ -52,7 +50,6 @@ interface ClientFormProps {
 export function ClientForm({
   formData,
   handleInputChange,
-  handleCheckboxChange,
   handleShowPriceChange,
   handleCompanySelect,
   companies = [],
@@ -98,31 +95,45 @@ export function ClientForm({
           </div>
         </div>
 
+        {isNewClient && (
+          <div className="space-y-2">
+            <Label htmlFor="password">Password *</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              value={formData.password || ""}
+              onChange={handleInputChange}
+              required
+              placeholder="Enter password"
+            />
+          </div>
+        )}
+
         {/* Company Selection */}
         <div className="space-y-4">
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="companySelect">Select Company</Label>
               <Select
-                value={formData.selectedCompanyId || "new"}
+                value={formData.selectedCompanyId}
                 onValueChange={(value) => {
-                  if (value === "new") {
-                    handleCompanySelect?.("");
-                  } else {
-                    handleCompanySelect?.(value);
-                  }
+                  const companyId = value === "create-new" ? "" : value;
+                  handleCompanySelect?.(companyId);
                 }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a company" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="new">
-                    <div className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      Create New Company
-                    </div>
-                  </SelectItem>
+                  {isNewClient && (
+                    <SelectItem value="create-new">
+                      <div className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Create New Company
+                      </div>
+                    </SelectItem>
+                  )}
                   {companies.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name}
@@ -133,7 +144,7 @@ export function ClientForm({
             </div>
 
             {/* Show selected company details */}
-            {selectedCompany && !formData.isNewCompany && (
+            {selectedCompany && (
               <Card className="bg-muted/50 p-0">
                 <CardContent className="p-4">
                   <div className="space-y-2">
@@ -151,8 +162,8 @@ export function ClientForm({
               </Card>
             )}
 
-            {/* Create new company option */}
-            {formData.isNewCompany && isNewClient && (
+            {/* Create new company fields */}
+            {formData.selectedCompanyId === "create-new" && isNewClient && (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Company Name *</Label>
@@ -195,36 +206,6 @@ export function ClientForm({
             />
           </div>
         </div>
-
-        {isNewClient && (
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isNewCompany"
-                checked={formData.isNewCompany || false}
-                onCheckedChange={handleCheckboxChange}
-              />
-              <Label htmlFor="isNewCompany" className="text-sm">
-                Create new company
-              </Label>
-            </div>
-
-            {formData.isNewCompany && (
-              <div className="space-y-2">
-                <Label htmlFor="companyAddress">Company Address *</Label>
-                <Textarea
-                  id="companyAddress"
-                  name="companyAddress"
-                  value={formData.companyAddress || ""}
-                  onChange={handleInputChange}
-                  required={formData.isNewCompany}
-                  placeholder="Enter company address"
-                  rows={2}
-                />
-              </div>
-            )}
-          </div>
-        )}
 
         <div className="flex items-center space-x-2">
           <Checkbox

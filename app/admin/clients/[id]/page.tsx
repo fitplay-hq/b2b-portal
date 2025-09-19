@@ -101,10 +101,6 @@ export default function EditClientPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, isNewCompany: checked }));
-  };
-
   const handleShowPriceChange = (checked: boolean) => {
     setFormData((prev) => ({ ...prev, isShowPrice: checked }));
   };
@@ -112,15 +108,11 @@ export default function EditClientPage() {
   const handleCompanySelect = async (companyId: string) => {
     const selectedCompany = companies?.find((c: any) => c.id === companyId);
 
-    if (companyId === "") {
-      // Creating new company - clear selected products
-      setSelectedProducts([]);
-      setFormData((prev) => ({
-        ...prev,
-        selectedCompanyId: "",
-        companyName: "",
-        isNewCompany: true,
-      }));
+    if (companyId === "create-new") {
+      // For edit client, we don't allow creating new companies
+      // This option shouldn't be available in edit mode, but if selected, do nothing
+      console.warn("Cannot create new company when editing existing client");
+      return;
     } else if (selectedCompany) {
       // Existing company selected - fetch and set company's products
       try {
@@ -147,7 +139,6 @@ export default function EditClientPage() {
         ...prev,
         selectedCompanyId: companyId,
         companyName: selectedCompany.name || "",
-        isNewCompany: false,
       }));
     }
   };
@@ -175,54 +166,144 @@ export default function EditClientPage() {
         isShowPrice,
       });
 
-      // Sync selected products with company's product assignments
-      if (client?.companyID) {
-        // Get current company products
-        const currentResponse = await fetch(
-          `/api/admin/companies/products?companyId=${client.companyID}`,
-          {
-            credentials: "include",
-          }
-        );
+      // Handle company and product synchronization
+      const oldCompanyId = client?.companyID;
+      const newCompanyId = formData.selectedCompanyId;
 
-        if (currentResponse.ok) {
-          const currentData = await currentResponse.json();
-          const currentProductIds = currentData.data.map(
-            (product: any) => product.id
-          );
+      if (oldCompanyId && newCompanyId) {
+        // Check if company has changed
+        const companyChanged = oldCompanyId !== newCompanyId;
 
-          // Find products to add and remove
-          const productsToAdd = selectedProducts.filter(
-            (id) => !currentProductIds.includes(id)
-          );
-          const productsToRemove = currentProductIds.filter(
-            (id: string) => !selectedProducts.includes(id)
-          );
+        if (companyChanged) {
+          // Company changed - need to migrate all products from old to new company
 
-          // Add new products to company
-          if (productsToAdd.length > 0) {
-            await fetch("/api/admin/companies/products", {
-              method: "POST",
+          // Step 1: Remove all products from old company
+          const removeAllResponse = await fetch(
+            "/api/admin/companies/products",
+            {
+              method: "DELETE",
               headers: { "Content-Type": "application/json" },
               credentials: "include",
               body: JSON.stringify({
-                companyId: client.companyID,
-                productIds: productsToAdd,
+                companyId: oldCompanyId,
+                removeAll: true,
               }),
-            });
+            }
+          );
+
+          if (!removeAllResponse.ok) {
+            const errorData = await removeAllResponse.json();
+            console.error(
+              "Failed to remove products from old company:",
+              errorData
+            );
+            throw new Error(
+              `Failed to remove products from old company: ${
+                errorData.error || "Unknown error"
+              }`
+            );
           }
 
-          // Remove deselected products from company
-          if (productsToRemove.length > 0) {
-            const removeUrl = `/api/admin/companies/products?companyId=${
-              client.companyID
-            }&${productsToRemove
-              .map((id: string) => `productIds=${id}`)
-              .join("&")}`;
-            await fetch(removeUrl, {
-              method: "DELETE",
+          // Step 2: Add all selected products to new company
+          if (selectedProducts.length > 0) {
+            const addToNewResponse = await fetch(
+              "/api/admin/companies/products",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                  companyId: newCompanyId,
+                  productIds: selectedProducts,
+                }),
+              }
+            );
+
+            if (!addToNewResponse.ok) {
+              const errorData = await addToNewResponse.json();
+              console.error(
+                "Failed to add products to new company:",
+                errorData
+              );
+              throw new Error(
+                `Failed to add products to new company: ${
+                  errorData.error || "Unknown error"
+                }`
+              );
+            }
+          }
+        } else {
+          // Same company - just sync product differences
+          const currentResponse = await fetch(
+            `/api/admin/companies/products?companyId=${oldCompanyId}`,
+            {
               credentials: "include",
-            });
+            }
+          );
+
+          if (currentResponse.ok) {
+            const currentData = await currentResponse.json();
+            const currentProductIds = currentData.data.map(
+              (product: any) => product.id
+            );
+
+            // Find products to add and remove
+            const productsToAdd = selectedProducts.filter(
+              (id) => !currentProductIds.includes(id)
+            );
+            const productsToRemove = currentProductIds.filter(
+              (id: string) => !selectedProducts.includes(id)
+            );
+
+            // Add new products to company
+            if (productsToAdd.length > 0) {
+              const addResponse = await fetch("/api/admin/companies/products", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                  companyId: oldCompanyId,
+                  productIds: productsToAdd,
+                }),
+              });
+
+              if (!addResponse.ok) {
+                const errorData = await addResponse.json();
+                console.error("Failed to add products:", errorData);
+                throw new Error(
+                  `Failed to add products: ${
+                    errorData.error || "Unknown error"
+                  }`
+                );
+              }
+            }
+
+            // Remove deselected products from company
+            if (productsToRemove.length > 0) {
+              const urlParams = new URLSearchParams();
+              urlParams.set("companyId", oldCompanyId);
+
+              productsToRemove.forEach((id: string) => {
+                urlParams.append("productIds", id);
+              });
+
+              const removeUrl = `/api/admin/companies/products?${urlParams.toString()}`;
+
+              const removeResponse = await fetch(removeUrl, {
+                method: "DELETE",
+                credentials: "include",
+              });
+
+              if (!removeResponse.ok) {
+                const errorData = await removeResponse.json();
+                console.error("Failed to remove products:", errorData);
+                throw new Error(
+                  `Failed to remove products: ${
+                    errorData.error || "Unknown error"
+                  }`
+                );
+              }
+            }
           }
         }
       }
@@ -304,7 +385,6 @@ export default function EditClientPage() {
                 key={JSON.stringify(formData)} // Force re-render when formData changes
                 formData={formData}
                 handleInputChange={handleInputChange}
-                handleCheckboxChange={handleCheckboxChange}
                 handleShowPriceChange={handleShowPriceChange}
                 handleCompanySelect={handleCompanySelect}
                 companies={companies}

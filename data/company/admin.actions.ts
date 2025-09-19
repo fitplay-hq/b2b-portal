@@ -29,12 +29,12 @@ export async function getCompanies(url: string) {
 }
 
 // Update company
-export async function updateCompany(url: string, data: { id: string; name: string; address: string }) {
-  const response = await fetch(url, {
+export async function updateCompany(data: { id: string; name: string; address: string }) {
+  const response = await fetch(`/api/admin/companies/${data.id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify(data),
+    body: JSON.stringify({ name: data.name, address: data.address }),
   });
 
   if (!response.ok) {
@@ -46,8 +46,8 @@ export async function updateCompany(url: string, data: { id: string; name: strin
 }
 
 // Delete company
-export async function deleteCompany(url: string, companyId: string) {
-  const response = await fetch(url, {
+export async function deleteCompany(companyId: string) {
+  const response = await fetch(`/api/admin/companies/${companyId}`, {
     method: "DELETE",
     credentials: "include",
   });
