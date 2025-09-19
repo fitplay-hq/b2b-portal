@@ -36,6 +36,7 @@ export default function EditClientPage() {
     phone: "",
     address: "",
     selectedCompanyId: "",
+    isShowPrice: false,
   });
 
   // Use SWR hooks for data fetching
@@ -60,6 +61,7 @@ export default function EditClientPage() {
         address: client.address || "",
         password: "",
         selectedCompanyId: client.companyID || "",
+        isShowPrice: client.isShowPrice || false,
       });
     }
   }, [client]);
@@ -97,6 +99,14 @@ export default function EditClientPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData((prev) => ({ ...prev, isNewCompany: checked }));
+  };
+
+  const handleShowPriceChange = (checked: boolean) => {
+    setFormData((prev) => ({ ...prev, isShowPrice: checked }));
   };
 
   const handleCompanySelect = async (companyId: string) => {
@@ -155,9 +165,14 @@ export default function EditClientPage() {
 
     try {
       // Update client basic information first
+      const { name, email, phone, address, isShowPrice } = formData;
       await updateClient({
-        ...formData,
         id: clientId,
+        name,
+        email,
+        phone,
+        address,
+        isShowPrice,
       });
 
       // Sync selected products with company's product assignments
@@ -289,6 +304,8 @@ export default function EditClientPage() {
                 key={JSON.stringify(formData)} // Force re-render when formData changes
                 formData={formData}
                 handleInputChange={handleInputChange}
+                handleCheckboxChange={handleCheckboxChange}
+                handleShowPriceChange={handleShowPriceChange}
                 handleCompanySelect={handleCompanySelect}
                 companies={companies}
                 isNewClient={false}

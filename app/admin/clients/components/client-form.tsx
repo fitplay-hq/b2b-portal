@@ -43,6 +43,7 @@ interface ClientFormProps {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
   handleCheckboxChange?: (checked: boolean) => void;
+  handleShowPriceChange?: (checked: boolean) => void;
   handleCompanySelect?: (companyId: string) => void;
   companies?: Company[];
   isNewClient?: boolean;
@@ -52,6 +53,7 @@ export function ClientForm({
   formData,
   handleInputChange,
   handleCheckboxChange,
+  handleShowPriceChange,
   handleCompanySelect,
   companies = [],
   isNewClient = false,
@@ -229,7 +231,7 @@ export function ClientForm({
             id="isShowPrice"
             checked={formData.isShowPrice || false}
             onCheckedChange={(checked) =>
-              handleCheckboxChange?.(checked as boolean)
+              handleShowPriceChange?.(checked as boolean)
             }
           />
           <Label htmlFor="isShowPrice" className="text-sm">

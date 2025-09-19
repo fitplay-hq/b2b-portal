@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { name, email, password, phone, address, isNewCompany, companyName, companyAddress } = body;
+        const { name, email, password, phone, address, isNewCompany, companyName, companyAddress, isShowPrice } = body;
 
         if (!name || !email || !password || !phone || !address || !companyName) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -52,13 +52,14 @@ export async function POST(req: NextRequest) {
         const passwordHash = bcrypt.hashSync(password, 10);
 
         const client = await prisma.client.create({
-            data: { 
+            data: {
                 name,
                 email,
                 password: passwordHash,
                 phone,
                 address,
-                companyID: companyId
+                companyID: companyId,
+                isShowPrice: isShowPrice || false
             },
         });
 

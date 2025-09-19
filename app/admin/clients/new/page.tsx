@@ -52,6 +52,10 @@ export default function NewClientPage() {
     setFormData((prev) => ({ ...prev, isNewCompany: checked }));
   };
 
+  const handleShowPriceChange = (checked: boolean) => {
+    setFormData((prev) => ({ ...prev, isShowPrice: checked }));
+  };
+
   const handleCompanySelect = async (companyId: string) => {
     const selectedCompany = companies?.find((c: any) => c.id === companyId);
 
@@ -174,6 +178,7 @@ export default function NewClientPage() {
                 formData={formData}
                 handleInputChange={handleInputChange}
                 handleCheckboxChange={handleCheckboxChange}
+                handleShowPriceChange={handleShowPriceChange}
                 handleCompanySelect={handleCompanySelect}
                 companies={companies}
                 isNewClient={true}
