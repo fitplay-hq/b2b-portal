@@ -165,6 +165,11 @@ export default function ClientCart() {
                           <p className="text-sm text-muted-foreground">
                             SKU: {item.product.sku}
                           </p>
+                          {item.product.price && (
+                            <p className="text-sm font-medium">
+                              Price: ₹{item.product.price}
+                            </p>
+                          )}
                           <p className="text-sm font-medium">Product item</p>
                         </div>
                         <Button
@@ -202,7 +207,7 @@ export default function ClientCart() {
                             }}
                             className="w-16 text-center"
                             min="1"
-                            max={item.product.stock}
+                            max={item.product.availableStock}
                           />
                           <Button
                             variant="outline"
@@ -210,7 +215,9 @@ export default function ClientCart() {
                             onClick={() =>
                               updateQuantity(item.product.id, item.quantity + 1)
                             }
-                            disabled={item.quantity >= item.product.stock}
+                            disabled={
+                              item.quantity >= item.product.availableStock
+                            }
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -218,8 +225,14 @@ export default function ClientCart() {
 
                         <div className="text-right">
                           <p className="font-medium">Qty: {item.quantity}</p>
+                          {item.product.price && (
+                            <p className="font-medium">
+                              Total: ₹
+                              {(item.product.price * item.quantity).toFixed(2)}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">
-                            Stock: {item.product.stock}
+                            Stock: {item.product.availableStock}
                           </p>
                         </div>
                       </div>
@@ -240,8 +253,19 @@ export default function ClientCart() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   {cartItems.map((item) => (
-                    <div className="flex justify-between text-sm">
-                      <span>{item.product.name}</span>
+                    <div
+                      key={item.product.id}
+                      className="flex justify-between text-sm"
+                    >
+                      <div>
+                        <span>{item.product.name}</span>
+                        {item.product.price && (
+                          <div className="text-xs text-muted-foreground">
+                            ₹{item.product.price} x {item.quantity} = ₹
+                            {(item.product.price * item.quantity).toFixed(2)}
+                          </div>
+                        )}
+                      </div>
                       <span>Qty: {item.quantity}</span>
                     </div>
                   ))}
@@ -255,6 +279,22 @@ export default function ClientCart() {
                         )}
                       </span>
                     </div>
+                    {(() => {
+                      const totalAmount = cartItems.reduce(
+                        (sum, item) =>
+                          sum +
+                          (item.product.price
+                            ? item.product.price * item.quantity
+                            : 0),
+                        0
+                      );
+                      return totalAmount > 0 ? (
+                        <div className="flex justify-between font-medium">
+                          <span>Total Amount</span>
+                          <span>₹{totalAmount.toFixed(2)}</span>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
 

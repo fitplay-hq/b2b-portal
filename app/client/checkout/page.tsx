@@ -121,7 +121,7 @@ export default function ClientCheckout() {
       const _orderItems: Prisma.OrderItemCreateManyOrderInput[] = cartItems.map(
         (item) => ({
           productId: item.product.id,
-          price: 0,
+          price: item.product.price ?? 0,
           quantity: item.quantity,
         })
       );
@@ -234,6 +234,11 @@ export default function ClientCheckout() {
                           <p className="text-sm text-muted-foreground">
                             SKU: {item.product.sku}
                           </p>
+                          {item.product.price && (
+                            <p className="text-sm font-medium">
+                              Price: ₹{item.product.price}
+                            </p>
+                          )}
                           <p className="text-sm font-medium">Product Item</p>
                         </div>
                       </div>
@@ -243,6 +248,12 @@ export default function ClientCheckout() {
 
                         <div className="text-right">
                           <p className="font-medium">Qty: {item.quantity}</p>
+                          {item.product.price && (
+                            <p className="font-medium">
+                              Total: ₹
+                              {(item.product.price * item.quantity).toFixed(2)}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             {item.quantity} quantity
                           </p>
@@ -441,6 +452,12 @@ export default function ClientCheckout() {
                       <p className="text-sm font-medium truncate">
                         {item.product.name}
                       </p>
+                      {item.product.price && (
+                        <div className="text-xs text-muted-foreground">
+                          ₹{item.product.price} x {item.quantity} = ₹
+                          {(item.product.price * item.quantity).toFixed(2)}
+                        </div>
+                      )}
                     </div>
                     <div className="text-sm font-medium">
                       Qty: {item.quantity}
@@ -456,6 +473,22 @@ export default function ClientCheckout() {
                     {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
                   </span>
                 </div>
+                {(() => {
+                  const totalAmount = cartItems.reduce(
+                    (sum, item) =>
+                      sum +
+                      (item.product.price
+                        ? item.product.price * item.quantity
+                        : 0),
+                    0
+                  );
+                  return totalAmount > 0 ? (
+                    <div className="flex justify-between font-medium">
+                      <span>Total Amount</span>
+                      <span>₹{totalAmount.toFixed(2)}</span>
+                    </div>
+                  ) : null;
+                })()}
               </CardContent>
             </Card>
 
