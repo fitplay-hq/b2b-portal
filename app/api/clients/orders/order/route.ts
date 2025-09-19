@@ -75,6 +75,11 @@ export async function POST(req: NextRequest) {
 
     const orderId = `GH-FP${year}-${String(nextSequence).padStart(3, "0")}`;
 
+    const totalAmount = items.reduce(
+      (sum: number, item: any) => sum + (item.price ?? 0) * item.quantity,
+      0
+    );
+
     const order = await prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
         data: {
@@ -92,7 +97,7 @@ export async function POST(req: NextRequest) {
           deliveryReference,
           packagingInstructions,
           note,
-          totalAmount: 0,
+          totalAmount,
           orderItems: {
             create: items.map((item: any) => ({
               productId: item.productId,
@@ -133,6 +138,7 @@ export async function POST(req: NextRequest) {
           <tr>
             <th align="left">Product</th>
             <th align="center">Quantity</th>
+            <th align="right">Price</th>
           </tr>
         </thead>
         <tbody>
@@ -142,10 +148,15 @@ export async function POST(req: NextRequest) {
             <tr>
               <td>${item.name}</td>
               <td align="center">${order.orderItems.find(i => i.productId === item.id)?.quantity}</td>
+              <td align="right">$${(order.orderItems.find(i => i.productId === item.id)?.price ?? 0).toFixed(2)}</td>
             </tr>
           `
         )
         .join("")}
+        <tr>
+          <td colspan="2" align="right"><b>Total:</b></td>
+          <td align="right">$${order.totalAmount.toFixed(2)}</td>
+        </tr>
         </tbody>
       </table>
     `;
@@ -229,7 +240,8 @@ export async function GET(req: NextRequest) {
               select: {
                 id: true,
                 name: true,
-                images: true
+                images: true,
+                price: true
               }
             }
           }
