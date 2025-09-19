@@ -90,11 +90,11 @@ export async function POST(req: NextRequest) {
     });
 
     const year = new Date().getFullYear();
-    const startOrder = company?.name?.toUpperCase().replace(/\s+/g, "").slice(0, 2);
+    const startOrder = company?.name.split(" ")[0].toUpperCase();
 
     const lastOrder = await prisma.order.findFirst({
       where: {
-        id: { startsWith: `${startOrder}-FP${year}-` },
+        id: { startsWith: `FP-${startOrder}${year}-` },
         clientId: client.id,
       },
       orderBy: { createdAt: "desc" },
@@ -107,11 +107,44 @@ export async function POST(req: NextRequest) {
       if (!isNaN(lastSeq)) nextSequence = lastSeq + 1;
     }
 
-    const orderId = `${startOrder}-FP${year}-${String(nextSequence).padStart(3, "0")}`;
-    const totalAmount = items.reduce(
-      (sum: number, item: any) => sum + (item.price ?? 0) * item.quantity,
-      0
-    );
+    const itemsId = items.map((item: any) => item.productId);
+
+    const itemsPrice = await prisma.product.findMany({
+      where: { id: { in: itemsId } },
+      select: { id: true, price: true, availableStock: true },
+    });
+
+    for (const item of items) {
+      const product = itemsPrice.find((p) => p.id === item.productId);
+      if (!product) {
+        return NextResponse.json({ error: `Product with ID ${item.productId} not found` }, { status: 404 });
+      }
+      if (product.availableStock < item.quantity) {
+        return NextResponse.json({ error: `Insufficient stock for product ID ${item.productId}` }, { status: 400 });
+      }
+      if (!item.price) {
+        item.price = product.price;
+      }
+    }
+
+    if (items.length === 0) {
+      return NextResponse.json({ error: "At least one order item is required" }, { status: 400 });
+    }
+
+    const totalAmount = itemsPrice.reduce((sum, product) => {
+      const item = items.find((i: any) => i.productId === product.id);
+      return sum + (item?.quantity || 0) * (product.price || 0);
+    }, 0);
+
+    if (!totalAmount || totalAmount <= 0) {
+      return NextResponse.json({ error: "Total amount must be greater than zero" }, { status: 400 });
+    }
+
+    if (!startOrder) {
+      return NextResponse.json({ error: "Invalid company name for order ID generation" }, { status: 400 });
+    }
+
+    const orderId = `FP-${startOrder}${year}-${String(nextSequence).padStart(3, "0")}`;
 
     const order = await prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
