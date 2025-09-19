@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +18,10 @@ interface CompanyFormProps {
   ) => void;
 }
 
-export function CompanyForm({ formData, handleInputChange }: CompanyFormProps) {
+export const CompanyForm = memo(function CompanyForm({
+  formData,
+  handleInputChange,
+}: CompanyFormProps) {
   return (
     <Card>
       <CardHeader>
@@ -52,4 +56,4 @@ export function CompanyForm({ formData, handleInputChange }: CompanyFormProps) {
       </CardContent>
     </Card>
   );
-}
+});

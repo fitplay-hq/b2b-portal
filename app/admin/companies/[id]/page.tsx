@@ -207,7 +207,6 @@ export default function EditCompanyPage() {
             {/* Company Details Form - Left Side */}
             <div className="space-y-6">
               <CompanyForm
-                key={JSON.stringify(formData)} // Force re-render when formData changes
                 formData={formData}
                 handleInputChange={handleInputChange}
               />

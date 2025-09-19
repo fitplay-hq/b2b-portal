@@ -382,7 +382,6 @@ export default function EditClientPage() {
             {/* Client Details Form - Left Side */}
             <div className="space-y-6">
               <ClientForm
-                key={JSON.stringify(formData)} // Force re-render when formData changes
                 formData={formData}
                 handleInputChange={handleInputChange}
                 handleShowPriceChange={handleShowPriceChange}

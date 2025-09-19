@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +48,7 @@ interface ClientFormProps {
   isNewClient?: boolean;
 }
 
-export function ClientForm({
+export const ClientForm = memo(function ClientForm({
   formData,
   handleInputChange,
   handleShowPriceChange,
@@ -55,8 +56,9 @@ export function ClientForm({
   companies = [],
   isNewClient = false,
 }: ClientFormProps) {
-  const selectedCompany = companies.find(
-    (c) => c.id === formData.selectedCompanyId
+  const selectedCompany = useMemo(
+    () => companies.find((c) => c.id === formData.selectedCompanyId),
+    [companies, formData.selectedCompanyId]
   );
   return (
     <Card>
@@ -235,4 +237,4 @@ export function ClientForm({
       </CardContent>
     </Card>
   );
-}
+});
