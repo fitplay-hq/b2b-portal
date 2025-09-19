@@ -9,7 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Package } from "lucide-react";
-import { Product } from "../data/mock-products";
+
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  categories: string;
+  availableStock: number;
+}
 
 interface ProductAccessSummaryProps {
   selectedProducts: string[];
@@ -65,11 +72,13 @@ export function ProductAccessSummary({
             new Set(
               products
                 .filter((product) => selectedProducts.includes(product.id))
-                .map((product) => product.category)
+                .map((product) => product.categories)
             )
           ).map((category) => (
             <Badge key={category} variant="secondary" className="capitalize">
-              {category.replace(/([A-Z])/g, " $1").trim()}
+              {category
+                ? category.replace(/([A-Z])/g, " $1").trim()
+                : "No Category"}
             </Badge>
           ))}
         </div>

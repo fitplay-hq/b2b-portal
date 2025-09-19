@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -19,16 +20,20 @@ interface ClientFormProps {
     companyName: string;
     phone: string;
     address: string;
+    isNewCompany?: boolean;
+    companyAddress?: string;
   };
   handleInputChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
+  handleCheckboxChange?: (checked: boolean) => void;
   isNewClient?: boolean;
 }
 
 export function ClientForm({
   formData,
   handleInputChange,
+  handleCheckboxChange,
   isNewClient = false,
 }: ClientFormProps) {
   return (
@@ -92,6 +97,36 @@ export function ClientForm({
             />
           </div>
         </div>
+
+        {isNewClient && (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isNewCompany"
+                checked={formData.isNewCompany || false}
+                onCheckedChange={handleCheckboxChange}
+              />
+              <Label htmlFor="isNewCompany" className="text-sm">
+                Create new company
+              </Label>
+            </div>
+
+            {formData.isNewCompany && (
+              <div className="space-y-2">
+                <Label htmlFor="companyAddress">Company Address *</Label>
+                <Textarea
+                  id="companyAddress"
+                  name="companyAddress"
+                  value={formData.companyAddress || ""}
+                  onChange={handleInputChange}
+                  required={formData.isNewCompany}
+                  placeholder="Enter company address"
+                  rows={2}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="password">

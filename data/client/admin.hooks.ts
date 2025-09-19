@@ -63,6 +63,34 @@ export function useUpdateClient() {
 }
 
 /**
+ * Hook to fetch a single client by ID.
+ */
+export function useClient(clientId: string | null) {
+  const { data, error, isLoading, mutate } = useSWR(
+    clientId ? `/api/admin/clients/client?clientId=${clientId}` : null,
+    async (url) => {
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Client not found');
+        }
+        throw new Error(`Failed to fetch client: ${response.status}`);
+      }
+      const result = await response.json();
+      return result.data;
+    }
+  );
+
+  return {
+    client: data,
+    error,
+    isLoading,
+    mutate,
+    isClientNotFound: error?.message === 'Client not found',
+  };
+}
+
+/**
  * Hook to delete a client.
  */
 export function useDeleteClient() {

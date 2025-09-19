@@ -3,18 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ClientForm } from "../components/client-form";
 import { ProductAccessSummary } from "../components/product-access-summary";
 import { ProductSelectionTable } from "../components/product-selection-table";
-import { mockProducts } from "../data/mock-products";
+import { useCreateClient } from "@/data/client/admin.hooks";
+import { useProducts } from "@/data/product/admin.hooks";
+
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  categories: string;
+  availableStock: number;
+}
 
 export default function NewClientPage() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -23,13 +30,23 @@ export default function NewClientPage() {
     companyName: "",
     phone: "",
     address: "",
+    isNewCompany: false,
+    companyAddress: "",
   });
+
+  // Use SWR hooks for data fetching
+  const { products, isLoading: isLoadingProducts } = useProducts();
+  const { createClient, isCreating } = useCreateClient();
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData((prev) => ({ ...prev, isNewCompany: checked }));
   };
 
   const handleProductToggle = (productId: string) => {
@@ -42,21 +59,28 @@ export default function NewClientPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    // Mock API call
-    setTimeout(() => {
-      console.log("Creating client:", {
-        ...formData,
-        accessibleProducts: selectedProducts,
-      });
-      setIsSubmitting(false);
+    try {
+      await createClient(formData);
       router.push("/admin/clients");
-    }, 1000);
+    } catch (error) {
+      console.error("Failed to create client:", error);
+      // Handle error - could show toast notification
+    }
   };
 
   const selectedProductCount = selectedProducts.length;
-  const totalProducts = mockProducts.length;
+  const totalProducts = (products || []).length;
+
+  if (isLoadingProducts) {
+    return (
+      <Layout title="Create New Client" isClient={false}>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title="Create New Client" isClient={false}>
@@ -86,6 +110,7 @@ export default function NewClientPage() {
               <ClientForm
                 formData={formData}
                 handleInputChange={handleInputChange}
+                handleCheckboxChange={handleCheckboxChange}
                 isNewClient={true}
               />
             </div>
@@ -94,7 +119,7 @@ export default function NewClientPage() {
             <div className="space-y-6">
               <ProductAccessSummary
                 selectedProducts={selectedProducts}
-                products={mockProducts}
+                products={products || []}
               />
             </div>
           </div>
@@ -102,11 +127,11 @@ export default function NewClientPage() {
           {/* Product Selection Table - Bottom */}
           <ProductSelectionTable
             selectedProducts={selectedProducts}
-            products={mockProducts}
+            products={products || []}
             onProductToggle={handleProductToggle}
             onClearAll={() => setSelectedProducts([])}
             onSelectAll={() =>
-              setSelectedProducts(mockProducts.map((p) => p.id))
+              setSelectedProducts((products || []).map((p) => p.id))
             }
           />
 
@@ -117,9 +142,9 @@ export default function NewClientPage() {
                 Cancel
               </Button>
             </Link>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isCreating}>
               <Save className="h-4 w-4 mr-2" />
-              {isSubmitting ? "Creating..." : "Create Client"}
+              {isCreating ? "Creating..." : "Create Client"}
             </Button>
           </div>
         </form>

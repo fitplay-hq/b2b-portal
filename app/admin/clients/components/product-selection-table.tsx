@@ -10,7 +10,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Product } from "../data/mock-products";
+
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  categories: string;
+  availableStock: number;
+}
 
 interface ProductSelectionTableProps {
   selectedProducts: string[];
@@ -89,10 +96,14 @@ export function ProductSelectionTable({
                   </td>
                   <td className="p-4">
                     <Badge variant="outline" className="capitalize">
-                      {product.category.replace(/([A-Z])/g, " $1").trim()}
+                      {product.categories
+                        ? product.categories.replace(/([A-Z])/g, " $1").trim()
+                        : "No Category"}
                     </Badge>
                   </td>
-                  <td className="p-4 text-sm">{product.stock} units</td>
+                  <td className="p-4 text-sm">
+                    {product.availableStock || 0} units
+                  </td>
                 </tr>
               ))}
             </tbody>

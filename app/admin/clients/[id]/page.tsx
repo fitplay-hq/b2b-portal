@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -9,29 +10,21 @@ import Link from "next/link";
 import { ClientForm } from "../components/client-form";
 import { ProductAccessSummary } from "../components/product-access-summary";
 import { ProductSelectionTable } from "../components/product-selection-table";
-import { mockProducts } from "../data/mock-products";
+import { useClient, useUpdateClient } from "@/data/client/admin.hooks";
+import { useProducts } from "@/data/product/admin.hooks";
+
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  categories: string;
+  availableStock: number;
+}
 
 export default function EditClientPage() {
   const router = useRouter();
   const params = useParams();
   const clientId = params.id as string;
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Mock client data - in real app this would come from API
-  const mockClientData = {
-    id: clientId,
-    name: "John Doe",
-    email: "john.doe@company.com",
-    companyName: "Tech Solutions Inc.",
-    phone: "+1234567890",
-    address: "123 Business St, City, State 12345",
-    password: "", // Not shown for security
-  };
-
-  // Mock selected products for this client
-  const mockAccessibleProducts = ["1", "3", "5"];
 
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [formData, setFormData] = useState({
@@ -43,27 +36,35 @@ export default function EditClientPage() {
     address: "",
   });
 
-  // Load client data on mount
-  useEffect(() => {
-    const loadClientData = async () => {
-      setIsLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setFormData({
-          name: mockClientData.name,
-          email: mockClientData.email,
-          companyName: mockClientData.companyName,
-          phone: mockClientData.phone,
-          address: mockClientData.address,
-          password: mockClientData.password,
-        });
-        setSelectedProducts(mockAccessibleProducts);
-        setIsLoading(false);
-      }, 500);
-    };
+  // Use SWR hooks for data fetching
+  const {
+    client,
+    isLoading: isLoadingClient,
+    isClientNotFound,
+  } = useClient(clientId);
+  const { products, isLoading: isLoadingProducts } = useProducts();
+  const { updateClient, isUpdating } = useUpdateClient();
 
-    loadClientData();
-  }, [clientId]);
+  // Populate form data and selected products when client data is loaded
+  React.useEffect(() => {
+    if (client) {
+      console.log("Populating form with client data:", client);
+      setFormData({
+        name: client.name || "",
+        email: client.email || "",
+        companyName: client.company?.name || client.companyName || "",
+        phone: client.phone || "",
+        address: client.address || "",
+        password: "",
+      });
+
+      // TODO: Initialize selectedProducts based on client's company products
+      // For now, initialize as empty array (same as add client page)
+      // Once company-based product filtering is implemented, this should be:
+      // setSelectedProducts(client.company?.products?.map(p => p.id) || []);
+      setSelectedProducts([]);
+    }
+  }, [client]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -82,28 +83,57 @@ export default function EditClientPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    // Mock API call
-    setTimeout(() => {
-      console.log("Updating client:", {
-        id: clientId,
+    try {
+      await updateClient({
         ...formData,
-        accessibleProducts: selectedProducts,
+        id: clientId,
       });
-      setIsSubmitting(false);
       router.push("/admin/clients");
-    }, 1000);
+    } catch (error) {
+      console.error("Failed to update client:", error);
+      // Handle error - could show toast notification
+    }
   };
 
   const selectedProductCount = selectedProducts.length;
-  const totalProducts = mockProducts.length;
+  const totalProducts = products?.length || 0;
 
-  if (isLoading) {
+  if (isLoadingClient || isLoadingProducts) {
     return (
-      <Layout title="Edit Client" isClient={false}>
+      <Layout
+        title={`Edit Client - ${formData.name || clientId}`}
+        isClient={false}
+      >
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isClientNotFound) {
+    return (
+      <Layout title={`Client Not Found - ${clientId}`} isClient={false}>
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-red-600">
+              Client Not Found
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              No client found with ID:{" "}
+              <code className="bg-muted px-2 py-1 rounded">{clientId}</code>
+            </p>
+            <p className="text-sm text-muted-foreground mt-4">
+              The client may have been deleted or the ID may be incorrect.
+            </p>
+          </div>
+          <Link href="/admin/clients">
+            <Button variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Clients
+            </Button>
+          </Link>
         </div>
       </Layout>
     );
@@ -135,6 +165,7 @@ export default function EditClientPage() {
             {/* Client Details Form - Left Side */}
             <div className="space-y-6">
               <ClientForm
+                key={JSON.stringify(formData)} // Force re-render when formData changes
                 formData={formData}
                 handleInputChange={handleInputChange}
                 isNewClient={false}
@@ -145,7 +176,7 @@ export default function EditClientPage() {
             <div className="space-y-6">
               <ProductAccessSummary
                 selectedProducts={selectedProducts}
-                products={mockProducts}
+                products={products || []}
               />
             </div>
           </div>
@@ -153,11 +184,11 @@ export default function EditClientPage() {
           {/* Product Selection Table - Bottom */}
           <ProductSelectionTable
             selectedProducts={selectedProducts}
-            products={mockProducts}
+            products={products || []}
             onProductToggle={handleProductToggle}
             onClearAll={() => setSelectedProducts([])}
             onSelectAll={() =>
-              setSelectedProducts(mockProducts.map((p) => p.id))
+              setSelectedProducts((products || []).map((p) => p.id))
             }
           />
 
@@ -168,9 +199,9 @@ export default function EditClientPage() {
                 Cancel
               </Button>
             </Link>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isUpdating}>
               <Save className="h-4 w-4 mr-2" />
-              {isSubmitting ? "Updating..." : "Update Client"}
+              {isUpdating ? "Updating..." : "Update Client"}
             </Button>
           </div>
         </form>
