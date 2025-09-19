@@ -61,7 +61,22 @@ export default function NewClientPage() {
     e.preventDefault();
 
     try {
-      await createClient(formData);
+      // First create the client
+      const clientResponse = await createClient(formData);
+
+      // If products are selected and we have a company ID, assign products to the company
+      if (selectedProducts.length > 0 && clientResponse?.companyID) {
+        await fetch("/api/admin/companies/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            companyId: clientResponse.companyID,
+            productIds: selectedProducts,
+          }),
+        });
+      }
+
       router.push("/admin/clients");
     } catch (error) {
       console.error("Failed to create client:", error);

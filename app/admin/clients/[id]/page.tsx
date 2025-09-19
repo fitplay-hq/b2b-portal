@@ -57,14 +57,36 @@ export default function EditClientPage() {
         address: client.address || "",
         password: "",
       });
-
-      // TODO: Initialize selectedProducts based on client's company products
-      // For now, initialize as empty array (same as add client page)
-      // Once company-based product filtering is implemented, this should be:
-      // setSelectedProducts(client.company?.products?.map(p => p.id) || []);
-      setSelectedProducts([]);
     }
   }, [client]);
+
+  // Initialize selectedProducts when both client and products are loaded
+  React.useEffect(() => {
+    if (client && products && client.companyID) {
+      const fetchCompanyProducts = async () => {
+        try {
+          const response = await fetch(
+            `/api/admin/companies/products?companyId=${client.companyID}`,
+            {
+              credentials: "include",
+            }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            const companyProductIds = data.data.map(
+              (product: any) => product.id
+            );
+            setSelectedProducts(companyProductIds);
+          }
+        } catch (error) {
+          console.error("Failed to fetch company products:", error);
+          setSelectedProducts([]);
+        }
+      };
+
+      fetchCompanyProducts();
+    }
+  }, [client, products, client?.companyID]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -85,10 +107,64 @@ export default function EditClientPage() {
     e.preventDefault();
 
     try {
+      // Update client basic information first
       await updateClient({
         ...formData,
         id: clientId,
       });
+
+      // Sync selected products with company's product assignments
+      if (client?.companyID) {
+        // Get current company products
+        const currentResponse = await fetch(
+          `/api/admin/companies/products?companyId=${client.companyID}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (currentResponse.ok) {
+          const currentData = await currentResponse.json();
+          const currentProductIds = currentData.data.map(
+            (product: any) => product.id
+          );
+
+          // Find products to add and remove
+          const productsToAdd = selectedProducts.filter(
+            (id) => !currentProductIds.includes(id)
+          );
+          const productsToRemove = currentProductIds.filter(
+            (id: string) => !selectedProducts.includes(id)
+          );
+
+          // Add new products to company
+          if (productsToAdd.length > 0) {
+            await fetch("/api/admin/companies/products", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                companyId: client.companyID,
+                productIds: productsToAdd,
+              }),
+            });
+          }
+
+          // Remove deselected products from company
+          if (productsToRemove.length > 0) {
+            const removeUrl = `/api/admin/companies/products?companyId=${
+              client.companyID
+            }&${productsToRemove
+              .map((id: string) => `productIds=${id}`)
+              .join("&")}`;
+            await fetch(removeUrl, {
+              method: "DELETE",
+              credentials: "include",
+            });
+          }
+        }
+      }
+
       router.push("/admin/clients");
     } catch (error) {
       console.error("Failed to update client:", error);
