@@ -12,6 +12,7 @@ import { ProductAccessSummary } from "../components/product-access-summary";
 import { ProductSelectionTable } from "../components/product-selection-table";
 import { useClient, useUpdateClient } from "@/data/client/admin.hooks";
 import { useProducts } from "@/data/product/admin.hooks";
+import { useCompanies } from "@/data/company/admin.hooks";
 
 interface Product {
   id: string;
@@ -34,6 +35,7 @@ export default function EditClientPage() {
     companyName: "",
     phone: "",
     address: "",
+    selectedCompanyId: "",
   });
 
   // Use SWR hooks for data fetching
@@ -43,6 +45,7 @@ export default function EditClientPage() {
     isClientNotFound,
   } = useClient(clientId);
   const { products, isLoading: isLoadingProducts } = useProducts();
+  const { companies, isLoading: isLoadingCompanies } = useCompanies();
   const { updateClient, isUpdating } = useUpdateClient();
 
   // Populate form data and selected products when client data is loaded
@@ -56,6 +59,7 @@ export default function EditClientPage() {
         phone: client.phone || "",
         address: client.address || "",
         password: "",
+        selectedCompanyId: client.companyID || "",
       });
     }
   }, [client]);
@@ -93,6 +97,49 @@ export default function EditClientPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCompanySelect = async (companyId: string) => {
+    const selectedCompany = companies?.find((c: any) => c.id === companyId);
+
+    if (companyId === "") {
+      // Creating new company - clear selected products
+      setSelectedProducts([]);
+      setFormData((prev) => ({
+        ...prev,
+        selectedCompanyId: "",
+        companyName: "",
+        isNewCompany: true,
+      }));
+    } else if (selectedCompany) {
+      // Existing company selected - fetch and set company's products
+      try {
+        const response = await fetch(
+          `/api/admin/companies/products?companyId=${companyId}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const companyProductIds = data.data.map((product: any) => product.id);
+          setSelectedProducts(companyProductIds);
+        } else {
+          setSelectedProducts([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch company products:", error);
+        setSelectedProducts([]);
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        selectedCompanyId: companyId,
+        companyName: selectedCompany.name || "",
+        isNewCompany: false,
+      }));
+    }
   };
 
   const handleProductToggle = (productId: string) => {
@@ -175,7 +222,7 @@ export default function EditClientPage() {
   const selectedProductCount = selectedProducts.length;
   const totalProducts = products?.length || 0;
 
-  if (isLoadingClient || isLoadingProducts) {
+  if (isLoadingClient || isLoadingProducts || isLoadingCompanies) {
     return (
       <Layout
         title={`Edit Client - ${formData.name || clientId}`}
@@ -193,9 +240,7 @@ export default function EditClientPage() {
       <Layout title={`Client Not Found - ${clientId}`} isClient={false}>
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-red-600">
-              Client Not Found
-            </h1>
+            <h1 className="text-2xl font-bold">Client Not Found</h1>
             <p className="text-muted-foreground mt-2">
               No client found with ID:{" "}
               <code className="bg-muted px-2 py-1 rounded">{clientId}</code>
@@ -244,6 +289,8 @@ export default function EditClientPage() {
                 key={JSON.stringify(formData)} // Force re-render when formData changes
                 formData={formData}
                 handleInputChange={handleInputChange}
+                handleCompanySelect={handleCompanySelect}
+                companies={companies}
                 isNewClient={false}
               />
             </div>

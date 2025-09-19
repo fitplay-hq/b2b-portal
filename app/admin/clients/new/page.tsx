@@ -11,6 +11,7 @@ import { ProductAccessSummary } from "../components/product-access-summary";
 import { ProductSelectionTable } from "../components/product-selection-table";
 import { useCreateClient } from "@/data/client/admin.hooks";
 import { useProducts } from "@/data/product/admin.hooks";
+import { useCompanies } from "@/data/company/admin.hooks";
 
 interface Product {
   id: string;
@@ -30,13 +31,15 @@ export default function NewClientPage() {
     companyName: "",
     phone: "",
     address: "",
-    isNewCompany: false,
+    isNewCompany: true, // Default to creating new company
     companyAddress: "",
+    selectedCompanyId: "",
   });
 
   // Use SWR hooks for data fetching
   const { products, isLoading: isLoadingProducts } = useProducts();
   const { createClient, isCreating } = useCreateClient();
+  const { companies, isLoading: isLoadingCompanies } = useCompanies();
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -47,6 +50,51 @@ export default function NewClientPage() {
 
   const handleCheckboxChange = (checked: boolean) => {
     setFormData((prev) => ({ ...prev, isNewCompany: checked }));
+  };
+
+  const handleCompanySelect = async (companyId: string) => {
+    const selectedCompany = companies?.find((c: any) => c.id === companyId);
+
+    if (companyId === "") {
+      // Creating new company - clear selected products
+      setSelectedProducts([]);
+      setFormData((prev) => ({
+        ...prev,
+        selectedCompanyId: "",
+        companyName: "",
+        companyAddress: "",
+        isNewCompany: true,
+      }));
+    } else if (selectedCompany) {
+      // Existing company selected - fetch and set company's products
+      try {
+        const response = await fetch(
+          `/api/admin/companies/products?companyId=${companyId}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const companyProductIds = data.data.map((product: any) => product.id);
+          setSelectedProducts(companyProductIds);
+        } else {
+          setSelectedProducts([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch company products:", error);
+        setSelectedProducts([]);
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        selectedCompanyId: companyId,
+        companyName: selectedCompany.name || "",
+        companyAddress: selectedCompany.address || "",
+        isNewCompany: false,
+      }));
+    }
   };
 
   const handleProductToggle = (productId: string) => {
@@ -87,7 +135,7 @@ export default function NewClientPage() {
   const selectedProductCount = selectedProducts.length;
   const totalProducts = (products || []).length;
 
-  if (isLoadingProducts) {
+  if (isLoadingProducts || isLoadingCompanies) {
     return (
       <Layout title="Create New Client" isClient={false}>
         <div className="flex justify-center items-center h-64">
@@ -126,6 +174,8 @@ export default function NewClientPage() {
                 formData={formData}
                 handleInputChange={handleInputChange}
                 handleCheckboxChange={handleCheckboxChange}
+                handleCompanySelect={handleCompanySelect}
+                companies={companies}
                 isNewClient={true}
               />
             </div>
