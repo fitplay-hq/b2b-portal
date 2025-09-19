@@ -31,6 +31,9 @@ export default function NavItems({ isClient }: NavItemsProps) {
   const [clientsOpen, setClientsOpen] = useState(
     pathname.startsWith("/admin/clients")
   );
+  const [companiesOpen, setCompaniesOpen] = useState(
+    pathname.startsWith("/admin/companies")
+  );
 
   if (isClient) {
     const clientNavItems = [
@@ -152,6 +155,65 @@ export default function NavItems({ isClient }: NavItemsProps) {
           >
             <Plus className="h-4 w-4" />
             Add Client
+          </Link>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Companies Collapsible */}
+      <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
+        <CollapsibleTrigger asChild>
+          <button
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full text-left",
+              "text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+          >
+            Companies
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 ml-auto transition-transform duration-200",
+                companiesOpen ? "rotate-180" : ""
+              )}
+            />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-1 ml-6">
+          <Link
+            href="/admin/companies"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+              pathname === "/admin/companies"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+          >
+            <List className="h-4 w-4" />
+            Manage Companies
+          </Link>
+          {pathname.startsWith("/admin/companies/") &&
+            pathname !== "/admin/companies/new" && (
+              <Link
+                href={pathname}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+                  "bg-primary text-primary-foreground"
+                )}
+              >
+                <Edit className="h-4 w-4" />
+                Edit Company
+              </Link>
+            )}
+          <Link
+            href="/admin/companies/new"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+              pathname === "/admin/companies/new"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+          >
+            <Plus className="h-4 w-4" />
+            Add Company
           </Link>
         </CollapsibleContent>
       </Collapsible>
