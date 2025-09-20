@@ -38,18 +38,22 @@ export async function PATCH(req: NextRequest) {
 
     let updatedOrder;
 
-    if (consignmentNumber && deliveryService) {
-      if (order.status === "DISPATCHED") {
-        updatedOrder = await prisma.order.update({
-          where: { id: orderId },
-          data: {
-            consignmentNumber,
-            deliveryService,
-          },
-        });
+    if (status === "DISPATCHED") {
+      if (!consignmentNumber || !deliveryService) {
+        return NextResponse.json(
+          { error: "Consignment number and delivery service are required for dispatch status" },
+          { status: 400 }
+        );
       }
-    }
-    else {
+      updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          status,
+          consignmentNumber,
+          deliveryService,
+        },
+      });
+    } else {
       updatedOrder = await prisma.order.update({
         where: { id: orderId },
         data: { status: status || "PENDING" },

@@ -40,6 +40,9 @@ export interface AdminOrder {
     packagingInstructions: string | null;
     note: string | null;
     status: $Enums.Status;
+    consignmentNumber: string | null;
+    deliveryService: string | null;
+    isMailSent: boolean;
     clientId: string;
     createdAt: Date;
     updatedAt: Date;
@@ -74,7 +77,7 @@ export async function createOrder(url: string, orderData: any) {
   return await response.json();
 }
 
-export async function updateOrderStatus(url: string, data: { orderId: string; status: $Enums.Status }) {
+export async function updateOrderStatus(url: string, data: { orderId: string; status: $Enums.Status; consignmentNumber?: string; deliveryService?: string }) {
   const response = await fetch(url, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

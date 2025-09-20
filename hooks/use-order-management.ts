@@ -11,6 +11,8 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
     isOpen: false,
     order: null as AdminOrder | null,
     newStatus: "",
+    consignmentNumber: "",
+    deliveryService: "",
   });
   const { updateOrderStatus } = useUpdateOrderStatus()
 
@@ -21,11 +23,23 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
   };
 
   const openStatusDialog = (order: AdminOrder) => {
-    setDialogState({ isOpen: true, order, newStatus: order.status });
+    setDialogState({
+      isOpen: true,
+      order,
+      newStatus: order.status,
+      consignmentNumber: "",
+      deliveryService: "",
+    });
   };
 
   const closeStatusDialog = () => {
-    setDialogState({ isOpen: false, order: null, newStatus: "" });
+    setDialogState({
+      isOpen: false,
+      order: null,
+      newStatus: "",
+      consignmentNumber: "",
+      deliveryService: "",
+    });
   };
 
   const handleStatusUpdate = async () => {
@@ -34,6 +48,10 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
       await updateOrderStatus({
         orderId: dialogState.order.id,
         status: dialogState.newStatus as AdminOrder['status'],
+        ...(dialogState.newStatus === "DISPATCHED" && {
+          consignmentNumber: dialogState.consignmentNumber,
+          deliveryService: dialogState.deliveryService,
+        }),
       });
       toast.success(`Order ${dialogState.order.id} status updated.`);
       closeStatusDialog();
@@ -47,7 +65,7 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
     pendingOrders: orders.filter((o) => o.status === "PENDING").length,
     completedOrders: orders.filter((o) => o.status === "APPROVED").length,
     totalRevenue: orders
-      .filter((o) => o.status !== "REJECTED")
+      .filter((o) => o.status !== "CANCELLED")
       .reduce((sum, order) => sum + order.totalAmount, 0),
   }), [orders]);
 

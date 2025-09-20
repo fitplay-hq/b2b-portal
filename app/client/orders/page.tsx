@@ -381,6 +381,18 @@ export default function ClientOrderHistory() {
                                     {order.modeOfDelivery}
                                   </p>
                                 )}
+                                {order.consignmentNumber && (
+                                  <p>
+                                    <strong>Consignment Number:</strong>{" "}
+                                    {order.consignmentNumber}
+                                  </p>
+                                )}
+                                {order.deliveryService && (
+                                  <p>
+                                    <strong>Delivery Service:</strong>{" "}
+                                    {order.deliveryService}
+                                  </p>
+                                )}
                                 {order.deliveryReference && (
                                   <p>
                                     <strong>Reference:</strong>{" "}
