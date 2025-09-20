@@ -148,6 +148,9 @@ export default function ClientCheckout() {
 
       await createOrder("/api/clients/orders/order", _order);
 
+      // Clear the cart after successful order creation
+      setStoredData(`fitplay_cart_${session?.user.id}`, []);
+
       toast.success("Dispatch Order created successfully!");
       router.push("/client/orders");
     } catch (error) {
