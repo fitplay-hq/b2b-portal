@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
     if (!adminEmail) throw new Error("Missing admin email");
     if (!ccEmail) throw new Error("Missing CC email");
 
-    await resend.emails.send({
+    const mail = await resend.emails.send({
       from: adminEmail,
       to: clientEmail,
       cc: [ccEmail],
@@ -217,6 +217,13 @@ export async function POST(req: NextRequest) {
         <p style="display: none;">&#8203;</p>
       `,
     });
+
+    if (mail) {
+      await prisma.order.update({
+        where: { id: orderId },
+        data: { isMailSent: true },
+      });
+    }
 
     return NextResponse.json(order);
   } catch (error) {

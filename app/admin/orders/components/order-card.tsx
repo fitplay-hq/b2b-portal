@@ -160,10 +160,14 @@ const OrderDetails = ({
             size="sm"
             variant="outline"
             onClick={handleSendEmail}
-            disabled={isSending}
+            disabled={isSending || order.isMailSent}
           >
             <Mail className="mr-2 h-4 w-4" />
-            {isSending ? "Sending..." : "Send Email"}
+            {order.isMailSent
+              ? "Mail Sent"
+              : isSending
+              ? "Sending..."
+              : "Send Email"}
           </Button>
           {order.status === "PENDING" && (
             <Link href={`/admin/orders/${order.id}/approve`}>
@@ -236,6 +240,16 @@ const OrderDetails = ({
               <p>
                 <strong>Mode:</strong> {order.modeOfDelivery}
               </p>
+              {order.consignmentNumber && (
+                <p>
+                  <strong>Consignment Number:</strong> {order.consignmentNumber}
+                </p>
+              )}
+              {order.deliveryService && (
+                <p>
+                  <strong>Delivery Service:</strong> {order.deliveryService}
+                </p>
+              )}
               {order.deliveryReference && (
                 <p>
                   <strong>Reference:</strong> {order.deliveryReference}

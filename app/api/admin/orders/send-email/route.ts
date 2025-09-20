@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     const adminEmail = process.env.ADMIN_EMAIL!;
     const ccEmail = process.env.CC_EMAIL_1!;
 
-    await resend.emails.send({
+    const mail =await resend.emails.send({
       from: adminEmail,
       to: clientEmail,
       cc: [ccEmail],
@@ -91,6 +91,14 @@ export async function POST(req: NextRequest) {
           <p style="display: none;">&#8203;</p>
         `,
     });
+
+    if (mail) {
+      await prisma.order.update({
+        where: { id: orderId },
+        data: { isMailSent: true },
+      });
+    }
+
 
     return NextResponse.json({ success: true });
   } catch (error) {

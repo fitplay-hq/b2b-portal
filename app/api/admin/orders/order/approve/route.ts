@@ -11,7 +11,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { orderId, status } = await req.json();
+    const { orderId, status, consignmentNumber, deliveryService } = await req.json();
 
     if (!orderId) {
       return NextResponse.json(
@@ -36,15 +36,34 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: { status: status || "PENDING" },
-    });
+    let updatedOrder;
+
+    if (status === "DISPATCHED") {
+      if (!consignmentNumber || !deliveryService) {
+        return NextResponse.json(
+          { error: "Consignment number and delivery service are required for dispatch status" },
+          { status: 400 }
+        );
+      }
+      updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          status,
+          consignmentNumber,
+          deliveryService,
+        },
+      });
+    } else {
+      updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: { status: status || "PENDING" },
+      });
+    }
 
     return NextResponse.json(
       {
         order: updatedOrder,
-        message: "Order approved successfully",
+        message: "Order Updated successfully",
       },
       { status: 200 }
     );

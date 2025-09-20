@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { SetStateAction } from "react";
 import { AdminOrder } from "@/data/order/admin.actions";
 import { $Enums, Order } from "@/lib/generated/prisma";
@@ -27,6 +28,8 @@ interface UpdateStatusDialogProps {
     isOpen: boolean;
     order: AdminOrder | null;
     newStatus: string;
+    consignmentNumber: string;
+    deliveryService: string;
   };
   setDialogState: React.Dispatch<SetStateAction<any>>;
   closeStatusDialog: () => void;
@@ -78,21 +81,40 @@ export function UpdateStatusDialog({
               </SelectContent>
             </Select>
           </div>
-          {/* <div className="space-y-2">
-            <Label htmlFor="notes">Status Update Notes (Optional)</Label>
-            <Textarea
-              id="notes"
-              value={dialogState.notes}
-              onChange={(e) =>
-                setDialogState((prev: any) => ({
-                  ...prev,
-                  notes: e.target.value,
-                }))
-              }
-              placeholder="Add any notes about this status change..."
-              rows={3}
-            />
-          </div> */}
+          {dialogState.newStatus === "DISPATCHED" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="consignmentNumber">Consignment Number</Label>
+                <Input
+                  id="consignmentNumber"
+                  value={dialogState.consignmentNumber}
+                  onChange={(e) =>
+                    setDialogState((prev: any) => ({
+                      ...prev,
+                      consignmentNumber: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter consignment number"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="deliveryService">Delivery Service</Label>
+                <Input
+                  id="deliveryService"
+                  value={dialogState.deliveryService}
+                  onChange={(e) =>
+                    setDialogState((prev: any) => ({
+                      ...prev,
+                      deliveryService: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter delivery service"
+                  required
+                />
+              </div>
+            </>
+          )}
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={closeStatusDialog}>
               Cancel

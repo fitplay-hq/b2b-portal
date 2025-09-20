@@ -82,7 +82,7 @@ export function useUpdateOrder() {
 export function useUpdateOrderStatus() {
   const { trigger, isMutating, error } = useSWRMutation(
     "/api/admin/orders/order/approve",
-    (url, { arg }: { arg: { orderId: string, status: $Enums.Status } }) => updateOrderStatus(url, arg),
+    (url, { arg }: { arg: { orderId: string, status: $Enums.Status, consignmentNumber?: string, deliveryService?: string } }) => updateOrderStatus(url, arg),
     {
       onSuccess: () => {
         globalMutate('/api/admin/orders')
@@ -121,7 +121,12 @@ export function useDeleteOrder() {
 export function useSendOrderEmail() {
   const { trigger, isMutating, error } = useSWRMutation(
     "/api/admin/orders/send-email",
-    (url, { arg }: { arg: { orderId: string; clientEmail: string } }) => sendOrderEmail(url, arg)
+    (url, { arg }: { arg: { orderId: string; clientEmail: string } }) => sendOrderEmail(url, arg),
+    {
+      onSuccess: () => {
+        globalMutate('/api/admin/orders')
+      }
+    }
   );
 
   return {
