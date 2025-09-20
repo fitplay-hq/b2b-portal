@@ -60,6 +60,15 @@ export async function PATCH(req: NextRequest) {
       });
     }
 
+    if (status === "CANCELLED") {
+      for (const item of order.orderItems) {
+        await prisma.product.update({
+          where: { id: item.productId },
+          data: { availableStock: item.product.availableStock + item.quantity },
+        });
+      }
+    }
+
     return NextResponse.json(
       {
         order: updatedOrder,
