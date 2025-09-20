@@ -80,6 +80,8 @@ model Order {
   consigneeName         String      @default("Name")
   consigneePhone        String      @default("0000000000")
   consigneeEmail        String      @default("email@example.com")
+  consignmentNumber     String?
+  deliveryService       String?
   deliveryAddress       String      @default("Address")
   city                  String      @default("City")
   state                 String      @default("State")
@@ -89,6 +91,7 @@ model Order {
   deliveryReference     String?
   packagingInstructions String?
   note                  String?
+  isMailSent            Boolean     @default(false)
   status                Status      @default(PENDING)
   client                Client?     @relation(fields: [clientId], references: [id])
   clientId              String?
