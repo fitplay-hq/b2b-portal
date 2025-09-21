@@ -321,34 +321,33 @@ This log chronicles the development progress of the B2B Portal project from its 
 - Created a form so Admin can add or remove stock for single product with reason
 - The reason list comes from backend so it's easily configurable
 
-### 5. Admin Products List grouped by category
+### 5. Products Dashboard
 
+![Screenshot_21-9-2025_21526_localhost](https://github.com/user-attachments/assets/ad3da73d-e3c4-4c99-8507-6817924efc83)
 ![Screenshot_21-9-2025_202243_b2b-portal-six vercel app](https://github.com/user-attachments/assets/60884e26-8dc7-4db7-867f-021bf224ef79)
-
-### 6. Products Dashboard
 
 - Created scrollable product list
 - The products can be searched through
 - Added sorting by name, stock, category, price (ascending/descending)
 - Filter by category
 
-### 7. Edit Product/Add Product Form
+### 6. Edit Product/Add Product Form
 
 ![Screenshot_21-9-2025_202328_b2b-portal-six vercel app](https://github.com/user-attachments/assets/ca821904-fff0-40d7-9542-28c5d9209d10)
 
 - Create drag drop, select image functionality
 - Easily upload images of products from your local images
 
-### 8. Image Uplaod API
+### 7. Image Uplaod API
 
 - Created image upload backend with `uploadthing` for adding images to products
 
-### 9. Clients Management
+### 8. Clients Management
 
 - Showed number of orders and company relation of clients
 - Add/Edit and Delete client
 
-### 10. Edit Client Page
+### 9. Edit Client Page
 
 ![Screenshot_21-9-2025_202936_b2b-portal-six vercel app](https://github.com/user-attachments/assets/3f02d84f-f44e-4598-812e-fcdcc77f39a1)
 
@@ -358,57 +357,57 @@ This log chronicles the development progress of the B2B Portal project from its 
 - Add/Edit product access for the company the client belongs to
 - Everything related to company can also be done on this page for ease
 
-### 11. Add Client Page
+### 10. Add Client Page
 
 - Added ability to set password
 - Different data and APIs are called in these two pages
 
-### 12. Companies List
+### 11. Companies List
 
 ![Screenshot_21-9-2025_203056_b2b-portal-six vercel app](https://github.com/user-attachments/assets/c575812b-46d4-40a7-9b58-60439f48784e)
 
 - Show client and product association
 - Companies metrics (total companies, clients and product access on average)
 
-### 13. Add Company and Edit Company Page
+### 12. Add Company and Edit Company Page
 
 ![Screenshot_21-9-2025_203236_b2b-portal-six vercel app](https://github.com/user-attachments/assets/1a1f049a-b285-4841-b84d-04a94b428fce)
 
-### 14. Sidebar
+### 13. Sidebar
 
 ![Screenshot_21-9-2025_213043_localhost](https://github.com/user-attachments/assets/032392cb-cee1-4c2e-9ee5-fa9a37b37607)
 
-### 15. Created list companies and patch companies API
+### 14. Created list companies and patch companies API
 
 - To enable companies selection in add and edit client form
 - To enable adding new company when creating client
 - Edit company data and products when editting form.
 
-### 16. Made changes to APIs
+### 15. Made changes to APIs
 
 - To match returned data with what is required on fronted
 
-### 17. Branch Merges & Conflict Resolution
+### 16. Branch Merges & Conflict Resolution
 
 - Regularly merged updates from the backend branch into main and resolved merge conflicts.
 
-### 18. Automatic type generation from backend
+### 17. Automatic type generation from backend
 
 - Types are generated for frontend from backend
 - This enables automatic order status and category names and reason when changed on backend
 
-### 19. Data fetching and mutation hooks
+### 18. Data fetching and mutation hooks
 
 - Created hooks for managing data updates and fetching
 - data with types so it's easier to work in frontend
 
-### 20. Visual changes
+### 19. Visual changes
 
 - Replaced native alerts with dialogues
 - made the metrics card compact
 - removed whitespace from the products card
 
-### 21. Admin Create Order
+### 20. Admin Create Order
 
 ![Screenshot_21-9-2025_21356_localhost](https://github.com/user-attachments/assets/ffc33980-ceee-487a-a4ef-846089a10bdf)
 
@@ -417,7 +416,7 @@ This log chronicles the development progress of the B2B Portal project from its 
 - Created a form so admin can easily set quantity for products in one flow
 - Send mail popup. Admin optionally send mail if wanted
 
-### 22. Order Details
+### 21. Order Details
 
 ![Screenshot_21-9-2025_213731_localhost](https://github.com/user-attachments/assets/4c0295d2-c255-4691-ac5e-8b163bbd2b34)
 
@@ -426,7 +425,7 @@ This log chronicles the development progress of the B2B Portal project from its 
 - Created button so admin can notify client about order. Change status to sent mail once sent.
 - Calculate total amount of order and items price
 
-### 23. Update Order Status
+### 22. Update Order Status
 
 ![Screenshot_21-9-2025_213952_localhost](https://github.com/user-attachments/assets/ba5e8867-2d86-415c-b1cb-eb1041ffcef5)
 
@@ -434,7 +433,7 @@ This log chronicles the development progress of the B2B Portal project from its 
 
 ![Screenshot_21-9-2025_214018_localhost](https://github.com/user-attachments/assets/03778bf6-4977-40f7-beef-9c7b6dc64274)
 
-### 24. Client Products Page
+### 23. Client Products Page
 
 ![Screenshot_21-9-2025_214243_localhost](https://github.com/user-attachments/assets/9137c68d-411b-4cf8-82f8-258fbd367d91)
 
@@ -443,12 +442,12 @@ This log chronicles the development progress of the B2B Portal project from its 
 - Search products, filter products and sort
 - Group products by category
 
-### 25. Conditional Pricing
+### 24. Conditional Pricing
 
 - Show products price to client if enabled by admin
 - Calculate total amount, order amount if prices enabled otherwise remove those information
 
-### 26. Client Checkout
+### 25. Client Checkout
 
 ![Screenshot_21-9-2025_214717_b2b-portal-git-deliver-4b6e20-chirag-singlas-projects-d568d322 vercel app](https://github.com/user-attachments/assets/5e5e4330-72ab-4c4c-a05f-e6e9bd479820)
 
