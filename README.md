@@ -378,59 +378,31 @@ This log chronicles the development progress of the B2B Portal project from its 
 
 ![Screenshot_21-9-2025_213043_localhost](https://github.com/user-attachments/assets/032392cb-cee1-4c2e-9ee5-fa9a37b37607)
 
-### 3. Product Management Interface
-
-- product list view with multiple filtering options and search
-- Created product form dialogs
-- Built bulk product upload functionality with CSV file parsing, validation, and error handling
-- Added bulk inventory editing interfaces with upload buttons, batch update dialogs, and bulk action dropdowns
-
-### 4. Order Management System UI
-
-- order creation workflow with quantity selection dialogs and shopping cart management
-- Created dispatch order interface for admin for generating shipping orders for clients
-- Implemented order status update dialogs
-
-### 5. Client Management Interface
-
-- Constructed full client CRUD (Create, Read, Update, Delete) operations interface for admin users
-- Implemented client statistics grids showing performance metrics and order volumes
-
-### 6. Inventory Control Interfaces
-
-- Developed inventory update dialogs with detailed reason tracking and manual adjustment controls
-- Added real-time inventory tracking indicators on product cards and list views with stock alerts
-
-### 7. Client Portal Features
-
-- cart and checkout pages with quantity management and secure order placement
-- Added client order approval and tracking interfaces with email notifications
-
-### 8. Created list companies and patch companies API
+### 15. Created list companies and patch companies API
 
 - To enable companies selection in add and edit client form
 - To enable adding new company when creating client
 - Edit company data and products when editting form.
 
-### 9. Made changes to APIs
+### 16. Made changes to APIs
 
 - To match returned data with what is required on fronted
 
-### 10. Branch Merges & Conflict Resolution
+### 17. Branch Merges & Conflict Resolution
 
 - Regularly merged updates from the backend branch into main and resolved merge conflicts.
 
-### 11. Automatic type generation from backend
+### 18. Automatic type generation from backend
 
 - Types are generated for frontend from backend
 - This enables automatic order status and category names and reason when changed on backend
 
-### 12. Data fetching and mutation hooks
+### 19. Data fetching and mutation hooks
 
 - Created hooks for managing data updates and fetching
 - data with types so it's easier to work in frontend
 
-### 13. Visual changes
+### 20. Visual changes
 
 - Replaced native alerts with dialogues
 - made the metrics card compact
