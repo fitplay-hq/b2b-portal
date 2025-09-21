@@ -456,4 +456,10 @@ This log chronicles the development progress of the B2B Portal project from its 
 - Add delivery information, packaging information, order reference and consignee info forms
 - Fixed the bug to reset cart when order is placed
 
+### 26. Order Approval Page
+
+![Screenshot_21-9-2025_215618_localhost](https://github.com/user-attachments/assets/713c2efa-e8c1-491c-b58f-287898d6668b)
+
+- This link can be sent to admin in mail so they can approve order
+
 ---
