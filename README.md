@@ -332,9 +332,51 @@ This log chronicles the development progress of the B2B Portal project from its 
 - Added sorting by name, stock, category, price (ascending/descending)
 - Filter by category
 
-### 2. Admin Dashboard Development
+### 7. Edit Product/Add Product Form
 
-- Created modular admin components including metric grids, quick action panels, and recent orders sections
+![Screenshot_21-9-2025_202328_b2b-portal-six vercel app](https://github.com/user-attachments/assets/ca821904-fff0-40d7-9542-28c5d9209d10)
+
+- Create drag drop, select image functionality
+- Easily upload images of products from your local images
+
+### 8. Image Uplaod API
+
+- Created image upload backend with `uploadthing` for adding images to products
+
+### 9. Clients Management
+
+- Showed number of orders and company relation of clients
+- Add/Edit and Delete client
+
+### 10. Edit Client Page
+
+![Screenshot_21-9-2025_202936_b2b-portal-six vercel app](https://github.com/user-attachments/assets/3f02d84f-f44e-4598-812e-fcdcc77f39a1)
+
+- Created a company select feature so admin can easily change client's company
+- Create a new company from this page if needed
+- Configure show prices permission for client
+- Add/Edit product access for the company the client belongs to
+- Everything related to company can also be done on this page for ease
+
+### 11. Add Client Page
+
+- Added ability to set password
+- Different data and APIs are called in these two pages
+
+### 12. Companies List
+
+![Screenshot_21-9-2025_203056_b2b-portal-six vercel app](https://github.com/user-attachments/assets/c575812b-46d4-40a7-9b58-60439f48784e)
+
+- Show client and product association
+- Companies metrics (total companies, clients and product access on average)
+
+### 13. Add Company and Edit Company Page
+
+![Screenshot_21-9-2025_203236_b2b-portal-six vercel app](https://github.com/user-attachments/assets/1a1f049a-b285-4841-b84d-04a94b428fce)
+
+### 14. Sidebar
+
+![Screenshot_21-9-2025_213043_localhost](https://github.com/user-attachments/assets/032392cb-cee1-4c2e-9ee5-fa9a37b37607)
 
 ### 3. Product Management Interface
 
