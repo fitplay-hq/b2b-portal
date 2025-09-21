@@ -408,4 +408,31 @@ This log chronicles the development progress of the B2B Portal project from its 
 - made the metrics card compact
 - removed whitespace from the products card
 
+### 21. Admin Create Order
+
+![Screenshot_21-9-2025_21356_localhost](https://github.com/user-attachments/assets/ffc33980-ceee-487a-a4ef-846089a10bdf)
+
+- Created a page so admin can create order for their clients
+- Products search UI to easily select products to order
+- Created a form so admin can easily set quantity for products in one flow
+- Send mail popup. Admin optionally send mail if wanted
+
+### 22. Order Details
+
+![Screenshot_21-9-2025_213731_localhost](https://github.com/user-attachments/assets/4c0295d2-c255-4691-ac5e-8b163bbd2b34)
+
+- Order details with consignee name/address, delivery mode, reference
+- Show tracking details and delivery service if available
+- Created button so admin can notify client about order. Change status to sent mail once sent.
+- Calculate total amount of order and items price
+
+### 23. Update Order Status
+
+![Screenshot_21-9-2025_213952_localhost](https://github.com/user-attachments/assets/ba5e8867-2d86-415c-b1cb-eb1041ffcef5)
+
+- Created form to ask for consignment number and delivery service if status is changed to dispatched
+
+![Screenshot_21-9-2025_214018_localhost](https://github.com/user-attachments/assets/03778bf6-4977-40f7-beef-9c7b6dc64274)
+
+
 ---
