@@ -332,21 +332,28 @@ This log chronicles the development progress of the B2B Portal project from its 
 - cart and checkout pages with quantity management and secure order placement
 - Added client order approval and tracking interfaces with email notifications
 
-### 7. Automatic type generation from backend
-
-- Types are generated for frontend from backend
-- This enables automatic order status and category names when changed on backend
-
-### 8. Created list companies and patch companies
+### 8. Created list companies and patch companies API
 
 - To enable companies selection in add and edit client form
 - To enable adding new company when creating client
 - Edit company data and products when editting form.
 
-### 9. Made APIs so that data matches what is showed in the frontend UI
+### 9. Made changes to APIs
+
+- To match returned data with what is required on fronted
 
 ### 10. Branch Merges & Conflict Resolution
 
 - Regularly merged updates from the backend branch into main and resolved merge conflicts.
+
+### 11. Automatic type generation from backend
+
+- Types are generated for frontend from backend
+- This enables automatic order status and category names when changed on backend
+
+### 12. Data fetching and mutation hooks
+
+- Created hooks for managing data updates and fetching
+- data with types so it's easier to work in frontend
 
 ---
