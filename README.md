@@ -112,17 +112,25 @@ Admin
 
 - `api/admin/orders` — list orders
 - `api/admin/orders/order` — get by id, create dispatch order
-- `api/admin/orders/order/approve` — approve/reject order
-- `api/admin/products` — list/create many products
+- `api/admin/orders/send-email` — send dispatch email to client + cc to admin
+- `api/admin/orders/order/approve` — Update order status
+- `api/admin/products` — list/create/update many products
 - `api/admin/products/product` — CRUD single product
 - `api/admin/products/search` — search products
+- `api/admin/products/product/inventory` — update inventory (single/bulk)
+- `api/admin/clients` — get all clients
+- `api/admin/clients/client` — CRUD single client
+- `api/admin/companies` — get all companies and create a company
+- `api/admin/companies/[id]` — CRUD single company
+- `api/admin/companies/products` — select products for a company, delete/get products for a company
 
 Client
 
+- `api/client` — Get client info
 - `api/client/orders` — list client orders
-- `api/client/orders/order` — create dispatch order; get order detail
-- `api/client/products` — list products
-- `api/client/products/product` — product detail
+- `api/client/orders/order` — create dispatch order; get an order detail
+- `api/client/products` — list all products of a client
+- `api/client/products/product` — single product detail
 - `api/client/products/search` — search products
 
 Database
@@ -252,6 +260,38 @@ This log chronicles the development progress of the B2B Portal project from its 
 ### 13. Create dispatch order API by Admin
 
 - Created an API for admin to create a dispatch order and send email to client and cc to admin.
+
+### 14. Order Status Changed
+
+- Order status changed to Pending, Approved, Cancelled, Ready for Dispatch, Dispatched, At Destination, and Delivered in the schema.
+
+### 15. Multiple Clients and Companies APIs
+
+- Developed APIs to manage multiple clients and their associated companies, allowing for better organization and retrieval of client-specific data.
+
+### 16. Select Products for Companies API
+
+- Created an API that allows Admin to select products for companies, facilitating a more tailored product management experience for different companies.
+
+### 17. Price Visibility API
+
+- Implemented an API to manage price visibility settings, enabling Admin to control which clients or companies can view products prices.
+
+### 18. Create Dispatch order by admin splitted into two steps
+
+- Refined the dispatch order creation process by splitting it into two distinct steps: first, creating the order, and second, sending the email notification to the client and CC to admin.
+
+### 19. Client and company management APIs in Admin Panel
+
+- Developed comprehensive APIs for managing clients and their associated companies within the Admin Panel, including CRUD operations and association management.
+
+### 20. DB cleaning
+
+- Cleaned up the database by removing redundant or obsolete data tables, ensuring a more efficient and organized data structure.
+
+### 21. Delivery Service Addition API
+
+- Added an API to add delivery services option by the client after the order status becomes "Dispatched", allowing clients to specify their preferred delivery service.
 
 ## Frontend Features Implemented
 
