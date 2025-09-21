@@ -452,7 +452,7 @@ This log chronicles the development progress of the B2B Portal project from its 
 ![Screenshot_21-9-2025_214717_b2b-portal-git-deliver-4b6e20-chirag-singlas-projects-d568d322 vercel app](https://github.com/user-attachments/assets/5e5e4330-72ab-4c4c-a05f-e6e9bd479820)
 
 - Updated the client checkout flow
-- Broke it down into two separate steps
+- Separate it into two steps
 - Add delivery information, packaging information, order reference and consignee info forms
 - Fixed the bug to reset cart when order is placed
 
