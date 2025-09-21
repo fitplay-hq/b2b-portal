@@ -434,5 +434,27 @@ This log chronicles the development progress of the B2B Portal project from its 
 
 ![Screenshot_21-9-2025_214018_localhost](https://github.com/user-attachments/assets/03778bf6-4977-40f7-beef-9c7b6dc64274)
 
+### 24. Client Products Page
+
+![Screenshot_21-9-2025_214243_localhost](https://github.com/user-attachments/assets/9137c68d-411b-4cf8-82f8-258fbd367d91)
+
+![Screenshot_21-9-2025_214912_localhost](https://github.com/user-attachments/assets/6aeed185-efe8-4180-8252-ca4c81807cca)
+
+- Search products, filter products and sort
+- Group products by category
+
+### 25. Conditional Pricing
+
+- Show products price to client if enabled by admin
+- Calculate total amount, order amount if prices enabled otherwise remove those information
+
+### 26. Client Checkout
+
+![Screenshot_21-9-2025_214717_b2b-portal-git-deliver-4b6e20-chirag-singlas-projects-d568d322 vercel app](https://github.com/user-attachments/assets/5e5e4330-72ab-4c4c-a05f-e6e9bd479820)
+
+- Updated the client checkout flow
+- Broke it down into two separate steps
+- Add delivery information, packaging information, order reference and consignee info forms
+- Fixed the bug to reset cart when order is placed
 
 ---
