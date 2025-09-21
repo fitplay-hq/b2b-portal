@@ -300,6 +300,38 @@ This log chronicles the development progress of the B2B Portal project from its 
 - Implemented role based navigation and pages
 - Client and Admin Login
 
+### 2. Bulk Inventory Update
+
+![Screenshot_21-9-2025_202016_b2b-portal-six vercel app](https://github.com/user-attachments/assets/cd724b03-24db-493c-b44a-8eb02f388631)
+
+- Created Bulk Inventory update feature
+- Easily search and select products to udpate
+- Added Add/Remove inventory with reason
+- Show to be stock in UI for verification
+
+### 3. Bulk Products Add
+
+- Created feature so admin can upload json to website
+- The JSON is verified and then sent to backend
+
+### 4. Single Product Inventory Update
+
+![Screenshot_21-9-2025_202145_b2b-portal-six vercel app](https://github.com/user-attachments/assets/d23aca01-d512-4cc5-a5d9-5d75b60463e5)
+
+- Created a form so Admin can add or remove stock for single product with reason
+- The reason list comes from backend so it's easily configurable
+
+### 5. Admin Products List grouped by category
+
+![Screenshot_21-9-2025_202243_b2b-portal-six vercel app](https://github.com/user-attachments/assets/60884e26-8dc7-4db7-867f-021bf224ef79)
+
+### 6. Products Dashboard
+
+- Created scrollable product list
+- The products can be searched through
+- Added sorting by name, stock, category, price (ascending/descending)
+- Filter by category
+
 ### 2. Admin Dashboard Development
 
 - Created modular admin components including metric grids, quick action panels, and recent orders sections
@@ -349,11 +381,17 @@ This log chronicles the development progress of the B2B Portal project from its 
 ### 11. Automatic type generation from backend
 
 - Types are generated for frontend from backend
-- This enables automatic order status and category names when changed on backend
+- This enables automatic order status and category names and reason when changed on backend
 
 ### 12. Data fetching and mutation hooks
 
 - Created hooks for managing data updates and fetching
 - data with types so it's easier to work in frontend
+
+### 13. Visual changes
+
+- Replaced native alerts with dialogues
+- made the metrics card compact
+- removed whitespace from the products card
 
 ---
