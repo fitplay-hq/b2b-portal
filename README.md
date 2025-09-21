@@ -295,11 +295,10 @@ This log chronicles the development progress of the B2B Portal project from its 
 
 ## Frontend Features Implemented
 
-### 1. Next.js Migration and Core Setup
+### 1. Role Base Authentication
 
-- Migrated entire frontend codebase from standard React to Next.js framework for improved performance and SEO
-- Implemented client-side data fetching patterns
-- Configured Next.js middleware for proper session management and secure authentication flows
+- Implemented role based navigation and pages
+- Client and Admin Login
 
 ### 2. Admin Dashboard Development
 
@@ -333,12 +332,21 @@ This log chronicles the development progress of the B2B Portal project from its 
 - cart and checkout pages with quantity management and secure order placement
 - Added client order approval and tracking interfaces with email notifications
 
-### 8. Advanced Features and Technical Integrations
+### 7. Automatic type generation from backend
 
-- Integrated real-time data fetching with SWR hooks for optimized API performance and caching
-- Implemented bulk operations across products and inventory with progress tracking and error recovery
-- Created comprehensive custom hooks for data management (cart, filters, product forms, etc.)
-- Developed type-safe data actions and state management for consistent application behavior
-- session handling middleware for secure authentication and automatic logout functionality
+- Types are generated for frontend from backend
+- This enables automatic order status and category names when changed on backend
+
+### 8. Created list companies and patch companies
+
+- To enable companies selection in add and edit client form
+- To enable adding new company when creating client
+- Edit company data and products when editting form.
+
+### 9. Made APIs so that data matches what is showed in the frontend UI
+
+### 10. Branch Merges & Conflict Resolution
+
+- Regularly merged updates from the backend branch into main and resolved merge conflicts.
 
 ---
