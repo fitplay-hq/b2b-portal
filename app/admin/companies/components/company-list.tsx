@@ -5,9 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Search, Edit, Trash2, Building2, Users, Package } from "lucide-react";
 import Link from "next/link";
 import { useDeleteCompany } from "@/data/company/admin.hooks";
+import { toast } from "sonner";
 
 interface Company {
   id: string;
@@ -35,21 +43,33 @@ export function CompanyList({
   onSearchChange,
 }: CompanyListProps) {
   const { deleteCompany, isDeleting } = useDeleteCompany();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const handleDelete = async (companyId: string, companyName: string) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete "${companyName}"? This action cannot be undone.`
-      )
-    ) {
-      return;
-    }
+    setCompanyToDelete({ id: companyId, name: companyName });
+    setShowDeleteDialog(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!companyToDelete) return;
     try {
-      await deleteCompany(companyId);
+      await deleteCompany(companyToDelete.id);
+      toast.success("Company deleted successfully.");
+      setShowDeleteDialog(false);
+      setCompanyToDelete(null);
     } catch (error) {
+      toast.error("Failed to delete company.");
       console.error("Failed to delete company:", error);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+    setCompanyToDelete(null);
   };
 
   if (isLoading) {
@@ -168,6 +188,26 @@ export function CompanyList({
           </div>
         )}
       </CardContent>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Company</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{companyToDelete?.name}"? This
+              action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleCancelDelete}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

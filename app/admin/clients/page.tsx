@@ -5,6 +5,13 @@ import Layout from "@/components/layout";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useClients, useDeleteClient } from "@/data/client/admin.hooks";
 import { useOrders } from "@/data/order/admin.hooks";
 import { useClientFilters } from "@/hooks/use-client-filters";
@@ -13,9 +20,12 @@ import { ClientStatsGrid } from "./components/client-stats-grid";
 import { ClientList } from "./components/client-list";
 import { ClientFilters } from "./components/client-filters";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function AdminClientsPage() {
   const router = useRouter();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
 
   // 1. DATA FETCHING
   const {
@@ -38,16 +48,27 @@ export default function AdminClientsPage() {
       toast.error("Cannot delete client with existing orders.");
       return;
     }
-    if (confirm("Are you sure?")) {
-      try {
-        await deleteClient({
-          id: clientId,
-        });
-        toast.success("Client deleted.");
-      } catch (error) {
-        toast.error("Failed to delete client.");
-      }
+    setClientToDelete(clientId);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!clientToDelete) return;
+    try {
+      await deleteClient({
+        id: clientToDelete,
+      });
+      toast.success("Client deleted.");
+      setShowDeleteDialog(false);
+      setClientToDelete(null);
+    } catch (error) {
+      toast.error("Failed to delete client.");
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+    setClientToDelete(null);
   };
 
   if (isLoading) {
@@ -97,6 +118,26 @@ export default function AdminClientsPage() {
           onDelete={handleDelete}
         />
       </div>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Client</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this client? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleCancelDelete}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

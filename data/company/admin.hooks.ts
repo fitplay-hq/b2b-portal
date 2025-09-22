@@ -97,7 +97,7 @@ export function useCompany(companyId: string | null) {
 export function useDeleteCompany() {
   const { trigger, isMutating, error } = useSWRMutation(
     (arg: string) => `/api/admin/companies/${arg}`,
-    (url, { arg }) => deleteCompany(arg),
+    (url, { arg }: {arg: string}) => deleteCompany(arg),
     {
       onSuccess: (data, key) => {
         globalMutate('/api/admin/companies')

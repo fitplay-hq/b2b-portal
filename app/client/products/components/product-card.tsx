@@ -55,7 +55,7 @@ export function ProductCard({
   const isInStock = product.availableStock > 0;
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col p-0">
       <CardHeader className="p-0">
         <div className="aspect-square relative">
           <ImageWithFallback
@@ -70,7 +70,7 @@ export function ProductCard({
           )}
         </div>
       </CardHeader>
-      <CardContent className="p-4 flex-grow">
+      <CardContent className="px-4 flex-grow">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base leading-tight">
             {product.name}
