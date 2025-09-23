@@ -141,6 +141,9 @@ export function ProductFormDialog({
                 </Label>
                 <UploadDropzone
                   endpoint="imageUploader"
+                  config={{
+                    mode: "auto",
+                  }}
                   onClientUploadComplete={(res) => {
                     if (res && res[0]) {
                       setFormData((x) => ({ ...x, image: res[0].ufsUrl }));
