@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Product, Prisma, Category } from "@/lib/generated/prisma";
 import { toast } from "sonner";
 import { useCreateProduct, useUpdateProduct } from "@/data/product/admin.hooks";
+import { useCompanies } from "@/data/company/admin.hooks";
 
 interface UseProductFormProps {
   onSuccess: () => void;
@@ -10,29 +11,75 @@ interface UseProductFormProps {
 export function useProductForm({ onSuccess }: UseProductFormProps) {
   const { createProduct } = useCreateProduct();
   const { updateProduct } = useUpdateProduct();
+  const { companies } = useCompanies();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Hardcoded maps for short names
+  const companyShortMap: Record<string, string> = {
+    'Github': 'GH',
+    // Add more as needed
+  };
+  const categoryShortMap: Record<string, string> = {
+    'stationery': 'STN',
+    'accessories': 'ACC',
+    'funAndStickers': 'FUN',
+    'drinkware': 'DRK',
+    'apparel': 'APP',
+    'travelAndTech': 'TNT',
+    'books': 'BKS',
+    'welcomeKit': 'WKT',
+  };
 
   const [formData, setFormData] = useState({
     name: "",
-    sku: "",
+    company: "",
+    companyShort: "",
+    categories: "",
+    categoryShort: "",
+    skuSuffix: "",
     price: "",
     availableStock: "",
-    categories: "",
     description: "",
     image: "",
   });
+
+  // Auto-set companyShort when company changes
+  useEffect(() => {
+    if (formData.company) {
+      const company = companies?.find((c: any) => c.id === formData.company);
+      const companyName: string = company?.name || '';
+      const short = companyShortMap[companyName] || companyName.slice(0,2).toUpperCase();
+      setFormData(prev => ({ ...prev, companyShort: short }));
+    } else {
+      setFormData(prev => ({ ...prev, companyShort: '' }));
+    }
+  }, [formData.company, companies]);
+
+  // Auto-set categoryShort when categories change
+  useEffect(() => {
+    if (formData.categories) {
+      const short = categoryShortMap[formData.categories] || formData.categories.slice(0, 3).toUpperCase();
+      setFormData(prev => ({ ...prev, categoryShort: short }));
+    } else {
+      setFormData(prev => ({ ...prev, categoryShort: '' }));
+    }
+  }, [formData.categories]);
+
+  const sku = formData.companyShort && formData.categoryShort && formData.skuSuffix ? `${formData.companyShort}-${formData.categoryShort}-${formData.skuSuffix}` : "";
 
   const openNewDialog = () => {
     setEditingProduct(null);
     setFormData({
       name: "",
-      sku: "",
+      company: "",
+      companyShort: "",
+      categories: "",
+      categoryShort: "",
+      skuSuffix: "",
       price: "",
       availableStock: "",
-      categories: "",
       description: "",
       image: "",
     });
@@ -42,12 +89,21 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
   const openEditDialog = (product: Product) => {
     setEditingProduct(product);
 
+    // Parse SKU into parts
+    const skuParts = product.sku.split('-');
+    const companyShort = skuParts[0] || '';
+    const categoryShort = skuParts[1] || '';
+    const skuSuffix = skuParts[2] || '';
+
     setFormData({
       name: product.name,
-      sku: product.sku,
+      company: "", // TODO: if we have company relation, set it
+      companyShort,
+      categories: product.categories,
+      categoryShort,
+      skuSuffix,
       price: product.price?.toString() || "",
       availableStock: product.availableStock.toString(),
-      categories: product.categories,
       description: product.description,
       image: product.images[0] || "",
     });
@@ -78,7 +134,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
         const productUpdateData: Prisma.ProductUpdateInput = {
           id: editingProduct.id,
           name: formData.name,
-          sku: formData.sku,
+          sku,
           price,
           availableStock,
           categories: formData.categories as Category,
@@ -87,13 +143,14 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
             formData.image ||
               "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
+          companies: formData.company ? { set: [{ id: formData.company }] } : undefined,
         };
         await updateProduct(productUpdateData);
         toast.success("Product updated successfully!");
       } else {
         const productCreateData: Prisma.ProductCreateInput = {
           name: formData.name,
-          sku: formData.sku,
+          sku,
           price,
           availableStock,
           categories: formData.categories as Category,
@@ -102,6 +159,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
             formData.image ||
               "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
+          companies: formData.company ? { connect: [{ id: formData.company }] } : undefined,
         };
         await createProduct(productCreateData);
         toast.success("Product added successfully!");
@@ -127,5 +185,6 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     openNewDialog,
     openEditDialog,
     handleSubmit,
+    companies,
   };
 }
