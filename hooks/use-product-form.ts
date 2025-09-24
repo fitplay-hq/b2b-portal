@@ -85,7 +85,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           description: formData.description,
           images: [
             formData.image ||
-              "https://images.unsplash.com/photo-1526401485004-46910ecc8e51?w=400",
+              "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
         };
         await updateProduct(productUpdateData);
@@ -100,7 +100,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           description: formData.description,
           images: [
             formData.image ||
-              "https://images.unsplash.com/photo-1526401485004-46910ecc8e51?w=400",
+              "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
         };
         await createProduct(productCreateData);
