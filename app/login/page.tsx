@@ -4,14 +4,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Package, Shield, Users, TrendingUp, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
-import { ImageWithFallback } from "@/components/image";
+import { Package } from "lucide-react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { Checkbox } from "@/components/ui/checkbox";
+import { redirect } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -19,7 +23,6 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,294 +30,100 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn(isAdmin ? "admin" : "clients", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("Invalid email or password");
+      let success;
+      if (isAdmin) {
+        success = await signIn("admin", {
+          email,
+          password,
+          redirect: false,
+        });
       } else {
-        router.push("/");
+        success = await signIn("clients", {
+          email,
+          password,
+          redirect: false,
+        });
+      }
+      if (!success) {
+        setError("Invalid email or password");
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
+      redirect("/");
     }
   };
 
-  const features = [
-    { icon: Package, text: "Streamlined Product Catalog" },
-    { icon: Shield, text: "Secure B2B Transactions" },
-    { icon: Users, text: "Multi-Client Management" },
-    { icon: TrendingUp, text: "Real-time Order Tracking" },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-100">
-      <div className="min-h-screen flex">
-        {/* Left Panel - Branding & Features */}
-        <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800"
-        >
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage:
-                  "radial-gradient(circle at 25% 25%, white 2px, transparent 2px), radial-gradient(circle at 75% 75%, white 2px, transparent 2px)",
-                backgroundSize: "50px 50px",
-              }}
-            />
-          </div>
-
-          {/* Background Image */}
-          <div className="absolute inset-0 mix-blend-overlay opacity-20">
-            <ImageWithFallback
-              src="https://images.unsplash.com/photo-1758630737900-a28682c5aa69?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBvZmZpY2UlMjB3b3Jrc3BhY2UlMjBidXNpbmVzcyUyMGNvcnBvcmF0ZXxlbnwxfHx8fDE3NTg4ODcxMTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-              alt="Modern office workspace"
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          <div className="relative z-10 flex flex-col justify-center px-12 py-16 text-white">
-            {/* Logo */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="flex items-center gap-3 mb-8"
-            >
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Package className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">B2B Portal</h1>
-                <p className="text-emerald-100 text-sm">
-                  Business Ordering Portal
-                </p>
-              </div>
-            </motion.div>
-
-            {/* Main Heading */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
-              className="mb-8"
-            >
-              <h2 className="text-4xl font-bold leading-tight mb-4">
-                Streamline Your
-                <br />
-                Corporate Ordering
-              </h2>
-              <p className="text-xl text-emerald-100 leading-relaxed">
-                Efficient procurement management for corporate solutions. Access
-                exclusive pricing, manage bulk orders, and track deliveries
-                seamlessly.
-              </p>
-            </motion.div>
-
-            {/* Features */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.6 }}
-              className="space-y-4"
-            >
-              {features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
-                  className="flex items-center gap-3"
-                >
-                  <div className="p-2 bg-white/10 backdrop-blur-sm rounded-lg">
-                    <feature.icon className="h-5 w-5 text-white" />
-                  </div>
-                  <span className="text-emerald-100">{feature.text}</span>
-                </motion.div>
-              ))}
-            </motion.div>
-
-            {/* Stats */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2, duration: 0.6 }}
-              className="mt-12 pt-8 border-t border-white/20"
-            >
-              <div className="grid grid-cols-3 gap-8">
-                <div>
-                  <div className="text-2xl font-bold">500+</div>
-                  <div className="text-emerald-200 text-sm">
-                    Corporate Clients
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">10K+</div>
-                  <div className="text-emerald-200 text-sm">
-                    Orders Processed
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">99.9%</div>
-                  <div className="text-emerald-200 text-sm">Uptime</div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Right Panel - Login Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="w-full max-w-md"
-          >
-            {/* Mobile Logo */}
-            <div className="lg:hidden text-center mb-8">
-              <div className="flex justify-center items-center gap-3 mb-4">
-                <div className="p-3 bg-emerald-600 rounded-xl">
-                  <Package className="h-8 w-8 text-white" />
-                </div>
-                <div className="text-left">
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    B2B Portal
-                  </h1>
-                  <p className="text-gray-600 text-sm">
-                    Business Ordering Portal
-                  </p>
-                </div>
-              </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="flex items-center gap-2">
+              <Package className="h-8 w-8 text-primary" />
+              <h1 className="text-2xl font-bold">Fitplay B2B Portal</h1>
             </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-            >
-              <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-                <CardContent className="p-8">
-                  <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                      Welcome Back
-                    </h2>
-                    <p className="text-gray-600">
-                      Sign in to access your corporate ordering portal
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="email"
-                        className="text-gray-700 font-medium"
-                      >
-                        Email Address
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email address"
-                        className="h-12 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="password"
-                        className="text-gray-700 font-medium"
-                      >
-                        Password
-                      </Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        className="h-12 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex space-x-2">
-                      <Checkbox
-                        checked={isAdmin}
-                        id="isAdmin"
-                        onClick={() => setIsAdmin((x) => !x)}
-                      />
-                      <Label
-                        htmlFor="isAdmin"
-                        className="text-gray-700 font-medium"
-                      >
-                        Log in as Admin?
-                      </Label>
-                    </div>
-
-                    {error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <Alert
-                          variant="destructive"
-                          className="border-red-200 bg-red-50"
-                        >
-                          <AlertDescription className="text-red-700">
-                            {error}
-                          </AlertDescription>
-                        </Alert>
-                      </motion.div>
-                    )}
-
-                    <Button
-                      type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium transition-all duration-200 transform hover:scale-[1.02]"
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Signing in...
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          Sign In
-                          <ArrowRight className="h-4 w-4" />
-                        </div>
-                      )}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Footer */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-              className="text-center mt-8 text-sm text-gray-500"
-            >
-              <p>© 2024 B2B Portal. Professional Business Solutions.</p>
-            </motion.div>
-          </motion.div>
+          </div>
+          <p className="text-muted-foreground">
+            Sign in to your account to access the ordering portal
+          </p>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sign In</CardTitle>
+            <CardDescription>
+              Enter your credentials to access your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                />
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="flex space-x-2">
+                <Checkbox
+                  checked={isAdmin}
+                  id="isAdmin"
+                  onClick={() => setIsAdmin((x) => !x)}
+                />
+                <Label htmlFor="isAdmin">Log in as Admin?</Label>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
