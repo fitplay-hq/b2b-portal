@@ -6,38 +6,54 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Package, Shield, Users, TrendingUp, ArrowRight } from "lucide-react";
+import {
+  Package,
+  Shield,
+  Users,
+  TrendingUp,
+  ArrowRight,
+  CheckCircle,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { ImageWithFallback } from "@/components/image";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export default function SignupPage() {
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    companyName: "",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const result = await signIn(isAdmin ? "admin" : "clients", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("Invalid email or password");
-      } else {
-        router.push("/");
-      }
+      // TODO: Implement signup API call
+      // For now, just redirect to login
+      alert("Signup functionality not implemented yet. Redirecting to login.");
+      router.push("/login");
     } catch (err) {
       setError("An error occurred. Please try again.");
     } finally {
@@ -53,7 +69,7 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-neutral-100">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-neutral-50 to-neutral-100">
       <div className="min-h-screen flex">
         {/* Left Panel - Branding & Features */}
         <motion.div
@@ -110,14 +126,13 @@ export default function LoginPage() {
               className="mb-8"
             >
               <h2 className="text-4xl font-bold leading-tight mb-4">
-                Streamline Your
+                Join Our
                 <br />
-                Corporate Ordering
+                Corporate Network
               </h2>
               <p className="text-xl text-neutral-300 leading-relaxed">
-                Efficient procurement management for corporate solutions. Access
-                exclusive pricing, manage bulk orders, and track deliveries
-                seamlessly.
+                Create your account and start streamlining your procurement
+                process. Access exclusive pricing and manage orders efficiently.
               </p>
             </motion.div>
 
@@ -173,7 +188,7 @@ export default function LoginPage() {
           </div>
         </motion.div>
 
-        {/* Right Panel - Login Form */}
+        {/* Right Panel - Signup Form */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
           <motion.div
             initial={{ opacity: 0, x: 50 }}
@@ -207,14 +222,53 @@ export default function LoginPage() {
                 <CardContent className="p-8">
                   <div className="text-center mb-8">
                     <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-                      Welcome Back
+                      Create Account
                     </h2>
                     <p className="text-gray-600">
-                      Sign in to access your corporate ordering portal
+                      Join the B2B ordering platform
                     </p>
                   </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="firstName"
+                          className="text-gray-700 font-medium"
+                        >
+                          First Name
+                        </Label>
+                        <Input
+                          id="firstName"
+                          name="firstName"
+                          type="text"
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          placeholder="John"
+                          className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="lastName"
+                          className="text-gray-700 font-medium"
+                        >
+                          Last Name
+                        </Label>
+                        <Input
+                          id="lastName"
+                          name="lastName"
+                          type="text"
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          placeholder="Doe"
+                          className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
+                          required
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
                       <Label
                         htmlFor="email"
@@ -224,10 +278,30 @@ export default function LoginPage() {
                       </Label>
                       <Input
                         id="email"
+                        name="email"
                         type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email address"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="john.doe@company.com"
+                        className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="companyName"
+                        className="text-gray-700 font-medium"
+                      >
+                        Company Name
+                      </Label>
+                      <Input
+                        id="companyName"
+                        name="companyName"
+                        type="text"
+                        value={formData.companyName}
+                        onChange={handleChange}
+                        placeholder="ACME Corporation"
                         className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
                         required
                       />
@@ -242,27 +316,33 @@ export default function LoginPage() {
                       </Label>
                       <Input
                         id="password"
+                        name="password"
                         type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="Create a strong password"
                         className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
                         required
                       />
                     </div>
 
-                    <div className="flex space-x-2">
-                      <Checkbox
-                        checked={isAdmin}
-                        id="isAdmin"
-                        onClick={() => setIsAdmin((x) => !x)}
-                      />
+                    <div className="space-y-2">
                       <Label
-                        htmlFor="isAdmin"
+                        htmlFor="confirmPassword"
                         className="text-gray-700 font-medium"
                       >
-                        Log in as Admin?
+                        Confirm Password
                       </Label>
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        placeholder="Confirm your password"
+                        className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
+                        required
+                      />
                     </div>
 
                     {error && (
@@ -290,16 +370,29 @@ export default function LoginPage() {
                       {loading ? (
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Signing in...
+                          Creating Account...
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          Sign In
+                          Create Account
                           <ArrowRight className="h-4 w-4" />
                         </div>
                       )}
                     </Button>
                   </form>
+
+                  {/* Login Link */}
+                  <div className="mt-6 text-center">
+                    <p className="text-sm text-gray-600">
+                      Already have an account?{" "}
+                      <button
+                        onClick={() => router.push("/login")}
+                        className="text-neutral-700 hover:text-neutral-800 font-medium"
+                      >
+                        Sign in here
+                      </button>
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
