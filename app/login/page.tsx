@@ -311,7 +311,7 @@ export default function LoginPage() {
               transition={{ delay: 0.8, duration: 0.6 }}
               className="text-center mt-8 text-sm text-neutral-500"
             >
-              <p>© 2024 B2B Portal. Professional Business Solutions.</p>
+              <p>© 2025 Fitplay International LLP</p>
             </motion.div>
           </motion.div>
         </div>
