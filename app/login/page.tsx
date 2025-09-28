@@ -153,7 +153,7 @@ export default function LoginPage() {
             >
               <div className="grid grid-cols-3 gap-8">
                 <div>
-                  <div className="text-2xl font-bold">500+</div>
+                  <div className="text-2xl font-bold">200+</div>
                   <div className="text-neutral-400 text-sm">
                     Corporate Clients
                   </div>
