@@ -9,9 +9,8 @@ type UserRole = $Enums.Role;
 
 export const auth: AuthOptions = {
   providers: [
-    // For hr/employee
     CredentialsProvider({
-      id: "clients",
+      id: "credentials",
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "text", placeholder: "Enter your email" },
@@ -22,78 +21,45 @@ export const auth: AuthOptions = {
           throw new Error("Email and password are required");
         }
 
-        const client = await prisma.client.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!client) {
-          console.log("Invalid password attempt for client:", credentials.email);
-          throw new Error("No client found");
+        // 1. Check Admin
+        const admin = await prisma.admin.findUnique({ where: { email: credentials.email } });
+        if (admin) {
+          const isValid = await compare(credentials.password, admin.password);
+          if (!isValid) throw new Error("Invalid password");
+          return {
+            id: admin.id,
+            name: admin.name,
+            email: admin.email,
+            role: "ADMIN",
+          };
         }
 
-        const isValid = await compare(credentials.password, client.password);
-
-        if (!isValid) {
-          throw new Error("Invalid password");
+        // 2. Check Client
+        const client = await prisma.client.findUnique({ where: { email: credentials.email } });
+        if (client) {
+          const isValid = await compare(credentials.password, client.password);
+          if (!isValid) throw new Error("Invalid password");
+          return {
+            id: client.id,
+            name: client.name,
+            email: client.email,
+            role: "CLIENT",
+          };
         }
 
-        return {
-          id: client.id,
-          name: client.name,
-          email: client.email,
-          role: client.role
-        };
+        throw new Error("No user found with this email");
       },
     }),
-
-    // Admin login provider
-    CredentialsProvider({
-      id: "admin",
-      name: "Admin",
-      credentials: {
-        email: { label: "Email", type: "text", placeholder: "Enter admin email" },
-        password: { label: "Password", type: "password", placeholder: "Enter admin password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email and password are required");
-        }
-
-        const admin = await prisma.admin.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!admin) {
-          throw new Error("No admin found or Invalid Admin email");
-        }
-
-        const isValid = await compare(credentials.password, admin.password);
-
-        if (!isValid) {
-          throw new Error("Invalid password");
-        }
-
-        console.log("Admin logged in:", admin.email);
-        return {
-          id: admin.id,
-          name: admin.name,
-          email: admin.email,
-          role: admin.role ?? "ADMIN"
-        };
-      },
-    })
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
-        token.role = user?.role;
+        token.role = (user as any).role;
       }
       return token;
     },
@@ -101,21 +67,20 @@ export const auth: AuthOptions = {
       if (token) {
         session.user = {
           id: token.id as string,
-          name: token.name as string, 
+          name: token.name as string,
           email: token.email as string,
-          role: token.role as $Enums.Role,
+          role: token.role as UserRole,
         };
       }
       return session;
-    }
+    },
   },
   pages: {
-    signIn: '/login',
-    error: '/auth/error',
+    signIn: "/login",
+    error: "/auth/error",
   },
-  debug: process.env.NODE_ENV === "development", 
+  debug: process.env.NODE_ENV === "development",
 };
 
-const handler = NextAuth(auth)
-
+const handler = NextAuth(auth);
 export { handler as GET, handler as POST };
