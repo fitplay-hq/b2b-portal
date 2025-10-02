@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Package, Shield, Users, TrendingUp, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { ImageWithFallback } from "@/components/image";
@@ -18,7 +17,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,18 +25,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn(isAdmin ? "admin" : "clients", {
+      const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        setError(result.error);
       } else {
         router.push("/");
       }
-    } catch (err) {
+    } catch {
       setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -55,14 +53,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-neutral-100">
       <div className="min-h-screen flex">
-        {/* Left Panel - Branding & Features */}
+        {/* Left Panel */}
         <motion.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8 }}
           className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-neutral-700 via-neutral-800 to-neutral-900"
         >
-          {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div
               className="absolute inset-0"
@@ -74,17 +71,15 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Background Image */}
           <div className="absolute inset-0 mix-blend-overlay opacity-20">
             <ImageWithFallback
-              src="https://images.unsplash.com/photo-1758630737900-a28682c5aa69?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBvZmZpY2UlMjB3b3Jrc3BhY2UlMjBidXNpbmVzcyUyMGNvcnBvcmF0ZXxlbnwxfHx8fDE3NTg4ODcxMTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+              src="https://images.unsplash.com/photo-1758630737900-a28682c5aa69?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080"
               alt="Modern office workspace"
               className="w-full h-full object-cover"
             />
           </div>
 
           <div className="relative z-10 flex flex-col justify-center px-12 py-16 text-white">
-            {/* Logo */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -96,13 +91,10 @@ export default function LoginPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold">B2B Portal</h1>
-                <p className="text-neutral-300 text-sm">
-                  Business Ordering Portal
-                </p>
+                <p className="text-neutral-300 text-sm">Business Ordering Portal</p>
               </div>
             </motion.div>
 
-            {/* Main Heading */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -115,13 +107,11 @@ export default function LoginPage() {
                 Corporate Ordering
               </h2>
               <p className="text-xl text-neutral-300 leading-relaxed">
-                Efficient procurement management for corporate solutions. Access
-                exclusive pricing, manage bulk orders, and track deliveries
-                seamlessly.
+                Efficient procurement management for corporate solutions. Access exclusive
+                pricing, manage bulk orders, and track deliveries seamlessly.
               </p>
             </motion.div>
 
-            {/* Features */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -144,7 +134,6 @@ export default function LoginPage() {
               ))}
             </motion.div>
 
-            {/* Stats */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -154,15 +143,11 @@ export default function LoginPage() {
               <div className="grid grid-cols-3 gap-8">
                 <div>
                   <div className="text-2xl font-bold">200+</div>
-                  <div className="text-neutral-400 text-sm">
-                    Corporate Clients
-                  </div>
+                  <div className="text-neutral-400 text-sm">Corporate Clients</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold">10K+</div>
-                  <div className="text-neutral-400 text-sm">
-                    Orders Processed
-                  </div>
+                  <div className="text-neutral-400 text-sm">Orders Processed</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold">99.9%</div>
@@ -173,7 +158,7 @@ export default function LoginPage() {
           </div>
         </motion.div>
 
-        {/* Right Panel - Login Form */}
+        {/* Right Panel */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
           <motion.div
             initial={{ opacity: 0, x: 50 }}
@@ -181,34 +166,23 @@ export default function LoginPage() {
             transition={{ duration: 0.8 }}
             className="w-full max-w-md"
           >
-            {/* Mobile Logo */}
             <div className="lg:hidden text-center mb-8">
               <div className="flex justify-center items-center gap-3 mb-4">
                 <div className="p-3 bg-neutral-700 rounded-xl">
                   <Package className="h-8 w-8 text-white" />
                 </div>
                 <div className="text-left">
-                  <h1 className="text-2xl font-bold text-neutral-900">
-                    B2B Portal
-                  </h1>
-                  <p className="text-gray-600 text-sm">
-                    Business Ordering Portal
-                  </p>
+                  <h1 className="text-2xl font-bold text-neutral-900">B2B Portal</h1>
+                  <p className="text-gray-600 text-sm">Business Ordering Portal</p>
                 </div>
               </div>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
                 <CardContent className="p-8">
                   <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-                      Welcome Back
-                    </h2>
+                    <h2 className="text-2xl font-bold text-neutral-900 mb-2">Welcome Back</h2>
                     <p className="text-gray-600">
                       Sign in to access your corporate ordering portal
                     </p>
@@ -216,10 +190,7 @@ export default function LoginPage() {
 
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="email"
-                        className="text-gray-700 font-medium"
-                      >
+                      <Label htmlFor="email" className="text-gray-700 font-medium">
                         Email Address
                       </Label>
                       <Input
@@ -234,10 +205,7 @@ export default function LoginPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="password"
-                        className="text-gray-700 font-medium"
-                      >
+                      <Label htmlFor="password" className="text-gray-700 font-medium">
                         Password
                       </Label>
                       <Input
@@ -251,26 +219,8 @@ export default function LoginPage() {
                       />
                     </div>
 
-                    <div className="flex space-x-2">
-                      <Checkbox
-                        checked={isAdmin}
-                        id="isAdmin"
-                        onClick={() => setIsAdmin((x) => !x)}
-                      />
-                      <Label
-                        htmlFor="isAdmin"
-                        className="text-gray-700 font-medium"
-                      >
-                        Log in as Admin?
-                      </Label>
-                    </div>
-
                     {error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                         <Alert
                           variant="destructive"
                           className="border-red-200 bg-red-50"
@@ -304,11 +254,10 @@ export default function LoginPage() {
               </Card>
             </motion.div>
 
-            {/* Footer */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
+              transition={{ delay: 0.8 }}
               className="text-center mt-8 text-sm text-neutral-500"
             >
               <p>© 2025 Fitplay International LLP</p>
