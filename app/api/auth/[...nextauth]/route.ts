@@ -59,7 +59,7 @@ export const auth: AuthOptions = {
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
-        token.role = (user as any).role;
+        token.role = (user as { role: UserRole }).role;
       }
       return token;
     },
@@ -77,6 +77,7 @@ export const auth: AuthOptions = {
   },
   pages: {
     signIn: "/login",
+    signOut: "/login",
     error: "/auth/error",
   },
   debug: process.env.NODE_ENV === "development",

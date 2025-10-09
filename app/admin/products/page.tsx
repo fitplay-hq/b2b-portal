@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Boxes, Upload } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useProductFilters } from "@/hooks/use-product-filters";
 import { useProductForm } from "@/hooks/use-product-form";
 
@@ -15,18 +15,17 @@ import { ProductList } from "./components/product-list";
 import { ProductFormDialog } from "./components/product-form-dialog";
 import { UpdateInventoryDialog } from "./components/update-inventory-dialog";
 import {
-  useCreateProducts,
   useDeleteProduct,
   useProducts,
 } from "@/data/product/admin.hooks";
-import { Prisma } from "@/lib/generated/prisma";
+
 import { BulkActionsDropdown } from "./components/bulk-actions-dropdown";
 import type { Product } from "@/lib/generated/prisma";
 
 export default function AdminProductsPage() {
   const { products, error, isLoading, mutate } = useProducts();
   const { deleteProduct } = useDeleteProduct();
-  const { createProducts } = useCreateProducts();
+
 
   // Inventory dialog state
   const [inventoryDialog, setInventoryDialog] = useState<{
@@ -51,7 +50,7 @@ export default function AdminProductsPage() {
             await deleteProduct({ id: productId });
             toast.success("Product deleted successfully!");
             mutate(); // Re-fetch data
-          } catch (error) {
+          } catch {
             toast.error("Failed to delete product.");
           }
         },
@@ -79,7 +78,7 @@ export default function AdminProductsPage() {
 
   if (isLoading) {
     return (
-      <Layout title="Product Management" isClient={false}>
+      <Layout isClient={false}>
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -89,7 +88,7 @@ export default function AdminProductsPage() {
 
   if (error) {
     return (
-      <Layout title="Product Management" isClient={false}>
+      <Layout isClient={false}>
         <div className="text-center text-destructive">
           Failed to load products. Please try again later.
         </div>
@@ -98,38 +97,51 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <Layout title="Product Management" isClient={false}>
-      <div className="flex flex-col h-full gap-6">
-        <div className="shrink-0 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Product Management</h1>
-              <p className="text-muted-foreground">
-                Manage your product catalog and inventory
-              </p>
+    <Layout isClient={false}>
+      <div className="min-h-[calc(100vh-4rem)] bg-gray-50 -m-6">
+        <div className="p-8">
+          <div className="space-y-8">
+            {/* Enhanced Header */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-semibold text-gray-900 mb-2">Products</h1>
+                  <p className="text-gray-600 text-base">
+                    Manage your product catalog and inventory with ease
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <BulkActionsDropdown />
+                  <Button 
+                    onClick={formControls.openNewDialog}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Product
+                  </Button>
+                </div>
+              </div>
             </div>
-            <div className="flex space-x-4">
-              <Button onClick={formControls.openNewDialog}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
-              <BulkActionsDropdown />
+
+            <StatsGrid products={products || []} />
+
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-8 border-b border-gray-200 bg-gray-50">
+                <ProductFilters {...filterProps} />
+              </div>
+              <div className="p-8">
+                <ProductList
+                  products={filteredProducts}
+                  allProducts={products ?? []}
+                  selectedSort={filterProps.sortBy}
+                  onEdit={formControls.openEditDialog}
+                  onDelete={handleDelete}
+                  onManageInventory={handleOpenInventoryDialog}
+                  hasProductsInitially={(products?.length ?? 0) > 0}
+                />
+              </div>
             </div>
           </div>
-
-          <StatsGrid products={products || []} />
-          <ProductFilters {...filterProps} />
-        </div>
-        <div className="flex-1 overflow-y-auto pr-2">
-          <ProductList
-            products={filteredProducts}
-            allProducts={products ?? []}
-            selectedSort={filterProps.sortBy}
-            onEdit={formControls.openEditDialog}
-            onDelete={handleDelete}
-            onManageInventory={handleOpenInventoryDialog}
-            hasProductsInitially={(products?.length ?? 0) > 0}
-          />
         </div>
       </div>
 

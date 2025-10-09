@@ -4,15 +4,16 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
-  History,
+  History,  
   Package,
   Package2,
   ShoppingCart,
   Users,
   ChevronDown,
   Plus,
-  Edit,
   List,
+  Building2,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,12 +22,21 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItemsProps {
   isClient: boolean;
+  isCollapsed?: boolean;
 }
 
-export default function NavItems({ isClient }: NavItemsProps) {
+export default function NavItems({ isClient, isCollapsed = false }: NavItemsProps) {
   const pathname = usePathname();
   const [clientsOpen, setClientsOpen] = useState(
     pathname.startsWith("/admin/clients")
@@ -44,7 +54,7 @@ export default function NavItems({ isClient }: NavItemsProps) {
     ];
 
     return (
-      <nav className="space-y-2">
+      <nav className="space-y-1">
         {clientNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -54,14 +64,26 @@ export default function NavItems({ isClient }: NavItemsProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+                "flex items-center rounded-lg transition-all duration-200 text-sm font-medium group relative",
+                isCollapsed ? "px-2 py-2.5 justify-center" : "gap-3 px-3 py-2.5",
                 isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               )}
+              title={isCollapsed ? item.label : undefined}
+              onClick={(e) => {
+                if (isCollapsed) {
+                  e.stopPropagation();
+                }
+              }}
             >
-              <Icon className="h-4 w-4" />
-              {item.label}
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              {!isCollapsed && <span>{item.label}</span>}
+              {isCollapsed && (
+                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                  {item.label}
+                </div>
+              )}
             </Link>
           );
         })}
@@ -69,168 +91,322 @@ export default function NavItems({ isClient }: NavItemsProps) {
     );
   }
 
-  // Admin navigation with collapsible Clients
+  // Professional Admin Navigation
+  const adminNavItems = [
+    { 
+      href: "/admin", 
+      label: "Dashboard", 
+      icon: BarChart3,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50"
+    },
+    { 
+      href: "/admin/products", 
+      label: "Products", 
+      icon: Package2,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50"
+    },
+    { 
+      href: "/admin/orders", 
+      label: "Orders", 
+      icon: ShoppingCart,
+      color: "text-green-600",
+      bgColor: "bg-green-50"
+    },
+  ];
+
   return (
-    <nav className="space-y-2">
-      {/* Dashboard */}
-      <Link
-        href="/admin"
-        className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-          pathname === "/admin"
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+    <div className={cn("transition-all duration-300", isCollapsed ? "space-y-2" : "space-y-6")}>
+      {/* Main Navigation */}
+      <div>
+        {!isCollapsed && (
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Main Menu
+          </h3>
         )}
-      >
-        <BarChart3 className="h-4 w-4" />
-        Dashboard
-      </Link>
+        <nav className="space-y-1">
+          {adminNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
 
-      {/* Products */}
-      <Link
-        href="/admin/products"
-        className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-          pathname === "/admin/products"
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        )}
-      >
-        <Package2 className="h-4 w-4" />
-        Products
-      </Link>
-
-      {/* Clients Collapsible */}
-      <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
-        <CollapsibleTrigger asChild>
-          <button
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full text-left",
-              "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-          >
-            Clients
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 ml-auto transition-transform duration-200",
-                clientsOpen ? "rotate-180" : ""
-              )}
-            />
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-1 ml-6">
-          <Link
-            href="/admin/clients"
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-              pathname === "/admin/clients"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-          >
-            <List className="h-4 w-4" />
-            Manage Clients
-          </Link>
-          {pathname.startsWith("/admin/clients/") &&
-            pathname !== "/admin/clients/new" && (
+            return (
               <Link
-                href={pathname}
+                key={item.href}
+                href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-                  "bg-primary text-primary-foreground"
+                  "flex items-center rounded-lg transition-all duration-200 text-sm font-medium group relative",
+                  isCollapsed ? "px-2 py-2.5 justify-center" : "gap-3 px-3 py-2.5",
+                  isActive
+                    ? `${item.bgColor} ${item.color} shadow-sm`
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 )}
+                title={isCollapsed ? item.label : undefined}
+                onClick={(e) => {
+                  if (isCollapsed) {
+                    e.stopPropagation();
+                  }
+                }}
               >
-                <Edit className="h-4 w-4" />
-                Edit Client
+                <Icon className={cn(
+                  "h-4 w-4 transition-colors flex-shrink-0",
+                  isActive ? item.color : "text-gray-400 group-hover:text-gray-600"
+                )} />
+                {!isCollapsed && (
+                  <>
+                    <span>{item.label}</span>
+                    {isActive && (
+                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-current"></div>
+                    )}
+                  </>
+                )}
+                {isCollapsed && (
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    {item.label}
+                  </div>
+                )}
               </Link>
-            )}
-          <Link
-            href="/admin/clients/new"
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-              pathname === "/admin/clients/new"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-          >
-            <Plus className="h-4 w-4" />
-            Add Client
-          </Link>
-        </CollapsibleContent>
-      </Collapsible>
+            );
+          })}
+        </nav>
+      </div>
 
-      {/* Companies Collapsible */}
-      <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
-        <CollapsibleTrigger asChild>
-          <button
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full text-left",
-              "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-          >
-            Companies
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 ml-auto transition-transform duration-200",
-                companiesOpen ? "rotate-180" : ""
-              )}
-            />
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-1 ml-6">
-          <Link
-            href="/admin/companies"
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-              pathname === "/admin/companies"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-          >
-            <List className="h-4 w-4" />
-            Manage Companies
-          </Link>
-          {pathname.startsWith("/admin/companies/") &&
-            pathname !== "/admin/companies/new" && (
-              <Link
-                href={pathname}
+      {/* Management Section */}
+      {!isCollapsed && (
+        <div>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Management
+          </h3>
+          <nav className="space-y-1">
+            {/* Clients Collapsible */}
+            <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-left text-sm font-medium group",
+                    clientsOpen || pathname.startsWith("/admin/clients")
+                      ? "bg-orange-50 text-orange-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  )}
+                >
+                  <Users className={cn(
+                    "h-4 w-4 transition-colors",
+                    clientsOpen || pathname.startsWith("/admin/clients")
+                      ? "text-orange-600"
+                      : "text-gray-400 group-hover:text-gray-600"
+                  )} />
+                  Clients
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 ml-auto transition-transform duration-200",
+                      clientsOpen ? "rotate-180" : ""
+                    )}
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-1 ml-6 space-y-1">
+                <Link
+                  href="/admin/clients"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                    pathname === "/admin/clients"
+                      ? "bg-orange-100 text-orange-800"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <List className="h-3 w-3" />
+                  All Clients
+                </Link>
+                <Link
+                  href="/admin/clients/new"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                    pathname === "/admin/clients/new"
+                      ? "bg-orange-100 text-orange-800"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Client
+                </Link>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Companies Collapsible */}
+            <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-left text-sm font-medium group",
+                    companiesOpen || pathname.startsWith("/admin/companies")
+                      ? "bg-teal-50 text-teal-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  )}
+                >
+                  <Building2 className={cn(
+                    "h-4 w-4 transition-colors",
+                    companiesOpen || pathname.startsWith("/admin/companies")
+                      ? "text-teal-600"
+                      : "text-gray-400 group-hover:text-gray-600"
+                  )} />
+                  Companies
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 ml-auto transition-transform duration-200",
+                      companiesOpen ? "rotate-180" : ""
+                    )}
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-1 ml-6 space-y-1">
+                <Link
+                  href="/admin/companies"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                    pathname === "/admin/companies"
+                      ? "bg-teal-100 text-teal-800"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <List className="h-3 w-3" />
+                  All Companies
+                </Link>
+                <Link
+                  href="/admin/companies/new"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                    pathname === "/admin/companies/new"
+                      ? "bg-teal-100 text-teal-800"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Company
+                </Link>
+              </CollapsibleContent>
+            </Collapsible>
+          </nav>
+        </div>
+      )}
+
+      {/* Collapsed Management Icons with Dropdowns */}
+      {isCollapsed && (
+        <div className="space-y-1 mt-4">
+          {/* Separator line */}
+          <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
+          
+          {/* Clients Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-                  "bg-primary text-primary-foreground"
+                  "flex items-center justify-center px-2 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium group relative w-full",
+                  pathname.startsWith("/admin/clients")
+                    ? "bg-orange-50 text-orange-700"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 )}
+                onClick={(e) => e.stopPropagation()}
               >
-                <Edit className="h-4 w-4" />
-                Edit Company
-              </Link>
-            )}
-          <Link
-            href="/admin/companies/new"
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-              pathname === "/admin/companies/new"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-          >
-            <Plus className="h-4 w-4" />
-            Add Company
-          </Link>
-        </CollapsibleContent>
-      </Collapsible>
+                <Users className="h-4 w-4 flex-shrink-0" />
+                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 group-focus:opacity-0">
+                  Clients
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" className="w-48 ml-2">
+              <DropdownMenuLabel>Clients</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin/clients" className="flex items-center gap-2 cursor-pointer">
+                  <List className="h-4 w-4" />
+                  All Clients
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/clients/new" className="flex items-center gap-2 cursor-pointer">
+                  <Plus className="h-4 w-4" />
+                  Add Client
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-      {/* Orders */}
-      <Link
-        href="/admin/orders"
-        className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-          pathname === "/admin/orders"
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          {/* Companies Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "flex items-center justify-center px-2 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium group relative w-full",
+                  pathname.startsWith("/admin/companies")
+                    ? "bg-teal-50 text-teal-700"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                )}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Building2 className="h-4 w-4 flex-shrink-0" />
+                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 group-focus:opacity-0">
+                  Companies
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" className="w-48 ml-2">
+              <DropdownMenuLabel>Companies</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin/companies" className="flex items-center gap-2 cursor-pointer">
+                  <List className="h-4 w-4" />
+                  All Companies
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/companies/new" className="flex items-center gap-2 cursor-pointer">
+                  <Plus className="h-4 w-4" />
+                  Add Company
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
+      {/* Settings Section */}
+      <div className={isCollapsed ? "mt-4" : ""}>
+        {isCollapsed && (
+          <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
         )}
-      >
-        <History className="h-4 w-4" />
-        Orders
-      </Link>
-    </nav>
+        {!isCollapsed && (
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Settings
+          </h3>
+        )}
+        <nav className="space-y-1">
+          <Link
+            href="/admin/settings"
+            className={cn(
+              "flex items-center rounded-lg transition-all duration-200 text-sm font-medium group relative",
+              isCollapsed ? "px-2 py-2.5 justify-center" : "gap-3 px-3 py-2.5",
+              pathname === "/admin/settings"
+                ? "bg-gray-50 text-gray-700"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            )}
+            title={isCollapsed ? "Settings" : undefined}
+            onClick={isCollapsed ? (e) => e.stopPropagation() : undefined}
+          >
+            <Settings className={cn(
+              "h-4 w-4 transition-colors flex-shrink-0",
+              pathname === "/admin/settings"
+                ? "text-gray-600"
+                : "text-gray-400 group-hover:text-gray-600"
+            )} />
+            {!isCollapsed && <span>Settings</span>}
+            {isCollapsed && (
+              <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                Settings
+              </div>
+            )}
+          </Link>
+        </nav>
+      </div>
+    </div>
   );
 }

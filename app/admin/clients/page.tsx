@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
@@ -23,7 +22,6 @@ import Link from "next/link";
 import { useState } from "react";
 
 export default function AdminClientsPage() {
-  const router = useRouter();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
 
@@ -48,12 +46,14 @@ export default function AdminClientsPage() {
       toast.error("Cannot delete client with existing orders.");
       return;
     }
-    setClientToDelete(clientId);
+
     setShowDeleteDialog(true);
+    setClientToDelete(clientId);
   };
 
   const handleConfirmDelete = async () => {
     if (!clientToDelete) return;
+
     try {
       await deleteClient({
         id: clientToDelete,
@@ -61,7 +61,7 @@ export default function AdminClientsPage() {
       toast.success("Client deleted.");
       setShowDeleteDialog(false);
       setClientToDelete(null);
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete client.");
     }
   };
@@ -73,9 +73,9 @@ export default function AdminClientsPage() {
 
   if (isLoading) {
     return (
-      <Layout title="Client Management" isClient={false}>
+      <Layout isClient={false}>
         <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </Layout>
     );
@@ -83,7 +83,7 @@ export default function AdminClientsPage() {
 
   if (clientsError || ordersError) {
     return (
-      <Layout title="Client Management" isClient={false}>
+      <Layout isClient={false}>
         <div className="text-center text-destructive">
           Failed to load client. Please try again later.
         </div>
@@ -93,30 +93,44 @@ export default function AdminClientsPage() {
 
   // 3. PRESENTATION
   return (
-    <Layout title="Client Management" isClient={false}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Client Management</h1>
-            <p className="text-muted-foreground">
-              Manage client accounts and permissions
-            </p>
-          </div>
-          <Link href="/admin/clients/new">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
-          </Link>
-        </div>
+    <Layout isClient={false}>
+      <div className="min-h-[calc(100vh-4rem)] bg-gray-50 -m-6">
+        <div className="p-8">
+          <div className="space-y-8">
+            {/* Enhanced Header */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-semibold text-gray-900 mb-2">Client Management</h1>
+                  <p className="text-gray-600 text-base">
+                    Manage client accounts and permissions efficiently
+                  </p>
+                </div>
+                <Link href="/admin/clients/new">
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Client
+                  </Button>
+                </Link>
+              </div>
+            </div>
 
-        <ClientStatsGrid {...stats} />
-        <ClientFilters {...filterProps} />
-        <ClientList
-          clients={filteredClients}
-          getClientStats={getClientStats}
-          onDelete={handleDelete}
-        />
+            <ClientStatsGrid {...stats} />
+            
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-8 border-b border-gray-200 bg-gray-50">
+                <ClientFilters {...filterProps} />
+              </div>
+              <div className="p-8">
+                <ClientList
+                  clients={filteredClients}
+                  getClientStats={getClientStats}
+                  onDelete={handleDelete}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
