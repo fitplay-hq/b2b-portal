@@ -108,7 +108,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Total amount must be greater than zero" }, { status: 400 });
     }
 
-    const orderId = `FP-${startOrder}${year}-${String(nextSequence).padStart(3, "0")}`;
+    let orderId = "";
+
+    while (true) {
+      orderId = `FP-${startOrder}${year}-${String(nextSequence).padStart(3, "0")}`;
+      const existingOrder = await prisma.order.findUnique({
+        where: { id: orderId },
+      });
+      if (!existingOrder) break;
+      nextSequence++;
+    }
 
     const order = await prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({

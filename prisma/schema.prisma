@@ -110,6 +110,14 @@ model OrderItem {
   price     Float // snapshot of product price at purchase time
 }
 
+model ResetToken {
+  id         String   @id @default(uuid())
+  identifier String   @unique
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+}
+
 enum Category {
   stationery
   accessories
