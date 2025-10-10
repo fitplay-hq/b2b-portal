@@ -55,7 +55,7 @@ export default function Layout({ children, isClient }: LayoutProps) {
           } 
           bg-white border-r border-gray-200 shadow-sm transition-all duration-300 ease-in-out overflow-hidden
         `}>
-          <div className={`flex flex-col h-full ${isMobile ? 'w-64' : sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300`}>
+          <div className={`flex flex-col h-full min-h-0 ${isMobile ? 'w-64' : sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300`}>
             {/* Logo Section */}
             <div className={`border-b border-gray-100 transition-all duration-300 ${sidebarOpen || isMobile ? 'p-6' : 'p-3'}`}>
               <div className={`flex items-center ${sidebarOpen || isMobile ? 'gap-3' : 'justify-center'}`}>
@@ -76,7 +76,7 @@ export default function Layout({ children, isClient }: LayoutProps) {
             </div>
 
             {/* Navigation */}
-            <div className={`flex-1 transition-all duration-300 ${sidebarOpen || isMobile ? 'p-4 pt-6' : 'p-2 pt-4'}`}>
+            <div className={`flex-1 overflow-y-auto sidebar-scrollbar transition-all duration-300 ${sidebarOpen || isMobile ? 'p-4 pt-6' : 'p-2 pt-4'}`}>
               <NavItems isClient={isClient} isCollapsed={!sidebarOpen && !isMobile} />
             </div>
 
@@ -96,6 +96,7 @@ export default function Layout({ children, isClient }: LayoutProps) {
               <button
                 onClick={toggleSidebar}
                 className="p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm"
+                suppressHydrationWarning={true}
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {sidebarOpen ? (
@@ -116,6 +117,7 @@ export default function Layout({ children, isClient }: LayoutProps) {
                   type="text"
                   placeholder="Search..."
                   className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                  suppressHydrationWarning={true}
                 />
               </div>
             </div>
@@ -123,7 +125,10 @@ export default function Layout({ children, isClient }: LayoutProps) {
             <div className="flex items-center gap-3">
               {/* Notifications */}
               <div className="relative group">
-                <button className="relative p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm">
+                <button 
+                  className="relative p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm"
+                  suppressHydrationWarning={true}
+                >
                   {/* Bell Icon */}
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -144,7 +149,10 @@ export default function Layout({ children, isClient }: LayoutProps) {
               
               {/* Settings */}
               <div className="relative group">
-                <button className="p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm">
+                <button 
+                  className="p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm"
+                  suppressHydrationWarning={true}
+                >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -158,7 +166,10 @@ export default function Layout({ children, isClient }: LayoutProps) {
               
               {/* Profile */}
               <div className="relative group">
-                <button className="p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm">
+                <button 
+                  className="p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm"
+                  suppressHydrationWarning={true}
+                >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
