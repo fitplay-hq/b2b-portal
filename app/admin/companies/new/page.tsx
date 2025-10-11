@@ -82,28 +82,25 @@ export default function NewCompanyPage() {
 
   return (
     <Layout isClient={false}>
-      <div className="bg-gray-50 -m-6 min-h-[calc(100vh-4rem)]">
-        <div className="p-8">
-          <div className="space-y-8">
-            {/* Enhanced Header */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-              <div className="flex items-center gap-6">
-                <Link href="/admin/companies">
-                  <Button variant="outline" size="sm" className="border-gray-300 hover:border-gray-400">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Companies
-                  </Button>
-                </Link>
-                <div>
-                  <h1 className="text-3xl font-semibold text-gray-900 mb-2">Create New Company</h1>
-                  <p className="text-gray-600 text-base">
-                    Add a new company with product access permissions
-                  </p>
-                </div>
-              </div>
-            </div>
+      {/* Enhanced Header */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 mb-8">
+        <div className="flex items-center gap-6">
+          <Link href="/admin/companies">
+            <Button variant="outline" size="sm" className="border-gray-300 hover:border-gray-400">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Companies
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-900 mb-2">Create New Company</h1>
+            <p className="text-gray-600 text-base">
+              Add a new company with product access permissions
+            </p>
+          </div>
+        </div>
+      </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Company Details Form - Left Side */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
@@ -166,9 +163,6 @@ export default function NewCompanyPage() {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      </div>
     </Layout>
   );
 }

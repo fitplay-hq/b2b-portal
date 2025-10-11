@@ -150,26 +150,25 @@ export default function NewClientPage() {
 
   return (
     <Layout isClient={false}>
-      <div className="space-y-8">
-            {/* Enhanced Header */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-              <div className="flex items-center gap-6">
-                <Link href="/admin/clients">
-                  <Button variant="outline" size="sm" className="border-gray-300 hover:border-gray-400">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Clients
-                  </Button>
-                </Link>
-                <div>
-                  <h1 className="text-3xl font-semibold text-gray-900 mb-2">Create New Client</h1>
-                  <p className="text-gray-600 text-base">
-                    Add a new client account with product access permissions
-                  </p>
-                </div>
-              </div>
-            </div>
+      {/* Enhanced Header */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 mb-8">
+        <div className="flex items-center gap-6">
+          <Link href="/admin/clients">
+            <Button variant="outline" size="sm" className="border-gray-300 hover:border-gray-400">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Clients
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-900 mb-2">Create New Client</h1>
+            <p className="text-gray-600 text-base">
+              Add a new client account with product access permissions
+            </p>
+          </div>
+        </div>
+      </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Client Details Form - Left Side */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
@@ -236,7 +235,6 @@ export default function NewClientPage() {
                 </Button>
               </div>
             </form>
-          </div>
     </Layout>
   );
 }

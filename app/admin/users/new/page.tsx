@@ -1,244 +1,233 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, UserCog, Save, AlertTriangle, Upload, X } from "lucide-react";
+import { UserCog, ArrowLeft, Save, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { useEffect } from "react";
 
-// Available roles with their permission counts (sync with roles page)
-const availableRoles = [
-  {
-    id: "1",
-    name: "Master Admin",
-    description: "Full system access with all permissions",
-    permissions: 24,
-    color: "bg-red-100 text-red-700 border-red-200"
-  },
-  {
-    id: "2",
-    name: "Warehouse Manager",
-    description: "Manage inventory, products, and stock levels",
-    permissions: 6,
-    color: "bg-blue-100 text-blue-700 border-blue-200"
-  },
-  {
-    id: "3",
-    name: "Category Manager",
-    description: "Manage product categories and client assignments",
-    permissions: 6,
-    color: "bg-green-100 text-green-700 border-green-200"
-  },
-  {
-    id: "4",
-    name: "Delivery Person",
-    description: "View and update order delivery status",
-    permissions: 3,
-    color: "bg-yellow-100 text-yellow-700 border-yellow-200"
-  },
-  {
-    id: "5",
-    name: "View Only",
-    description: "Read-only access to view data without modifications",
-    permissions: 4,
-    color: "bg-gray-100 text-gray-700 border-gray-200"
-  }
-];
+interface Role {
+  id: string;
+  name: string;
+  description: string;
+}
 
 export default function NewUserPage() {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    roleId: "",
-    status: "active",
-    avatar: "",
-    notes: ""
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
-  const selectedRole = availableRoles.find(role => role.id === formData.roleId);
+  // Fetch roles from API
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const response = await fetch("/api/admin/roles");
+        if (response.ok) {
+          const rolesData = await response.json();
+          console.log("Fetched roles:", rolesData); // Debug log
+          
+          // Ensure rolesData is an array
+          if (Array.isArray(rolesData)) {
+            setRoles(rolesData);
+          } else {
+            console.error("Roles data is not an array:", rolesData);
+            setRoles([]);
+          }
+        } else {
+          console.error("Failed to fetch roles, status:", response.status);
+          setRoles([]);
+        }
+      } catch (error) {
+        console.error("Error fetching roles:", error);
+        setRoles([]);
+      } finally {
+        setIsLoadingRoles(false);
+      }
+    };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
+    fetchRoles();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.roleId) {
+    
+    if (password !== confirmPassword) {
+      alert("Passwords do not match!");
       return;
     }
 
-    setIsSubmitting(true);
-    
-    // Simulate API call - replace with actual API later
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log("Creating user:", formData);
-      router.push("/admin/users");
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          roleId: role,
+        }),
+      });
+
+      if (response.ok) {
+        const newUser = await response.json();
+        console.log("User created successfully:", newUser);
+        
+        // Reset form
+        setName("");
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setRole("");
+        
+        // Show success message (you can replace with toast later)
+        alert("User created successfully!");
+        
+        // Optionally redirect to users list
+        // window.location.href = "/admin/users";
+      } else {
+        const error = await response.json();
+        console.error("Failed to create user:", error);
+        alert(`Failed to create user: ${error.message || "Unknown error"}`);
+      }
     } catch (error) {
-      console.error("Error creating user:", error);
-    } finally {
-      setIsSubmitting(false);
+      console.error("Network error:", error);
+      alert("Network error. Please try again.");
     }
-  };
-
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // In a real app, you'd upload to a server
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, avatar: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const clearAvatar = () => {
-    setFormData(prev => ({ ...prev, avatar: "" }));
-  };
-
-  return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+  };  return (
+    <Layout isClient={false}>
+      <div className="space-y-8 max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/users">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <UserCog className="h-6 w-6" />
-            Add New User
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Create a new user account with role assignment
-          </p>
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/admin/users">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Users
+          </Link>
+        </Button>
+        <div className="flex items-center gap-2">
+          <UserCog className="h-6 w-6 text-indigo-600" />
+          <h1 className="text-2xl font-bold text-gray-900">Add New User</h1>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Profile Information */}
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* User Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
+            <CardTitle>User Information</CardTitle>
             <CardDescription>
-              Basic information about the user
+              Enter the basic details for the new user
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Avatar Upload */}
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={formData.avatar} alt="User avatar" />
-                  <AvatarFallback className="bg-indigo-100 text-indigo-600 text-lg font-medium">
-                    {formData.firstName && formData.lastName
-                      ? getInitials(formData.firstName, formData.lastName)
-                      : "??"
-                    }
-                  </AvatarFallback>
-                </Avatar>
-                {formData.avatar && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 hover:bg-red-200 text-red-600"
-                    onClick={clearAvatar}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="avatar">Profile Picture</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="avatar"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById('avatar')?.click()}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Image
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500">
-                  Recommended: Square image, at least 200x200px
-                </p>
-              </div>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name *</Label>
+              <Input
+                id="name"
+                placeholder="Enter full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
             </div>
-
-            {/* Name Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
-                <Input
-                  id="firstName"
-                  placeholder="Enter first name"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Enter last name"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email Address *</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter email address"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
-              <p className="text-xs text-gray-500">
-                The user will receive login credentials at this email address
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Password */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Password</CardTitle>
+            <CardDescription>
+              Set a secure password for the user
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">Password *</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-sm text-gray-500">
+                Password must be at least 8 characters long
               </p>
             </div>
-
-            {/* Notes */}
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="Add any additional notes about this user..."
-                value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                rows={3}
-              />
+              <Label htmlFor="confirmPassword">Confirm Password *</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+              </div>
             </div>
+            {password && confirmPassword && password !== confirmPassword && (
+              <p className="text-sm text-red-600">
+                Passwords do not match
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -247,139 +236,65 @@ export default function NewUserPage() {
           <CardHeader>
             <CardTitle>Role Assignment</CardTitle>
             <CardDescription>
-              Assign a role to determine the user&apos;s permissions
+              Assign a role to determine user permissions
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {!formData.roleId && (
-              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <p className="text-sm text-amber-700">
-                  Please select a role for this user.
-                </p>
-              </div>
-            )}
-
+          <CardContent>
             <div className="space-y-2">
-              <Label htmlFor="role">User Role *</Label>
-              <Select value={formData.roleId} onValueChange={(value) => setFormData(prev => ({ ...prev, roleId: value }))}>
+              <Label htmlFor="role">Role *</Label>
+              <Select value={role} onValueChange={setRole} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableRoles.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>{role.name}</span>
-                        <Badge className={`ml-2 ${role.color} text-xs`}>
-                          {role.permissions} permissions
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {isLoadingRoles ? (
+                    <SelectItem value="loading" disabled>Loading roles...</SelectItem>
+                  ) : roles && roles.length > 0 ? (
+                    roles.map((roleItem) => (
+                      <SelectItem key={roleItem.id} value={roleItem.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{roleItem.name}</span>
+                          <span className="text-sm text-gray-500">{roleItem.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-roles" disabled>No roles available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Selected Role Details */}
-            {selectedRole && (
-              <div className="p-4 bg-gray-50 rounded-lg border">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-gray-900">{selectedRole.name}</h4>
-                  <Badge className={selectedRole.color}>
-                    {selectedRole.permissions} permissions
-                  </Badge>
-                </div>
-                <p className="text-sm text-gray-600">{selectedRole.description}</p>
-              </div>
-            )}
-
-            {/* Account Status */}
-            <div className="space-y-2">
-              <Label htmlFor="status">Account Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">
-                Active users can log in and access the system
+              <p className="text-sm text-gray-500">
+                Role determines what actions this user can perform
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* User Preview */}
-        {formData.firstName && formData.lastName && formData.email && selectedRole && (
-          <Card>
-            <CardHeader>
-              <CardTitle>User Preview</CardTitle>
-              <CardDescription>
-                Preview how this user will appear in the system
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4 p-4 border rounded-lg">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={formData.avatar} alt="User avatar" />
-                  <AvatarFallback className="bg-indigo-100 text-indigo-600 font-medium">
-                    {getInitials(formData.firstName, formData.lastName)}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-medium text-gray-900">
-                      {formData.firstName} {formData.lastName}
-                    </h3>
-                    <Badge 
-                      variant={formData.status === 'active' ? 'default' : 'secondary'}
-                      className={formData.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}
-                    >
-                      {formData.status}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-gray-500">{formData.email}</div>
-                </div>
-                
-                <Badge className={selectedRole.color}>
-                  {selectedRole.name}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Actions */}
         <div className="flex justify-end gap-3">
-          <Link href="/admin/users">
-            <Button variant="outline" type="button">
+          <Button variant="outline" asChild>
+            <Link href="/admin/users">
               Cancel
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <Button 
             type="submit" 
-            disabled={!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.roleId || isSubmitting}
             className="bg-indigo-600 hover:bg-indigo-700"
+            disabled={
+              !name.trim() || 
+              !email.trim() || 
+              !password.trim() || 
+              !role || 
+              password !== confirmPassword ||
+              password.length < 8
+            }
           >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Create User
-              </>
-            )}
+            <Save className="h-4 w-4 mr-2" />
+            Add User
           </Button>
         </div>
       </form>
-    </div>
+      </div>
+    </Layout>
   );
 }
