@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Prisma } from "@/lib/generated/prisma";
 import { getServerSession } from "next-auth";
 import { auth } from "../../auth/[...nextauth]/route";
+import { isAuthorizedAdmin } from "@/lib/utils";
 
 // Import the auto-generated Zod schema
 import { ProductCreateInputObjectSchema } from "@/prisma/generated/schemas";
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(auth);
-    if (!session || !session?.user || session?.user?.role !== "ADMIN") {
+    if (!isAuthorizedAdmin(session)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -104,7 +105,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
 
     const session = await getServerSession(auth);
-    if (!session || !session.user || session.user.role !== "ADMIN") {
+    if (!isAuthorizedAdmin(session)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

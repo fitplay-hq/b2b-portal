@@ -8,9 +8,13 @@ export default async function Page() {
     redirect("/login");
   }
 
-  if (session.user.role === "ADMIN") {
+  // Redirect based on role
+  if (session.user.role === "ADMIN" || session.user.role === "SYSTEM_USER") {
     redirect("/admin");
-  } else {
+  } else if (session.user.role === "CLIENT") {
     redirect("/client");
+  } else {
+    // Fallback for unknown roles
+    redirect("/login");
   }
 }

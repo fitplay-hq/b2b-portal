@@ -2,12 +2,13 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
+import { isAuthorizedAdmin } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
    try {
        const session = await getServerSession(auth);
 
-       if (!session || !session?.user || session?.user?.role !== "ADMIN") {
+       if (!isAuthorizedAdmin(session)) {
            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
        }
 

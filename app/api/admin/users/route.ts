@@ -3,13 +3,14 @@ import { getServerSession } from "next-auth";
 import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
+import { isAuthorizedAdmin } from "@/lib/utils";
 
 // GET /api/admin/users - Get all users
 export async function GET() {
   try {
     const session = await getServerSession(auth);
     
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (!isAuthorizedAdmin(session)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(auth);
     
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (!isAuthorizedAdmin(session)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

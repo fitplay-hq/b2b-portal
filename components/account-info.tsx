@@ -72,7 +72,14 @@ export default function AccountInfo({ isCollapsed = false }: AccountInfoProps) {
             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
           </div>
           <p className="text-xs text-gray-500 truncate">
-            {user.role === "ADMIN" ? "Administrator" : user.role}
+            {user.role === "ADMIN" 
+              ? "Administrator" 
+              : user.role === "SYSTEM_USER" 
+                ? user.systemRole || "System User"
+                : user.role === "CLIENT"
+                  ? "Client"
+                  : user.role
+            }
           </p>
         </div>
       )}

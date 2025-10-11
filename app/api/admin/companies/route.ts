@@ -2,12 +2,13 @@ import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthorizedAdmin } from "@/lib/utils";
 
 // GET - Get all companies
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(auth);
-    if (!session || session.user?.role !== "ADMIN") {
+    if (!isAuthorizedAdmin(session)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(auth);
-    if (!session || session.user?.role !== "ADMIN") {
+    if (!isAuthorizedAdmin(session)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

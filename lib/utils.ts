@@ -15,3 +15,17 @@ export function formatStatus(status: string): string {
     .replace(/_/g, ' ')
     .replace(/\b\w/g, char => char.toUpperCase());
 }
+
+/**
+ * Checks if a user has admin privileges (ADMIN or SYSTEM_USER)
+ */
+export function hasAdminAccess(userRole?: string): boolean {
+  return userRole === "ADMIN" || userRole === "SYSTEM_USER";
+}
+
+/**
+ * Checks if a user session has admin privileges
+ */
+export function isAuthorizedAdmin(session: { user?: { role?: string } } | null): boolean {
+  return session?.user && hasAdminAccess(session.user.role) || false;
+}
