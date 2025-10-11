@@ -8,7 +8,9 @@ declare module "next-auth" {
       id: string
       name?: string
       email: string
-      role?: $Enums.Role 
+      role?: $Enums.Role
+      systemRole?: string // For SYSTEM_USER, this contains the actual role name
+      systemRoleId?: string // For SYSTEM_USER, this contains the role ID
     } & DefaultSession["user"]
   }
 
@@ -17,6 +19,8 @@ declare module "next-auth" {
     name?: string // Make optional since it might not always be present
     email: string
     role?: $Enums.Role
+    systemRole?: string // For SYSTEM_USER, this contains the actual role name
+    systemRoleId?: string // For SYSTEM_USER, this contains the role ID
   }
 }
 
@@ -26,5 +30,7 @@ declare module "next-auth/jwt" {
     name?: string
     email: string
     role?: $Enums.Role
+    systemRole?: string // For SYSTEM_USER, this contains the actual role name
+    systemRoleId?: string // For SYSTEM_USER, this contains the role ID
   }
 }

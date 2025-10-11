@@ -159,6 +159,7 @@ enum Gender {
 enum Role {
   ADMIN
   CLIENT
+  SYSTEM_USER
 }
 
 // Role Management System Models

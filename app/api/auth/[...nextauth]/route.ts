@@ -47,6 +47,27 @@ export const auth: AuthOptions = {
           };
         }
 
+        // 3. Check SystemUser (Role-based management system)
+        const systemUser = await prisma.systemUser.findUnique({ 
+          where: { email: credentials.email },
+          include: { role: true }
+        });
+        if (systemUser) {
+          if (!systemUser.isActive) {
+            throw new Error("Account is deactivated");
+          }
+          const isValid = await compare(credentials.password, systemUser.password);
+          if (!isValid) throw new Error("Invalid password");
+          return {
+            id: systemUser.id,
+            name: systemUser.name,
+            email: systemUser.email,
+            role: "SYSTEM_USER", // Use a new role type for system users
+            systemRole: systemUser.role.name, // Include the actual role name
+            systemRoleId: systemUser.role.id,
+          };
+        }
+
         throw new Error("No user found with this email");
       },
     }),
@@ -60,6 +81,8 @@ export const auth: AuthOptions = {
         token.name = user.name;
         token.email = user.email;
         token.role = (user as { role: UserRole }).role;
+        token.systemRole = (user as any).systemRole;
+        token.systemRoleId = (user as any).systemRoleId;
       }
       return token;
     },
@@ -70,6 +93,8 @@ export const auth: AuthOptions = {
           name: token.name as string,
           email: token.email as string,
           role: token.role as UserRole,
+          systemRole: token.systemRole as string,
+          systemRoleId: token.systemRoleId as string,
         };
       }
       return session;

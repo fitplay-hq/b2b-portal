@@ -38,7 +38,7 @@ export default function Layout({ children, isClient }: LayoutProps) {
 
   return (
     <SessionProvider>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50">
         {/* Sidebar Overlay for mobile */}
         {isMobile && sidebarOpen && (
           <div 
@@ -88,7 +88,7 @@ export default function Layout({ children, isClient }: LayoutProps) {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-h-0 transition-all duration-300 ease-in-out bg-gray-50">
+        <div className="flex-1 flex flex-col transition-all duration-300 ease-in-out bg-gray-50">
           {/* Professional Navbar */}
           <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm relative z-10">
             <div className="flex items-center gap-4 flex-1">
@@ -193,7 +193,7 @@ export default function Layout({ children, isClient }: LayoutProps) {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 bg-gray-50 overflow-auto">
+          <main className="flex-1 bg-gray-50">
             <div className="p-6">
               {children}
             </div>
