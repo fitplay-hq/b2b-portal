@@ -12,6 +12,14 @@ export default function Layout({ children, isClient }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Initialize sidebar state from localStorage
+  useEffect(() => {
+    const savedSidebarState = localStorage.getItem('sidebarOpen');
+    if (savedSidebarState !== null) {
+      setSidebarOpen(JSON.parse(savedSidebarState));
+    }
+  }, []);
+
   // Handle responsive behavior
   useEffect(() => {
     const handleResize = () => {
@@ -28,7 +36,10 @@ export default function Layout({ children, isClient }: LayoutProps) {
 
   const toggleSidebar = () => {
     console.log('toggleSidebar called, current state:', sidebarOpen);
-    setSidebarOpen(!sidebarOpen);
+    const newState = !sidebarOpen;
+    setSidebarOpen(newState);
+    // Save to localStorage to persist across page navigation
+    localStorage.setItem('sidebarOpen', JSON.stringify(newState));
   };
 
   // Debug: Monitor sidebar state changes
@@ -40,7 +51,7 @@ export default function Layout({ children, isClient }: LayoutProps) {
     <SessionProvider>
       <div className="flex min-h-screen bg-gray-50">
         {/* Sidebar Overlay for mobile */}
-        {isMobile && sidebarOpen && (
+        {sidebarOpen && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
             onClick={() => setSidebarOpen(false)}
@@ -48,15 +59,20 @@ export default function Layout({ children, isClient }: LayoutProps) {
         )}
         
         {/* Professional Sidebar */}
-        <div className={`
-          ${isMobile 
-            ? `fixed left-0 top-0 h-full z-30 ${sidebarOpen ? 'w-64' : 'w-0'}` 
-            : `flex-shrink-0 ${sidebarOpen ? 'w-64' : 'w-16'}`
+        <aside className={`
+          ${sidebarOpen 
+            ? 'translate-x-0' 
+            : '-translate-x-full lg:translate-x-0'
           } 
-          bg-white border-r border-gray-200 shadow-sm transition-all duration-300 ease-in-out overflow-hidden
+          fixed lg:static top-0 left-0 z-30 
+          ${sidebarOpen ? 'w-64 h-screen' : 'w-64 lg:w-16 h-screen lg:h-auto'}
+          lg:flex lg:flex-shrink-0 lg:h-auto
+          bg-white border-r border-gray-200 shadow-sm 
+          transform transition-transform duration-300 ease-in-out lg:transform-none
         `}>
-          <div className={`flex flex-col h-full min-h-0 ${isMobile ? 'w-64' : sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300`}>
+          <div className={`flex flex-col h-full ${isMobile ? 'w-64' : sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300`}>
             {/* Logo Section */}
+            
             <div className={`border-b border-gray-100 transition-all duration-300 ${sidebarOpen || isMobile ? 'p-6' : 'p-3'}`}>
               <div className={`flex items-center ${sidebarOpen || isMobile ? 'gap-3' : 'justify-center'}`}>
                 <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center shadow-sm">
@@ -85,12 +101,12 @@ export default function Layout({ children, isClient }: LayoutProps) {
               <AccountInfo isCollapsed={!sidebarOpen && !isMobile} />
             </div>
           </div>
-        </div>
+        </aside>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col transition-all duration-300 ease-in-out bg-gray-50">
+        <div className="flex-1 flex flex-col w-0 bg-gray-50">
           {/* Professional Navbar */}
-          <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm relative z-10">
+          <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm relative z-20">
             <div className="flex items-center gap-4 flex-1">
               {/* Sidebar Toggle Button */}
               <button
@@ -100,9 +116,11 @@ export default function Layout({ children, isClient }: LayoutProps) {
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {sidebarOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    // Collapse sidebar - double left chevrons <<
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                   ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    // Expand sidebar - double right chevrons >>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                   )}
                 </svg>
               </button>
@@ -134,51 +152,16 @@ export default function Layout({ children, isClient }: LayoutProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.73 21a2 2 0 0 1-3.46 0" />
                   </svg>
-                  {/* Active notification indicator */}
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 text-white text-xs font-medium items-center justify-center">3</span>
-                  </span>
+
                 </button>
                 {/* Hover tooltip */}
                 <div className="absolute top-full right-0 mt-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                  3 new notifications
+                  Notifications
                   <div className="absolute bottom-full right-3 border-4 border-transparent border-b-gray-900"></div>
                 </div>
               </div>
               
-              {/* Settings */}
-              <div className="relative group">
-                <button 
-                  className="p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm"
-                  suppressHydrationWarning={true}
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </button>
-                <div className="absolute top-full right-0 mt-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                  Settings
-                  <div className="absolute bottom-full right-3 border-4 border-transparent border-b-gray-900"></div>
-                </div>
-              </div>
-              
-              {/* Profile */}
-              <div className="relative group">
-                <button 
-                  className="p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm"
-                  suppressHydrationWarning={true}
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </button>
-                <div className="absolute top-full right-0 mt-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                  Profile
-                  <div className="absolute bottom-full right-3 border-4 border-transparent border-b-gray-900"></div>
-                </div>
-              </div>
+
               
               <div className="h-6 w-px bg-gray-200 mx-2"></div>
               

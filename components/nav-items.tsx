@@ -13,7 +13,6 @@ import {
   Plus,
   List,
   Building2,
-  Settings,
   Shield,
   UserCog,
 } from "lucide-react";
@@ -559,44 +558,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
         </div>
       )}
 
-      {/* Settings Section */}
-      <div className={isCollapsed ? "mt-4" : ""}>
-        {isCollapsed && (
-          <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
-        )}
-        {!isCollapsed && (
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Settings
-          </h3>
-        )}
-        <nav className="space-y-1">
-          <Link
-            href="/admin/settings"
-            className={cn(
-              "flex items-center rounded-lg transition-all duration-200 text-sm font-medium group relative",
-              isCollapsed ? "px-2 py-2.5 justify-center" : "gap-3 px-3 py-2.5",
-              pathname === "/admin/settings"
-                ? "bg-gray-50 text-gray-700"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-            )}
-            title={isCollapsed ? "Settings" : undefined}
-            onClick={isCollapsed ? (e) => e.stopPropagation() : undefined}
-          >
-            <Settings className={cn(
-              "h-4 w-4 transition-colors flex-shrink-0",
-              pathname === "/admin/settings"
-                ? "text-gray-600"
-                : "text-gray-400 group-hover:text-gray-600"
-            )} />
-            {!isCollapsed && <span>Settings</span>}
-            {isCollapsed && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                Settings
-              </div>
-            )}
-          </Link>
-        </nav>
-      </div>
+
     </div>
   );
 }
