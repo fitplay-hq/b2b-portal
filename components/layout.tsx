@@ -9,15 +9,21 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, isClient }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Initialize sidebar state from localStorage
-  useEffect(() => {
-    const savedSidebarState = localStorage.getItem('sidebarOpen');
-    if (savedSidebarState !== null) {
-      setSidebarOpen(JSON.parse(savedSidebarState));
+  // Initialize sidebar state directly from localStorage to prevent flicker
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    // Only access localStorage on client side
+    if (typeof window !== 'undefined') {
+      const savedSidebarState = localStorage.getItem('sidebarOpen');
+      return savedSidebarState !== null ? JSON.parse(savedSidebarState) : true;
     }
+    return true; // Default for server-side rendering
+  });
+  const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Handle mounting to prevent hydration issues
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
   // Handle responsive behavior
@@ -35,16 +41,18 @@ export default function Layout({ children, isClient }: LayoutProps) {
   }, []);
 
   const toggleSidebar = () => {
-    console.log('toggleSidebar called, current state:', sidebarOpen);
     const newState = !sidebarOpen;
     setSidebarOpen(newState);
     // Save to localStorage to persist across page navigation
     localStorage.setItem('sidebarOpen', JSON.stringify(newState));
+    
+    // Immediately update CSS custom property to prevent flicker
+    document.documentElement.style.setProperty('--sidebar-open', newState ? '1' : '0');
   };
 
-  // Debug: Monitor sidebar state changes
+  // Set CSS custom property on initial load
   useEffect(() => {
-    console.log('Sidebar state changed to:', sidebarOpen);
+    document.documentElement.style.setProperty('--sidebar-open', sidebarOpen ? '1' : '0');
   }, [sidebarOpen]);
 
   return (
@@ -59,18 +67,33 @@ export default function Layout({ children, isClient }: LayoutProps) {
         )}
         
         {/* Professional Sidebar */}
-        <aside className={`
-          ${sidebarOpen 
-            ? 'translate-x-0' 
-            : '-translate-x-full lg:translate-x-0'
-          } 
-          fixed lg:static top-0 left-0 z-30 
-          ${sidebarOpen ? 'w-64 h-screen' : 'w-64 lg:w-16 h-screen lg:h-auto'}
-          lg:flex lg:flex-shrink-0 lg:h-auto
-          bg-white border-r border-gray-200 shadow-sm 
-          transform transition-transform duration-300 ease-in-out lg:transform-none
-        `}>
-          <div className={`flex flex-col h-full ${isMobile ? 'w-64' : sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300`}>
+        <aside 
+          className={`
+            sidebar-container
+            ${sidebarOpen 
+              ? 'sidebar-open translate-x-0' 
+              : 'sidebar-closed -translate-x-full lg:translate-x-0'
+            } 
+            fixed lg:static top-0 left-0 z-30 h-screen
+            lg:flex lg:flex-shrink-0 lg:h-auto
+            bg-white border-r border-gray-200 shadow-sm 
+            transition-all duration-300 ease-in-out
+          `}
+          suppressHydrationWarning={true}
+          style={{
+            width: isMobile ? '16rem' : (sidebarOpen ? '16rem' : '4rem'),
+            opacity: mounted ? 1 : 1, // Keep opacity stable
+            transition: 'width 0.3s ease-in-out, transform 0.3s ease-in-out',
+          }}
+        >
+          <div 
+            className="flex flex-col h-full transition-all duration-300"
+            suppressHydrationWarning={true}
+            style={{
+              width: isMobile ? '16rem' : (sidebarOpen ? '16rem' : '4rem'),
+              transition: 'width 0.3s ease-in-out',
+            }}
+          >
             {/* Logo Section */}
             
             <div className={`border-b border-gray-100 transition-all duration-300 ${sidebarOpen || isMobile ? 'p-6' : 'p-3'}`}>

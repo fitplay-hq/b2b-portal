@@ -14,7 +14,7 @@ async function main() {
     },
   });
 
-  console.log("✅ Admin seeded successfully");
+  console.log("Admin seeded successfully");
 
   // Define all possible permissions
   const permissions = [
@@ -73,7 +73,7 @@ async function main() {
     });
   }
 
-  console.log("✅ Permissions seeded successfully");
+  console.log("Permissions seeded successfully");
 }
 
 main().catch(console.error).finally(() => process.exit());

@@ -273,3 +273,30 @@ html {
   /* These attributes are added by browser extensions and can be safely ignored */
 }
 
+/* Sidebar stability improvements */
+.sidebar-container {
+  backface-visibility: hidden;
+  will-change: transform, width;
+  transform-origin: left center;
+  transform: translate3d(0, 0, 0); /* Force hardware acceleration */
+}
+
+.sidebar-container * {
+  backface-visibility: hidden;
+}
+
+/* Prevent layout shifts during sidebar transitions */
+.sidebar-open {
+  --sidebar-width: 16rem;
+}
+
+.sidebar-closed {
+  --sidebar-width: 4rem;
+}
+
+@media (max-width: 1024px) {
+  .sidebar-closed {
+    --sidebar-width: 16rem;
+  }
+}
+
