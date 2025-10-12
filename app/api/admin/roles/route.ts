@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { auth } from '@/app/api/auth/[...nextauth]/route';
-import { isAuthorizedAdmin } from '@/lib/utils';
+import { isAuthorizedAdminOnly } from '@/lib/utils';
 
 // GET /api/admin/roles - Get all roles
 export async function GET() {
   try {
     const session = await getServerSession(auth);
     
-    if (!isAuthorizedAdmin(session)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isAuthorizedAdminOnly(session)) {
+      return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 });
     }
 
     const roles = await prisma.systemRole.findMany({
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(auth);
     
-    if (!isAuthorizedAdmin(session)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isAuthorizedAdminOnly(session)) {
+      return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 });
     }
 
     const { name, description, permissionIds } = await request.json();

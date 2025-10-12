@@ -36,11 +36,10 @@ async function main() {
     { resource: "products", action: "update", description: "Update product details" },
     { resource: "products", action: "delete", description: "Remove products" },
     
-    // Order Management
+    // Order Management (no delete option)
     { resource: "orders", action: "create", description: "Create new orders" },
     { resource: "orders", action: "read", description: "View order information" },
     { resource: "orders", action: "update", description: "Update order status" },
-    { resource: "orders", action: "delete", description: "Cancel/delete orders" },
     
     // Client Management
     { resource: "clients", action: "create", description: "Add new clients" },
@@ -53,6 +52,11 @@ async function main() {
     { resource: "companies", action: "read", description: "View company information" },
     { resource: "companies", action: "update", description: "Update company settings" },
     { resource: "companies", action: "delete", description: "Remove companies" },
+    
+    // Inventory Management (no delete option)
+    { resource: "inventory", action: "create", description: "Add inventory items" },
+    { resource: "inventory", action: "read", description: "View inventory information" },
+    { resource: "inventory", action: "update", description: "Update inventory details" },
   ];
 
   // Seed permissions

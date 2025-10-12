@@ -39,7 +39,9 @@ export default function NewRolePage() {
         if (response.ok) {
           const permissionsData = await response.json();
           console.log("Permissions data:", permissionsData);
-          setPermissions(Array.isArray(permissionsData) ? permissionsData : permissionsData.permissions || []);
+          const perms = Array.isArray(permissionsData) ? permissionsData : permissionsData.permissions || [];
+          console.log("Total permissions loaded:", perms.length);
+          setPermissions(perms);
         } else {
           const errorData = await response.text();
           console.error("Failed to fetch permissions:", response.status, errorData);
@@ -55,8 +57,26 @@ export default function NewRolePage() {
   }, []);
 
   const handlePermissionChange = (permissionId: string, checked: boolean) => {
+    const permission = permissions.find(p => p.id === permissionId);
+    
     if (checked) {
-      setSelectedPermissions(prev => [...prev, permissionId]);
+      setSelectedPermissions(prev => {
+        const newPermissions = [...prev, permissionId];
+        
+        // Auto-add inventory view when products view is selected
+        if (permission?.resource === "products" && 
+            (permission.action === "read" || permission.action === "view")) {
+          const inventoryViewPermission = permissions.find(p => 
+            p.resource === "inventory" && 
+            (p.action === "read" || p.action === "view")
+          );
+          if (inventoryViewPermission && !newPermissions.includes(inventoryViewPermission.id)) {
+            newPermissions.push(inventoryViewPermission.id);
+          }
+        }
+        
+        return newPermissions;
+      });
     } else {
       setSelectedPermissions(prev => prev.filter(p => p !== permissionId));
     }
@@ -197,7 +217,7 @@ export default function NewRolePage() {
             {isLoadingPermissions ? (
               <div className="text-center py-4">Loading permissions...</div>
             ) : (
-              ["users", "roles", "products", "orders", "clients", "companies"].map((resource) => {
+              ["users", "roles", "products", "orders", "clients", "companies", "inventory"].map((resource) => {
                 const resourcePermissions = permissions.filter(p => p.resource === resource);
                 const resourceLabel = {
                   users: "User Management",
@@ -205,7 +225,8 @@ export default function NewRolePage() {
                   products: "Product Management",
                   orders: "Order Management",
                   clients: "Client Management",
-                  companies: "Company Management"
+                  companies: "Company Management",
+                  inventory: "Inventory Management"
                 }[resource] || resource;
                 
                 const resourceDescription = {
@@ -214,7 +235,8 @@ export default function NewRolePage() {
                   products: "Manage products and inventory", 
                   orders: "Manage orders and fulfillment",
                   clients: "Manage client accounts and relationships",
-                  companies: "Manage company information and settings"
+                  companies: "Manage company information and settings",
+                  inventory: "Inventory (view by default if products view is chosen)"
                 }[resource] || "";
 
                 if (resourcePermissions.length === 0) return null;
@@ -244,23 +266,47 @@ export default function NewRolePage() {
                     </div>
                     
                     <div className="ml-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {resourcePermissions.map((permission) => (
-                        <div key={permission.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={permission.id}
-                            checked={selectedPermissions.includes(permission.id)}
-                            onCheckedChange={(checked) => 
-                              handlePermissionChange(permission.id, checked as boolean)
-                            }
-                          />
-                          <Label 
-                            htmlFor={permission.id}
-                            className="text-sm cursor-pointer capitalize"
-                          >
-                            {permission.action}
-                          </Label>
-                        </div>
-                      ))}
+                      {/* Define standard actions with proper mapping */}
+                      {["view", "create", "edit", "delete"].map((action) => {
+                        // Skip delete for inventory and orders
+                        if (action === "delete" && (resource === "inventory" || resource === "orders")) {
+                          return null;
+                        }
+                        
+                        // Find permission for this resource and action
+                        const permission = resourcePermissions.find(p => 
+                          p.action.toLowerCase() === action || 
+                          (p.action.toLowerCase() === "read" && action === "view") ||
+                          (p.action.toLowerCase() === "update" && action === "edit")
+                        );
+                        
+                        if (!permission) return null;
+                        
+                        const actionLabels = {
+                          view: "View",
+                          create: "Create", 
+                          edit: "Edit",
+                          delete: "Delete"
+                        };
+                        
+                        return (
+                          <div key={`${resource}-${action}`} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={permission.id}
+                              checked={selectedPermissions.includes(permission.id)}
+                              onCheckedChange={(checked) => 
+                                handlePermissionChange(permission.id, checked as boolean)
+                              }
+                            />
+                            <Label 
+                              htmlFor={permission.id}
+                              className="text-sm cursor-pointer"
+                            >
+                              {actionLabels[action as keyof typeof actionLabels]}
+                            </Label>
+                          </div>
+                        );
+                      })}
                     </div>
                     <Separator />
                   </div>

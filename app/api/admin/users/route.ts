@@ -3,15 +3,15 @@ import { getServerSession } from "next-auth";
 import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
-import { isAuthorizedAdmin } from "@/lib/utils";
+import { isAuthorizedAdminOnly } from "@/lib/utils";
 
 // GET /api/admin/users - Get all users
 export async function GET() {
   try {
     const session = await getServerSession(auth);
     
-    if (!isAuthorizedAdmin(session)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isAuthorizedAdminOnly(session)) {
+      return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 401 });
     }
 
     const users = await prisma.systemUser.findMany({
@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(auth);
     
-    if (!isAuthorizedAdmin(session)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isAuthorizedAdminOnly(session)) {
+      return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 401 });
     }
 
     const body = await request.json();

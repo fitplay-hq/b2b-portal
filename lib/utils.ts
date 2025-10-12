@@ -29,3 +29,35 @@ export function hasAdminAccess(userRole?: string): boolean {
 export function isAuthorizedAdmin(session: { user?: { role?: string } } | null): boolean {
   return session?.user && hasAdminAccess(session.user.role) || false;
 }
+
+/**
+ * Checks if a user has ADMIN role only (not SYSTEM_USER)
+ */
+export function isAdminOnly(userRole?: string): boolean {
+  return userRole === "ADMIN";
+}
+
+/**
+ * Checks if a user session has ADMIN role only
+ */
+export function isAuthorizedAdminOnly(session: { user?: { role?: string } } | null): boolean {
+  return session?.user && isAdminOnly(session.user.role) || false;
+}
+
+/**
+ * Checks if a user has permission for a specific resource and action
+ */
+export function hasPermission(
+  userPermissions: Array<{ resource: string; action: string }> | undefined,
+  resource: string,
+  action: string
+): boolean {
+  if (!userPermissions) return false;
+  
+  return userPermissions.some(permission => 
+    permission.resource === resource && 
+    (permission.action === action || 
+     (permission.action === "read" && action === "view") ||
+     (permission.action === "update" && action === "edit"))
+  );
+}
