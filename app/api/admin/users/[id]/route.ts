@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
+import { checkPermission } from "@/lib/auth-middleware";
+import { RESOURCES } from "@/lib/utils";
 
 // GET /api/admin/users/[id] - Get user by ID
 export async function GET(
@@ -10,10 +10,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(auth);
-    
-    if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Check permissions - only ADMIN should access users
+    const permissionCheck = await checkPermission(RESOURCES.USERS, 'view');
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error || "Unauthorized - Admin access required" },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
+      );
     }
 
     const user = await prisma.systemUser.findUnique({
@@ -62,10 +65,13 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(auth);
-    
-    if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Check permissions - only ADMIN should update users
+    const permissionCheck = await checkPermission(RESOURCES.USERS, 'update');
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error || "Unauthorized - Admin access required" },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
+      );
     }
 
     const body = await request.json();
@@ -109,7 +115,7 @@ export async function PUT(
     }
 
     // Prepare update data
-    const updateData: any = {};
+    const updateData: Record<string, any> = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (roleId) updateData.roleId = roleId;
@@ -164,10 +170,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(auth);
-    
-    if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Check permissions - only ADMIN should delete users
+    const permissionCheck = await checkPermission(RESOURCES.USERS, 'delete');
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error || "Unauthorized - Admin access required" },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
+      );
     }
 
     // Check if user exists
