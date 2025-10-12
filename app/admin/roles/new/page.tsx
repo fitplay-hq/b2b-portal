@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,11 +24,31 @@ interface Permission {
 }
 
 export default function NewRolePage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [roleName, setRoleName] = useState("");
   const [roleDescription, setRoleDescription] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
+
+  // Check if user is authorized (only ADMIN can create roles)
+  const isUnauthorized = session && session.user?.role !== "ADMIN";
+
+  useEffect(() => {
+    if (status === "loading") return; // Still loading
+    
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+
+    // Don't redirect, just stop loading
+    if (session.user?.role !== "ADMIN") {
+      setIsLoadingPermissions(false);
+      return;
+    }
+  }, [session, status, router]);
 
   // Fetch permissions from API
   useEffect(() => {
@@ -154,6 +176,30 @@ export default function NewRolePage() {
       alert("Network error. Please try again.");
     }
   };
+
+  // Show unauthorized message if user doesn't have permission
+  if (isUnauthorized) {
+    return (
+      <Layout isClient={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex flex-col items-center text-center p-8">
+              <Shield className="h-16 w-16 text-red-500 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+              <p className="text-gray-600 mb-4">
+                You do not have permission to create roles. Role management is restricted to administrators only.
+              </p>
+              <Button asChild variant="outline">
+                <Link href="/admin">
+                  Return to Dashboard
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout isClient={false}>

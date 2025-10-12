@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +19,8 @@ interface Role {
 }
 
 export default function UsersPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterByRole, setFilterByRole] = useState("all");
   const [filterByStatus, setFilterByStatus] = useState("all");
@@ -25,6 +29,25 @@ export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
+
+  // Check if user is authorized (only ADMIN can access users)
+  const isUnauthorized = session && session.user?.role !== "ADMIN";
+
+  useEffect(() => {
+    if (status === "loading") return; // Still loading
+    
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+
+    // Don't redirect, just set loading to false so we can show error message
+    if (session.user?.role !== "ADMIN") {
+      setIsLoadingUsers(false);
+      setIsLoadingRoles(false);
+      return;
+    }
+  }, [session, status, router]);
 
   // Fetch roles for filter dropdown
   useEffect(() => {
@@ -279,6 +302,30 @@ export default function UsersPage() {
       </div>
     </div>
   );
+
+  // Show unauthorized message if user doesn't have permission
+  if (isUnauthorized) {
+    return (
+      <Layout isClient={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex flex-col items-center text-center p-8">
+              <UserCog className="h-16 w-16 text-red-500 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+              <p className="text-gray-600 mb-4">
+                You do not have permission to access this page. User management is restricted to administrators only.
+              </p>
+              <Button asChild variant="outline">
+                <Link href="/admin">
+                  Return to Dashboard
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout isClient={false}>
