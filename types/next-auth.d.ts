@@ -2,6 +2,13 @@
 import { DefaultSession } from "next-auth"
 import { $Enums } from "@/lib/generated/prisma"
 
+interface Permission {
+  id: string
+  resource: string
+  action: string
+  description?: string | null
+}
+
 declare module "next-auth" {
   interface Session {
     user: {
@@ -11,6 +18,7 @@ declare module "next-auth" {
       role?: $Enums.Role
       systemRole?: string // For SYSTEM_USER, this contains the actual role name
       systemRoleId?: string // For SYSTEM_USER, this contains the role ID
+      permissions?: Permission[] // User's permissions
     } & DefaultSession["user"]
   }
 
@@ -21,6 +29,7 @@ declare module "next-auth" {
     role?: $Enums.Role
     systemRole?: string // For SYSTEM_USER, this contains the actual role name
     systemRoleId?: string // For SYSTEM_USER, this contains the role ID
+    permissions?: Permission[] // User's permissions
   }
 }
 

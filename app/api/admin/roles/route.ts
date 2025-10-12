@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
-import { isAuthorizedAdminOnly } from '@/lib/utils';
+import { checkPermission } from '@/lib/auth-middleware';
+import { RESOURCES } from '@/lib/utils';
 
 // GET /api/admin/roles - Get all roles
 export async function GET() {
   try {
-    const session = await getServerSession(auth);
-    
-    if (!isAuthorizedAdminOnly(session)) {
-      return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 });
+    // Check permissions - only ADMIN should access roles
+    const permissionCheck = await checkPermission(RESOURCES.ROLES, 'view');
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error || "Unauthorized - Admin access required" },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
+      );
     }
 
     const roles = await prisma.systemRole.findMany({
@@ -63,10 +65,13 @@ export async function GET() {
 // POST /api/admin/roles - Create a new role
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(auth);
-    
-    if (!isAuthorizedAdminOnly(session)) {
-      return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 });
+    // Check permissions - only ADMIN should create roles
+    const permissionCheck = await checkPermission(RESOURCES.ROLES, 'create');
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error || "Unauthorized - Admin access required" },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
+      );
     }
 
     const { name, description, permissionIds } = await request.json();

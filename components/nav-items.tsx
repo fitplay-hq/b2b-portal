@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   BarChart3,
   History,  
@@ -39,6 +40,8 @@ interface NavItemsProps {
 
 export default function NavItems({ isClient, isCollapsed = false }: NavItemsProps) {
   const pathname = usePathname();
+  const { pageAccess, isAdmin, RESOURCES, PERMISSIONS } = usePermissions();
+  
   const [clientsOpen, setClientsOpen] = useState(
     pathname.startsWith("/admin/clients")
   );
@@ -98,30 +101,39 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     );
   }
 
-  // Professional Admin Navigation
-  const adminNavItems = [
+  // Professional Admin Navigation with permission filtering
+  const allAdminNavItems = [
     { 
       href: "/admin", 
       label: "Dashboard", 
       icon: BarChart3,
       color: "text-blue-600",
-      bgColor: "bg-blue-50"
+      bgColor: "bg-blue-50",
+      permission: null // Always accessible
     },
     { 
       href: "/admin/products", 
       label: "Products", 
       icon: Package2,
       color: "text-purple-600",
-      bgColor: "bg-purple-50"
+      bgColor: "bg-purple-50",
+      permission: { resource: RESOURCES.PRODUCTS, action: PERMISSIONS.VIEW }
     },
     { 
       href: "/admin/orders", 
       label: "Orders", 
       icon: ShoppingCart,
       color: "text-green-600",
-      bgColor: "bg-green-50"
+      bgColor: "bg-green-50",
+      permission: { resource: RESOURCES.ORDERS, action: PERMISSIONS.VIEW }
     },
   ];
+
+  // Filter navigation items based on user permissions
+  const adminNavItems = allAdminNavItems.filter(item => {
+    if (!item.permission) return true; // Always show items without permission requirements
+    return pageAccess[item.permission.resource as keyof typeof pageAccess];
+  });
 
   return (
     <div className={cn("transition-all duration-300", isCollapsed ? "space-y-2" : "space-y-6")}>
@@ -186,60 +198,63 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </h3>
           <nav className="space-y-1">
             {/* Clients Collapsible */}
-            <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
-              <CollapsibleTrigger asChild>
-                <button
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-left text-sm font-medium group",
-                    clientsOpen || pathname.startsWith("/admin/clients")
-                      ? "bg-orange-50 text-orange-700"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                  )}
-                >
-                  <Users className={cn(
-                    "h-4 w-4 transition-colors",
-                    clientsOpen || pathname.startsWith("/admin/clients")
-                      ? "text-orange-600"
-                      : "text-gray-400 group-hover:text-gray-600"
-                  )} />
-                  Clients
-                  <ChevronDown
+            {pageAccess.clients && (
+              <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
+                <CollapsibleTrigger asChild>
+                  <button
                     className={cn(
-                      "h-4 w-4 ml-auto transition-transform duration-200",
-                      clientsOpen ? "rotate-180" : ""
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-left text-sm font-medium group",
+                      clientsOpen || pathname.startsWith("/admin/clients")
+                        ? "bg-orange-50 text-orange-700"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
-                  />
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-1 ml-6 space-y-1">
-                <Link
-                  href="/admin/clients"
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
-                    pathname === "/admin/clients"
-                      ? "bg-orange-100 text-orange-800"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  )}
-                >
-                  <List className="h-3 w-3" />
-                  All Clients
-                </Link>
-                <Link
-                  href="/admin/clients/new"
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
-                    pathname === "/admin/clients/new"
-                      ? "bg-orange-100 text-orange-800"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  )}
-                >
-                  <Plus className="h-3 w-3" />
-                  Add Client
-                </Link>
-              </CollapsibleContent>
-            </Collapsible>
+                  >
+                    <Users className={cn(
+                      "h-4 w-4 transition-colors",
+                      clientsOpen || pathname.startsWith("/admin/clients")
+                        ? "text-orange-600"
+                        : "text-gray-400 group-hover:text-gray-600"
+                    )} />
+                    Clients
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 ml-auto transition-transform duration-200",
+                        clientsOpen ? "rotate-180" : ""
+                      )}
+                    />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-1 ml-6 space-y-1">
+                  <Link
+                    href="/admin/clients"
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                      pathname === "/admin/clients"
+                        ? "bg-orange-100 text-orange-800"
+                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    )}
+                  >
+                    <List className="h-3 w-3" />
+                    All Clients
+                  </Link>
+                  <Link
+                    href="/admin/clients/new"
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                      pathname === "/admin/clients/new"
+                        ? "bg-orange-100 text-orange-800"
+                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    )}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add Client
+                  </Link>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
 
             {/* Companies Collapsible */}
+            {pageAccess.companies && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -292,8 +307,10 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                 </Link>
               </CollapsibleContent>
             </Collapsible>
+            )}
 
-            {/* Role Management Collapsible */}
+            {/* Role Management Collapsible - ADMIN Only */}
+            {isAdmin && (
             <Collapsible open={rolesOpen} onOpenChange={setRolesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -347,8 +364,10 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                 </Link>
               </CollapsibleContent>
             </Collapsible>
+            )}
 
-            {/* User Management Collapsible */}
+            {/* User Management Collapsible - ADMIN Only */}
+            {isAdmin && (
             <Collapsible open={usersOpen} onOpenChange={setUsersOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -402,6 +421,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                 </Link>
               </CollapsibleContent>
             </Collapsible>
+            )}
           </nav>
         </div>
       )}
@@ -413,6 +433,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
           
           {/* Clients Dropdown */}
+          {pageAccess.clients && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -447,8 +468,10 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
 
           {/* Companies Dropdown */}
+          {pageAccess.companies && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -483,8 +506,10 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
 
-          {/* Role Management Dropdown */}
+          {/* Role Management Dropdown - ADMIN Only */}
+          {isAdmin && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -519,8 +544,10 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
 
-          {/* User Management Dropdown */}
+          {/* User Management Dropdown - ADMIN Only */}
+          {isAdmin && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -555,6 +582,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
         </div>
       )}
 

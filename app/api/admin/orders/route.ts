@@ -1,15 +1,17 @@
-import { getServerSession } from "next-auth";
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "../../auth/[...nextauth]/route";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { isAuthorizedAdmin } from "@/lib/utils";
+import { checkPermission } from "@/lib/auth-middleware";
+import { RESOURCES } from "@/lib/utils";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
-        const session = await getServerSession(auth);
-
-        if (!isAuthorizedAdmin(session)) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        // Check permissions
+        const permissionCheck = await checkPermission(RESOURCES.ORDERS, 'view');
+        if (!permissionCheck.success) {
+            return NextResponse.json(
+                { error: permissionCheck.error },
+                { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
+            );
         }
 
         const orders = await prisma.order.findMany({

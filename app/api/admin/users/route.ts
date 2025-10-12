@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
-import { isAuthorizedAdminOnly } from "@/lib/utils";
+import { checkPermission } from "@/lib/auth-middleware";
+import { RESOURCES } from "@/lib/utils";
 
 // GET /api/admin/users - Get all users
 export async function GET() {
   try {
-    const session = await getServerSession(auth);
-    
-    if (!isAuthorizedAdminOnly(session)) {
-      return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 401 });
+    // Check permissions - only ADMIN should access users
+    const permissionCheck = await checkPermission(RESOURCES.USERS, 'view');
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error || "Unauthorized - Admin access required" },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
+      );
     }
 
     const users = await prisma.systemUser.findMany({
@@ -54,10 +56,13 @@ export async function GET() {
 // POST /api/admin/users - Create a new user
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(auth);
-    
-    if (!isAuthorizedAdminOnly(session)) {
-      return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 401 });
+    // Check permissions - only ADMIN should create users  
+    const permissionCheck = await checkPermission(RESOURCES.USERS, 'create');
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error || "Unauthorized - Admin access required" },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
+      );
     }
 
     const body = await request.json();

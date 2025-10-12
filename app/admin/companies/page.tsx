@@ -2,16 +2,20 @@
 
 import { useState } from "react";
 import Layout from "@/components/layout";
+import { PageGuard } from "@/components/page-guard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useCompanies } from "@/data/company/admin.hooks";
+import { usePermissions } from "@/hooks/use-permissions";
 import { CompanyList } from "./components/company-list";
 import { CompanyStatsGrid } from "./components/company-stats-grid";
+import { RESOURCES } from "@/lib/utils";
 
 export default function CompaniesPage() {
   const { companies, isLoading, error } = useCompanies();
   const [searchTerm, setSearchTerm] = useState("");
+  const { actions } = usePermissions();
 
   const filteredCompanies =
     companies?.filter(
@@ -22,19 +26,22 @@ export default function CompaniesPage() {
 
   if (error) {
     return (
-      <Layout isClient={false}>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold">Error loading companies</h2>
-            <p className="text-muted-foreground mt-2">{error.message}</p>
+      <PageGuard resource={RESOURCES.COMPANIES} action="view">
+        <Layout isClient={false}>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold">Error loading companies</h2>
+              <p className="text-muted-foreground mt-2">{error.message}</p>
+            </div>
           </div>
-        </div>
-      </Layout>
+        </Layout>
+      </PageGuard>
     );
   }
 
   return (
-    <Layout isClient={false}>
+    <PageGuard resource={RESOURCES.COMPANIES} action="view">
+      <Layout isClient={false}>
       <div className="min-h-[calc(100vh-4rem)] bg-gray-50 -m-6">
         <div className="p-8">
           <div className="space-y-8">
@@ -47,12 +54,14 @@ export default function CompaniesPage() {
                     Manage company information and product access permissions
                   </p>
                 </div>
+                {actions.companies.create && (
                 <Link href="/admin/companies/new">
                   <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Company
                   </Button>
                 </Link>
+                )}
               </div>
             </div>
 
@@ -96,5 +105,6 @@ export default function CompaniesPage() {
         </div>
       </div>
     </Layout>
+    </PageGuard>
   );
 }

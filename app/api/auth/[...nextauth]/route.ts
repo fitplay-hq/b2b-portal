@@ -81,8 +81,8 @@ export const auth: AuthOptions = {
         token.name = user.name;
         token.email = user.email;
         token.role = (user as { role: UserRole }).role;
-        token.systemRole = (user as any).systemRole;
-        token.systemRoleId = (user as any).systemRoleId;
+        token.systemRole = (user as { systemRole?: string }).systemRole;
+        token.systemRoleId = (user as { systemRoleId?: string }).systemRoleId;
       }
       return token;
     },
@@ -96,6 +96,36 @@ export const auth: AuthOptions = {
           systemRole: token.systemRole as string,
           systemRoleId: token.systemRoleId as string,
         };
+
+        // Load permissions for SYSTEM_USER
+        if (token.role === "SYSTEM_USER" && token.systemRoleId) {
+          try {
+            const systemRole = await prisma.systemRole.findUnique({
+              where: { id: token.systemRoleId as string },
+              include: {
+                permissions: {
+                  select: {
+                    id: true,
+                    resource: true,
+                    action: true,
+                    description: true,
+                  }
+                }
+              }
+            });
+
+            if (systemRole) {
+              session.user.permissions = systemRole.permissions;
+            }
+          } catch (error) {
+            console.error("Error loading user permissions:", error);
+            session.user.permissions = [];
+          }
+        }
+        // ADMIN gets all permissions (or we can set them explicitly)
+        else if (token.role === "ADMIN") {
+          session.user.permissions = []; // Will be handled as special case in permission checks
+        }
       }
       return session;
     },

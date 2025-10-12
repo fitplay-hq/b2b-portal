@@ -4,10 +4,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import Layout from "@/components/layout";
+import PageGuard from "@/components/page-guard";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2, Boxes, Upload } from "lucide-react";
 import { useProductFilters } from "@/hooks/use-product-filters";
 import { useProductForm } from "@/hooks/use-product-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 import { StatsGrid } from "./components/stats-grid";
 import { ProductFilters } from "./components/product-filters";
@@ -27,6 +29,7 @@ export default function AdminProductsPage() {
   const { products, error, isLoading, mutate } = useProducts();
   const { deleteProduct } = useDeleteProduct();
   const { createProducts } = useCreateProducts();
+  const { actions, RESOURCES } = usePermissions();
 
   // Inventory dialog state
   const [inventoryDialog, setInventoryDialog] = useState<{
@@ -79,7 +82,7 @@ export default function AdminProductsPage() {
 
   if (isLoading) {
     return (
-      <Layout title="Product Management" isClient={false}>
+      <Layout isClient={false}>
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -89,7 +92,7 @@ export default function AdminProductsPage() {
 
   if (error) {
     return (
-      <Layout title="Product Management" isClient={false}>
+      <Layout isClient={false}>
         <div className="text-center text-destructive">
           Failed to load products. Please try again later.
         </div>
@@ -98,24 +101,27 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <Layout title="Product Management" isClient={false}>
-      <div className="flex flex-col h-full gap-6">
-        <div className="shrink-0 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Product Management</h1>
-              <p className="text-muted-foreground">
-                Manage your product catalog and inventory
-              </p>
+    <PageGuard resource={RESOURCES.PRODUCTS} action="view">
+      <Layout isClient={false}>
+        <div className="flex flex-col h-full gap-6">
+          <div className="shrink-0 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold">Product Management</h1>
+                <p className="text-muted-foreground">
+                  Manage your product catalog and inventory
+                </p>
+              </div>
+              <div className="flex space-x-4">
+                {actions.products.create && (
+                  <Button onClick={formControls.openNewDialog}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Product
+                  </Button>
+                )}
+                {actions.products.create && <BulkActionsDropdown />}
+              </div>
             </div>
-            <div className="flex space-x-4">
-              <Button onClick={formControls.openNewDialog}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
-              <BulkActionsDropdown />
-            </div>
-          </div>
 
           <StatsGrid products={products || []} />
           <ProductFilters {...filterProps} />
@@ -134,11 +140,12 @@ export default function AdminProductsPage() {
       </div>
 
       <ProductFormDialog {...formControls} />
-      <UpdateInventoryDialog
-        product={inventoryDialog.product}
-        isOpen={inventoryDialog.isOpen}
-        onClose={handleCloseInventoryDialog}
-      />
-    </Layout>
+        <UpdateInventoryDialog
+          product={inventoryDialog.product}
+          isOpen={inventoryDialog.isOpen}
+          onClose={handleCloseInventoryDialog}
+        />
+      </Layout>
+    </PageGuard>
   );
 }

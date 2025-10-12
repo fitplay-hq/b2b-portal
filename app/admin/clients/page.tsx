@@ -1,6 +1,7 @@
 "use client";
 
 import Layout from "@/components/layout";
+import { PageGuard } from "@/components/page-guard";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,15 +16,20 @@ import { useClients, useDeleteClient } from "@/data/client/admin.hooks";
 import { useOrders } from "@/data/order/admin.hooks";
 import { useClientFilters } from "@/hooks/use-client-filters";
 import { useClientManagement } from "@/hooks/use-client-management";
+import { usePermissions } from "@/hooks/use-permissions";
 import { ClientStatsGrid } from "./components/client-stats-grid";
 import { ClientList } from "./components/client-list";
 import { ClientFilters } from "./components/client-filters";
 import Link from "next/link";
 import { useState } from "react";
+import { RESOURCES } from "@/lib/utils";
 
 export default function AdminClientsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+
+  // Permission checks
+  const { actions } = usePermissions();
 
   // 1. DATA FETCHING
   const {
@@ -73,30 +79,35 @@ export default function AdminClientsPage() {
 
   if (isLoading) {
     return (
-      <Layout isClient={false}>
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </Layout>
+      <PageGuard resource={RESOURCES.CLIENTS} action="view">
+        <Layout isClient={false}>
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        </Layout>
+      </PageGuard>
     );
   }
 
   if (clientsError || ordersError) {
     return (
-      <Layout isClient={false}>
-        <div className="text-center text-destructive">
-          Failed to load client. Please try again later.
-        </div>
-      </Layout>
+      <PageGuard resource={RESOURCES.CLIENTS} action="view">
+        <Layout isClient={false}>
+          <div className="text-center text-destructive">
+            Failed to load client. Please try again later.
+          </div>
+        </Layout>
+      </PageGuard>
     );
   }
 
   // 3. PRESENTATION
   return (
-    <Layout isClient={false}>
-      <div className="min-h-[calc(100vh-4rem)] bg-gray-50 -m-6">
-        <div className="p-8">
-          <div className="space-y-8">
+    <PageGuard resource={RESOURCES.CLIENTS} action="view">
+      <Layout isClient={false}>
+        <div className="min-h-[calc(100vh-4rem)] bg-gray-50 -m-6">
+          <div className="p-8">
+            <div className="space-y-8">
             {/* Enhanced Header */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
               <div className="flex items-center justify-between">
@@ -106,12 +117,14 @@ export default function AdminClientsPage() {
                     Manage client accounts and permissions efficiently
                   </p>
                 </div>
+                {actions.clients.create && (
                 <Link href="/admin/clients/new">
                   <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Client
                   </Button>
                 </Link>
+                )}
               </div>
             </div>
 
@@ -153,5 +166,6 @@ export default function AdminClientsPage() {
         </DialogContent>
       </Dialog>
     </Layout>
+    </PageGuard>
   );
 }
