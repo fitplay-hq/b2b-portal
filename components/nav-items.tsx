@@ -42,6 +42,9 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
   const pathname = usePathname();
   const { pageAccess, isAdmin, RESOURCES, PERMISSIONS, isLoading } = usePermissions();
   
+  // Always show basic navigation items while loading to prevent blank sidebar
+  const showLoadingState = isLoading;
+  
   const [clientsOpen, setClientsOpen] = useState(
     pathname.startsWith("/admin/clients")
   );
@@ -129,11 +132,13 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     },
   ];
 
-  // Show loading or filter navigation items based on user permissions
-  const adminNavItems = isLoading ? allAdminNavItems : allAdminNavItems.filter(item => {
-    if (!item.permission) return true; // Always show items without permission requirements
-    return pageAccess[item.permission.resource as keyof typeof pageAccess];
-  });
+  // Show all basic items during loading, then filter based on permissions
+  const adminNavItems = showLoadingState 
+    ? allAdminNavItems // Show all basic items while loading
+    : allAdminNavItems.filter(item => {
+        if (!item.permission) return true; // Always show items without permission requirements
+        return pageAccess[item.permission.resource as keyof typeof pageAccess];
+      });
 
   return (
     <div className={cn("transition-all duration-300", isCollapsed ? "space-y-2" : "space-y-6")}>
@@ -198,7 +203,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </h3>
           <nav className="space-y-1">
             {/* Clients Collapsible */}
-            {(isLoading || pageAccess.clients) && (
+            {(showLoadingState || pageAccess.clients) && (
               <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
                 <CollapsibleTrigger asChild>
                   <button
@@ -208,6 +213,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                         ? "bg-orange-50 text-orange-700"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
+                    suppressHydrationWarning={true}
                   >
                     <Users className={cn(
                       "h-4 w-4 transition-colors",
@@ -254,7 +260,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
 
             {/* Companies Collapsible */}
-            {(isLoading || pageAccess.companies) && (
+            {(showLoadingState || pageAccess.companies) && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -264,6 +270,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                       ? "bg-teal-50 text-teal-700"
                       : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   )}
+                  suppressHydrationWarning={true}
                 >
                   <Building2 className={cn(
                     "h-4 w-4 transition-colors",
@@ -310,7 +317,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
 
             {/* Role Management Collapsible - ADMIN Only */}
-            {(isLoading || isAdmin) && (
+            {(showLoadingState || isAdmin) && (
             <Collapsible open={rolesOpen} onOpenChange={setRolesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -367,7 +374,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
 
             {/* User Management Collapsible - ADMIN Only */}
-            {(isLoading || isAdmin) && (
+            {(showLoadingState || isAdmin) && (
             <Collapsible open={usersOpen} onOpenChange={setUsersOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -433,7 +440,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
           
           {/* Clients Dropdown */}
-          {(isLoading || pageAccess.clients) && (
+          {(showLoadingState || pageAccess.clients) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -471,7 +478,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* Companies Dropdown */}
-          {(isLoading || pageAccess.companies) && (
+          {(showLoadingState || pageAccess.companies) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -509,7 +516,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* Role Management Dropdown - ADMIN Only */}
-          {(isLoading || isAdmin) && (
+          {(showLoadingState || isAdmin) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -547,7 +554,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* User Management Dropdown - ADMIN Only */}
-          {(isLoading || isAdmin) && (
+          {(showLoadingState || isAdmin) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
