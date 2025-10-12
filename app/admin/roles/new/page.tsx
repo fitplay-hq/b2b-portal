@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Shield, ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 // Interface for permissions fetched from API
 
@@ -161,19 +162,19 @@ export default function NewRolePage() {
         setRoleDescription("");
         setSelectedPermissions([]);
         
-        // Show success message (you can replace with toast later)
-        alert("Role created successfully!");
+        // Show success message and redirect
+        toast.success("Role created successfully!");
         
-        // Optionally redirect to roles list
-        // window.location.href = "/admin/roles";
+        // Redirect to roles list
+        router.push("/admin/roles");
       } else {
         const error = await response.json();
         console.error("Failed to create role:", error);
-        alert(`Failed to create role: ${error.message || "Unknown error"}`);
+        toast.error(`Failed to create role: ${error.message || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Network error:", error);
-      alert("Network error. Please try again.");
+      toast.error("Network error. Please try again.");
     }
   };
 

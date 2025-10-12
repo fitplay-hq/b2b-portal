@@ -12,10 +12,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { UserCog, UserPlus, Search, Users, Shield, Clock } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
+import { ClientOnly } from "@/components/client-only";
 
 interface Role {
   id: string;
   name: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export default function UsersPage() {
@@ -26,7 +37,7 @@ export default function UsersPage() {
   const [filterByStatus, setFilterByStatus] = useState("all");
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(true);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
 
@@ -95,22 +106,35 @@ export default function UsersPage() {
     fetchUsers();
   }, []);
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    const ok = window.confirm(`Are you sure you want to delete user "${userName}"?`);
-    if (!ok) return;
+  // Perform actual user deletion
+  const performDeleteUser = async (userId: string, userName: string) => {
     try {
       const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
       if (res.ok) {
         setUsers((prev) => prev.filter(u => u.id !== userId));
-        alert(`User "${userName}" deleted`);
+        toast.success(`User "${userName}" deleted`);
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Failed to delete user: ${err?.error || 'Unknown error'}`);
+        toast.error(`Failed to delete user: ${err?.error || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Error deleting user:', err);
-      alert('Network error while deleting user');
+      toast.error('Network error while deleting user');
     }
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    toast(`Are you sure you want to delete user "${userName}"?`, {
+      description: "This action cannot be undone.",
+      action: {
+        label: "Delete",
+        onClick: () => performDeleteUser(userId, userName),
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => {},
+      },
+    });
   };
 
   const UserManagementContent = () => (
@@ -141,50 +165,56 @@ export default function UsersPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">Search Users</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="search"
-                  placeholder="Search by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <ClientOnly>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="search"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </ClientOnly>
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Filter by Role</Label>
-              <Select value={filterByRole} onValueChange={setFilterByRole}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All roles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All roles</SelectItem>
-                  {isLoadingRoles ? (
-                    <SelectItem value="loading" disabled>Loading roles...</SelectItem>
-                  ) : (
-                    roles.map((role) => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <ClientOnly>
+                <Select value={filterByRole} onValueChange={setFilterByRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All roles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All roles</SelectItem>
+                    {isLoadingRoles ? (
+                      <SelectItem value="loading" disabled>Loading roles...</SelectItem>
+                    ) : (
+                      roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </ClientOnly>
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Filter by Status</Label>
-              <Select value={filterByStatus} onValueChange={setFilterByStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
+              <ClientOnly>
+                <Select value={filterByStatus} onValueChange={setFilterByStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </ClientOnly>
             </div>
           </div>
         </CardContent>

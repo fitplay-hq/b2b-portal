@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserCog, ArrowLeft, Save, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface Role {
   id: string;
@@ -84,7 +85,7 @@ export default function NewUserPage() {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      toast.error("Passwords do not match!");
       return;
     }
 
@@ -113,19 +114,19 @@ export default function NewUserPage() {
         setConfirmPassword("");
         setRole("");
         
-        // Show success message (you can replace with toast later)
-        alert("User created successfully!");
+        // Show success message and redirect
+        toast.success("User created successfully!");
         
-        // Optionally redirect to users list
-        // window.location.href = "/admin/users";
+        // Redirect to users list
+        router.push("/admin/users");
       } else {
         const error = await response.json();
         console.error("Failed to create user:", error);
-        alert(`Failed to create user: ${error.message || "Unknown error"}`);
+        toast.error(`Failed to create user: ${error.message || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Network error:", error);
-      alert("Network error. Please try again.");
+      toast.error("Network error. Please try again.");
     }
   };
 

@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Shield, UserPlus, Search, Settings, Eye, Trash2 } from "lucide-react";
+import { Shield, UserPlus, Search, Settings, Eye, Trash2, Edit } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface Role {
   id: string;
@@ -80,14 +81,8 @@ export default function RolesPage() {
     fetchRoles();
   }, []);
 
-  // Delete role function
-  const handleDeleteRole = async (roleId: string, roleName: string) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete the role "${roleName}"? This action cannot be undone.`
-    );
-    
-    if (!confirmDelete) return;
-
+  // Perform actual role deletion
+  const performDeleteRole = async (roleId: string, roleName: string) => {
     try {
       const response = await fetch(`/api/admin/roles/${roleId}`, {
         method: "DELETE",
@@ -96,15 +91,30 @@ export default function RolesPage() {
       if (response.ok) {
         // Remove the role from the local state
         setRoles(roles.filter(role => role.id !== roleId));
-        alert(`Role "${roleName}" has been deleted successfully.`);
+        toast.success(`Role "${roleName}" has been deleted successfully.`);
       } else {
         const errorData = await response.json();
-        alert(`Failed to delete role: ${errorData.message || "Unknown error"}`);
+        toast.error(`Failed to delete role: ${errorData.message || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error deleting role:", error);
-      alert("Network error while deleting role. Please try again.");
+      toast.error("Network error while deleting role. Please try again.");
     }
+  };
+
+  // Delete role function
+  const handleDeleteRole = async (roleId: string, roleName: string) => {
+    toast(`Are you sure you want to delete the role "${roleName}"?`, {
+      description: "This action cannot be undone.",
+      action: {
+        label: "Delete",
+        onClick: () => performDeleteRole(roleId, roleName),
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => {},
+      },
+    });
   };
   
   const RoleManagementContent = () => (
@@ -228,6 +238,17 @@ export default function RolesPage() {
                   <span>Permissions: {role._count?.permissions || role.permissions?.length || 0}</span>
                 </div>
                 <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    asChild
+                  >
+                    <Link href={`/admin/roles/${role.id}`}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Link>
+                  </Button>
                   <Button 
                     variant="destructive" 
                     size="sm" 
