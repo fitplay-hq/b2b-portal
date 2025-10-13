@@ -231,22 +231,26 @@ export const NAVIGATION_ITEMS = [
  */
 export function getAccessibleNavItems(session: UserSession | null): typeof NAVIGATION_ITEMS {
   if (!session?.user) return [];
-  
+
   const { role } = session.user;
+
+  // ADMIN should see all navigation items (admin-only items included)
+  if (role === 'ADMIN') return NAVIGATION_ITEMS;
+
   const permissions = getUserPermissions(session);
-  
+
   return NAVIGATION_ITEMS.filter(item => {
     // Always show dashboard
     if (!item.permission && !item.adminOnly) return true;
-    
-    // Admin-only items (users, roles)
-    if (item.adminOnly) return role === 'ADMIN';
-    
+
+    // Admin-only items (users, roles) are not visible to non-admins
+    if (item.adminOnly) return false;
+
     // Permission-based items
     if (item.permission) {
       return hasPermission(permissions, item.permission.resource, item.permission.action);
     }
-    
+
     return false;
   });
 }

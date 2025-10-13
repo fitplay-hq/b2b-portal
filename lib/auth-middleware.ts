@@ -17,18 +17,7 @@ export async function withPermissions(
     // Get the current session
     const session = await getServerSession(auth);
 
-    console.log('withPermissions DEBUG:', {
-      hasSession: !!session,
-      user: session?.user ? {
-        id: session.user.id,
-        role: session.user.role,
-        systemRole: session.user.systemRole,
-        systemRoleId: session.user.systemRoleId,
-        hasPermissions: !!session.user.permissions?.length
-      } : null,
-      requiredResource,
-      requiredAction
-    });
+    // Debug logs removed - use only for troubleshooting
 
     if (!session?.user) {
       return NextResponse.json(
@@ -49,11 +38,7 @@ export async function withPermissions(
       // Load user permissions if not already in session
       let userPermissions: Permission[] = user.permissions || [];
 
-      console.log('SYSTEM_USER permission check:', {
-        systemRoleId: user.systemRoleId,
-        hasSessionPermissions: userPermissions.length > 0,
-        sessionPermissions: userPermissions
-      });
+      // System user permission loading
 
       if (!userPermissions.length && user.systemRoleId) {
         try {
@@ -71,12 +56,7 @@ export async function withPermissions(
             }
           });
 
-          console.log('Loaded systemRole from DB:', {
-            roleFound: !!systemRole,
-            roleName: systemRole?.name,
-            permissionsCount: systemRole?.permissions?.length || 0,
-            permissions: systemRole?.permissions
-          });
+          // Role loaded from database
 
           userPermissions = systemRole?.permissions || [];
         } catch (error) {
@@ -95,11 +75,7 @@ export async function withPermissions(
         requiredAction
       );
 
-      console.log('Permission check result:', {
-        hasRequiredPermission,
-        userPermissions: userPermissions.map(p => `${p.resource}.${p.action}`),
-        required: `${requiredResource}.${requiredAction}`
-      });
+      // Permission check completed
 
       if (!hasRequiredPermission) {
         return NextResponse.json(
