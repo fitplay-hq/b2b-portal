@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Shield, UserPlus, Search, Settings, Eye, Trash2, Edit } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PageGuard } from "@/components/page-guard";
 
 interface Role {
   id: string;
@@ -333,8 +334,10 @@ export default function RolesPage() {
   }
 
   return (
-    <Layout isClient={false}>
-      <RoleManagementContent />
-    </Layout>
+    <PageGuard adminOnly={true}>
+      <Layout isClient={false}>
+        <RoleManagementContent />
+      </Layout>
+    </PageGuard>
   );
 }

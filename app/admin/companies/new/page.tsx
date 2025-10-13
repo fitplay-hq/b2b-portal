@@ -11,6 +11,7 @@ import { ProductAccessSummary } from "../components/product-access-summary";
 import { ProductSelectionTable } from "../components/product-selection-table";
 import { useCreateCompany } from "@/data/company/admin.hooks";
 import { useProducts } from "@/data/product/admin.hooks";
+import { PageGuard } from "@/components/page-guard";
 
 
 
@@ -81,7 +82,8 @@ export default function NewCompanyPage() {
   }
 
   return (
-    <Layout isClient={false}>
+    <PageGuard resource="companies" action="create">
+      <Layout isClient={false}>
       {/* Enhanced Header */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 mb-8">
         <div className="flex items-center gap-6">
@@ -163,6 +165,7 @@ export default function NewCompanyPage() {
                 </Button>
               </div>
             </form>
-    </Layout>
+      </Layout>
+    </PageGuard>
   );
 }

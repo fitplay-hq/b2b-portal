@@ -17,6 +17,19 @@ export async function withPermissions(
     // Get the current session
     const session = await getServerSession(auth);
 
+    console.log('withPermissions DEBUG:', {
+      hasSession: !!session,
+      user: session?.user ? {
+        id: session.user.id,
+        role: session.user.role,
+        systemRole: session.user.systemRole,
+        systemRoleId: session.user.systemRoleId,
+        hasPermissions: !!session.user.permissions?.length
+      } : null,
+      requiredResource,
+      requiredAction
+    });
+
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -36,6 +49,12 @@ export async function withPermissions(
       // Load user permissions if not already in session
       let userPermissions: Permission[] = user.permissions || [];
 
+      console.log('SYSTEM_USER permission check:', {
+        systemRoleId: user.systemRoleId,
+        hasSessionPermissions: userPermissions.length > 0,
+        sessionPermissions: userPermissions
+      });
+
       if (!userPermissions.length && user.systemRoleId) {
         try {
           const systemRole = await prisma.systemRole.findUnique({
@@ -50,6 +69,13 @@ export async function withPermissions(
                 }
               }
             }
+          });
+
+          console.log('Loaded systemRole from DB:', {
+            roleFound: !!systemRole,
+            roleName: systemRole?.name,
+            permissionsCount: systemRole?.permissions?.length || 0,
+            permissions: systemRole?.permissions
           });
 
           userPermissions = systemRole?.permissions || [];
@@ -68,6 +94,12 @@ export async function withPermissions(
         requiredResource,
         requiredAction
       );
+
+      console.log('Permission check result:', {
+        hasRequiredPermission,
+        userPermissions: userPermissions.map(p => `${p.resource}.${p.action}`),
+        required: `${requiredResource}.${requiredAction}`
+      });
 
       if (!hasRequiredPermission) {
         return NextResponse.json(

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserCog, ArrowLeft, Save, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PageGuard } from "@/components/page-guard";
 
 interface Role {
   id: string;
@@ -155,7 +156,8 @@ export default function NewUserPage() {
   }
 
   return (
-    <Layout isClient={false}>
+    <PageGuard adminOnly={true}>
+      <Layout isClient={false}>
       <div className="space-y-8 max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -343,6 +345,7 @@ export default function NewUserPage() {
         </div>
       </form>
       </div>
-    </Layout>
+      </Layout>
+    </PageGuard>
   );
 }

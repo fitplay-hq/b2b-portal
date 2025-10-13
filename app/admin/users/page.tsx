@@ -14,6 +14,7 @@ import { UserCog, UserPlus, Search, Users, Shield, Clock } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ClientOnly } from "@/components/client-only";
+import { PageGuard } from "@/components/page-guard";
 
 interface Role {
   id: string;
@@ -358,8 +359,10 @@ export default function UsersPage() {
   }
 
   return (
-    <Layout isClient={false}>
-      <UserManagementContent />
-    </Layout>
+    <PageGuard adminOnly={true}>
+      <Layout isClient={false}>
+        <UserManagementContent />
+      </Layout>
+    </PageGuard>
   );
 }

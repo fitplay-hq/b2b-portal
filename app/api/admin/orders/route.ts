@@ -1,18 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { checkPermission } from "@/lib/auth-middleware";
-import { RESOURCES } from "@/lib/utils";
+import { withPermissions } from "@/lib/auth-middleware";
 
-export async function GET() {
-    try {
-        // Check permissions
-        const permissionCheck = await checkPermission(RESOURCES.ORDERS, 'view');
-        if (!permissionCheck.success) {
-            return NextResponse.json(
-                { error: permissionCheck.error },
-                { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
-            );
-        }
+export async function GET(req: NextRequest) {
+    return withPermissions(req, async () => {
+        try {
 
         const orders = await prisma.order.findMany({
             select: {
@@ -75,12 +67,13 @@ export async function GET() {
             },
         });
 
-        return NextResponse.json(orders);
-    } catch (error) {
-        console.error("Error fetching admin orders:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch orders" },
-            { status: 500 }
-        );
-    }
+            return NextResponse.json(orders);
+        } catch (error) {
+            console.error("Error fetching admin orders:", error);
+            return NextResponse.json(
+                { error: "Failed to fetch orders" },
+                { status: 500 }
+            );
+        }
+    }, "orders", "view");
 }

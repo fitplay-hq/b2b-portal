@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Shield, ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PageGuard } from "@/components/page-guard";
 
 // Interface for permissions fetched from API
 
@@ -203,7 +204,8 @@ export default function NewRolePage() {
   }
 
   return (
-    <Layout isClient={false}>
+    <PageGuard adminOnly={true}>
+      <Layout isClient={false}>
       <div className="space-y-8 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -415,6 +417,7 @@ export default function NewRolePage() {
         </div>
       </form>
       </div>
-    </Layout>
+      </Layout>
+    </PageGuard>
   );
 }

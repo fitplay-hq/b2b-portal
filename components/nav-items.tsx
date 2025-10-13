@@ -40,9 +40,10 @@ interface NavItemsProps {
 
 export default function NavItems({ isClient, isCollapsed = false }: NavItemsProps) {
   const pathname = usePathname();
-  const { pageAccess, isAdmin, RESOURCES, PERMISSIONS, isLoading } = usePermissions();
+  const { pageAccess, actions, isAdmin, RESOURCES, PERMISSIONS, isLoading } = usePermissions();
   
-  // Always show basic navigation items while loading to prevent blank sidebar
+  // Prevent flickering by showing items until permission data is loaded
+  // Only hide items if explicitly denied after loading completes
   const showLoadingState = isLoading;
   
   const [clientsOpen, setClientsOpen] = useState(
@@ -100,6 +101,19 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             </Link>
           );
         })}
+      </nav>
+    );
+  }
+
+  // Show loading skeleton while permissions are loading
+  if (isLoading) {
+    return (
+      <nav className="space-y-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="animate-pulse">
+            <div className="h-9 bg-gray-200 rounded-lg"></div>
+          </div>
+        ))}
       </nav>
     );
   }
@@ -203,7 +217,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </h3>
           <nav className="space-y-1">
             {/* Clients Collapsible */}
-            {(showLoadingState || pageAccess.clients) && (
+            {(!isLoading && pageAccess.clients) && (
               <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
                 <CollapsibleTrigger asChild>
                   <button
@@ -243,24 +257,26 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                     <List className="h-3 w-3" />
                     All Clients
                   </Link>
-                  <Link
-                    href="/admin/clients/new"
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
-                      pathname === "/admin/clients/new"
-                        ? "bg-orange-100 text-orange-800"
-                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                    )}
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add Client
-                  </Link>
+                  {(!isLoading && actions.clients.create) && (
+                    <Link
+                      href="/admin/clients/new"
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                        pathname === "/admin/clients/new"
+                          ? "bg-orange-100 text-orange-800"
+                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                      )}
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Client
+                    </Link>
+                  )}
                 </CollapsibleContent>
               </Collapsible>
             )}
 
             {/* Companies Collapsible */}
-            {(showLoadingState || pageAccess.companies) && (
+            {(!isLoading && pageAccess.companies) && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -300,24 +316,26 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <List className="h-3 w-3" />
                   All Companies
                 </Link>
-                <Link
-                  href="/admin/companies/new"
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
-                    pathname === "/admin/companies/new"
-                      ? "bg-teal-100 text-teal-800"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  )}
-                >
-                  <Plus className="h-3 w-3" />
-                  Add Company
-                </Link>
+                {(!isLoading && actions.companies.create) && (
+                  <Link
+                    href="/admin/companies/new"
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                      pathname === "/admin/companies/new"
+                        ? "bg-teal-100 text-teal-800"
+                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    )}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add Company
+                  </Link>
+                )}
               </CollapsibleContent>
             </Collapsible>
             )}
 
             {/* Role Management Collapsible - ADMIN Only */}
-            {(showLoadingState || isAdmin) && (
+            {(!isLoading && isAdmin) && (
             <Collapsible open={rolesOpen} onOpenChange={setRolesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -374,7 +392,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
 
             {/* User Management Collapsible - ADMIN Only */}
-            {(showLoadingState || isAdmin) && (
+            {(!isLoading && isAdmin) && (
             <Collapsible open={usersOpen} onOpenChange={setUsersOpen}>
               <CollapsibleTrigger asChild>
                 <button

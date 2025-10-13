@@ -37,10 +37,17 @@ export default function AdminClientsPage() {
     isLoading: clientsLoading,
     error: clientsError,
   } = useClients();
-  const { orders, isLoading: ordersLoading, error: ordersError } = useOrders();
+  
+  // Always call useOrders but handle permission errors gracefully
+  const { orders: rawOrders, isLoading: ordersLoading, error: ordersError } = useOrders();
+  
+  // Only use orders data if user has permission, otherwise use empty array
+  const orders = actions.orders?.view ? rawOrders : [];
+  
   const { deleteClient } = useDeleteClient();
 
-  const isLoading = clientsLoading || ordersLoading;
+  // Only show loading for clients if orders are failing due to permissions
+  const isLoading = clientsLoading || (actions.orders?.view && ordersLoading);
 
   // 2. LOGIC & STATE
   const { filteredClients, ...filterProps } = useClientFilters(clients);
@@ -89,12 +96,14 @@ export default function AdminClientsPage() {
     );
   }
 
-  if (clientsError || ordersError) {
+  // Only fail if clients error - ignore orders error if user doesn't have permission
+  const shouldFailOnOrdersError = actions.orders?.view && ordersError;
+  if (clientsError || shouldFailOnOrdersError) {
     return (
       <PageGuard resource={RESOURCES.CLIENTS} action="view">
         <Layout isClient={false}>
           <div className="text-center text-destructive">
-            Failed to load client. Please try again later.
+            Failed to load clients. Please try again later.
           </div>
         </Layout>
       </PageGuard>
