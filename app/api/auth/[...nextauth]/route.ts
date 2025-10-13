@@ -73,7 +73,11 @@ export const auth: AuthOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: "jwt" },
+  session: { 
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -83,6 +87,31 @@ export const auth: AuthOptions = {
         token.role = (user as { role: UserRole }).role;
         token.systemRole = (user as { systemRole?: string }).systemRole;
         token.systemRoleId = (user as { systemRoleId?: string }).systemRoleId;
+        
+        // Cache permissions in JWT token to avoid repeated database calls
+        if ((user as { role: UserRole }).role === "SYSTEM_USER" && (user as { systemRoleId?: string }).systemRoleId) {
+          try {
+            const systemRole = await prisma.systemRole.findUnique({
+              where: { id: (user as { systemRoleId: string }).systemRoleId },
+              include: {
+                permissions: {
+                  select: {
+                    id: true,
+                    resource: true,
+                    action: true,
+                    description: true,
+                  }
+                }
+              }
+            });
+            token.permissions = systemRole?.permissions || [];
+          } catch (error) {
+            console.error("Error caching permissions in JWT:", error);
+            token.permissions = [];
+          }
+        } else {
+          token.permissions = []; // ADMIN or other roles
+        }
       }
       return token;
     },
@@ -95,37 +124,8 @@ export const auth: AuthOptions = {
           role: token.role as UserRole,
           systemRole: token.systemRole as string,
           systemRoleId: token.systemRoleId as string,
+          permissions: token.permissions as any[], // Use cached permissions from JWT
         };
-
-        // Load permissions for SYSTEM_USER
-        if (token.role === "SYSTEM_USER" && token.systemRoleId) {
-          try {
-            const systemRole = await prisma.systemRole.findUnique({
-              where: { id: token.systemRoleId as string },
-              include: {
-                permissions: {
-                  select: {
-                    id: true,
-                    resource: true,
-                    action: true,
-                    description: true,
-                  }
-                }
-              }
-            });
-
-            if (systemRole) {
-              session.user.permissions = systemRole.permissions;
-            }
-          } catch (error) {
-            console.error("Error loading user permissions:", error);
-            session.user.permissions = [];
-          }
-        }
-        // ADMIN gets all permissions (or we can set them explicitly)
-        else if (token.role === "ADMIN") {
-          session.user.permissions = []; // Will be handled as special case in permission checks
-        }
       }
       return session;
     },
