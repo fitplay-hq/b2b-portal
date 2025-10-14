@@ -40,11 +40,7 @@ interface NavItemsProps {
 
 export default function NavItems({ isClient, isCollapsed = false }: NavItemsProps) {
   const pathname = usePathname();
-  const { pageAccess, actions, isAdmin, RESOURCES, PERMISSIONS, isLoading } = usePermissions();
-  
-  // Prevent flickering by showing items until permission data is loaded
-  // Only hide items if explicitly denied after loading completes
-  const showLoadingState = isLoading;
+  const { pageAccess, actions, isAdmin, RESOURCES, PERMISSIONS, isLoading, session } = usePermissions();
   
   const [clientsOpen, setClientsOpen] = useState(
     pathname.startsWith("/admin/clients")
@@ -105,18 +101,8 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     );
   }
 
-  // Show loading skeleton while permissions are loading
-  if (isLoading) {
-    return (
-      <nav className="space-y-2">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="animate-pulse">
-            <div className="h-9 bg-gray-200 rounded-lg"></div>
-          </div>
-        ))}
-      </nav>
-    );
-  }
+  // Remove loading skeleton - show items optimistically instead
+  // This prevents the 20-25 second delay on first login
 
   // Professional Admin Navigation with permission filtering
   const allAdminNavItems = [
@@ -146,9 +132,9 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     },
   ];
 
-  // Show all basic items during loading, then filter based on permissions
-  const adminNavItems = showLoadingState 
-    ? allAdminNavItems // Show all basic items while loading
+  // Show items optimistically for better loading experience
+  const adminNavItems = isLoading
+    ? allAdminNavItems // Show all items during loading for better UX
     : allAdminNavItems.filter(item => {
         if (!item.permission) return true; // Always show items without permission requirements
         return pageAccess[item.permission.resource as keyof typeof pageAccess];
@@ -217,7 +203,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </h3>
           <nav className="space-y-1">
             {/* Clients Collapsible */}
-            {(!isLoading && pageAccess.clients) && (
+            {(isLoading || pageAccess.clients) && (
               <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
                 <CollapsibleTrigger asChild>
                   <button
@@ -257,7 +243,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                     <List className="h-3 w-3" />
                     All Clients
                   </Link>
-                  {(!isLoading && actions.clients.create) && (
+                  {(isLoading || actions.clients.create) && (
                     <Link
                       href="/admin/clients/new"
                       className={cn(
@@ -276,7 +262,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
 
             {/* Companies Collapsible */}
-            {(!isLoading && pageAccess.companies) && (
+            {(isLoading || pageAccess.companies) && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -316,7 +302,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <List className="h-3 w-3" />
                   All Companies
                 </Link>
-                {(!isLoading && actions.companies.create) && (
+                {(isLoading || actions.companies.create) && (
                   <Link
                     href="/admin/companies/new"
                     className={cn(
@@ -458,7 +444,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
           
           {/* Clients Dropdown */}
-          {(showLoadingState || pageAccess.clients) && (
+          {(isLoading || pageAccess.clients) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -496,7 +482,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* Companies Dropdown */}
-          {(showLoadingState || pageAccess.companies) && (
+          {(isLoading || pageAccess.companies) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button

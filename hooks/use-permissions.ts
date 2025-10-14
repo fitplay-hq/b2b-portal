@@ -16,7 +16,9 @@ import {
 export function usePermissions() {
   const { data: session, status } = useSession();
   const permissions = getUserPermissions(session as UserSession);
-  const isLoading = status === 'loading';
+  
+  // More granular loading state - only consider loading if we don't have basic user info
+  const isLoading = status === 'loading' || (status === 'authenticated' && !session?.user?.role);
   const isAdmin = session?.user?.role === 'ADMIN';
   const isSystemUser = session?.user?.role === 'SYSTEM_USER';
 
