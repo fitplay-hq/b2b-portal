@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Client } from "@/lib/generated/prisma";
 import { Building2, Calendar, Edit, Mail, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface ClientCardProps {
   client: Client;
@@ -16,6 +17,8 @@ interface ClientCardProps {
 }
 
 export function ClientCard({ client, stats, onDelete }: ClientCardProps) {
+  const { actions } = usePermissions();
+  
   // Logic to get initials for the avatar fallback
   const initials = client.name
     .split(" ")
@@ -69,19 +72,23 @@ export function ClientCard({ client, stats, onDelete }: ClientCardProps) {
         </div>
       </div>
       <div className="flex w-full shrink-0 gap-2 sm:w-auto">
-        <Link href={`/admin/clients/${client.id}`} className="flex-1">
-          <Button variant="outline" size="sm" className="w-full">
-            <Edit className="mr-2 h-4 w-4" /> Edit
+        {actions.clients.edit && (
+          <Link href={`/admin/clients/${client.id}`} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full">
+              <Edit className="mr-2 h-4 w-4" /> Edit
+            </Button>
+          </Link>
+        )}
+        {actions.clients.delete && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDelete}
+            className="flex-1 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="mr-2 h-4 w-4" /> Delete
           </Button>
-        </Link>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onDelete}
-          className="flex-1 text-destructive hover:text-destructive"
-        >
-          <Trash2 className="mr-2 h-4 w-4" /> Delete
-        </Button>
+        )}
       </div>
     </div>
   );

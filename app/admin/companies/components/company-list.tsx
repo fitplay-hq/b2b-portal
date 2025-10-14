@@ -16,6 +16,7 @@ import { Search, Edit, Trash2, Building2, Users, Package } from "lucide-react";
 import Link from "next/link";
 import { useDeleteCompany } from "@/data/company/admin.hooks";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface Company {
   id: string;
@@ -42,6 +43,7 @@ export function CompanyList({
   searchTerm,
   onSearchChange,
 }: CompanyListProps) {
+  const { actions } = usePermissions();
   const { deleteCompany, isDeleting } = useDeleteCompany();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<{
@@ -166,22 +168,26 @@ export function CompanyList({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Link href={`/admin/companies/${company.id}`}>
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  </Link>
+                  {actions.companies.edit && (
+                    <Link href={`/admin/companies/${company.id}`}>
+                      <Button variant="outline" size="sm">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </Link>
+                  )}
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(company.id, company.name)}
-                    disabled={isDeleting || company._count.clients > 0}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
+                  {actions.companies.delete && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(company.id, company.name)}
+                      disabled={isDeleting || company._count.clients > 0}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
