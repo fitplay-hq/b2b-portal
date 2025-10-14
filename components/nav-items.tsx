@@ -40,7 +40,7 @@ interface NavItemsProps {
 
 export default function NavItems({ isClient, isCollapsed = false }: NavItemsProps) {
   const pathname = usePathname();
-  const { pageAccess, actions, isAdmin, RESOURCES, PERMISSIONS, isLoading, session } = usePermissions();
+  const { pageAccess, actions, isAdmin, RESOURCES, PERMISSIONS, isLoading } = usePermissions();
   
   const [clientsOpen, setClientsOpen] = useState(
     pathname.startsWith("/admin/clients")
@@ -132,13 +132,13 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     },
   ];
 
-  // Show items optimistically for better loading experience
-  const adminNavItems = isLoading
-    ? allAdminNavItems // Show all items during loading for better UX
-    : allAdminNavItems.filter(item => {
-        if (!item.permission) return true; // Always show items without permission requirements
-        return pageAccess[item.permission.resource as keyof typeof pageAccess];
-      });
+  // Filter items based on permissions - safe approach
+  const adminNavItems = allAdminNavItems.filter(item => {
+    if (!item.permission) return true; // Always show items without permission requirements
+    // For admins, show immediately. For others, only show if they have permission and not loading
+    if (isAdmin) return true;
+    return !isLoading && pageAccess[item.permission.resource as keyof typeof pageAccess];
+  });
 
   return (
     <div className={cn("transition-all duration-300", isCollapsed ? "space-y-2" : "space-y-6")}>
@@ -203,7 +203,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </h3>
           <nav className="space-y-1">
             {/* Clients Collapsible */}
-            {(isLoading || pageAccess.clients) && (
+            {(isAdmin || (!isLoading && pageAccess.clients)) && (
               <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
                 <CollapsibleTrigger asChild>
                   <button
@@ -243,7 +243,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                     <List className="h-3 w-3" />
                     All Clients
                   </Link>
-                  {(isLoading || actions.clients.create) && (
+                  {(isAdmin || (!isLoading && actions.clients.create)) && (
                     <Link
                       href="/admin/clients/new"
                       className={cn(
@@ -262,7 +262,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
 
             {/* Companies Collapsible */}
-            {(isLoading || pageAccess.companies) && (
+            {(isAdmin || (!isLoading && pageAccess.companies)) && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -302,7 +302,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <List className="h-3 w-3" />
                   All Companies
                 </Link>
-                {(isLoading || actions.companies.create) && (
+                {(isAdmin || (!isLoading && actions.companies.create)) && (
                   <Link
                     href="/admin/companies/new"
                     className={cn(
@@ -444,7 +444,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
           
           {/* Clients Dropdown */}
-          {(isLoading || pageAccess.clients) && (
+          {(isAdmin || (!isLoading && pageAccess.clients)) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -482,7 +482,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* Companies Dropdown */}
-          {(isLoading || pageAccess.companies) && (
+          {(isAdmin || (!isLoading && pageAccess.companies)) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -520,7 +520,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* Role Management Dropdown - ADMIN Only */}
-          {(showLoadingState || isAdmin) && (
+          {isAdmin && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -558,7 +558,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* User Management Dropdown - ADMIN Only */}
-          {(showLoadingState || isAdmin) && (
+          {isAdmin && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button

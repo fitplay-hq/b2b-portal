@@ -1,15 +1,10 @@
-import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { withPermissions } from "@/lib/auth-middleware";
 
 export async function PATCH(req: NextRequest) {
-  try {
-    const session = await getServerSession(auth);
-
-    if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  return withPermissions(req, async () => {
+    try {
 
     const { orderId, status, consignmentNumber, deliveryService } = await req.json();
 
@@ -77,10 +72,11 @@ export async function PATCH(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error approving order:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
+      console.error("Error approving order:", error);
+      return NextResponse.json(
+        { error: "Internal Server Error" },
+        { status: 500 }
+      );
+    }
+  }, "orders", "edit");
 }

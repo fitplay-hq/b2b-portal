@@ -1,19 +1,18 @@
-import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { withPermissions } from "@/lib/auth-middleware";
 
 let toggleTracker = true;
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(auth);
-
-    if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  return withPermissions(req, async () => {
+    try {
+      // Get session for user info in email
+      const { getServerSession } = await import("next-auth");
+      const { auth } = await import("@/app/api/auth/[...nextauth]/route");
+      const session = await getServerSession(auth);
 
     const body = await req.json();
     const { orderId, clientEmail } = body;
@@ -72,7 +71,7 @@ export async function POST(req: NextRequest) {
       subject: "New Order Awaiting Approval",
       html: `
           <h2>New Dispatch Order</h2>
-          <p>A new order <b>${order.id}</b> has been created by ${session.user?.name || "Unknown Client"}.</p>
+          <p>A new order <b>${order.id}</b> has been created by ${session?.user?.name || "Unknown User"}.</p>
           
           <h3>Consignee Details</h3>
           <p><b>Name:</b> ${order.consigneeName}</p>
@@ -100,9 +99,10 @@ export async function POST(req: NextRequest) {
     }
 
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error sending email:", error);
-    return NextResponse.json({ error: "Failed to send mail" }, { status: 500 });
-  }
+      return NextResponse.json({ success: true });
+    } catch (error) {
+      console.error("Error sending email:", error);
+      return NextResponse.json({ error: "Failed to send mail" }, { status: 500 });
+    }
+  }, "orders", "edit");
 }

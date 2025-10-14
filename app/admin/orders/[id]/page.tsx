@@ -178,7 +178,7 @@ const OrderDetailsPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {Object.keys($Enums.Status).map((status) => (
-                    <SelectItem value={status}>
+                    <SelectItem key={status} value={status}>
                       {formatStatus(status)}
                     </SelectItem>
                   ))}
