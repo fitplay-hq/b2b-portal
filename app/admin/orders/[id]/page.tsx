@@ -44,7 +44,7 @@ const OrderDetailsPage = () => {
 
   if (error) {
     return (
-      <Layout title="Order Details" isClient={false}>
+      <Layout isClient={false}>
         <div className="text-center text-destructive">
           Failed to load order details. Please try again later.
         </div>
@@ -54,7 +54,7 @@ const OrderDetailsPage = () => {
 
   if (isLoading || !order) {
     return (
-      <Layout title="Order Details" isClient={false}>
+      <Layout isClient={false}>
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -63,7 +63,7 @@ const OrderDetailsPage = () => {
   }
 
   return (
-    <Layout title="Order Details" isClient={false}>
+    <Layout isClient={false}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
