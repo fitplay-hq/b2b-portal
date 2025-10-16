@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { withPermissions } from '@/lib/auth-middleware';
 
 // GET /api/admin/roles/[id] - Get a specific role
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const session = await getServerSession(auth);
-    
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const handler = async (req: NextRequest) => {
+    try {
 
     const role = await prisma.systemRole.findUnique({
       where: { id: params.id },
