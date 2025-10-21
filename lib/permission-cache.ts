@@ -129,6 +129,24 @@ class PermissionCacheService {
   getPageAccessCacheKey(userId: string, role: string): string {
     return `page_access_${userId}_${role}`;
   }
+
+  /**
+   * Get current memory cache size
+   */
+  size(): number {
+    return this.memoryCache.size;
+  }
+
+  /**
+   * Get cache statistics for debugging
+   */
+  getStats() {
+    return {
+      memoryCacheSize: this.memoryCache.size,
+      maxCacheSize: this.MEMORY_CACHE_SIZE,
+      cacheDuration: this.CACHE_DURATION,
+    };
+  }
 }
 
 // Singleton instance
@@ -181,8 +199,14 @@ export class PermissionPreloader {
    */
   private async loadUserPermissions(cacheKey: string): Promise<void> {
     // This would normally make an API call
-    // For now, we'll just simulate it
-    console.log(`Background loading permissions for: ${cacheKey}`);
+    // Simulate background permission loading
+  }
+
+  /**
+   * Get current queue size for monitoring
+   */
+  getQueueSize(): number {
+    return this.preloadQueue.size;
   }
 }
 

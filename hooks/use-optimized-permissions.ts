@@ -4,7 +4,6 @@ import {
   hasPermission, 
   canAccessPage, 
   canPerformAction, 
-  getUserPermissions,
   getAccessibleNavItems,
   PERMISSIONS,
   RESOURCES,
@@ -39,7 +38,7 @@ export function useOptimizedPermissions() {
     setIsHydrated(true);
   }, []);
 
-  // Load and cache permissions
+  // Load and cache permissions - OPTIMIZED to use session permissions directly
   useEffect(() => {
     if (!isHydrated || !userId || isAdmin) return;
 
@@ -52,10 +51,12 @@ export function useOptimizedPermissions() {
       return;
     }
 
-    // Load fresh permissions and cache them
-    const loadPermissions = async () => {
+    // Use permissions directly from session (already cached in JWT)
+    const loadPermissions = () => {
       try {
-        const permissions = getUserPermissions(session as UserSession);
+        // Get permissions directly from session - NO database calls!
+        const permissions = session?.user?.permissions || [];
+        
         const permissionData = {
           permissions,
           pageAccess: computePageAccess(permissions, isAdmin),
@@ -83,6 +84,7 @@ export function useOptimizedPermissions() {
       }
     };
 
+    // Load synchronously since permissions are in session
     loadPermissions();
   }, [session, userId, roleId, isAdmin, isHydrated]);
 

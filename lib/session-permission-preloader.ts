@@ -36,8 +36,6 @@ export class SessionPermissionPreloader {
         return;
       }
 
-      console.log('[SessionPreloader] Warming up permissions for user:', userId);
-      
       // Load permissions in background
       const permissions = getUserPermissions(session);
       const permissionData = {
@@ -54,7 +52,7 @@ export class SessionPermissionPreloader {
       // Queue additional preloading for future sessions
       permissionPreloader.queuePreload(userId, roleId);
 
-      console.log('[SessionPreloader] Permissions warmed up successfully');
+
     } catch (error) {
       console.error('[SessionPreloader] Failed to warmup permissions:', error);
     } finally {

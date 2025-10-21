@@ -27,7 +27,9 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <div className="min-h-screen bg-background">
-          <SessionProvider>{children}</SessionProvider>
+          <SessionProvider>
+            {children}
+          </SessionProvider>
           <Toaster />
         </div>
       </body>
