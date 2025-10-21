@@ -300,3 +300,53 @@ html {
   }
 }
 
+/* Performance optimizations for permission loading */
+.permission-loading {
+  opacity: 0.8;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.permission-loaded {
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Fast sidebar transitions - no jank */
+.sidebar-optimized {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Cache warming indicator */
+.cache-warming::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+  animation: cache-loading 2s infinite;
+}
+
+@keyframes cache-loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Performance debugging - only in development */
+.perf-monitor {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  z-index: 9999;
+  pointer-events: none;
+}
+

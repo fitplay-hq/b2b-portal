@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { usePermissions } from "@/hooks/use-permissions";
+import { useOptimizedPermissions } from "@/hooks/use-optimized-permissions";
 import {
   BarChart3,
   History,  
@@ -40,56 +40,17 @@ interface NavItemsProps {
 
 export default function NavItems({ isClient, isCollapsed = false }: NavItemsProps) {
   const pathname = usePathname();
-  const { pageAccess, actions, isAdmin, RESOURCES, PERMISSIONS, isLoading } = usePermissions();
+  const { 
+    pageAccess, 
+    actions, 
+    isAdmin, 
+    RESOURCES, 
+    PERMISSIONS, 
+    isLoading,
+    isHydrated
+  } = useOptimizedPermissions();
   
-  // Start with null to match server-side rendering
-  const [cachedNavState, setCachedNavState] = useState(null);
-  const [isHydrated, setIsHydrated] = useState(false);
-  
-  // Handle hydration and load cached state on client-side only
-  useEffect(() => {
-    setIsHydrated(true);
-    
-    const cached = localStorage.getItem('nav_state');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        // Cache expires after 10 minutes to prevent stale data
-        if (Date.now() - parsed.timestamp < 10 * 60 * 1000) {
-          setCachedNavState(parsed);
-        } else {
-          localStorage.removeItem('nav_state');
-        }
-      } catch {
-        localStorage.removeItem('nav_state');
-      }
-    }
-  }, []); // Run once on mount
-  
-  // Cache navigation state after hydration and when permissions are loaded
-  useEffect(() => {
-    if (isHydrated && !isLoading) {
-      // Wait a bit for permissions to stabilize, then cache once
-      const timer = setTimeout(() => {
-        const navState = {
-          pageAccess,
-          actions,
-          isAdmin,
-          timestamp: Date.now()
-        };
-        localStorage.setItem('nav_state', JSON.stringify(navState));
-      }, 500); // Wait 500ms for permissions to stabilize
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isHydrated, isLoading]); // Only depend on hydration and loading state
-  
-  // Use cached state only after hydration to prevent SSR mismatches
-  // During SSR and before hydration, use real state only
-  const currentPageAccess = (isHydrated && isLoading && cachedNavState ? cachedNavState.pageAccess : pageAccess) || {};
-  const currentActions = (isHydrated && isLoading && cachedNavState ? cachedNavState.actions : actions) || {};
-  const currentIsAdmin = isHydrated && isLoading && cachedNavState ? cachedNavState.isAdmin : isAdmin;
-  
+  // Simplified nav state - no need for complex caching here since permissions are already cached
   const [clientsOpen, setClientsOpen] = useState(
     pathname.startsWith("/admin/clients")
   );
@@ -180,13 +141,13 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     },
   ];
 
-  // Filter items based on permissions - production optimized with caching
+  // Filter items based on permissions - using optimized cached permissions
   const adminNavItems = allAdminNavItems.filter(item => {
     if (!item.permission) return true; // Always show items without permission requirements
     // For admins, show immediately
-    if (currentIsAdmin) return true;
-    // For others, show based on current permissions (real or cached)
-    return currentPageAccess[item.permission.resource as keyof typeof currentPageAccess];
+    if (isAdmin) return true;
+    // For others, show based on permissions (already cached and optimized)
+    return pageAccess[item.permission.resource as keyof typeof pageAccess];
   });
 
   return (
@@ -252,7 +213,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </h3>
           <nav className="space-y-1">
             {/* Clients Collapsible */}
-            {(currentIsAdmin || currentPageAccess.clients) && (
+            {(isAdmin || pageAccess.clients) && (
               <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
                 <CollapsibleTrigger asChild>
                   <button
@@ -292,7 +253,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                     <List className="h-3 w-3" />
                     All Clients
                   </Link>
-                  {(currentIsAdmin || currentActions.clients.create) && (
+                  {(isAdmin || actions.clients.create) && (
                     <Link
                       href="/admin/clients/new"
                       className={cn(
@@ -311,7 +272,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
 
             {/* Companies Collapsible */}
-            {(currentIsAdmin || currentPageAccess.companies) && (
+            {(isAdmin || pageAccess.companies) && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -351,7 +312,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <List className="h-3 w-3" />
                   All Companies
                 </Link>
-                {(currentIsAdmin || currentActions.companies.create) && (
+                {(isAdmin || actions.companies.create) && (
                   <Link
                     href="/admin/companies/new"
                     className={cn(
@@ -493,7 +454,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
           
           {/* Clients Dropdown */}
-          {(currentIsAdmin || currentPageAccess.clients) && (
+          {(isAdmin || pageAccess.clients) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -531,7 +492,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* Companies Dropdown */}
-          {(currentIsAdmin || currentPageAccess.companies) && (
+          {(isAdmin || pageAccess.companies) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
