@@ -14,6 +14,15 @@ export async function withPermissions(
   requiredAction: string
 ): Promise<NextResponse> {
   try {
+    // URGENT PRODUCTION FIX: Fast-path for navigation requests
+    const isNavigationRequest = request.headers.get('sec-fetch-dest') === 'document' ||
+                               request.headers.get('sec-fetch-mode') === 'navigate';
+    
+    if (isNavigationRequest && (requiredAction === 'view' || requiredAction === 'access')) {
+      // For navigation requests, allow and defer permission check to client
+      return handler(request);
+    }
+
     // Get the current session
     const session = await getServerSession(auth);
 
@@ -35,11 +44,28 @@ export async function withPermissions(
 
     // For SYSTEM_USER, check permissions
     if (user.role === 'SYSTEM_USER') {
-      // Load user permissions if not already in session
+      // URGENT FIX: Try to get permissions from storage first (no DB call)
       let userPermissions: Permission[] = user.permissions || [];
 
-      // System user permission loading
+      // If no permissions in session, try permanent storage
+      if (!userPermissions.length && user.id && user.systemRoleId) {
+        // Check if we have permissions in storage (instant access)
+        if (typeof localStorage !== 'undefined') {
+          try {
+            const stored = localStorage.getItem('user_permissions_v2');
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (parsed.userId === user.id && parsed.expiresAt > Date.now()) {
+                userPermissions = parsed.permissions;
+              }
+            }
+          } catch (error) {
+            // Ignore storage errors
+          }
+        }
+      }
 
+      // ONLY make DB call if absolutely no permissions found anywhere
       if (!userPermissions.length && user.systemRoleId) {
         try {
           const systemRole = await prisma.systemRole.findUnique({

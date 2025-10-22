@@ -10,6 +10,7 @@ import {
   type UserSession
 } from '@/lib/utils';
 import { permissionCache, permissionPreloader } from '@/lib/permission-cache';
+import { permanentPermissionStorage } from '@/lib/permanent-permission-storage';
 
 /**
  * High-performance permissions hook with aggressive caching
@@ -38,20 +39,26 @@ export function useOptimizedPermissions() {
     setIsHydrated(true);
   }, []);
 
-  // Load and cache permissions - OPTIMIZED to use session permissions directly
+  // Load and cache permissions - INSTANT ACCESS using permanent storage
   useEffect(() => {
     if (!isHydrated || !userId || isAdmin) return;
 
+    // 1. FIRST: Check permanent storage (instant access, no API calls)
+    const storedPermissions = permanentPermissionStorage.getStoredPermissions(userId);
+    if (storedPermissions) {
+      setCachedPermissions(storedPermissions);
+      return; // INSTANT LOAD - NO API CALLS!
+    }
+
+    // 2. FALLBACK: Check memory cache
     const cacheKey = permissionCache.getUserCacheKey(userId, roleId);
-    
-    // Try to get from cache first
     const cached = permissionCache.get(cacheKey);
     if (cached) {
       setCachedPermissions(cached);
       return;
     }
 
-    // Use permissions directly from session (already cached in JWT)
+    // 3. LAST RESORT: Use permissions from session (should be cached)
     const loadPermissions = () => {
       try {
         // Get permissions directly from session - NO database calls!
@@ -64,6 +71,11 @@ export function useOptimizedPermissions() {
           navItems: getAccessibleNavItems(session as UserSession),
           timestamp: Date.now()
         };
+        
+        // Store permanently for next time
+        if (permissions.length > 0) {
+          permanentPermissionStorage.storeUserPermissions(userId, roleId, permissions);
+        }
         
         // Cache the computed permissions
         permissionCache.set(cacheKey, permissionData);
@@ -84,7 +96,7 @@ export function useOptimizedPermissions() {
       }
     };
 
-    // Load synchronously since permissions are in session
+    // Load synchronously since permissions should be in session or storage
     loadPermissions();
   }, [session, userId, roleId, isAdmin, isHydrated]);
 

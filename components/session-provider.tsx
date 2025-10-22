@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { sessionPermissionPreloader } from '@/lib/session-permission-preloader';
 import { permissionCache } from '@/lib/permission-cache';
-import { PermissionPerformanceMonitor } from '@/components/permission-performance-monitor';
+import { permanentPermissionStorage } from '@/lib/permanent-permission-storage';
 import type { UserSession, Permission } from '@/lib/utils';
 
 interface SessionProviderProps {
@@ -18,15 +18,21 @@ function SessionWarmupComponent() {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
-      // For SYSTEM_USER, immediately cache permissions from session
+      // For SYSTEM_USER, IMMEDIATELY store permissions permanently
       if (session.user.role === 'SYSTEM_USER' && session.user.permissions) {
         const userId = session.user.id;
         const roleId = session.user.systemRoleId;
         
         if (userId && roleId) {
-          const cacheKey = permissionCache.getUserCacheKey(userId, roleId);
+          // URGENT: Store permissions permanently to avoid 25-second loading
+          permanentPermissionStorage.storeUserPermissions(
+            userId, 
+            roleId, 
+            session.user.permissions
+          );
           
-          // Cache permissions directly from session (already loaded in JWT)
+          // Also cache for immediate access
+          const cacheKey = permissionCache.getUserCacheKey(userId, roleId);
           const permissionData = {
             permissions: session.user.permissions,
             pageAccess: computePageAccess(session.user.permissions),
