@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { sessionPermissionPreloader } from '@/lib/session-permission-preloader';
 import { permissionCache } from '@/lib/permission-cache';
 import { permanentPermissionStorage } from '@/lib/permanent-permission-storage';
+import { sidebarPrefetcher } from '@/lib/sidebar-prefetcher';
 import type { UserSession, Permission } from '@/lib/utils';
 
 interface SessionProviderProps {
@@ -18,7 +19,10 @@ function SessionWarmupComponent() {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
-      // For SYSTEM_USER, IMMEDIATELY store permissions permanently
+      // CRITICAL: Immediately prefetch SIDEBAR data specifically
+      sidebarPrefetcher.prefetchSidebarData(session);
+      
+      // For SYSTEM_USER, also store permissions permanently
       if (session.user.role === 'SYSTEM_USER' && session.user.permissions) {
         const userId = session.user.id;
         const roleId = session.user.systemRoleId;

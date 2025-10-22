@@ -190,6 +190,14 @@ export class PermanentPermissionStorage {
     try {
       if ('indexedDB' in window) {
         const request = indexedDB.open('PermissionDB', 1);
+        
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as any).result;
+          if (!db.objectStoreNames.contains('permissions')) {
+            db.createObjectStore('permissions');
+          }
+        };
+        
         request.onsuccess = (event) => {
           const db = (event.target as any).result;
           const transaction = db.transaction(['permissions'], 'readwrite');
@@ -206,6 +214,14 @@ export class PermanentPermissionStorage {
     try {
       if ('indexedDB' in window) {
         const request = indexedDB.open('PermissionDB', 1);
+        
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as any).result;
+          if (!db.objectStoreNames.contains('permissions')) {
+            db.createObjectStore('permissions');
+          }
+        };
+        
         request.onsuccess = (event) => {
           const db = (event.target as any).result;
           const transaction = db.transaction(['permissions'], 'readwrite');
@@ -214,7 +230,7 @@ export class PermanentPermissionStorage {
         };
       }
     } catch (error) {
-      // IndexedDB is optional
+      // IndexedDB is optional, don't fail if it doesn't work
     }
   }
 }

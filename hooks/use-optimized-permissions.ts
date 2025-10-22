@@ -11,6 +11,7 @@ import {
 } from '@/lib/utils';
 import { permissionCache, permissionPreloader } from '@/lib/permission-cache';
 import { permanentPermissionStorage } from '@/lib/permanent-permission-storage';
+import { sidebarPrefetcher } from '@/lib/sidebar-prefetcher';
 
 /**
  * High-performance permissions hook with aggressive caching
@@ -39,30 +40,44 @@ export function useOptimizedPermissions() {
     setIsHydrated(true);
   }, []);
 
-  // Load and cache permissions - INSTANT ACCESS using permanent storage
+  // Load and cache permissions - INSTANT SIDEBAR ACCESS using sidebar prefetcher
   useEffect(() => {
     if (!isHydrated || !userId || isAdmin) return;
 
-    // 1. FIRST: Check permanent storage (instant access, no API calls)
+    // DEBUG: Log the actual session permissions
+    console.log('[DEBUG] Session permissions:', session?.user?.permissions);
+
+    // 1. FIRST: Check sidebar prefetcher (specifically for sidebar data)
+    const sidebarData = sidebarPrefetcher.getSidebarDataInstantly(userId);
+    if (sidebarData) {
+      console.log('[DEBUG] Using sidebar prefetch data:', sidebarData);
+      setCachedPermissions(sidebarData);
+      return; // INSTANT SIDEBAR LOAD - NO API CALLS!
+    }
+
+    // 2. FALLBACK: Check permanent storage (instant access, no API calls)
     const storedPermissions = permanentPermissionStorage.getStoredPermissions(userId);
     if (storedPermissions) {
+      console.log('[DEBUG] Using stored permissions:', storedPermissions);
       setCachedPermissions(storedPermissions);
       return; // INSTANT LOAD - NO API CALLS!
     }
 
-    // 2. FALLBACK: Check memory cache
+    // 3. FALLBACK: Check memory cache
     const cacheKey = permissionCache.getUserCacheKey(userId, roleId);
     const cached = permissionCache.get(cacheKey);
     if (cached) {
+      console.log('[DEBUG] Using memory cache:', cached);
       setCachedPermissions(cached);
       return;
     }
 
-    // 3. LAST RESORT: Use permissions from session (should be cached)
+    // 4. LAST RESORT: Use permissions from session (should be cached)
     const loadPermissions = () => {
       try {
         // Get permissions directly from session - NO database calls!
         const permissions = session?.user?.permissions || [];
+        console.log('[DEBUG] Loading fresh permissions from session:', permissions);
         
         const permissionData = {
           permissions,
@@ -72,9 +87,13 @@ export function useOptimizedPermissions() {
           timestamp: Date.now()
         };
         
+        console.log('[DEBUG] Computed permission data:', permissionData);
+        
         // Store permanently for next time
         if (permissions.length > 0) {
           permanentPermissionStorage.storeUserPermissions(userId, roleId, permissions);
+          // Also prefetch sidebar data for instant access
+          sidebarPrefetcher.prefetchSidebarData(session);
         }
         
         // Cache the computed permissions
