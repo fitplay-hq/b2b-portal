@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useOptimizedPermissions } from "@/hooks/use-optimized-permissions";
 import {
@@ -16,6 +16,7 @@ import {
   Building2,
   Shield,
   UserCog,
+  Archive,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -46,8 +47,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     isAdmin, 
     RESOURCES, 
     PERMISSIONS, 
-    isLoading,
-    isHydrated
+    isLoading
   } = useOptimizedPermissions();
   
   // Simplified nav state - no need for complex caching here since permissions are already cached
@@ -129,6 +129,14 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
       icon: Package2,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
+      permission: { resource: RESOURCES.PRODUCTS, action: PERMISSIONS.VIEW }
+    },
+    { 
+      href: "/admin/inventory-logs", 
+      label: "Inventory Logs", 
+      icon: Archive,
+      color: "text-amber-600",
+      bgColor: "bg-amber-50",
       permission: { resource: RESOURCES.PRODUCTS, action: PERMISSIONS.VIEW }
     },
     { 
