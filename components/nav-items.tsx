@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { useSimplePermissions } from "@/hooks/use-simple-permissions";
+import { useOptimizedPermissions } from "@/hooks/use-optimized-permissions";
 import {
   BarChart3,
   History,  
@@ -48,7 +48,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     RESOURCES, 
     PERMISSIONS, 
     isLoading
-  } = useSimplePermissions();
+  } = useOptimizedPermissions();
   
   // Simplified nav state - no need for complex caching here since permissions are already cached
   const [clientsOpen, setClientsOpen] = useState(
@@ -226,7 +226,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </h3>
           <nav className="space-y-1">
             {/* Clients Collapsible */}
-            {(isAdmin || isLoading || (pageAccess as any)?.clients) && (
+            {(isAdmin || isLoading || pageAccess.clients) && (
               <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
                 <CollapsibleTrigger asChild>
                   <button
