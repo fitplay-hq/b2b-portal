@@ -138,8 +138,21 @@ export function useProductInventoryLogs(productId: string) {
     });
   }
 
+  // Sort logs by date in descending order (latest first, Z-A)
+  const sortedLogs = parsedLogs.sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    
+    // Handle invalid dates by putting them at the end
+    if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+    if (isNaN(dateA.getTime())) return 1;
+    if (isNaN(dateB.getTime())) return -1;
+    
+    return dateB.getTime() - dateA.getTime(); // Descending order (latest first)
+  });
+
   return {
-    logs: parsedLogs,
+    logs: sortedLogs,
     error,
     isLoading,
     mutate,

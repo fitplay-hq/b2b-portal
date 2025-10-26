@@ -33,6 +33,7 @@ export function InventoryHistory({ product }: InventoryHistoryProps) {
       showFilters={false} // Product-specific view doesn't need all filters
       title={`Inventory History - ${product.name}`}
       description={`Complete inventory movement history for ${product.sku}`}
+      currentSort={{ sortBy: "date", sortOrder: "desc" }} // Ensure latest changes show first
     />
   );
 }
