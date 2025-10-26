@@ -34,6 +34,7 @@ interface InventoryLogsTableProps {
   showFilters?: boolean;
   title?: string;
   description?: string;
+  searchValue?: string; // Controlled search value
 }
 
 export function InventoryLogsTable({
@@ -48,8 +49,8 @@ export function InventoryLogsTable({
   showFilters = true,
   title = "Inventory Logs",
   description = "Complete history of all inventory movements",
+  searchValue = "",
 }: InventoryLogsTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filters, setFilters] = useState({
     dateFrom: "",
@@ -60,8 +61,7 @@ export function InventoryLogsTable({
   });
 
   const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    onSearch?.(value);
+    onSearch?.(value); // This will now be debounced from the parent
   };
 
   const handleSort = (column: string) => {
@@ -160,7 +160,7 @@ export function InventoryLogsTable({
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by product name, SKU, or reason..."
-                value={searchTerm}
+                value={searchValue}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-8"
               />

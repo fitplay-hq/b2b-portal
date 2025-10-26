@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { useOptimizedPermissions } from "@/hooks/use-optimized-permissions";
+import { useSimplePermissions } from "@/hooks/use-simple-permissions";
 import {
   BarChart3,
   History,  
@@ -48,7 +48,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     RESOURCES, 
     PERMISSIONS, 
     isLoading
-  } = useOptimizedPermissions();
+  } = useSimplePermissions();
   
   // Simplified nav state - no need for complex caching here since permissions are already cached
   const [clientsOpen, setClientsOpen] = useState(
@@ -110,9 +110,9 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     );
   }
 
-  // Remove loading skeleton - show items optimistically instead
-  // This prevents the 20-25 second delay on first login
-
+  // INSTANT sidebar loading - never show loading skeleton
+  // Show navigation immediately and hide items progressively if no permissions
+  
   // Professional Admin Navigation with permission filtering
   const allAdminNavItems = [
     { 
@@ -137,7 +137,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
       icon: Archive,
       color: "text-amber-600",
       bgColor: "bg-amber-50",
-      permission: { resource: RESOURCES.PRODUCTS, action: PERMISSIONS.VIEW }
+      permission: { resource: RESOURCES.INVENTORY, action: PERMISSIONS.VIEW }
     },
     { 
       href: "/admin/orders", 
@@ -149,13 +149,18 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     },
   ];
 
-  // Filter items based on permissions - using optimized cached permissions
+  // INSTANT display strategy - show all items immediately, hide if no permissions
   const adminNavItems = allAdminNavItems.filter(item => {
     if (!item.permission) return true; // Always show items without permission requirements
-    // For admins, show immediately
+    
+    // For admins, always show immediately
     if (isAdmin) return true;
-    // For others, show based on permissions (already cached and optimized)
-    return pageAccess[item.permission.resource as keyof typeof pageAccess];
+    
+    // For non-admins: Show optimistically while loading, hide only if explicitly no permission
+    if (isLoading) return true; // Show while loading for instant sidebar
+    
+    // Only hide if we have loaded permissions and explicitly don't have access
+    return pageAccess[item.permission.resource as keyof typeof pageAccess] !== false;
   });
 
   return (
@@ -221,7 +226,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </h3>
           <nav className="space-y-1">
             {/* Clients Collapsible */}
-            {(isAdmin || pageAccess.clients) && (
+            {(isAdmin || isLoading || (pageAccess as any)?.clients) && (
               <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
                 <CollapsibleTrigger asChild>
                   <button
@@ -261,7 +266,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                     <List className="h-3 w-3" />
                     All Clients
                   </Link>
-                  {(isAdmin || actions.clients.create) && (
+                  {(isAdmin || isLoading || actions.clients.create) && (
                     <Link
                       href="/admin/clients/new"
                       className={cn(
@@ -280,7 +285,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
 
             {/* Companies Collapsible */}
-            {(isAdmin || pageAccess.companies) && (
+            {(isAdmin || isLoading || pageAccess.companies) && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -320,7 +325,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <List className="h-3 w-3" />
                   All Companies
                 </Link>
-                {(isAdmin || actions.companies.create) && (
+                {(isAdmin || isLoading || actions.companies.create) && (
                   <Link
                     href="/admin/companies/new"
                     className={cn(
@@ -462,7 +467,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
           
           {/* Clients Dropdown */}
-          {(isAdmin || pageAccess.clients) && (
+          {(isAdmin || isLoading || pageAccess.clients) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -500,7 +505,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* Companies Dropdown */}
-          {(isAdmin || pageAccess.companies) && (
+          {(isAdmin || isLoading || pageAccess.companies) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button

@@ -1,3 +1,5 @@
+"use client";
+
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useMemo } from 'react';
 import { 
@@ -7,19 +9,24 @@ import {
   getAccessibleNavItems,
   PERMISSIONS,
   RESOURCES,
-  type UserSession,
-  type Permission
+  type UserSession
 } from '@/lib/utils';
-import { permissionCache } from '@/lib/permission-cache';
-import { permanentPermissionStorage } from '@/lib/permanent-permission-storage';
-import { sidebarPrefetcher } from '@/lib/sidebar-prefetcher';
+import { redisPermissionCache } from '@/lib/redis-cache';
+
+interface PermissionData {
+  permissions: unknown[];
+  pageAccess: Record<string, boolean>;
+  actions: Record<string, Record<string, boolean>>;
+  navItems: unknown[];
+  timestamp: number;
+}
 
 /**
- * High-performance permissions hook with aggressive caching
+ * Ultra-fast permissions hook with Redis caching and instant sidebar loading
  */
-export function useOptimizedPermissions() {
+export function useInstantPermissions() {
   const { data: session, status } = useSession();
-  const [cachedPermissions, setCachedPermissions] = useState<unknown>(null);
+  const [cachedPermissions, setCachedPermissions] = useState<PermissionData | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
 
   const isAdmin = session?.user?.role === 'ADMIN';
@@ -27,78 +34,81 @@ export function useOptimizedPermissions() {
   const userId = session?.user?.id;
   const roleId = session?.user?.systemRoleId;
 
-  // INSTANT loading - never show loading for more than 1 second
+  // INSTANT loading - no delays for sidebar
   const isLoading = useMemo(() => {
-    // Never show loading for admins or non-system users
-    if (isAdmin || !isSystemUser) return false;
+    // Never show loading for admins
+    if (isAdmin) return false;
     
-    // Only show loading briefly during initial authentication
-    if (status === 'loading') return true;
-    if (status === 'unauthenticated') return false;
+    // Show as loaded if we have any cached data or if user is not a system user
+    if (cachedPermissions || !isSystemUser) return false;
     
-    // Always show as loaded after hydration - permissions load in background
-    return false;
-  }, [status, isAdmin, isSystemUser]);
+    // Only show loading if we're still fetching and it's a system user
+    return status === 'loading' || !isHydrated;
+  }, [status, isAdmin, cachedPermissions, isSystemUser, isHydrated]);
 
-  // Hydration effect
+  // Immediate hydration
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
-  // INSTANT permissions loading - no delays, load from session immediately
+  // INSTANT sidebar loading with progressive enhancement
   useEffect(() => {
-    if (!isHydrated || !userId || isAdmin) return;
+    if (!isHydrated || !userId || isAdmin || status !== 'authenticated') return;
 
-    // INSTANT: Load permissions immediately from session (no async operations)
-    const loadPermissionsInstantly = () => {
+    const loadPermissionsInstantly = async () => {
       try {
-        // Get permissions directly from session - should be available immediately
-        const permissions = session?.user?.permissions || [];
+        // 1. INSTANT: Try to get sidebar data from cache (synchronous)
+        const sidebarData = redisPermissionCache.getSidebarDataInstantly(userId);
+        if (sidebarData) {
+          console.log('[INSTANT] Using cached sidebar data');
+          setCachedPermissions(sidebarData);
+          return; // INSTANT LOAD - NO DELAYS!
+        }
+
+        // 2. FAST: Get from Redis/memory cache (async but very fast)
+        const cachedPerms = await redisPermissionCache.getUserPermissions(userId, roleId || '');
+        if (cachedPerms) {
+          console.log('[FAST] Using cached permissions');
+          const permissionData = computePermissionData(cachedPerms, isAdmin, session);
+          setCachedPermissions(permissionData);
+          
+          // Cache for instant access next time
+          await redisPermissionCache.cacheSidebarData(userId, permissionData);
+          return;
+        }
+
+        // 3. FALLBACK: Use session permissions (should be immediate)
+        const sessionPermissions = session?.user?.permissions || [];
+        console.log('[FALLBACK] Using session permissions');
         
-        const permissionData = {
-          permissions,
-          pageAccess: computePageAccess(permissions, isAdmin),
-          actions: computeActions(permissions, isAdmin),
-          navItems: getAccessibleNavItems(session as UserSession),
-          timestamp: Date.now()
-        };
-        
-        // Set immediately - no async caching delays
+        const permissionData = computePermissionData(sessionPermissions, isAdmin, session);
         setCachedPermissions(permissionData);
         
-        // Background caching (non-blocking)
-        setTimeout(() => {
-          if (permissions.length > 0 && userId && roleId) {
-            try {
-              permanentPermissionStorage.storeUserPermissions(userId, roleId, permissions);
-              sidebarPrefetcher.prefetchSidebarData(session);
-              
-              const cacheKey = permissionCache.getUserCacheKey(userId, roleId);
-              permissionCache.set(cacheKey, permissionData);
-            } catch (error) {
-              console.warn('Background caching failed:', error);
-            }
-          }
-        }, 100); // Small delay for background caching
-        
+        // Cache for future use
+        if (sessionPermissions.length > 0) {
+          await redisPermissionCache.cacheUserPermissions(userId, roleId || '', sessionPermissions);
+          await redisPermissionCache.cacheSidebarData(userId, permissionData);
+        }
+
       } catch (error) {
-        console.error('Permission loading error:', error);
-        // Always provide fallback - never leave sidebar empty
-        setCachedPermissions({
+        console.warn('Permission loading error:', error);
+        // Always provide basic fallback - never leave sidebar empty
+        const fallbackData = {
           permissions: [],
           pageAccess: { dashboard: true },
           actions: {},
           navItems: [],
           timestamp: Date.now()
-        });
+        };
+        setCachedPermissions(fallbackData);
       }
     };
 
-    // Execute immediately - no delays or async operations for sidebar
+    // Execute immediately - no delays
     loadPermissionsInstantly();
-  }, [session, userId, roleId, isAdmin, isHydrated]);
+  }, [session, userId, roleId, isAdmin, isHydrated, status]);
 
-  // Memoized permission functions for admin (instant access)
+  // Admin permissions (always instant)
   const adminPermissions = useMemo(() => {
     if (!isAdmin) return null;
     
@@ -128,14 +138,14 @@ export function useOptimizedPermissions() {
     };
   }, [isAdmin, session]);
 
-  // Use cached or admin permissions
+  // Current permissions
   const currentPermissions = isAdmin ? adminPermissions : cachedPermissions;
 
-  // Optimized permission check functions
+  // Optimized permission functions
   const hasUserPermission = useMemo(() => {
     return (resource: string, action: string): boolean => {
       if (isAdmin) return true;
-      if (!currentPermissions) return false;
+      if (!currentPermissions?.permissions) return false;
       return hasPermission(currentPermissions.permissions, resource, action);
     };
   }, [isAdmin, currentPermissions]);
@@ -143,7 +153,7 @@ export function useOptimizedPermissions() {
   const canUserAccessPage = useMemo(() => {
     return (resource: string): boolean => {
       if (isAdmin) return true;
-      if (!currentPermissions) return false;
+      if (!currentPermissions?.pageAccess) return false;
       return currentPermissions.pageAccess[resource.toLowerCase()] || false;
     };
   }, [isAdmin, currentPermissions]);
@@ -151,7 +161,7 @@ export function useOptimizedPermissions() {
   const canUserPerformAction = useMemo(() => {
     return (resource: string, action: string): boolean => {
       if (isAdmin) return true;
-      if (!currentPermissions) return false;
+      if (!currentPermissions?.actions) return false;
       const resourceActions = currentPermissions.actions[resource.toLowerCase()];
       return resourceActions?.[action.toLowerCase()] || false;
     };
@@ -181,20 +191,35 @@ export function useOptimizedPermissions() {
     PERMISSIONS,
     
     // Cache management
-    invalidateCache: () => {
+    invalidateCache: async () => {
       if (userId) {
-        const cacheKey = permissionCache.getUserCacheKey(userId, roleId);
-        permissionCache.invalidate(cacheKey);
+        await redisPermissionCache.clearUserCache(userId);
         setCachedPermissions(null);
       }
-    }
+    },
+
+    // Cache stats
+    getCacheStats: () => redisPermissionCache.getCacheStats()
+  };
+}
+
+/**
+ * Compute permission data structure
+ */
+function computePermissionData(permissions: any, isAdmin: boolean, session: any) {
+  return {
+    permissions,
+    pageAccess: computePageAccess(permissions, isAdmin),
+    actions: computeActions(permissions, isAdmin),
+    navItems: getAccessibleNavItems(session as UserSession),
+    timestamp: Date.now()
   };
 }
 
 /**
  * Compute page access permissions
  */
-function computePageAccess(permissions: unknown[], isAdmin: boolean) {
+function computePageAccess(permissions: any[], isAdmin: boolean) {
   if (isAdmin) {
     return {
       dashboard: true,
@@ -223,7 +248,7 @@ function computePageAccess(permissions: unknown[], isAdmin: boolean) {
 /**
  * Compute action permissions
  */
-function computeActions(permissions: unknown[], isAdmin: boolean) {
+function computeActions(permissions: any[], isAdmin: boolean) {
   if (isAdmin) {
     return {
       products: { view: true, create: true, edit: true, delete: true },

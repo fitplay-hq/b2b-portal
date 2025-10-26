@@ -6,6 +6,7 @@ import PageGuard from "@/components/page-guard";
 import { InventoryLogsTable } from "@/components/inventory-logs-table";
 import { useInventoryLogs, InventoryLogsFilters } from "@/data/inventory/admin.hooks";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useDebouncedSearch } from "@/hooks/use-debounced-search";
 
 export default function InventoryLogsPage() {
   const { RESOURCES } = usePermissions();
@@ -17,6 +18,15 @@ export default function InventoryLogsPage() {
     sortOrder: "desc",
   });
 
+  // Debounced search hook
+  const { searchValue, handleSearch } = useDebouncedSearch((searchTerm: string) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      search: searchTerm || undefined, 
+      page: 1 
+    }));
+  }, 500); // 500ms delay
+
   const { logs, pagination, error, isLoading } = useInventoryLogs(filters);
 
   const handlePageChange = (page: number) => {
@@ -25,10 +35,6 @@ export default function InventoryLogsPage() {
 
   const handleSortChange = (sortBy: string, sortOrder: "asc" | "desc") => {
     setFilters(prev => ({ ...prev, sortBy, sortOrder, page: 1 }));
-  };
-
-  const handleSearch = (search: string) => {
-    setFilters(prev => ({ ...prev, search: search || undefined, page: 1 }));
   };
 
   const handleFilterChange = (newFilters: Record<string, string>) => {
@@ -54,7 +60,7 @@ export default function InventoryLogsPage() {
   }
 
   return (
-    <PageGuard resource={RESOURCES.PRODUCTS} action="view">
+    <PageGuard resource={RESOURCES.INVENTORY} action="view">
       <Layout isClient={false}>
         <div className="flex flex-col h-full gap-6">
           <div className="shrink-0">
@@ -84,6 +90,7 @@ export default function InventoryLogsPage() {
               showFilters={true}
               title="All Inventory Movements"
               description="Track every inventory change across your entire product catalog"
+              searchValue={searchValue}
             />
           </div>
         </div>

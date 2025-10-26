@@ -20,7 +20,7 @@ interface InventoryLogEntry {
 export async function GET(req: NextRequest) {
   try {
     // Check permissions
-    const permissionCheck = await checkPermission(RESOURCES.PRODUCTS, 'view');
+    const permissionCheck = await checkPermission(RESOURCES.INVENTORY, 'view');
     if (!permissionCheck.success) {
       return NextResponse.json(
         { error: permissionCheck.error },
