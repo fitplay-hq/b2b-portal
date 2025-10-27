@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,11 +84,31 @@ export function InventoryLogsTable({
       : <ArrowDown className="h-4 w-4" />;
   };
 
-  const handleFilterChange = (key: string, value: string) => {
+  const filterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleFilterChange = useCallback((key: string, value: string) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    onFilterChange?.(newFilters);
-  };
+    
+    // Clear existing timeout
+    if (filterTimeoutRef.current) {
+      clearTimeout(filterTimeoutRef.current);
+    }
+    
+    // Debounce filter changes to prevent rapid API calls
+    filterTimeoutRef.current = setTimeout(() => {
+      onFilterChange?.(newFilters);
+    }, 300);
+  }, [filters, onFilterChange]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (filterTimeoutRef.current) {
+        clearTimeout(filterTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const formatDate = (dateString: string) => {
     try {
@@ -171,6 +191,7 @@ export function InventoryLogsTable({
                 <div>
                   <label className="text-sm font-medium mb-1 block">From Date</label>
                   <Input
+                    key="dateFrom"
                     type="date"
                     value={filters.dateFrom}
                     onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
@@ -179,6 +200,7 @@ export function InventoryLogsTable({
                 <div>
                   <label className="text-sm font-medium mb-1 block">To Date</label>
                   <Input
+                    key="dateTo"
                     type="date"
                     value={filters.dateTo}
                     onChange={(e) => handleFilterChange("dateTo", e.target.value)}
@@ -187,6 +209,7 @@ export function InventoryLogsTable({
                 <div>
                   <label className="text-sm font-medium mb-1 block">Product Name</label>
                   <Input
+                    key="productName"
                     placeholder="Filter by product"
                     value={filters.productName}
                     onChange={(e) => handleFilterChange("productName", e.target.value)}
@@ -195,6 +218,7 @@ export function InventoryLogsTable({
                 <div>
                   <label className="text-sm font-medium mb-1 block">SKU</label>
                   <Input
+                    key="sku"
                     placeholder="Filter by SKU"
                     value={filters.sku}
                     onChange={(e) => handleFilterChange("sku", e.target.value)}
@@ -203,6 +227,7 @@ export function InventoryLogsTable({
                 <div>
                   <label className="text-sm font-medium mb-1 block">Reason</label>
                   <Input
+                    key="reason"
                     placeholder="Filter by reason"
                     value={filters.reason}
                     onChange={(e) => handleFilterChange("reason", e.target.value)}

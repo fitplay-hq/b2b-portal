@@ -100,10 +100,20 @@ export function useProductInventoryLogs(productId: string) {
     }
   );
 
-  // Parse the logs similar to the global endpoint
+  // Parse the logs with calculated historical stock
   const parsedLogs: InventoryLogEntry[] = [];
   
-  if (data?.inventoryLogs) {
+  if (data?.inventoryLogs && data.inventoryLogs.length > 0) {
+    // Parse all logs first
+    const productLogs: Array<{
+      index: number;
+      date: string;
+      changeInfo: string;
+      reasonInfo: string;
+      changeAmount: number;
+      changeDirection: 'Added' | 'Removed';
+    }> = [];
+
     data.inventoryLogs.forEach((logString, index) => {
       try {
         const parts = logString.split(" | ");
@@ -113,30 +123,65 @@ export function useProductInventoryLogs(productId: string) {
           const reasonInfo = parts[2];
           
           const changeMatch = changeInfo.match(/(Added|Removed)\s+(\d+)\s+units/);
-          const change = changeMatch ? 
-            `${changeMatch[1] === 'Added' ? '+' : '-'}${changeMatch[2]}` : 
-            changeInfo;
-          
-          const reasonMatch = reasonInfo.match(/Reason:\s*(.+)/);
-          const extractedReason = reasonMatch ? reasonMatch[1] : reasonInfo;
-          
-          parsedLogs.push({
-            id: `${productId}-${index}`,
-            date: date,
-            productName: "", // Will be filled by the component
-            sku: "", // Will be filled by the component
-            change: change,
-            reason: extractedReason,
-            remarks: "",
-            user: "Admin",
-            role: "ADMIN",
-            productId: productId,
-            currentStock: data?.availableStock || 0,
-          });
+          if (changeMatch) {
+            productLogs.push({
+              index,
+              date,
+              changeInfo,
+              reasonInfo,
+              changeAmount: parseInt(changeMatch[2]),
+              changeDirection: changeMatch[1] as 'Added' | 'Removed'
+            });
+          }
         }
       } catch (error) {
         console.error("Error parsing log entry:", logString, error);
       }
+    });
+
+    // Sort logs by date (oldest first) to calculate historical stock correctly
+    productLogs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Calculate historical stock for each log entry
+    // First, calculate what the stock was before all changes
+    let stockAfterAllChanges = data?.availableStock || 0;
+    for (let i = productLogs.length - 1; i >= 0; i--) {
+      const log = productLogs[i];
+      if (log.changeDirection === 'Added') {
+        stockAfterAllChanges -= log.changeAmount;
+      } else {
+        stockAfterAllChanges += log.changeAmount;
+      }
+    }
+
+    // Now calculate the stock after each change going forward
+    let runningStock = stockAfterAllChanges;
+    productLogs.forEach((log) => {
+      // Apply the change first
+      if (log.changeDirection === 'Added') {
+        runningStock += log.changeAmount;
+      } else {
+        runningStock -= log.changeAmount;
+      }
+
+      // Extract formatted data
+      const change = `${log.changeDirection === 'Added' ? '+' : '-'}${log.changeAmount}`;
+      const reasonMatch = log.reasonInfo.match(/Reason:\s*(.+)/);
+      const extractedReason = reasonMatch ? reasonMatch[1] : log.reasonInfo;
+      
+      parsedLogs.push({
+        id: `${productId}-${log.index}`,
+        date: log.date,
+        productName: "", // Will be filled by the component
+        sku: "", // Will be filled by the component
+        change: change,
+        reason: extractedReason,
+        remarks: "",
+        user: "Admin",
+        role: "ADMIN",
+        productId: productId,
+        currentStock: runningStock, // This is now the stock AFTER this change
+      });
     });
   }
 
