@@ -60,20 +60,17 @@ export async function POST(req: NextRequest) {
         });
 
         return NextResponse.json({ data: client, message: "Client added successfully" }, { status: 200 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message || "Something went wrong couldn't add client" }, { status: 500 });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Something went wrong couldn't add client";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
   }, "clients", "create");
 }
 
 // GET - Get client by id
 export async function GET(req: NextRequest) {
+  return withPermissions(req, async () => {
     try {
-        const session = await getServerSession(auth);
-        if (!session || session.user?.role !== "ADMIN") {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
         const clientId = req.nextUrl.searchParams.get("clientId");
         if (!clientId) {
             return NextResponse.json({ error: "Client ID is required" }, { status: 400 });
@@ -89,22 +86,40 @@ export async function GET(req: NextRequest) {
         }
 
         return NextResponse.json({ data: client }, { status: 200 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message || "Something went wrong couldn't fetch client" }, { status: 500 });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Something went wrong couldn't fetch client";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
+  }, "clients", "view");
 }
 
 // DELETE - Delete client
 export async function DELETE(req: NextRequest) {
+  return withPermissions(req, async () => {
     try {
-        const session = await getServerSession(auth);
-        if (!session || session.user?.role !== "ADMIN") {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
         const clientId = req.nextUrl.searchParams.get("clientId");
         if (!clientId) {
             return NextResponse.json({ error: "Client ID is required" }, { status: 400 });
+        }
+
+        // Check if client has any orders first
+        const existingOrders = await prisma.order.findFirst({
+            where: { clientId: clientId }
+        });
+
+        if (existingOrders) {
+            return NextResponse.json({ 
+                error: "Cannot delete client with existing orders. Please remove orders first." 
+            }, { status: 400 });
+        }
+
+        // Check if client exists
+        const existingClient = await prisma.client.findUnique({
+            where: { id: clientId }
+        });
+
+        if (!existingClient) {
+            return NextResponse.json({ error: "Client not found" }, { status: 404 });
         }
 
         const client = await prisma.client.delete({
@@ -112,19 +127,20 @@ export async function DELETE(req: NextRequest) {
         });
 
         return NextResponse.json({ data: client, message: "Client deleted successfully" }, { status: 200 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message || "Something went wrong couldn't delete client" }, { status: 500 });
+    } catch (error: unknown) {
+        console.error("Client deletion error:", error);
+        const errorMessage = error instanceof Error ? error.message : "Something went wrong couldn't delete client";
+        return NextResponse.json({ 
+            error: errorMessage 
+        }, { status: 500 });
     }
+  }, "clients", "delete");
 }
 
 // PATCH - Update client
 export async function PATCH(req: NextRequest) {
+  return withPermissions(req, async () => {
     try {
-        const session = await getServerSession(auth);
-        if (!session || session.user?.role !== "ADMIN") {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
         const body = await req.json();
         const result = ClientUpdateInputObjectSchema.safeParse(body);
 
@@ -146,7 +162,9 @@ export async function PATCH(req: NextRequest) {
         });
 
         return NextResponse.json({ data: client, message: "Client updated successfully" }, { status: 200 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message || "Something went wrong couldn't update client" }, { status: 500 });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Something went wrong couldn't update client";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
+  }, "clients", "edit");
 }
