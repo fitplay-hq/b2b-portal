@@ -1,3 +1,4 @@
+import React from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,14 +17,67 @@ interface AccountInfoProps {
   isCollapsed?: boolean;
 }
 
-export default function AccountInfo({ isCollapsed = false }: AccountInfoProps) {
-  const { data } = useSession();
+// Custom hook for stable user session data
+const useStableUser = () => {
+  const { data, status } = useSession();
+  const [stableUser, setStableUser] = React.useState<{
+    id?: string;
+    name?: string | null;
+    email?: string | null;
+    role?: string;
+    systemRole?: string;
+  } | null>(null);
 
-  if (!data) {
+  React.useEffect(() => {
+    if (status === 'authenticated' && data?.user) {
+      const currentUserStr = JSON.stringify(data.user);
+      const stableUserStr = JSON.stringify(stableUser);
+      
+      if (currentUserStr !== stableUserStr) {
+        setStableUser(data.user);
+      }
+    } else if (status === 'unauthenticated') {
+      setStableUser(null);
+    }
+  }, [data?.user, status, stableUser]);
+
+  return { 
+    userData: stableUser, 
+    sessionData: data,
+    sessionStatus: status,
+    isInitialLoading: status === 'loading' && !stableUser 
+  };
+};
+
+const AccountInfo = React.memo(({ isCollapsed = false }: AccountInfoProps) => {
+  const { userData, sessionData, isInitialLoading } = useStableUser();
+
+  // Memoize user initials and role text to prevent recalculation
+  const userInitials = React.useMemo(() => {
+    return userData?.name
+      ?.split(" ")
+      .map((n: string) => n[0])
+      .join("") || "U";
+  }, [userData?.name]);
+
+  const roleDisplayText = React.useMemo(() => {
+    if (!userData) return "";
+    if (userData.role === "ADMIN") return "Administrator";
+    if (userData.role === "SYSTEM_USER") return userData.systemRole || "System User";
+    if (userData.role === "CLIENT") return "Client";
+    return userData.role;
+  }, [userData]);
+
+  // Only show skeleton on initial loading, not on navigation
+  if (isInitialLoading) {
     return <Skeleton className="w-28 h-10" />;
   }
 
-  if (!data.user) {
+  if (!sessionData) {
+    return <Skeleton className="w-28 h-10" />;
+  }
+
+  if (!sessionData.user) {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -50,7 +104,8 @@ export default function AccountInfo({ isCollapsed = false }: AccountInfoProps) {
     );
   }
 
-  const { user } = data;
+  // Use stable user data instead of session data
+  const currentUser = userData || sessionData?.user;
 
   return (
     <div className={`flex items-center rounded-lg bg-gray-50 border border-gray-200 ${
@@ -58,28 +113,18 @@ export default function AccountInfo({ isCollapsed = false }: AccountInfoProps) {
     }`}>
       <Avatar className="h-8 w-8">
         <AvatarFallback className="bg-gray-100 border border-gray-200 text-gray-700 text-xs font-semibold shadow-sm">
-          {user.name
-            ?.split(" ")
-            .map((n) => n[0])
-            .join("") || "U"}
+          {userInitials}
         </AvatarFallback>
       </Avatar>
       
       {!isCollapsed && (
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+            <p className="text-sm font-medium text-gray-900 truncate">{currentUser?.name}</p>
             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
           </div>
           <p className="text-xs text-gray-500 truncate">
-            {user.role === "ADMIN" 
-              ? "Administrator" 
-              : user.role === "SYSTEM_USER" 
-                ? user.systemRole || "System User"
-                : user.role === "CLIENT"
-                  ? "Client"
-                  : user.role
-            }
+            {roleDisplayText}
           </p>
         </div>
       )}
@@ -92,7 +137,7 @@ export default function AccountInfo({ isCollapsed = false }: AccountInfoProps) {
             </svg>
             {isCollapsed && (
               <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                {user?.name}
+                {currentUser?.name}
               </div>
             )}
           </Button>
@@ -105,15 +150,12 @@ export default function AccountInfo({ isCollapsed = false }: AccountInfoProps) {
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
                 <AvatarFallback className="bg-gray-100 border border-gray-200 text-gray-700 font-semibold shadow-sm">
-                  {user.name
-                    ?.split(" ")
-                    .map((n) => n[0])
-                    .join("") || "U"}
+                  {userInitials}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium text-gray-900">{user?.name}</p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
+                <p className="font-medium text-gray-900">{currentUser?.name}</p>
+                <p className="text-xs text-gray-500">{currentUser?.email}</p>
                 <p className="text-xs text-gray-400 mt-1">Fitplay Inc.</p>
               </div>
             </div>
@@ -144,4 +186,12 @@ export default function AccountInfo({ isCollapsed = false }: AccountInfoProps) {
       </DropdownMenu>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Only re-render if isCollapsed prop changes
+  // This prevents re-renders when session data updates but props haven't changed
+  return prevProps.isCollapsed === nextProps.isCollapsed;
+});
+
+AccountInfo.displayName = 'AccountInfo';
+
+export default AccountInfo;

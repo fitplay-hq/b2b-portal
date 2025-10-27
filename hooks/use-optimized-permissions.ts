@@ -29,8 +29,8 @@ export function useOptimizedPermissions() {
 
   // INSTANT loading - never show loading for more than 1 second
   const isLoading = useMemo(() => {
-    // Never show loading for admins or non-system users
-    if (isAdmin || !isSystemUser) return false;
+    // Never show loading for admins (check session directly too)
+    if (session?.user?.role === 'ADMIN' || isAdmin || !isSystemUser) return false;
     
     // Only show loading briefly during initial authentication
     if (status === 'loading') return true;
@@ -38,7 +38,7 @@ export function useOptimizedPermissions() {
     
     // Always show as loaded after hydration - permissions load in background
     return false;
-  }, [status, isAdmin, isSystemUser]);
+  }, [status, isAdmin, isSystemUser, session]);
 
   // Hydration effect
   useEffect(() => {
@@ -100,7 +100,10 @@ export function useOptimizedPermissions() {
 
   // Memoized permission functions for admin (instant access)
   const adminPermissions = useMemo(() => {
-    if (!isAdmin) return null;
+    // Check both current session role and potential admin role during loading
+    const isAdminUser = session?.user?.role === 'ADMIN' || isAdmin;
+    
+    if (!isAdminUser) return null;
     
     return {
       permissions: [],
@@ -128,8 +131,8 @@ export function useOptimizedPermissions() {
     };
   }, [isAdmin, session]);
 
-  // Use cached or admin permissions
-  const currentPermissions = isAdmin ? adminPermissions : cachedPermissions;
+  // Use cached or admin permissions (check session directly for immediate access)
+  const currentPermissions = (session?.user?.role === 'ADMIN' || isAdmin) ? adminPermissions : cachedPermissions;
 
   // Optimized permission check functions
   const hasUserPermission = useMemo(() => {

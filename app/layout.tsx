@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/components/session-provider";
 import { PermissionPreloader } from "@/components/permission-preloader";
 import { ResourcePreloader, CriticalResourcePreloader } from "@/components/resource-preloader";
+import { PersistentPermissionProvider } from "@/contexts/permission-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,9 +32,11 @@ export default function RootLayout({
         <div className="min-h-screen bg-background">
           <CriticalResourcePreloader />
           <SessionProvider>
-            <PermissionPreloader />
-            <ResourcePreloader />
-            {children}
+            <PersistentPermissionProvider>
+              <PermissionPreloader />
+              <ResourcePreloader />
+              {children}
+            </PersistentPermissionProvider>
           </SessionProvider>
           <Toaster />
         </div>
