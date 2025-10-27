@@ -14,6 +14,7 @@ interface InventoryLogEntry {
   user: string;
   role: string;
   productId: string;
+  currentStock: number;
 }
 
 // GET /api/admin/inventory/logs
@@ -42,13 +43,14 @@ export async function GET(req: NextRequest) {
     const sku = searchParams.get("sku");
     const reason = searchParams.get("reason");
 
-    // Get all products with their inventory logs
+    // Get all products with their inventory logs and current stock
     const products = await prisma.product.findMany({
       select: {
         id: true,
         name: true,
         sku: true,
         inventoryLogs: true,
+        availableStock: true,
       },
     });
 
@@ -87,6 +89,7 @@ export async function GET(req: NextRequest) {
                 user: "Admin", // For now, defaulting to Admin as logs don't store user info yet
                 role: "ADMIN",
                 productId: product.id,
+                currentStock: product.availableStock,
               });
             }
           } catch (error) {
@@ -142,7 +145,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Apply sorting
-    const allowedSortFields = ["date", "productName", "sku", "change", "reason", "user"];
+    const allowedSortFields = ["date", "productName", "sku", "change", "reason", "user", "currentStock"];
     const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "date";
     const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
@@ -162,6 +165,12 @@ export async function GET(req: NextRequest) {
         const bNum = parseInt(String(bValue).replace(/[+\-]/g, '')) || 0;
         aValue = aNum;
         bValue = bNum;
+      }
+
+      // Special handling for currentStock sorting (numeric)
+      if (safeSortBy === "currentStock") {
+        aValue = Number(aValue) || 0;
+        bValue = Number(bValue) || 0;
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {

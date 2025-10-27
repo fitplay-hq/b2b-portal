@@ -262,6 +262,17 @@ export function InventoryLogsTable({
                     {getSortIcon("change")}
                   </Button>
                 </th>
+                <th className="text-left p-4 font-medium">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort("currentStock")}
+                    className="h-auto p-0 font-medium"
+                  >
+                    Updated Stock
+                    {getSortIcon("currentStock")}
+                  </Button>
+                </th>
                 <th className="text-left p-4 font-medium">Reason</th>
                 <th className="text-left p-4 font-medium">User</th>
                 <th className="text-left p-4 font-medium">Role</th>
@@ -285,6 +296,14 @@ export function InventoryLogsTable({
                         {log.change}
                       </Badge>
                     </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-green-600">
+                          {log.currentStock}
+                        </span>
+                        <span className="text-xs text-muted-foreground">units</span>
+                      </div>
+                    </td>
                     <td className="p-4 text-sm">
                       <Badge variant="outline" className="capitalize">
                         {formatReason(log.reason)}
@@ -298,7 +317,7 @@ export function InventoryLogsTable({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     No inventory logs found. Try adjusting your filters.
                   </td>
                 </tr>

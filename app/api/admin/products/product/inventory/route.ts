@@ -78,7 +78,10 @@ export async function GET(req: NextRequest) {
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { inventoryLogs: true },
+      select: { 
+        inventoryLogs: true,
+        availableStock: true,
+      },
     });
 
     if (!product) {
@@ -88,7 +91,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ inventoryLogs: product.inventoryLogs }, { status: 200 });
+    return NextResponse.json({ 
+      inventoryLogs: product.inventoryLogs,
+      availableStock: product.availableStock,
+    }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(
       {

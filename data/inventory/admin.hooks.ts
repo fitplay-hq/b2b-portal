@@ -13,6 +13,7 @@ export interface InventoryLogEntry {
   user: string;
   role: string;
   productId: string;
+  currentStock: number;
 }
 
 export interface InventoryLogsResponse {
@@ -90,7 +91,7 @@ export function useInventoryLogs(filters?: InventoryLogsFilters) {
 
 // Hook for product-specific inventory logs
 export function useProductInventoryLogs(productId: string) {
-  const { data, error, isLoading, mutate } = useSWR<{ inventoryLogs: string[] }>(
+  const { data, error, isLoading, mutate } = useSWR<{ inventoryLogs: string[]; availableStock: number }>(
     productId ? `/api/admin/products/product/inventory?productId=${productId}` : null,
     fetcher,
     {
@@ -130,6 +131,7 @@ export function useProductInventoryLogs(productId: string) {
             user: "Admin",
             role: "ADMIN",
             productId: productId,
+            currentStock: data?.availableStock || 0,
           });
         }
       } catch (error) {

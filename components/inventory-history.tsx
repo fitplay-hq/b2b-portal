@@ -16,6 +16,7 @@ export function InventoryHistory({ product }: InventoryHistoryProps) {
     ...log,
     productName: product.name,
     sku: product.sku,
+    currentStock: product.availableStock, // Use the current stock from the product
   }));
 
   if (error) {
