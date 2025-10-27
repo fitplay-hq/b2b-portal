@@ -62,7 +62,7 @@ export default function InventoryLogsPage() {
   return (
     <PageGuard resource={RESOURCES.INVENTORY} action="view">
       <Layout isClient={false}>
-        <div className="flex flex-col h-full gap-6">
+        <div className="flex flex-col gap-6">
           <div className="shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -74,7 +74,7 @@ export default function InventoryLogsPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2">
+          <div className="flex-1">
             <InventoryLogsTable
               logs={logs}
               isLoading={isLoading}

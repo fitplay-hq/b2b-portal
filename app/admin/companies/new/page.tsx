@@ -84,8 +84,11 @@ export default function NewCompanyPage() {
   return (
     <PageGuard resource="companies" action="create">
       <Layout isClient={false}>
-      {/* Enhanced Header */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 mb-8">
+        <div className="bg-gray-50 -m-6">
+          <div className="p-8">
+            <div className="space-y-8">
+              {/* Enhanced Header */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
         <div className="flex items-center gap-6">
           <Link href="/admin/companies">
             <Button variant="outline" size="sm" className="border-gray-300 hover:border-gray-400">
@@ -165,6 +168,9 @@ export default function NewCompanyPage() {
                 </Button>
               </div>
             </form>
+            </div>
+          </div>
+        </div>
       </Layout>
     </PageGuard>
   );

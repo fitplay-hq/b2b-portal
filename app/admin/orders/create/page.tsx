@@ -383,7 +383,7 @@ export default function CreateDispatchOrderPage() {
                   <Label className="text-sm font-medium mb-2 block">
                     Search Results ({searchResults.length})
                   </Label>
-                  <div className="border rounded-md max-h-64 overflow-y-auto">
+                  <div className="border rounded-md">
                     {searchResults.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">
                         No products found
@@ -445,7 +445,7 @@ export default function CreateDispatchOrderPage() {
                   </div>
                 ) : (
                   <div className="border rounded-md overflow-hidden">
-                    <div className="max-h-[500px] overflow-y-auto">
+                    <div>
                       {selectedProducts.map((product, index) => (
                         <div
                           key={product.id}

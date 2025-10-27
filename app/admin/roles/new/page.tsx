@@ -206,7 +206,9 @@ export default function NewRolePage() {
   return (
     <PageGuard adminOnly={true}>
       <Layout isClient={false}>
-      <div className="space-y-8 max-w-4xl">
+        <div className="bg-gray-50 -m-6">
+          <div className="p-8">
+            <div className="space-y-8 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" asChild>
@@ -416,7 +418,9 @@ export default function NewRolePage() {
           </Button>
         </div>
       </form>
-      </div>
+            </div>
+          </div>
+        </div>
       </Layout>
     </PageGuard>
   );

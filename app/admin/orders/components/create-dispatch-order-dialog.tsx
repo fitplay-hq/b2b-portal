@@ -253,7 +253,7 @@ export function CreateDispatchOrderDialog({ isOpen, onClose }: CreateDispatchOrd
               {searchTerm && (
                 <div>
                   <Label className="text-sm font-medium mb-2 block">Search Results ({searchResults.length})</Label>
-                  <div className="border rounded-md max-h-48 overflow-y-auto">
+                  <div className="border rounded-md">
                     {searchResults.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">No products found</p>
                     ) : (
@@ -303,7 +303,7 @@ export function CreateDispatchOrderDialog({ isOpen, onClose }: CreateDispatchOrd
                   </div>
                 ) : (
                   <div className="border rounded-md overflow-hidden">
-                    <div className="max-h-96 overflow-y-auto">
+                    <div>
                       {selectedProducts.map((product, index) => (
                         <div key={product.id} className="border-b last:border-b-0 p-4">
                           <div className="flex items-start justify-between mb-3">

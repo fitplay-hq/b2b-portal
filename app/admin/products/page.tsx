@@ -103,7 +103,7 @@ export default function AdminProductsPage() {
   return (
     <PageGuard resource={RESOURCES.PRODUCTS} action="view">
       <Layout isClient={false}>
-        <div className="flex flex-col h-full gap-6">
+        <div className="flex flex-col gap-6">
           <div className="shrink-0 space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -126,7 +126,7 @@ export default function AdminProductsPage() {
           <StatsGrid products={products || []} />
           <ProductFilters {...filterProps} />
         </div>
-        <div className="flex-1 overflow-y-auto pr-2">
+        <div className="flex-1">
           <ProductList
             products={filteredProducts}
             allProducts={products ?? []}

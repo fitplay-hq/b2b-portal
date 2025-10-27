@@ -153,7 +153,7 @@ export default function EditUserPage() {
     return (
       <PageGuard resource={RESOURCES.USERS} action="update" adminOnly>
         <Layout isClient={false}>
-          <div className="min-h-[calc(100vh-4rem)] bg-gray-50 -m-6">
+          <div className="bg-gray-50 -m-6">
             <div className="p-8">
               <Card className="max-w-md mx-auto">
                 <CardHeader>
@@ -179,7 +179,7 @@ export default function EditUserPage() {
   return (
     <PageGuard resource={RESOURCES.USERS} action="update" adminOnly>
       <Layout isClient={false}>
-        <div className="min-h-[calc(100vh-4rem)] bg-gray-50 -m-6">
+        <div className="bg-gray-50 -m-6">
           <div className="p-8">
             <div className="max-w-2xl mx-auto">
               {/* Header */}
