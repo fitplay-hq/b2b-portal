@@ -71,11 +71,13 @@ export default function AdminClientsPage() {
       await deleteClient({
         id: clientToDelete,
       });
-      toast.success("Client deleted.");
+      toast.success("Client deleted successfully.");
       setShowDeleteDialog(false);
       setClientToDelete(null);
-    } catch {
-      toast.error("Failed to delete client.");
+    } catch (error) {
+      console.error("Client deletion error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete client.";
+      toast.error(errorMessage);
     }
   };
 

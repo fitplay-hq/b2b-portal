@@ -54,47 +54,89 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Parse and flatten all inventory logs
+    // Parse and flatten all inventory logs with calculated historical stock
     const allLogs: InventoryLogEntry[] = [];
     
     products.forEach((product) => {
       if (product.inventoryLogs && product.inventoryLogs.length > 0) {
+        // Parse all logs for this product first
+        const productLogs: Array<{
+          index: number;
+          date: string;
+          changeInfo: string;
+          reasonInfo: string;
+          changeAmount: number;
+          changeDirection: 'Added' | 'Removed';
+        }> = [];
+
         product.inventoryLogs.forEach((logString, index) => {
           try {
-            // Parse log string: "2024-10-26T10:30:00.000Z | Added 10 units | Reason: NEW_PURCHASE"
             const parts = logString.split(" | ");
             if (parts.length >= 3) {
               const date = parts[0];
-              const changeInfo = parts[1]; // "Added 10 units" or "Removed 5 units"
-              const reasonInfo = parts[2]; // "Reason: NEW_PURCHASE"
+              const changeInfo = parts[1];
+              const reasonInfo = parts[2];
               
-              // Extract change amount and direction
               const changeMatch = changeInfo.match(/(Added|Removed)\s+(\d+)\s+units/);
-              const change = changeMatch ? 
-                `${changeMatch[1] === 'Added' ? '+' : '-'}${changeMatch[2]}` : 
-                changeInfo;
-              
-              // Extract reason
-              const reasonMatch = reasonInfo.match(/Reason:\s*(.+)/);
-              const extractedReason = reasonMatch ? reasonMatch[1] : reasonInfo;
-              
-              allLogs.push({
-                id: `${product.id}-${index}`,
-                date: date,
-                productName: product.name,
-                sku: product.sku,
-                change: change,
-                reason: extractedReason,
-                remarks: "", // Can be extended later
-                user: "Admin", // For now, defaulting to Admin as logs don't store user info yet
-                role: "ADMIN",
-                productId: product.id,
-                currentStock: product.availableStock,
-              });
+              if (changeMatch) {
+                productLogs.push({
+                  index,
+                  date,
+                  changeInfo,
+                  reasonInfo,
+                  changeAmount: parseInt(changeMatch[2]),
+                  changeDirection: changeMatch[1] as 'Added' | 'Removed'
+                });
+              }
             }
           } catch (error) {
             console.error("Error parsing log entry:", logString, error);
           }
+        });
+
+        // Sort logs by date (oldest first) to calculate historical stock correctly
+        productLogs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        // Calculate historical stock for each log entry
+        // First, calculate what the stock was before all changes
+        let stockAfterAllChanges = product.availableStock;
+        for (let i = productLogs.length - 1; i >= 0; i--) {
+          const log = productLogs[i];
+          if (log.changeDirection === 'Added') {
+            stockAfterAllChanges -= log.changeAmount;
+          } else {
+            stockAfterAllChanges += log.changeAmount;
+          }
+        }
+
+        // Now calculate the stock after each change going forward
+        let runningStock = stockAfterAllChanges;
+        productLogs.forEach((log) => {
+          // Apply the change first
+          if (log.changeDirection === 'Added') {
+            runningStock += log.changeAmount;
+          } else {
+            runningStock -= log.changeAmount;
+          }
+
+          // Extract formatted data
+          const change = `${log.changeDirection === 'Added' ? '+' : '-'}${log.changeAmount}`;
+          const reasonMatch = log.reasonInfo.match(/Reason:\s*(.+)/);
+          const extractedReason = reasonMatch ? reasonMatch[1] : log.reasonInfo;
+          
+          allLogs.push({
+            id: `${product.id}-${log.index}`,
+            date: log.date,
+            productName: product.name,
+            sku: product.sku,
+            change: change,
+            reason: extractedReason,
+            remarks: "", // Can be extended later
+            user: "Admin", // For now, defaulting to Admin as logs don't store user info yet
+            role: "ADMIN",
+            productId: product.id,
+            currentStock: runningStock, // This is now the stock AFTER this change
+          });
         });
       }
     });
