@@ -23,7 +23,7 @@ export default function AdminDashboardPage() {
 
   if (isLoading || !metrics) {
     return (
-      <Layout title="Admin Dashboard" isClient={false}>
+      <Layout isClient={false}>
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -33,7 +33,7 @@ export default function AdminDashboardPage() {
 
   if (error) {
     return (
-      <Layout title="Admin Dashboard" isClient={false}>
+      <Layout isClient={false}>
         <div className="text-center text-destructive">
           Failed to load dashboard data. Please try again later.
         </div>
@@ -42,7 +42,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <Layout title="Admin Dashboard" isClient={false}>
+    <Layout isClient={false}>
       <div className="space-y-6">
         <WelcomeHeader />
         <MetricsGrid {...metrics} />

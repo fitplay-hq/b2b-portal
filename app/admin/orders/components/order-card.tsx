@@ -27,6 +27,7 @@ import { useSendOrderEmail } from "@/data/order/admin.hooks";
 import Link from "next/link";
 import { formatStatus } from "@/lib/utils";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/use-permissions";
 
 // --- Helper Function ---
 // A utility to get style and icon based on order status
@@ -129,6 +130,7 @@ const OrderDetails = ({
   order: AdminOrder;
   onOpenStatusDialog: () => void;
 }) => {
+  const { actions } = usePermissions();
   const { sendOrderEmail, isSending } = useSendOrderEmail();
 
   const handleSendEmail = async () => {
@@ -147,29 +149,35 @@ const OrderDetails = ({
     <CardContent className="pt-0">
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-2 border-b pb-4">
-          <Link href={`/admin/orders/${order.id}`}>
-            <Button size="sm" variant="secondary">
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View Details
+          {actions.orders.view && (
+            <Link href={`/admin/orders/${order.id}`}>
+              <Button size="sm" variant="secondary">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View Details
+              </Button>
+            </Link>
+          )}
+          {actions.orders.edit && (
+            <Button size="sm" onClick={onOpenStatusDialog}>
+              Update Status
             </Button>
-          </Link>
-          <Button size="sm" onClick={onOpenStatusDialog}>
-            Update Status
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleSendEmail}
-            disabled={isSending || order.isMailSent}
-          >
-            <Mail className="mr-2 h-4 w-4" />
-            {order.isMailSent
-              ? "Mail Sent"
-              : isSending
-              ? "Sending..."
-              : "Send Email"}
-          </Button>
-          {order.status === "PENDING" && (
+          )}
+          {actions.orders.edit && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSendEmail}
+              disabled={isSending || order.isMailSent}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              {order.isMailSent
+                ? "Mail Sent"
+                : isSending
+                ? "Sending..."
+                : "Send Email"}
+            </Button>
+          )}
+          {actions.orders.edit && order.status === "PENDING" && (
             <Link href={`/admin/orders/${order.id}/approve`}>
               <Button size="sm" variant="default">
                 <CheckCircle className="mr-2 h-4 w-4" />

@@ -4,6 +4,7 @@ import { ImageWithFallback } from "@/components/image";
 import { Product } from "@/lib/generated/prisma";
 import { Edit, Trash2, Package } from "lucide-react";
 import { getHumanFriendlyCategoryName } from "./product-filters";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface ProductItemProps {
   product: Product;
@@ -18,6 +19,7 @@ export function ProductItem({
   onDelete,
   onManageInventory,
 }: ProductItemProps) {
+  const { actions } = usePermissions();
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg">
       <div className="flex items-center gap-4">
@@ -55,27 +57,33 @@ export function ProductItem({
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => onEdit(product)}>
-          <Edit className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline">Edit</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onManageInventory(product)}
-        >
-          <Package className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline">Inventory</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onDelete(product.id)}
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline">Delete</span>
-        </Button>
+        {actions.products.edit && (
+          <Button variant="outline" size="sm" onClick={() => onEdit(product)}>
+            <Edit className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Edit</span>
+          </Button>
+        )}
+        {actions.inventory?.edit && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onManageInventory(product)}
+          >
+            <Package className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Inventory</span>
+          </Button>
+        )}
+        {actions.products.delete && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete(product.id)}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Delete</span>
+          </Button>
+        )}
       </div>
     </div>
   );

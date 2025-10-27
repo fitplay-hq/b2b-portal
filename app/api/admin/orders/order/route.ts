@@ -1,15 +1,10 @@
-import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { withPermissions } from "@/lib/auth-middleware";
 
 export async function GET(req: NextRequest) {
+  return withPermissions(req, async () => {
     try {
-        const session = await getServerSession(auth);
-
-        if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
 
         const orderId = req.nextUrl.searchParams.get("id");
 
@@ -65,20 +60,17 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Order not found" }, { status: 404 });
         }
 
-        return NextResponse.json(order);
+      return NextResponse.json(order);
     } catch (error) {
         console.error("Error fetching order:", error);
         return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 });
     }
+  }, "orders", "view");
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(auth);
-
-    if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  return withPermissions(req, async () => {
+    try {
 
     const body = await req.json();
     const {
@@ -225,8 +217,9 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(order);
-  } catch (error) {
-    console.error("Error creating order:", error);
-    return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
-  }
+    } catch (error) {
+      console.error("Error creating order:", error);
+      return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
+    }
+  }, "orders", "create");
 }

@@ -1,17 +1,13 @@
-import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { ClientUpdateInputObjectSchema } from "@/prisma/generated/schemas";
 import bcrypt from "bcryptjs";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { withPermissions } from "@/lib/auth-middleware";
 
 // POST - Create client and optionally company
 export async function POST(req: NextRequest) {
+  return withPermissions(req, async () => {
     try {
-        const session = await getServerSession(auth);
-        if (!session || session.user?.role !== "ADMIN") {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
 
         const body = await req.json();
         const { name, email, password, phone, address, isNewCompany, companyName, companyAddress, isShowPrice } = body;
@@ -67,6 +63,7 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         return NextResponse.json({ error: error.message || "Something went wrong couldn't add client" }, { status: 500 });
     }
+  }, "clients", "create");
 }
 
 // GET - Get client by id

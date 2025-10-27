@@ -9,9 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { $Enums, Product } from "@/lib/generated/prisma";
+import { Product } from "@/lib/generated/prisma";
 import {
   Select,
   SelectContent,
@@ -19,9 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package, Minus, Plus } from "lucide-react";
+import { Package, Minus, Plus, History, Settings } from "lucide-react";
 import { useUpdateInventory } from "@/data/product/admin.hooks";
 import { toast } from "sonner";
+import { InventoryHistory } from "@/components/inventory-history";
+
+const tabs = [
+  { id: "update", label: "Update Stock", icon: Settings },
+  { id: "history", label: "Inventory History", icon: History },
+];
 
 interface UpdateInventoryDialogProps {
   product: Product | null;
@@ -34,6 +39,7 @@ export function UpdateInventoryDialog({
   isOpen,
   onClose,
 }: UpdateInventoryDialogProps) {
+  const [activeTab, setActiveTab] = useState("update");
   const [quantity, setQuantity] = useState<string>("");
   const [direction, setDirection] = useState<"add" | "subtract">("add");
   const [reason, setReason] = useState<string>("");
@@ -70,7 +76,7 @@ export function UpdateInventoryDialog({
         `Stock ${direction === "add" ? "added" : "removed"} successfully`
       );
       handleClose();
-    } catch (error) {
+    } catch {
       toast.error("Failed to update inventory");
     }
   };
@@ -79,6 +85,7 @@ export function UpdateInventoryDialog({
     setQuantity("");
     setDirection("add");
     setReason("");
+    setActiveTab("update");
     onClose();
   };
 
@@ -86,124 +93,156 @@ export function UpdateInventoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Update Inventory
+            Inventory Management
           </DialogTitle>
           <DialogDescription>
-            Manage stock for <strong>{product.name}</strong>
+            Manage stock and view history for <strong>{product.name}</strong> ({product.sku})
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Current Stock Display */}
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <span className="font-medium">Current Stock:</span>
-            <Badge
-              variant={
-                product.availableStock === 0
-                  ? "destructive"
-                  : product.availableStock < 50
-                  ? "secondary"
-                  : "default"
-              }
-            >
-              {product.availableStock}{" "}
-              {product.availableStock === 1 ? "unit" : "units"}
-            </Badge>
-          </div>
+        {/* Tab Navigation */}
+        <div className="flex border-b border-border">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
 
-          {/* Direction Selection */}
-          <div className="space-y-3">
-            <Label>Action</Label>
-            <Select
-              value={direction}
-              onValueChange={(value: "add" | "subtract") => setDirection(value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="add">
-                  <div className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Stock
-                  </div>
-                </SelectItem>
-                <SelectItem value="subtract">
-                  <div className="flex items-center gap-2">
-                    <Minus className="h-4 w-4" />
-                    Remove Stock
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Tab Content */}
+        <div className="mt-4">
+          {activeTab === "update" && (
+            <div className="space-y-6">
+              {/* Current Stock Display */}
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <span className="font-medium">Current Stock:</span>
+                <Badge
+                  variant={
+                    product.availableStock === 0
+                      ? "destructive"
+                      : product.availableStock < 50
+                      ? "secondary"
+                      : "default"
+                  }
+                >
+                  {product.availableStock}{" "}
+                  {product.availableStock === 1 ? "unit" : "units"}
+                </Badge>
+              </div>
 
-          {/* Quantity Input */}
-          <div className="space-y-2">
-            <Label htmlFor="quantity">Quantity *</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              placeholder="Enter quantity"
-              required
-            />
-          </div>
+              {/* Direction Selection */}
+              <div className="space-y-3">
+                <Label>Action</Label>
+                <Select
+                  value={direction}
+                  onValueChange={(value: "add" | "subtract") => setDirection(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="add">
+                      <div className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add Stock
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="subtract">
+                      <div className="flex items-center gap-2">
+                        <Minus className="h-4 w-4" />
+                        Remove Stock
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Reason Input */}
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason *</Label>
-            <Select value={reason} onValueChange={setReason}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a inventory update reason" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NEW_PURCHASE">
-                  New Purchase - Adding new stock from purchase
-                </SelectItem>
-                <SelectItem value="PHYSICAL_STOCK_CHECK">
-                  Physical Stock Check - Adjusting after manual count
-                </SelectItem>
-                <SelectItem value="RETURN_FROM_PREVIOUS_DISPATCH">
-                  Return from Previous Dispatch - Items returned to stock
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              {/* Quantity Input */}
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Quantity *</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="Enter quantity"
+                  required
+                />
+              </div>
 
-          {/* Preview */}
-          {quantity && direction && reason && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                {direction === "add" ? "Will add" : "Will remove"} {quantity}{" "}
-                {parseInt(quantity) === 1 ? "unit" : "units"}
-                {direction === "add" ? " to" : " from"} inventory
-              </p>
-              <p className="text-sm font-medium text-blue-900">
-                New stock:{" "}
-                {direction === "add"
-                  ? (product.availableStock || 0) + parseInt(quantity)
-                  : (product.availableStock || 0) - parseInt(quantity)}{" "}
-                units
-              </p>
+              {/* Reason Input */}
+              <div className="space-y-2">
+                <Label htmlFor="reason">Reason *</Label>
+                <Select value={reason} onValueChange={setReason}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a inventory update reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NEW_PURCHASE">
+                      New Purchase - Adding new stock from purchase
+                    </SelectItem>
+                    <SelectItem value="PHYSICAL_STOCK_CHECK">
+                      Physical Stock Check - Adjusting after manual count
+                    </SelectItem>
+                    <SelectItem value="RETURN_FROM_PREVIOUS_DISPATCH">
+                      Return from Previous Dispatch - Items returned to stock
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Preview */}
+              {quantity && direction && reason && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    {direction === "add" ? "Will add" : "Will remove"} {quantity}{" "}
+                    {parseInt(quantity) === 1 ? "unit" : "units"}
+                    {direction === "add" ? " to" : " from"} inventory
+                  </p>
+                  <p className="text-sm font-medium text-blue-900">
+                    New stock:{" "}
+                    {direction === "add"
+                      ? (product.availableStock || 0) + parseInt(quantity)
+                      : (product.availableStock || 0) - parseInt(quantity)}{" "}
+                    units
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={handleClose}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSubmit} disabled={isUpdatingInventory}>
+                  {isUpdatingInventory ? "Updating..." : "Update Inventory"}
+                </Button>
+              </div>
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={isUpdatingInventory}>
-              {isUpdatingInventory ? "Updating..." : "Update Inventory"}
-            </Button>
-          </div>
+          {activeTab === "history" && (
+            <div className="pt-2">
+              <InventoryHistory product={product} />
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

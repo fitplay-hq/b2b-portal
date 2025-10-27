@@ -199,7 +199,7 @@ export function BulkInventoryDialog({
                 <Label className="text-sm font-medium mb-2 block">
                   Search Results ({searchResults.length})
                 </Label>
-                <div className="border rounded-md max-h-48 overflow-y-auto">
+                <div className="border rounded-md">
                   {searchResults.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       No products found matching "{debouncedSearchTerm}"
@@ -276,7 +276,7 @@ export function BulkInventoryDialog({
                 </div>
               ) : (
                 <div className="border rounded-md overflow-hidden">
-                  <div className="max-h-96 overflow-y-auto">
+                  <div>
                     {selectedProducts.map((product, index) => (
                       <div
                         key={product.id}

@@ -218,3 +218,140 @@ html {
   font-size: var(--font-size);
 }
 
+/* Custom Scrollbar Styles for Sidebar */
+.sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* General scrollbar styles */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Suppress hydration warnings for browser extensions */
+[data-form-type],
+[fdprocessedid],
+[data-lastpass-icon-root],
+[data-dashlane-rid],
+[data-bitwarden-watching] {
+  /* These attributes are added by browser extensions and can be safely ignored */
+}
+
+/* Sidebar stability improvements */
+.sidebar-container {
+  backface-visibility: hidden;
+  will-change: transform, width;
+  transform-origin: left center;
+  transform: translate3d(0, 0, 0); /* Force hardware acceleration */
+}
+
+.sidebar-container * {
+  backface-visibility: hidden;
+}
+
+/* Prevent layout shifts during sidebar transitions */
+.sidebar-open {
+  --sidebar-width: 16rem;
+}
+
+.sidebar-closed {
+  --sidebar-width: 4rem;
+}
+
+/* Responsive layout fixes */
+@media (max-width: 1024px) {
+  .sidebar-closed {
+    --sidebar-width: 16rem;
+  }
+
+  /* Prevent horizontal overflow */
+  body, html {
+    overflow-x: hidden !important;
+  }
+
+  /* Ensure main content area spans full width on mobile */
+  .flex-1 {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* Prevent black screen by ensuring proper background */
+.bg-gray-50 {
+  background-color: #f9fafb !important;
+}
+
+/* Performance optimizations for permission loading */
+.permission-loading {
+  opacity: 0.8;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.permission-loaded {
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Fast sidebar transitions - no jank */
+.sidebar-optimized {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Cache warming indicator */
+.cache-warming::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+  animation: cache-loading 2s infinite;
+}
+
+@keyframes cache-loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+
+

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build --turbopack --no-lint",
-    "seed": "ts-node prisma/seed.ts",
+    "seed": "tsx prisma/seed.ts",
     "start": "next start",
     "lint": "eslint"
   },
@@ -24,6 +24,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@uploadthing/react": "^7.3.3",
+    "@upstash/redis": "^1.35.6",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -45,7 +46,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
@@ -53,7 +54,8 @@
     "prisma": "^6.15.0",
     "prisma-zod-generator": "^1.18.0",
     "tailwindcss": "^4",
-    "tsx": "^4.20.5",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "tw-animate-css": "^1.3.7",
     "typescript": "^5"
   }

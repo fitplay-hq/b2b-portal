@@ -63,6 +63,7 @@ model Product {
   sku                   String      @unique @db.VarChar(100)
   availableStock        Int
   inventoryUpdateReason Reason?
+  inventoryLogs         String[]
   description           String
   categories            Category
   avgRating             Float?
@@ -159,4 +160,41 @@ enum Gender {
 enum Role {
   ADMIN
   CLIENT
+  SYSTEM_USER
+}
+
+// Role Management System Models
+model SystemRole {
+  id          String             @id @default(uuid())
+  name        String             @unique @db.VarChar(50)
+  description String?            @db.VarChar(255)
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  permissions SystemPermission[]
+  users       SystemUser[]
+}
+
+model SystemPermission {
+  id          String       @id @default(uuid())
+  resource    String       @db.VarChar(50) // e.g., "users", "roles", "products", "orders", "clients", "companies"
+  action      String       @db.VarChar(20) // e.g., "create", "read", "update", "delete"
+  description String?      @db.VarChar(255)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  roles       SystemRole[]
+
+  @@unique([resource, action])
+}
+
+model SystemUser {
+  id        String     @id @default(uuid())
+  name      String     @db.VarChar(100)
+  email     String     @unique
+  password  String
+  isActive  Boolean    @default(true)
+  role      SystemRole @relation(fields: [roleId], references: [id])
+  roleId    String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }

@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import { Prisma } from "@/lib/generated/prisma";
-import { getServerSession } from "next-auth";
-import { auth } from "../../auth/[...nextauth]/route";
+import { checkPermission } from "@/lib/auth-middleware";
+import { RESOURCES } from "@/lib/utils";
 
 // Import the auto-generated Zod schema
 import { ProductCreateInputObjectSchema } from "@/prisma/generated/schemas";
@@ -18,12 +18,16 @@ const InventoryUpdateSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-
-    const session = await getServerSession(auth);
-    if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Check permissions
+    const permissionCheck = await checkPermission(RESOURCES.PRODUCTS, 'create');
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
+      );
     }
+
+    const body = await req.json();
 
     if (!Array.isArray(body)) {
       return NextResponse.json(
@@ -59,9 +63,10 @@ export async function POST(req: NextRequest) {
       { message: "Products added successfully", count: products.count },
       { status: 201 },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Something went wrong";
     return NextResponse.json(
-      { error: error.message || "Something went wrong" },
+      { error: errorMessage },
       { status: 500 },
     );
   }
@@ -69,9 +74,13 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(auth);
-    if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Check permissions
+    const permissionCheck = await checkPermission(RESOURCES.PRODUCTS, 'view');
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
+      );
     }
 
     const { searchParams } = new URL(req.url);
@@ -89,9 +98,10 @@ export async function GET(req: NextRequest) {
       },
     });
     return NextResponse.json(products);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Something went wrong";
     return NextResponse.json(
-      { error: error.message || "Something went wrong" },
+      { error: errorMessage },
       { status: 500 },
     );
   }
@@ -101,17 +111,24 @@ export async function GET(req: NextRequest) {
 // api for bulk inventory update
 export async function PATCH(req: NextRequest) {
   try {
-    const body = await req.json();
-
-    const session = await getServerSession(auth);
-    if (!session || !session.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Check permissions
+    const permissionCheck = await checkPermission(RESOURCES.PRODUCTS, "update");
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        {
+          status:
+            permissionCheck.error === "Authentication required" ? 401 : 403,
+        }
+      );
     }
+
+    const body = await req.json();
 
     if (!Array.isArray(body)) {
       return NextResponse.json(
         { error: "Expected an array of inventory updates" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -120,8 +137,8 @@ export async function PATCH(req: NextRequest) {
       if (!result.success) {
         throw new Error(
           `Validation error at index ${idx}: ${JSON.stringify(
-            result.error.format(),
-          )}`,
+            result.error.format()
+          )}`
         );
       }
       return result.data;
@@ -129,6 +146,12 @@ export async function PATCH(req: NextRequest) {
 
     const updatedProducts = await Promise.all(
       updates.map(async ({ productId, quantity, direction, inventoryUpdateReason }) => {
+        // Create a log entry for this update
+        const logEntry = `${new Date().toISOString()} | ${
+          direction === "incr" ? "Added" : "Removed"
+        } ${quantity} units | Reason: ${inventoryUpdateReason}`;
+
+        // Update the product inventory and push the log
         return prisma.product.update({
           where: { id: productId },
           data: {
@@ -136,16 +159,27 @@ export async function PATCH(req: NextRequest) {
               [direction === "incr" ? "increment" : "decrement"]: quantity,
             },
             inventoryUpdateReason: inventoryUpdateReason,
+            inventoryLogs: { push: logEntry }, // 👈 new line to store logs
           },
         });
       })
     );
 
-    return NextResponse.json({ success: true, updatedProducts, message: "Inventories of the listed products updated successfully" }, { status: 200 });
-  } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || "Something went wrong" },
-      { status: 500 },
+      {
+        success: true,
+        updatedProducts,
+        message:
+          "Inventories of the listed products updated successfully",
+      },
+      { status: 200 }
+    );
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Something went wrong";
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: 500 }
     );
   }
 }

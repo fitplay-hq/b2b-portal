@@ -1,15 +1,10 @@
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "../../auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
+import { withPermissions } from "@/lib/auth-middleware";
 
 export async function GET(req: NextRequest) {
-    try {
-        const session = await getServerSession(auth);
-
-        if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+    return withPermissions(req, async () => {
+        try {
 
         const orders = await prisma.order.findMany({
             select: {
@@ -72,12 +67,13 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        return NextResponse.json(orders);
-    } catch (error) {
-        console.error("Error fetching admin orders:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch orders" },
-            { status: 500 }
-        );
-    }
+            return NextResponse.json(orders);
+        } catch (error) {
+            console.error("Error fetching admin orders:", error);
+            return NextResponse.json(
+                { error: "Failed to fetch orders" },
+                { status: 500 }
+            );
+        }
+    }, "orders", "view");
 }
