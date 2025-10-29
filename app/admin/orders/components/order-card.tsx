@@ -162,6 +162,14 @@ const OrderDetails = ({
               Update Status
             </Button>
           )}
+          {order.shippingLabelUrl && (
+            <Link href={order.shippingLabelUrl || ""} target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Download Shipping Label
+              </Button>
+            </Link>
+          )}
           {actions.orders.edit && (
             <Button
               size="sm"
