@@ -55,7 +55,8 @@ export const PERMISSIONS = {
   EDIT: 'edit',
   DELETE: 'delete',
   READ: 'read',    // Legacy support
-  UPDATE: 'update' // Legacy support
+  UPDATE: 'update', // Legacy support
+  EXPORT: 'export'
 } as const;
 
 /**
@@ -68,7 +69,8 @@ export const RESOURCES = {
   ORDERS: 'orders',
   CLIENTS: 'clients',
   COMPANIES: 'companies',
-  INVENTORY: 'inventory'
+  INVENTORY: 'inventory',
+  ANALYTICS: 'analytics'
 } as const;
 
 /**
