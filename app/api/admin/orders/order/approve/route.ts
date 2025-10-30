@@ -8,6 +8,8 @@ export async function PATCH(req: NextRequest) {
     try {
       const { orderId, status, consignmentNumber, deliveryService } = await req.json();
 
+      console.log("Status update request:", { orderId, status, consignmentNumber, deliveryService });
+
       if (!orderId) {
         return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
       }

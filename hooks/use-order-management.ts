@@ -1,11 +1,10 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { PurchaseOrder } from "@/lib/mockData";
 import { useUpdateOrderStatus } from "@/data/order/admin.hooks";
 import { KeyedMutator } from "swr";
 import { AdminOrder } from "@/data/order/admin.actions";
 
-export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutator<any>) {
+export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutator<AdminOrder[]>) {
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [dialogState, setDialogState] = useState({
     isOpen: false,
@@ -18,7 +17,11 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
 
   const toggleOrderExpansion = (orderId: string) => {
     const newExpanded = new Set(expandedOrders);
-    newExpanded.has(orderId) ? newExpanded.delete(orderId) : newExpanded.add(orderId);
+    if (newExpanded.has(orderId)) {
+      newExpanded.delete(orderId);
+    } else {
+      newExpanded.add(orderId);
+    }
     setExpandedOrders(newExpanded);
   };
 
@@ -44,8 +47,17 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
 
   const handleStatusUpdate = async () => {
     if (!dialogState.order) return;
+    
+    console.log("Updating order status:", {
+      orderId: dialogState.order.id,
+      currentStatus: dialogState.order.status,
+      newStatus: dialogState.newStatus,
+      consignmentNumber: dialogState.consignmentNumber,
+      deliveryService: dialogState.deliveryService,
+    });
+
     try {
-      await updateOrderStatus({
+      const result = await updateOrderStatus({
         orderId: dialogState.order.id,
         status: dialogState.newStatus as AdminOrder['status'],
         ...(dialogState.newStatus === "DISPATCHED" && {
@@ -53,9 +65,13 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
           deliveryService: dialogState.deliveryService,
         }),
       });
+      
+      console.log("Status update result:", result);
       toast.success(`Order ${dialogState.order.id} status updated.`);
       closeStatusDialog();
+      mutate(); // Refresh the orders list
     } catch (error) {
+      console.error("Status update error:", error);
       toast.error("Failed to update status.");
     }
   };
