@@ -148,7 +148,9 @@ const OrderDetails = ({
 
   const handleGenerateLabel = async (orderId: string) => {
     try {
-      const response = await fetch(`/api/admin/orders/order/approve`, {
+      console.log("Starting label regeneration for order:", orderId);
+      
+      const response = await fetch(`/api/admin/orders/regenerate-label`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,22 +158,33 @@ const OrderDetails = ({
         body: JSON.stringify({ orderId }),
       });
 
+      console.log("Regeneration API response status:", response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to generate shipping label');
+        let errorMessage = 'Failed to regenerate shipping label';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
+      console.log("Regeneration result:", result);
       
       if (result.shippingLabelUrl) {
-        toast.success("Shipping label generated successfully");
+        toast.success("Shipping label regenerated successfully");
         // Trigger a page refresh to show the new label
         window.location.reload();
       } else {
-        throw new Error('No shipping label URL received');
+        throw new Error('No shipping label URL received from server');
       }
     } catch (error) {
-      console.error('Error generating label:', error);
-      toast.error("Failed to generate shipping label");
+      console.error('Error regenerating label:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to regenerate shipping label";
+      toast.error(errorMessage);
     }
   };
 
