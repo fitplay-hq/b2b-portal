@@ -89,7 +89,7 @@ export function useAnalytics(filters: AnalyticsFilters = {}) {
   });
 
   // Export function
-  const exportData = async (type: 'orders' | 'inventory', format: 'csv' = 'csv') => {
+  const exportData = async (type: 'orders' | 'inventory', format: 'xlsx' | 'pdf' = 'xlsx') => {
     try {
       const exportParams = new URLSearchParams();
       exportParams.set('type', type);
@@ -100,7 +100,10 @@ export function useAnalytics(filters: AnalyticsFilters = {}) {
       if (filters.companyId) exportParams.set('companyId', filters.companyId);
       if (filters.status) exportParams.set('status', filters.status);
 
-      const exportUrl = `/api/admin/analytics/export?${exportParams.toString()}`;
+      // Choose the appropriate endpoint based on format
+      const exportUrl = format === 'pdf' 
+        ? `/api/admin/analytics/export/pdf?${exportParams.toString()}`
+        : `/api/admin/analytics/export?${exportParams.toString()}`;
       
       // Create a temporary link to download the file
       const response = await fetch(exportUrl);
@@ -117,7 +120,7 @@ export function useAnalytics(filters: AnalyticsFilters = {}) {
       const contentDisposition = response.headers.get('Content-Disposition');
       const filename = contentDisposition
         ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
-        : `${type}_export_${new Date().toISOString().split('T')[0]}.csv`;
+        : `${type}_export_${new Date().toISOString().split('T')[0]}.${format}`;
       
       link.download = filename;
       document.body.appendChild(link);

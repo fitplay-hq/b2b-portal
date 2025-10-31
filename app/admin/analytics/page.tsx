@@ -12,7 +12,9 @@ import {
   RefreshCw,
   RotateCcw,
   FileSpreadsheet,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 import {
   LineChart,
@@ -37,6 +39,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 import { useAnalytics, type AnalyticsFilters } from '@/hooks/use-analytics';
 import { useInstantPermissions } from '@/hooks/use-instant-permissions';
 import { format } from 'date-fns';
@@ -65,11 +74,11 @@ export default function AnalyticsPage() {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleExport = async (type: 'orders' | 'inventory') => {
+  const handleExport = async (type: 'orders' | 'inventory', format: 'xlsx' | 'pdf') => {
     if (!canUserPerformAction('analytics', 'export')) return;
     
-    setExportLoading(type);
-    const result = await exportData(type);
+    setExportLoading(`${type}-${format}`);
+    const result = await exportData(type, format);
     setExportLoading(null);
     
     if (!result.success) {
@@ -148,14 +157,55 @@ export default function AnalyticsPage() {
                 </Button>
                 {canUserPerformAction('analytics', 'export') && (
                   <>
-                    <Button variant="outline" size="sm" onClick={() => handleExport('orders')} disabled={exportLoading === 'orders'}>
-                      <FileSpreadsheet className="h-4 w-4 mr-2" />
-                      {exportLoading === 'orders' ? 'Exporting...' : 'Export Orders'}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleExport('inventory')} disabled={exportLoading === 'inventory'}>
-                      <Download className="h-4 w-4 mr-2" />
-                      {exportLoading === 'inventory' ? 'Exporting...' : 'Export Inventory'}
-                    </Button>
+                    {/* Orders Export Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={exportLoading?.startsWith('orders')}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          {exportLoading?.startsWith('orders') ? 'Exporting...' : 'Export Orders'}
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleExport('orders', 'xlsx')}>
+                          <FileSpreadsheet className="h-4 w-4 mr-2" />
+                          Export as Excel
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport('orders', 'pdf')}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          Export as PDF
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Inventory Export Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={exportLoading?.startsWith('inventory')}
+                        >
+                          <Package className="h-4 w-4 mr-2" />
+                          {exportLoading?.startsWith('inventory') ? 'Exporting...' : 'Export Inventory'}
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleExport('inventory', 'xlsx')}>
+                          <FileSpreadsheet className="h-4 w-4 mr-2" />
+                          Export as Excel
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport('inventory', 'pdf')}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          Export as PDF
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </>
                 )}
               </div>

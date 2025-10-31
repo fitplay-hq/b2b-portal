@@ -80,18 +80,8 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Debug logging
-    console.log('Analytics API Debug:');
-    console.log('Date filters:', dateFilter);
-    console.log('Order filters:', orderFilters);
-    console.log('Orders found:', orders.length);
-    console.log('First order sample:', orders[0] ? {
-      id: orders[0].id,
-      totalAmount: orders[0].totalAmount,
-      status: orders[0].status,
-      clientName: orders[0].client?.name,
-      itemCount: orders[0].orderItems?.length
-    } : 'No orders found');
+    // Debug logging (temporarily disabled)
+    // console.log('Analytics API Debug:', { orderCount: orders.length, dateFilter });
 
     // Get inventory data
     const inventory = await prisma.product.findMany({
@@ -102,14 +92,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    console.log('Inventory found:', inventory.length);
-    console.log('First product sample:', inventory[0] ? {
-      id: inventory[0].id,
-      name: inventory[0].name,
-      price: inventory[0].price,
-      availableStock: inventory[0].availableStock,
-      categories: inventory[0].categories
-    } : 'No products found');
+    // console.log('Inventory found:', inventory.length);
 
     // Calculate analytics metrics
     const analytics = {
