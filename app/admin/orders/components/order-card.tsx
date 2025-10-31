@@ -19,6 +19,7 @@ import {
   ExternalLink,
   CalendarDays,
   Mail,
+  FileText,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AdminOrder } from "@/data/order/admin.actions";
@@ -145,6 +146,35 @@ const OrderDetails = ({
     }
   };
 
+  const handleGenerateLabel = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/admin/orders/order/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate shipping label');
+      }
+
+      const result = await response.json();
+      
+      if (result.shippingLabelUrl) {
+        toast.success("Shipping label generated successfully");
+        // Trigger a page refresh to show the new label
+        window.location.reload();
+      } else {
+        throw new Error('No shipping label URL received');
+      }
+    } catch (error) {
+      console.error('Error generating label:', error);
+      toast.error("Failed to generate shipping label");
+    }
+  };
+
   return (
     <CardContent className="pt-0">
       <div className="space-y-6">
@@ -174,10 +204,15 @@ const OrderDetails = ({
                     Download Shipping Label
                   </Button>
                 </Link>
+              ) : order.status === "READY_FOR_DISPATCH" ? (
+                <Button size="sm" variant="outline" onClick={() => handleGenerateLabel(order.id)}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Label
+                </Button>
               ) : (
-                <Button size="sm" variant="outline" disabled>
-                  <Download className="mr-2 h-4 w-4" />
-                  Generating Label...
+                <Button size="sm" variant="outline" onClick={() => handleGenerateLabel(order.id)}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Regenerate Label
                 </Button>
               )}
             </>
