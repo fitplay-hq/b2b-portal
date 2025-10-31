@@ -57,6 +57,10 @@ async function main() {
     { resource: "inventory", action: "create", description: "Add inventory items" },
     { resource: "inventory", action: "read", description: "View inventory information" },
     { resource: "inventory", action: "update", description: "Update inventory details" },
+    
+    // Analytics Management
+    { resource: "analytics", action: "read", description: "View analytics dashboard" },
+    { resource: "analytics", action: "export", description: "Export analytics data" },
   ];
 
   // Seed permissions

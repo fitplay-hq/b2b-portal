@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
                 deliveryReference: true,
                 packagingInstructions: true,
                 note: true,
+                shippingLabelUrl: true,
                 status: true,
                 consignmentNumber: true,
                 deliveryService: true,
@@ -99,14 +100,26 @@ export async function POST(req: NextRequest) {
       select: { id: true, companyID: true },
     });
 
-    if (!client?.id || !client.companyID) {
-      return NextResponse.json({ error: "Client or company not found" }, { status: 404 });
+    console.log("Client lookup result:", { clientEmail, client });
+
+    if (!client?.id) {
+      return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+
+    if (!client.companyID) {
+      return NextResponse.json({ error: "Client has no associated company" }, { status: 400 });
     }
 
     const company = await prisma.company.findUnique({
       where: { id: client.companyID },
       select: { name: true },
     });
+
+    console.log("Company lookup result:", { companyID: client.companyID, company });
+
+    if (!company) {
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
+    }
 
     const year = new Date().getFullYear();
     const startOrder = company?.name.split(" ")[0].toUpperCase();
@@ -133,16 +146,29 @@ export async function POST(req: NextRequest) {
       select: { id: true, price: true, availableStock: true },
     });
 
+    console.log("Items validation:", { items, itemsPrice });
+
     for (const item of items) {
       const product = itemsPrice.find((p) => p.id === item.productId);
+      console.log("Validating item:", { item, product });
+      
       if (!product) {
+        console.error(`Product not found: ${item.productId}`);
         return NextResponse.json({ error: `Product with ID ${item.productId} not found` }, { status: 404 });
       }
       if (product.availableStock < item.quantity) {
+        console.error(`Insufficient stock: ${product.availableStock} < ${item.quantity} for ${item.productId}`);
         return NextResponse.json({ error: `Insufficient stock for product ID ${item.productId}` }, { status: 400 });
       }
-      if (!item.price) {
-        item.price = product.price;
+      
+      // Handle null/undefined prices
+      if (!item.price || item.price === 0) {
+        if (product.price === null || product.price === undefined) {
+          console.warn(`Product ${item.productId} has no price set, using 0`);
+          item.price = 0; // Allow zero-price orders for now
+        } else {
+          item.price = product.price;
+        }
       }
     }
 
@@ -150,13 +176,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "At least one order item is required" }, { status: 400 });
     }
 
-    const totalAmount = itemsPrice.reduce((sum, product) => {
-      const item = items.find((i: any) => i.productId === product.id);
-      return sum + (item?.quantity || 0) * (product.price || 0);
+    const totalAmount = items.reduce((sum: number, item: any) => {
+      const product = itemsPrice.find((p) => p.id === item.productId);
+      const price = item.price || product?.price || 0;
+      return sum + (item.quantity * price);
     }, 0);
 
-    if (!totalAmount || totalAmount <= 0) {
-      return NextResponse.json({ error: "Total amount must be greater than zero" }, { status: 400 });
+    console.log("Calculated total amount:", totalAmount);
+    
+    // Allow zero-amount orders for products without prices
+    if (totalAmount < 0) {
+      return NextResponse.json({ error: "Total amount cannot be negative" }, { status: 400 });
     }
 
     if (!startOrder) {

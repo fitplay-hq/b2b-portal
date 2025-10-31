@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
                 deliveryReference: true,
                 packagingInstructions: true,
                 note: true,
+                shippingLabelUrl: true,
                 status: true,
                 consignmentNumber: true,
                 deliveryService: true,

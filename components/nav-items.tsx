@@ -18,6 +18,7 @@ import {
   Shield,
   UserCog,
   Archive,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -151,6 +152,14 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
       color: "text-green-600",
       bgColor: "bg-green-50",
       permission: 'orders' // Simplified permission check
+    },
+    { 
+      href: "/admin/analytics", 
+      label: "Analytics", 
+      icon: TrendingUp,
+      color: "text-pink-600",
+      bgColor: "bg-pink-50",
+      permission: 'analytics' // Simplified permission check
     },
   ];
 

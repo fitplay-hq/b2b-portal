@@ -140,7 +140,7 @@ const OrderDetails = ({
         clientEmail: order.client.email,
       });
       toast.success("Email sent successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to send email");
     }
   };
@@ -161,6 +161,26 @@ const OrderDetails = ({
             <Button size="sm" onClick={onOpenStatusDialog}>
               Update Status
             </Button>
+          )}
+          {(order.status === "READY_FOR_DISPATCH" || 
+            order.status === "DISPATCHED" || 
+            order.status === "AT_DESTINATION" || 
+            order.status === "DELIVERED") && (
+            <>
+              {order.shippingLabelUrl ? (
+                <Link href={order.shippingLabelUrl || ""} target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="outline">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Shipping Label
+                  </Button>
+                </Link>
+              ) : (
+                <Button size="sm" variant="outline" disabled>
+                  <Download className="mr-2 h-4 w-4" />
+                  Generating Label...
+                </Button>
+              )}
+            </>
           )}
           {actions.orders.edit && (
             <Button

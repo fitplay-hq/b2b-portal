@@ -5,35 +5,34 @@ import { auth } from "../auth/[...nextauth]/route";
 
 const f = createUploadthing();
 
-// FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
-  // Define as many FileRoutes as you like, each with a unique routeSlug
   imageUploader: f({
-    image: {
-      maxFileSize: "4MB",
-      maxFileCount: 1,
-    },
+    image: { maxFileSize: "4MB", maxFileCount: 1 },
   })
-    // Set permissions and file types for this FileRoute
     .middleware(async ({ req }) => {
-      // This code runs on your server before upload
-      const session = await getServerSession(auth)
-      const user = session?.user
-
-      // If you throw, the user will not be able to upload
+      const session = await getServerSession(auth);
+      const user = session?.user;
       if (!user) throw new UploadThingError("Unauthorized");
-
-      // Whatever is returned here is accessible in onUploadComplete as `metadata`
       return { userId: user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      // This code RUNS ON YOUR SERVER after upload
-      console.log("Upload complete for userId:", metadata.userId);
-
-      console.log("file url", file.ufsUrl);
-
-      // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
+      console.log("Image uploaded:", file.ufsUrl);
       return { uploadedBy: metadata.userId };
+    }),
+
+  // ✅ PDF Uploader for shipping labels
+  pdfUploader: f({
+    blob: { maxFileSize: "8MB", maxFileCount: 1 },
+  })
+    .middleware(async ({ req }) => {
+      const session = await getServerSession(auth);
+      const user = session?.user;
+      if (!user) throw new UploadThingError("Unauthorized");
+      return { userId: user.id };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("PDF uploaded:", file.ufsUrl);
+      return { uploadedBy: metadata.userId, fileUrl: file.ufsUrl };
     }),
 } satisfies FileRouter;
 

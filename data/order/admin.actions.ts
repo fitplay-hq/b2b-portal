@@ -39,6 +39,7 @@ export interface AdminOrder {
     deliveryReference: string | null;
     packagingInstructions: string | null;
     note: string | null;
+    shippingLabelUrl: string | null;
     status: $Enums.Status;
     consignmentNumber: string | null;
     deliveryService: string | null;

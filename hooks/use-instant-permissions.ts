@@ -240,6 +240,7 @@ function computePageAccess(permissions: any[], isAdmin: boolean) {
     clients: canAccessPage(permissions, RESOURCES.CLIENTS),
     companies: canAccessPage(permissions, RESOURCES.COMPANIES),
     inventory: canAccessPage(permissions, RESOURCES.INVENTORY),
+    analytics: canAccessPage(permissions, RESOURCES.ANALYTICS),
     users: false, // Admin only
     roles: false, // Admin only
   };
@@ -256,6 +257,7 @@ function computeActions(permissions: any[], isAdmin: boolean) {
       clients: { view: true, create: true, edit: true, delete: true },
       companies: { view: true, create: true, edit: true, delete: true },
       inventory: { view: true, create: true, edit: true },
+      analytics: { view: true, export: true },
       users: { view: true, create: true, edit: true, delete: true },
       roles: { view: true, create: true, edit: true, delete: true },
     };
@@ -289,6 +291,10 @@ function computeActions(permissions: any[], isAdmin: boolean) {
       view: canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.VIEW),
       create: canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.CREATE),
       edit: canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.EDIT),
+    },
+    analytics: {
+      view: canPerformAction(permissions, RESOURCES.ANALYTICS, PERMISSIONS.VIEW),
+      export: canPerformAction(permissions, RESOURCES.ANALYTICS, PERMISSIONS.EXPORT),
     },
   };
 }

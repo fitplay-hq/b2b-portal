@@ -92,6 +92,7 @@ model Order {
   deliveryReference     String?
   packagingInstructions String?
   note                  String?
+  shippingLabelUrl      String?
   isMailSent            Boolean     @default(false)
   status                Status      @default(PENDING)
   client                Client?     @relation(fields: [clientId], references: [id])
