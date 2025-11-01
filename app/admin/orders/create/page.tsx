@@ -41,6 +41,7 @@ import type { Product, $Enums } from "@/lib/generated/prisma";
 import Link from "next/link";
 import React from "react";
 import { toast } from "sonner";
+import { usePincodeLookup } from "@/hooks/use-pincode-lookup";
 
 type Modes = $Enums.Modes;
 
@@ -71,9 +72,29 @@ export default function CreateDispatchOrderPage() {
   const { clients, isLoading: isClientsLoading } = useClients();
   const { createOrder, isCreating } = useCreateOrder();
   const { sendOrderEmail, isSending } = useSendOrderEmail();
+  const { data: pincodeData, isLoading: isPincodeLoading, error: pincodeError, lookupPincode, clearError } = usePincodeLookup();
 
   const [showEmailDialog, setShowEmailDialog] = React.useState(false);
   const [createdOrder, setCreatedOrder] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    if (pincodeData && pincodeData.success) {
+      setCity(pincodeData.city);
+      setState(pincodeData.state);
+    }
+  }, [pincodeData]);
+
+  const handlePincodeChange = React.useCallback((value: string) => {
+    setPincode(value);
+    clearError();
+    
+    if (value.length === 6 && /^\d{6}$/.test(value)) {
+      lookupPincode(value);
+    } else if (value.length !== 6) {
+      setCity('');
+      setState('');
+    }
+  }, [lookupPincode, clearError]);
 
   const searchResults = React.useMemo(() => {
     if (!products) return [] as Product[];
@@ -284,10 +305,19 @@ export default function CreateDispatchOrderPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Pincode *</Label>
-                  <Input
-                    value={pincode}
-                    onChange={(e) => setPincode(e.target.value)}
-                  />
+                  <div className="relative">
+                    <Input
+                      value={pincode}
+                      onChange={(e) => handlePincodeChange(e.target.value)}
+                      placeholder="Enter 6-digit pincode"
+                      maxLength={6}
+                      className={pincodeError ? 'border-red-500' : ''}
+                    />
+                    {isPincodeLoading && (
+                      <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  
                 </div>
               </div>
               <div className="space-y-2">
