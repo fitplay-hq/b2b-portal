@@ -56,15 +56,11 @@ export default function NewRolePage() {
   useEffect(() => {
     const fetchPermissions = async () => {
       try {
-        console.log("Fetching permissions...");
         const response = await fetch("/api/admin/permissions");
-        console.log("Response status:", response.status);
         
         if (response.ok) {
           const permissionsData = await response.json();
-          console.log("Permissions data:", permissionsData);
           const perms = Array.isArray(permissionsData) ? permissionsData : permissionsData.permissions || [];
-          console.log("Total permissions loaded:", perms.length);
           setPermissions(perms);
         } else {
           const errorData = await response.text();
@@ -155,8 +151,7 @@ export default function NewRolePage() {
       });
 
       if (response.ok) {
-        const newRole = await response.json();
-        console.log("Role created successfully:", newRole);
+        await response.json();
         
         // Reset form
         setRoleName("");
@@ -268,7 +263,16 @@ export default function NewRolePage() {
             {isLoadingPermissions ? (
               <div className="text-center py-4">Loading permissions...</div>
             ) : (
-              ["users", "roles", "products", "orders", "clients", "companies", "inventory"].map((resource) => {
+              // Dynamically get all unique resources from permissions with custom ordering
+              Array.from(new Set(permissions.map(p => p.resource)))
+                .sort((a, b) => {
+                  // Put analytics at the end
+                  if (a === "analytics") return 1;
+                  if (b === "analytics") return -1;
+                  // Sort others alphabetically
+                  return a.localeCompare(b);
+                })
+                .map((resource) => {
                 const resourcePermissions = permissions.filter(p => p.resource === resource);
                 const resourceLabel = {
                   users: "User Management",
@@ -277,8 +281,9 @@ export default function NewRolePage() {
                   orders: "Order Management",
                   clients: "Client Management",
                   companies: "Company Management",
-                  inventory: "Inventory Management"
-                }[resource] || resource;
+                  inventory: "Inventory Management",
+                  analytics: "Analytics & Reports"
+                }[resource] || resource.charAt(0).toUpperCase() + resource.slice(1) + " Management";
                 
                 const resourceDescription = {
                   users: "Manage system users and their access",
@@ -287,8 +292,9 @@ export default function NewRolePage() {
                   orders: "Manage orders and fulfillment",
                   clients: "Manage client accounts and relationships",
                   companies: "Manage company information and settings",
-                  inventory: "Inventory (view by default if products view is chosen)"
-                }[resource] || "";
+                  inventory: "Inventory (view by default if products view is chosen)",
+                  analytics: "Access analytics dashboard and export reports"
+                }[resource] || `Manage ${resource} related operations`;
 
                 if (resourcePermissions.length === 0) return null;
 
@@ -318,46 +324,75 @@ export default function NewRolePage() {
                     
                     <div className="ml-6 grid grid-cols-2 md:grid-cols-4 gap-3">
                       {/* Define standard actions with proper mapping */}
-                      {["view", "create", "edit", "delete"].map((action) => {
-                        // Skip delete for inventory and orders
-                        if (action === "delete" && (resource === "inventory" || resource === "orders")) {
-                          return null;
-                        }
-                        
-                        // Find permission for this resource and action
-                        const permission = resourcePermissions.find(p => 
-                          p.action.toLowerCase() === action || 
-                          (p.action.toLowerCase() === "read" && action === "view") ||
-                          (p.action.toLowerCase() === "update" && action === "edit")
-                        );
-                        
-                        if (!permission) return null;
-                        
-                        const actionLabels = {
-                          view: "View",
-                          create: "Create", 
-                          edit: "Edit",
-                          delete: "Delete"
-                        };
-                        
-                        return (
-                          <div key={`${resource}-${action}`} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={permission.id}
-                              checked={selectedPermissions.includes(permission.id)}
-                              onCheckedChange={(checked) => 
-                                handlePermissionChange(permission.id, checked as boolean)
-                              }
-                            />
-                            <Label 
-                              htmlFor={permission.id}
-                              className="text-sm cursor-pointer"
-                            >
-                              {actionLabels[action as keyof typeof actionLabels]}
-                            </Label>
-                          </div>
-                        );
-                      })}
+                      {resource === "analytics" ? (
+                        // Special handling for analytics - only show available actions
+                        resourcePermissions.map((permission) => {
+                          const actionLabels = {
+                            read: "View",
+                            export: "View and Export"
+                          };
+                          
+                          return (
+                            <div key={`${resource}-${permission.action}`} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={permission.id}
+                                checked={selectedPermissions.includes(permission.id)}
+                                onCheckedChange={(checked) => 
+                                  handlePermissionChange(permission.id, checked as boolean)
+                                }
+                              />
+                              <Label 
+                                htmlFor={permission.id}
+                                className="text-sm cursor-pointer"
+                              >
+                                {actionLabels[permission.action as keyof typeof actionLabels] || permission.action}
+                              </Label>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        // Standard actions for other resources
+                        ["view", "create", "edit", "delete"].map((action) => {
+                          // Skip delete for inventory and orders
+                          if (action === "delete" && (resource === "inventory" || resource === "orders")) {
+                            return null;
+                          }
+                          
+                          // Find permission for this resource and action
+                          const permission = resourcePermissions.find(p => 
+                            p.action.toLowerCase() === action || 
+                            (p.action.toLowerCase() === "read" && action === "view") ||
+                            (p.action.toLowerCase() === "update" && action === "edit")
+                          );
+                          
+                          if (!permission) return null;
+                          
+                          const actionLabels = {
+                            view: "View",
+                            create: "Create", 
+                            edit: "Edit",
+                            delete: "Delete"
+                          };
+                          
+                          return (
+                            <div key={`${resource}-${action}`} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={permission.id}
+                                checked={selectedPermissions.includes(permission.id)}
+                                onCheckedChange={(checked) => 
+                                  handlePermissionChange(permission.id, checked as boolean)
+                                }
+                              />
+                              <Label 
+                                htmlFor={permission.id}
+                                className="text-sm cursor-pointer"
+                              >
+                                {actionLabels[action as keyof typeof actionLabels]}
+                              </Label>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                     <Separator />
                   </div>

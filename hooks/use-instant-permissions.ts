@@ -121,6 +121,7 @@ export function useInstantPermissions() {
         clients: true,
         companies: true,
         inventory: true,
+        analytics: true,
         users: true,
         roles: true,
       },
@@ -130,6 +131,7 @@ export function useInstantPermissions() {
         clients: { view: true, create: true, edit: true, delete: true },
         companies: { view: true, create: true, edit: true, delete: true },
         inventory: { view: true, create: true, edit: true },
+        analytics: { read: true, export: true },
         users: { view: true, create: true, edit: true, delete: true },
         roles: { view: true, create: true, edit: true, delete: true },
       },
@@ -257,7 +259,7 @@ function computeActions(permissions: any[], isAdmin: boolean) {
       clients: { view: true, create: true, edit: true, delete: true },
       companies: { view: true, create: true, edit: true, delete: true },
       inventory: { view: true, create: true, edit: true },
-      analytics: { view: true, export: true },
+      analytics: { read: true, export: true },
       users: { view: true, create: true, edit: true, delete: true },
       roles: { view: true, create: true, edit: true, delete: true },
     };
@@ -293,7 +295,7 @@ function computeActions(permissions: any[], isAdmin: boolean) {
       edit: canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.EDIT),
     },
     analytics: {
-      view: canPerformAction(permissions, RESOURCES.ANALYTICS, PERMISSIONS.VIEW),
+      read: canPerformAction(permissions, RESOURCES.ANALYTICS, PERMISSIONS.READ),
       export: canPerformAction(permissions, RESOURCES.ANALYTICS, PERMISSIONS.EXPORT),
     },
   };

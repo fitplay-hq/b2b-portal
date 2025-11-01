@@ -19,14 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Calendar,
   Loader2,
-  Package,
   Plus,
   Search,
   X,
@@ -49,6 +48,11 @@ interface SelectedProduct extends Product {
   quantity: number;
 }
 
+interface CreatedOrder {
+  id: string;
+  isMailSent?: boolean;
+}
+
 export default function CreateDispatchOrderPage() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedClientEmail, setSelectedClientEmail] = React.useState("");
@@ -58,6 +62,7 @@ export default function CreateDispatchOrderPage() {
   const [city, setCity] = React.useState("");
   const [state, setState] = React.useState("");
   const [pincode, setPincode] = React.useState("");
+  const [manuallyEditedFields, setManuallyEditedFields] = React.useState<{city: boolean, state: boolean}>({city: false, state: false});
   const [consigneeName, setConsigneeName] = React.useState("");
   const [consigneePhone, setConsigneePhone] = React.useState("");
   const [consigneeEmail, setConsigneeEmail] = React.useState("");
@@ -72,29 +77,46 @@ export default function CreateDispatchOrderPage() {
   const { clients, isLoading: isClientsLoading } = useClients();
   const { createOrder, isCreating } = useCreateOrder();
   const { sendOrderEmail, isSending } = useSendOrderEmail();
-  const { data: pincodeData, isLoading: isPincodeLoading, error: pincodeError, lookupPincode, clearError } = usePincodeLookup();
+  const {
+    data: pincodeData,
+    isLoading: isPincodeLoading,
+    error: pincodeError,
+    lookupPincode,
+    clearError,
+  } = usePincodeLookup();
 
   const [showEmailDialog, setShowEmailDialog] = React.useState(false);
-  const [createdOrder, setCreatedOrder] = React.useState<any>(null);
+  const [createdOrder, setCreatedOrder] = React.useState<CreatedOrder | null>(null);
 
   React.useEffect(() => {
     if (pincodeData && pincodeData.success) {
-      setCity(pincodeData.city);
-      setState(pincodeData.state);
+      // Only auto-fill if the fields haven't been manually edited since the last pincode lookup
+      if (!manuallyEditedFields.city) {
+        setCity(pincodeData.city);
+      }
+      if (!manuallyEditedFields.state) {
+        setState(pincodeData.state);
+      }
     }
-  }, [pincodeData]);
+  }, [pincodeData, manuallyEditedFields]);
 
-  const handlePincodeChange = React.useCallback((value: string) => {
-    setPincode(value);
-    clearError();
-    
-    if (value.length === 6 && /^\d{6}$/.test(value)) {
-      lookupPincode(value);
-    } else if (value.length !== 6) {
-      setCity('');
-      setState('');
-    }
-  }, [lookupPincode, clearError]);
+  const handlePincodeChange = React.useCallback(
+    (value: string) => {
+      setPincode(value);
+      clearError();
+
+      if (value.length === 6 && /^\d{6}$/.test(value)) {
+        // Reset manual edit flags when looking up a new pincode
+        setManuallyEditedFields({city: false, state: false});
+        lookupPincode(value);
+      } else if (value.length !== 6) {
+        setCity("");
+        setState("");
+        setManuallyEditedFields({city: false, state: false});
+      }
+    },
+    [lookupPincode, clearError]
+  );
 
   const searchResults = React.useMemo(() => {
     if (!products) return [] as Product[];
@@ -164,7 +186,7 @@ export default function CreateDispatchOrderPage() {
       setCreatedOrder(order);
       setShowEmailDialog(true);
       toast.success("Dispatch order created");
-    } catch (e) {
+    } catch {
       toast.error("Failed to create dispatch order");
     }
   };
@@ -179,7 +201,7 @@ export default function CreateDispatchOrderPage() {
       toast.success("Email sent successfully");
       setShowEmailDialog(false);
       window.location.href = "/admin/orders";
-    } catch (error) {
+    } catch {
       toast.error("Failed to send email");
     }
   };
@@ -190,7 +212,7 @@ export default function CreateDispatchOrderPage() {
   };
 
   return (
-    <Layout title="Create Dispatch Order" isClient={false}>
+    <Layout isClient={false}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Create Dispatch Order</h1>
@@ -290,20 +312,6 @@ export default function CreateDispatchOrderPage() {
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-2">
-                  <Label>City *</Label>
-                  <Input
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>State *</Label>
-                  <Input
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label>Pincode *</Label>
                   <div className="relative">
                     <Input
@@ -311,13 +319,34 @@ export default function CreateDispatchOrderPage() {
                       onChange={(e) => handlePincodeChange(e.target.value)}
                       placeholder="Enter 6-digit pincode"
                       maxLength={6}
-                      className={pincodeError ? 'border-red-500' : ''}
+                      className={pincodeError ? "border-red-500" : ""}
                     />
                     {isPincodeLoading && (
                       <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
                     )}
                   </div>
-                  
+                </div>
+                <div className="space-y-2">
+                  <Label>City *</Label>
+                  <Input
+                    value={city}
+                    onChange={(e) => {
+                      setCity(e.target.value);
+                      setManuallyEditedFields(prev => ({...prev, city: true}));
+                    }}
+                    placeholder="Auto-filled from pincode"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>State *</Label>
+                  <Input
+                    value={state}
+                    onChange={(e) => {
+                      setState(e.target.value);
+                      setManuallyEditedFields(prev => ({...prev, state: true}));
+                    }}
+                    placeholder="Auto-filled from pincode"
+                  />
                 </div>
               </div>
               <div className="space-y-2">

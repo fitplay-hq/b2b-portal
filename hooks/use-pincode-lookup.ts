@@ -36,8 +36,6 @@ export function usePincodeLookup(): UsePincodeLookupResult {
     setIsLoading(true);
 
     try {
-      console.log('🔍 Looking up pincode:', pincode);
-      
       const response = await fetch(`/api/pincode/${pincode}`);
       const result = await response.json();
 
@@ -45,11 +43,9 @@ export function usePincodeLookup(): UsePincodeLookupResult {
         throw new Error(result.error || 'Failed to lookup pincode');
       }
 
-      console.log('✅ Pincode lookup successful:', result);
       setData(result);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to lookup pincode';
-      console.error('❌ Pincode lookup failed:', errorMessage);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
