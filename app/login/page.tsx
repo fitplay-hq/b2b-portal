@@ -32,7 +32,17 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        // Map backend errors to user-friendly messages
+        const errorMessages: { [key: string]: string } = {
+          "Invalid password": "Wrong password, please try again",
+          "No user found with this email": "Account not found. Please check your email address",
+          "Account is deactivated": "Your account has been deactivated. Please contact support",
+          "Email and password are required": "Please enter both email and password",
+          "CredentialsSignin": "Invalid email or password. Please try again",
+        };
+
+        const friendlyMessage = errorMessages[result.error] || "Login failed. Please try again";
+        setError(friendlyMessage);
       } else {
         router.push("/");
       }
