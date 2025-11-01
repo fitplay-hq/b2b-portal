@@ -19,6 +19,7 @@ import {
   ExternalLink,
   CalendarDays,
   Mail,
+  FileText,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AdminOrder } from "@/data/order/admin.actions";
@@ -145,6 +146,48 @@ const OrderDetails = ({
     }
   };
 
+  const handleGenerateLabel = async (orderId: string) => {
+    try {
+      console.log("Starting label regeneration for order:", orderId);
+      
+      const response = await fetch(`/api/admin/orders/regenerate-label`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId }),
+      });
+
+      console.log("Regeneration API response status:", response.status);
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to regenerate shipping label';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      console.log("Regeneration result:", result);
+      
+      if (result.shippingLabelUrl) {
+        toast.success("Shipping label regenerated successfully");
+        // Trigger a page refresh to show the new label
+        window.location.reload();
+      } else {
+        throw new Error('No shipping label URL received from server');
+      }
+    } catch (error) {
+      console.error('Error regenerating label:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to regenerate shipping label";
+      toast.error(errorMessage);
+    }
+  };
+
   return (
     <CardContent className="pt-0">
       <div className="space-y-6">
@@ -174,10 +217,15 @@ const OrderDetails = ({
                     Download Shipping Label
                   </Button>
                 </Link>
+              ) : order.status === "READY_FOR_DISPATCH" ? (
+                <Button size="sm" variant="outline" onClick={() => handleGenerateLabel(order.id)}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Label
+                </Button>
               ) : (
-                <Button size="sm" variant="outline" disabled>
-                  <Download className="mr-2 h-4 w-4" />
-                  Generating Label...
+                <Button size="sm" variant="outline" onClick={() => handleGenerateLabel(order.id)}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Regenerate Label
                 </Button>
               )}
             </>

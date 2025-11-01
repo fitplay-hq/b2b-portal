@@ -5,32 +5,36 @@ import { PDFDocument, rgb } from "pdf-lib";
 
 export async function generateShippingLabelPDF(order: any): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create();
-
-  // ✅ Enable custom fonts
   pdfDoc.registerFontkit(fontkit);
 
   const page = pdfDoc.addPage([500, 450]);
-
-  // --- Load Roboto Mono fonts ---
   const regularFontBytes = fs.readFileSync(path.resolve("public/fonts/RobotoMono-Regular.ttf"));
   const boldFontBytes = fs.readFileSync(path.resolve("public/fonts/RobotoMono-Bold.ttf"));
 
   const fontRegular = await pdfDoc.embedFont(regularFontBytes);
   const fontBold = await pdfDoc.embedFont(boldFontBytes);
 
-  const { client, client: { company } = {}, orderItems } = order;
+  const { client, client: { company } = {}, orderItems, deliveryAddress } = order;
 
   const companyName = company?.name || "N/A";
-  const companyAddress = company?.address || "N/A";
+
+  // ✅ Clean and normalize the address
+  const companyAddressRaw = deliveryAddress || "N/A";
+  const companyAddress = companyAddressRaw
+    .replace(/\s*\n\s*/g, ", ")
+    .replace(/\s*,\s*/g, ", ")
+    .replace(/\s+/g, " ")
+    .trim();
+
   const pocName = client?.name || "N/A";
   const pocPhone = client?.phone || "N/A";
 
   const senderName = "FITPLAY INTERNATIONAL LLP";
-  const senderAddress =
-    "Wz-251 Shakurpur village near Gufa Mandir, New Delhi - 110034";
+  const senderAddress = "Wz-251 Shakurpur village near Gufa Mandir, New Delhi - 110034";
   const senderContact = "Sonu Kumar 9582746425";
 
   const pageWidth = page.getWidth();
+  const maxTextWidth = 420;
   let y = 400;
 
   // --- TO Section ---
@@ -38,35 +42,53 @@ export async function generateShippingLabelPDF(order: any): Promise<Buffer> {
   y -= 25;
   drawCenteredText(page, companyName, fontBold, 18, y, pageWidth);
   y -= 22;
-  drawCenteredText(page, companyAddress, fontRegular, 12, y, pageWidth);
-  y -= 18;
+
+  // ✅ Wrap address in 2 lines max
+  const wrappedAddress = wrapText(companyAddress, fontRegular, 12, maxTextWidth);
+  const firstLine = wrappedAddress[0] || "";
+  const secondLine = wrappedAddress[1] || "";
+
+  drawCenteredText(page, firstLine, fontRegular, 12, y, pageWidth);
+  y -= 14;
+  drawCenteredText(page, secondLine, fontRegular, 12, y, pageWidth);
+  y -= 28; // ✅ 14 for second line + 14 for one-row vertical space
+
+  // --- Contact person ---
   drawCenteredText(page, `${pocName} ${pocPhone}`, fontRegular, 12, y, pageWidth);
+  y -= 25;
 
-  // --- Items Section (reduced spacing) ---
-  y -= 22; // half the previous 43 spacing
-
+  // --- ITEMS Section ---
   if (orderItems?.length) {
     for (const item of orderItems) {
       const itemName = item.product?.name || "N/A";
       const quantity = item.quantity || 1;
-      const text = `${itemName} — ${quantity}`;
-      drawCenteredText(page, text, fontBold, 12, y, pageWidth);
-      y -= 15; // reduced vertical spacing between items
+      const text = `${itemName} – ${quantity}`;
+      const wrappedLines = wrapText(text, fontBold, 12, maxTextWidth);
+      for (const line of wrappedLines.slice(0, 2)) {
+        drawCenteredText(page, line, fontBold, 12, y, pageWidth);
+        y -= 14;
+      }
     }
   } else {
     drawCenteredText(page, "No items found", fontRegular, 12, y, pageWidth);
-    y -= 8;
+    y -= 12;
   }
 
+  y -= 20;
+
   // --- FROM Section ---
-  y -= 20; // reduced spacing between items and 'From'
   drawCenteredText(page, "From:", fontBold, 14, y, pageWidth);
   y -= 20;
   drawCenteredText(page, senderName, fontBold, 18, y, pageWidth);
   y -= 20;
-  drawCenteredText(page, senderAddress, fontRegular, 12, y, pageWidth);
-  y -= 15;
-  drawCenteredText(page, senderContact, fontRegular, 12, y, pageWidth);
+
+  const wrappedSenderAddr = wrapText(senderAddress, fontRegular, 12, maxTextWidth);
+  for (const line of wrappedSenderAddr.slice(0, 2)) {
+    drawCenteredText(page, line, fontRegular, 12, y, pageWidth);
+    y -= 14;
+  }
+
+  drawCenteredText(page, senderContact, fontRegular, 12, y - 10, pageWidth);
 
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
@@ -77,4 +99,24 @@ function drawCenteredText(page: any, text: string, font: any, size: number, y: n
   const textWidth = font.widthOfTextAtSize(text, size);
   const x = (pageWidth - textWidth) / 2;
   page.drawText(text, { x, y, size, font, color: rgb(0, 0, 0) });
+}
+
+// --- Utility: Wrap text ---
+function wrapText(text: string, font: any, fontSize: number, maxWidth: number) {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const width = font.widthOfTextAtSize(currentLine + word, fontSize);
+    if (width > maxWidth && currentLine.length > 0) {
+      lines.push(currentLine.trim());
+      currentLine = word + " ";
+    } else {
+      currentLine += word + " ";
+    }
+  }
+
+  if (currentLine.trim()) lines.push(currentLine.trim());
+  return lines;
 }
