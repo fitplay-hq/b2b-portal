@@ -115,17 +115,13 @@ export function hasPermission(
   );
 }
 
-/**
- * Checks if user can access a specific page (requires view permission)
- */
 export function canAccessPage(userPermissions: Permission[] | undefined, resource: string): boolean {
-  // ADMIN can access everything except users/roles (handled separately)
-  return hasPermission(userPermissions, resource, PERMISSIONS.VIEW);
+
+  return hasPermission(userPermissions, resource, PERMISSIONS.VIEW) || 
+         hasPermission(userPermissions, resource, PERMISSIONS.READ);
 }
 
-/**
- * Checks if user can perform an action on a resource
- */
+
 export function canPerformAction(
   userPermissions: Permission[] | undefined, 
   resource: string, 
@@ -134,9 +130,6 @@ export function canPerformAction(
   return hasPermission(userPermissions, resource, action);
 }
 
-/**
- * Gets all permissions for a specific resource
- */
 export function getResourcePermissions(
   userPermissions: Permission[] | undefined, 
   resource: string
@@ -148,9 +141,7 @@ export function getResourcePermissions(
     .map(permission => permission.action);
 }
 
-/**
- * Checks if user has any permissions for a resource
- */
+
 export function hasAnyPermissionForResource(
   userPermissions: Permission[] | undefined,
   resource: string
@@ -159,16 +150,12 @@ export function hasAnyPermissionForResource(
   return userPermissions.some(permission => permission.resource === resource);
 }
 
-/**
- * Gets user permissions from session
- */
+
 export function getUserPermissions(session: UserSession | null): Permission[] {
   return session?.user?.permissions || [];
 }
 
-/**
- * Navigation items with required permissions
- */
+
 export const NAVIGATION_ITEMS = [
   {
     id: 'dashboard',
@@ -228,9 +215,7 @@ export const NAVIGATION_ITEMS = [
   }
 ];
 
-/**
- * Filters navigation items based on user permissions
- */
+
 export function getAccessibleNavItems(session: UserSession | null): typeof NAVIGATION_ITEMS {
   if (!session?.user) return [];
 

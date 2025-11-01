@@ -70,6 +70,28 @@ export default function AnalyticsPage() {
 
   const [exportLoading, setExportLoading] = useState<string | null>(null);
 
+  // Check if user has permission to view analytics
+  if (!canUserPerformAction('analytics', 'read')) {
+    return (
+      <Layout isClient={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex flex-col items-center text-center p-8">
+              <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+              <p className="text-gray-600 mb-4">
+                You do not have permission to view analytics. Please contact your administrator.
+              </p>
+              <Button variant="outline" onClick={() => window.history.back()}>
+                Go Back
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
   const handleFilterChange = (key: keyof AnalyticsFilters, value: string | undefined) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
