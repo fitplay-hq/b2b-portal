@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { pincode: string } }
+  { params }: { params: Promise<{ pincode: string }> }
 ) {
   try {
-    const { pincode } = params;
+    const { pincode } = await params;
 
     // Validate pincode format (6 digits)
     if (!pincode || !/^\d{6}$/.test(pincode)) {
@@ -15,8 +15,6 @@ export async function GET(
       );
     }
 
-    console.log(`🔍 Looking up pincode: ${pincode}`);
-
     // Call Indian Postal API
     const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
     
@@ -25,7 +23,6 @@ export async function GET(
     }
 
     const data = await response.json();
-    console.log(`📍 Postal API response:`, data);
 
     // Check if API returned valid data
     if (!data || data.length === 0) {
@@ -50,8 +47,6 @@ export async function GET(
     const city = postOffice.District || postOffice.Name;
     const state = postOffice.State;
 
-    console.log(`✅ Found: ${city}, ${state} for pincode ${pincode}`);
-
     return NextResponse.json({
       pincode,
       city,
@@ -61,8 +56,7 @@ export async function GET(
       success: true
     });
 
-  } catch (error) {
-    console.error('Pincode lookup error:', error);
+  } catch {
     return NextResponse.json(
       { error: 'Failed to lookup pincode. Please try again.' },
       { status: 500 }
