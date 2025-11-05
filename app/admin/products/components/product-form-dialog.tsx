@@ -35,8 +35,8 @@ export function ProductFormDialog({
 }: ProductFormProps) {
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] my-4 overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>
             {editingProduct ? "Edit Product" : "Add New Product"}
           </DialogTitle>
@@ -46,7 +46,19 @@ export function ProductFormDialog({
               : "Fill in the details to add a new product."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+        <div 
+          className="flex-1 overflow-y-auto overflow-x-hidden px-1"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          <style jsx>{`
+            div::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+          <form onSubmit={handleSubmit} className="space-y-4 pt-2 pb-4 min-w-0">
           <div className="space-y-2">
             <Label htmlFor="name">Product Name</Label>
             <Input
@@ -142,6 +154,7 @@ export function ProductFormDialog({
                   }
                   className="flex-1 font-mono"
                   placeholder="001"
+                  title="Auto-generated based on company and category, but can be edited"
                   required
                 />
               </div>
@@ -173,60 +186,114 @@ export function ProductFormDialog({
             />
           </div>
 
-          <div className="space-y-4">
+            <div className="space-y-4">
             <Label>Product Image</Label>
             <div className="space-y-4">
-              <div className="flex flex-col gap-2">
-                <Label className="text-sm text-muted-foreground">
-                  Upload Image
-                </Label>
-                <UploadDropzone
-                  endpoint="imageUploader"
-                  config={{
-                    mode: "auto",
-                  }}
-                  onClientUploadComplete={(res) => {
-                    if (res && res[0]) {
-                      setFormData((x) => ({ ...x, image: res[0].ufsUrl }));
-                      toast.success("Image uploaded successfully!");
-                    }
-                  }}
-                  onUploadError={(error: Error) => {
-                    console.error("Upload error:", error);
-                    toast.error("Failed to upload image. Please try again.");
-                  }}
-                  className="w-full ut-button:bg-primary ut-button:text-primary-foreground ut-button:hover:bg-primary/90 ut-button:ut-readying:bg-muted py-6!"
-                  appearance={{
-                    uploadIcon: "hidden",
-                  }}
-                />
-              </div>
+              {/* Show upload dropzone only if no image is uploaded */}
+              {!formData.image && (
+                <div className="flex flex-col gap-2">
+                  <Label className="text-sm text-muted-foreground">
+                    Upload Image
+                  </Label>
+                  <UploadDropzone
+                    endpoint="imageUploader"
+                    config={{
+                      mode: "auto",
+                    }}
+                    onClientUploadComplete={(res) => {
+                      if (res && res[0]) {
+                        setFormData((x) => ({ ...x, image: res[0].ufsUrl }));
+                        toast.success("Image uploaded successfully!");
+                      }
+                    }}
+                    onUploadError={(error: Error) => {
+                      console.error("Upload error:", error);
+                      // Better error messages based on error type
+                      let errorMessage = "Failed to upload image. Please try again.";
+                      if (error.message.includes("FileSizeMismatch") || error.message.includes("size")) {
+                        errorMessage = "Image is too large. Please choose an image smaller than 4MB.";
+                      } else if (error.message.includes("FileType") || error.message.includes("type")) {
+                        errorMessage = "Invalid file type. Please choose a valid image file (JPEG, PNG, GIF).";
+                      }
+                      toast.error(errorMessage);
+                    }}
+                    className="w-full ut-button:bg-primary ut-button:text-primary-foreground ut-button:hover:bg-primary/90 ut-button:ut-readying:bg-muted py-6!"
+                    appearance={{
+                      uploadIcon: "hidden",
+                    }}
+                  />
+                </div>
+              )}
 
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-px bg-border"></div>
-                <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                  or
-                </span>
-                <div className="flex-1 h-px bg-border"></div>
-              </div>
+              {/* Image preview (shows after upload or when URL entered) */}
+              {formData.image && (
+                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-md border">
+                  <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border border-gray-200 bg-white">
+                    <img
+                      src={formData.image}
+                      alt={formData.name || 'Product image'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // hide broken image by clearing src display
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">Image uploaded</p>
+                    <p className="text-xs text-gray-500 truncate mt-1">{formData.image}</p>
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFormData({ ...formData, image: "" })}
+                      >
+                        Remove & Upload New
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(formData.image, "_blank")}
+                      >
+                        View Full Size
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="image"
-                  className="text-sm text-muted-foreground"
-                >
-                  Image URL
-                </Label>
-                <Input
-                  id="image"
-                  type="url"
-                  value={formData.image}
-                  onChange={(e) =>
-                    setFormData({ ...formData, image: e.target.value })
-                  }
-                  placeholder="https://..."
-                />
-              </div>
+              {/* Separator and URL input - only show when no image is uploaded */}
+              {!formData.image && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-px bg-border"></div>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                      or
+                    </span>
+                    <div className="flex-1 h-px bg-border"></div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="image"
+                      className="text-sm text-muted-foreground"
+                    >
+                      Image URL
+                    </Label>
+                    <Input
+                      id="image"
+                      type="url"
+                      value={formData.image}
+                      onChange={(e) =>
+                        setFormData({ ...formData, image: e.target.value })
+                      }
+                      placeholder="https://..."
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -247,7 +314,8 @@ export function ProductFormDialog({
                 : "Add Product"}
             </Button>
           </div>
-        </form>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

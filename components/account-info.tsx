@@ -62,7 +62,7 @@ const AccountInfo = React.memo(({ isCollapsed = false }: AccountInfoProps) => {
 
   const roleDisplayText = React.useMemo(() => {
     if (!userData) return "";
-    if (userData.role === "ADMIN") return "Administrator";
+    if (userData.role === "ADMIN") return "Admin";
     if (userData.role === "SYSTEM_USER") return userData.systemRole || "System User";
     if (userData.role === "CLIENT") return "Client";
     return userData.role;

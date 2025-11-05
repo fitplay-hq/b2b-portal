@@ -39,13 +39,17 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid email" }, { status: 400 });
         }
 
-        // Check if user exists in User, or Admin table
-        const [client, admin] = await Promise.all([
+        // Check if user exists in database tables or is the env admin
+        const [client, admin, systemUser] = await Promise.all([
             prisma.client.findUnique({ where: { email } }),
-            prisma.admin.findUnique({ where: { email } })
+            prisma.admin.findUnique({ where: { email } }),
+            prisma.systemUser.findUnique({ where: { email } })
         ]);
 
-        const account = client || admin;
+        // Also check if this is the admin from environment variables
+        const isEnvAdmin = email === process.env.ADMIN_EMAIL?.replace(/['"]/g, '');
+        
+        const account = client || admin || systemUser || isEnvAdmin;
         if (!account) {
             return NextResponse.json({ error: "No account found with this email" }, { status: 404 });
         }
@@ -111,8 +115,8 @@ export async function PATCH(req: NextRequest) {
         const hashedPass = await bcrypt.hash(newPassword, 10);
 
         // Update password in the appropriate table
-        const user = await prisma.client.findUnique({ where: { email: record.identifier } });
-        if (user) {
+        const client = await prisma.client.findUnique({ where: { email: record.identifier } });
+        if (client) {
             await prisma.client.update({
                 where: { email: record.identifier },
                 data: { password: hashedPass },
@@ -124,6 +128,28 @@ export async function PATCH(req: NextRequest) {
                     where: { email: record.identifier },
                     data: { password: hashedPass },
                 });
+            } else {
+                const systemUser = await prisma.systemUser.findUnique({ where: { email: record.identifier } });
+                if (systemUser) {
+                    await prisma.systemUser.update({
+                        where: { email: record.identifier },
+                        data: { password: hashedPass },
+                    });
+                } else {
+                    // Check if this is the env admin - create admin record in database
+                    const isEnvAdmin = record.identifier === process.env.ADMIN_EMAIL?.replace(/['"]/g, '');
+                    if (isEnvAdmin) {
+                        const emailName = record.identifier.split('@')[0];
+                        const adminName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+                        await prisma.admin.create({
+                            data: {
+                                email: record.identifier,
+                                password: hashedPass,
+                                name: adminName,
+                            },
+                        });
+                    }
+                }
             }
         }
 

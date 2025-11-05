@@ -227,6 +227,14 @@ export default function LoginPage() {
                         className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
                         required
                       />
+                      <div className="text-right">
+                        <a 
+                          href="/forgot-password"
+                          className="text-sm text-blue-600 hover:text-blue-500"
+                        >
+                          Forgot password?
+                        </a>
+                      </div>
                     </div>
 
                     {error && (
