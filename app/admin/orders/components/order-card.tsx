@@ -149,11 +149,11 @@ const OrderDetails = ({
   const handleGenerateLabel = async (orderId: string) => {
     try {
       console.log("Starting label regeneration for order:", orderId);
-      
+
       const response = await fetch(`/api/admin/orders/regenerate-label`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ orderId }),
       });
@@ -161,29 +161,32 @@ const OrderDetails = ({
       console.log("Regeneration API response status:", response.status);
 
       if (!response.ok) {
-        let errorMessage = 'Failed to regenerate shipping label';
+        let errorMessage = "Failed to regenerate shipping label";
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch (parseError) {
-          console.error('Error parsing error response:', parseError);
+          console.error("Error parsing error response:", parseError);
         }
         throw new Error(errorMessage);
       }
 
       const result = await response.json();
       console.log("Regeneration result:", result);
-      
+
       if (result.shippingLabelUrl) {
         toast.success("Shipping label regenerated successfully");
         // Trigger a page refresh to show the new label
         window.location.reload();
       } else {
-        throw new Error('No shipping label URL received from server');
+        throw new Error("No shipping label URL received from server");
       }
     } catch (error) {
-      console.error('Error regenerating label:', error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to regenerate shipping label";
+      console.error("Error regenerating label:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to regenerate shipping label";
       toast.error(errorMessage);
     }
   };
@@ -205,30 +208,46 @@ const OrderDetails = ({
               Update Status
             </Button>
           )}
-          {(order.status === "READY_FOR_DISPATCH" || 
-            order.status === "DISPATCHED" || 
-            order.status === "AT_DESTINATION" || 
+          {(order.status === "READY_FOR_DISPATCH" ||
+            order.status === "DISPATCHED" ||
+            order.status === "AT_DESTINATION" ||
             order.status === "DELIVERED") && (
             <>
               {order.shippingLabelUrl ? (
-                <Link href={order.shippingLabelUrl || ""} target="_blank" rel="noopener noreferrer">
+                <Link
+                  href={order.shippingLabelUrl || ""}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <Button size="sm" variant="outline">
                     <Download className="mr-2 h-4 w-4" />
                     Download Shipping Label
                   </Button>
                 </Link>
-              ) : order.status === "READY_FOR_DISPATCH" ? (
-                <Button size="sm" variant="outline" onClick={() => handleGenerateLabel(order.id)}>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleGenerateLabel(order.id)}
+                >
                   <FileText className="mr-2 h-4 w-4" />
                   Generate Label
                 </Button>
-              ) : (
-                <Button size="sm" variant="outline" onClick={() => handleGenerateLabel(order.id)}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Regenerate Label
-                </Button>
               )}
             </>
+          )}
+          {(order.status === "READY_FOR_DISPATCH" ||
+            order.status === "DISPATCHED" ||
+            order.status === "AT_DESTINATION" ||
+            order.status === "DELIVERED") && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleGenerateLabel(order.id)}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Regenerate Label
+            </Button>
           )}
           {actions.orders.edit && (
             <Button
