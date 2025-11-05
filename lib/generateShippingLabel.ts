@@ -14,20 +14,21 @@ export async function generateShippingLabelPDF(order: any): Promise<Buffer> {
   const fontRegular = await pdfDoc.embedFont(regularFontBytes);
   const fontBold = await pdfDoc.embedFont(boldFontBytes);
 
-  const { client, client: { company } = {}, orderItems, deliveryAddress } = order;
+  const { client: { company } = {}, orderItems, deliveryAddress, city, state, pincode, consigneeName, consigneePhone } = order;
 
   const companyName = company?.name || "N/A";
 
   // ✅ Clean and normalize the address
-  const companyAddressRaw = deliveryAddress || "N/A";
-  const companyAddress = companyAddressRaw
+  const deliveryAddressRaw = deliveryAddress || "N/A";
+  const deliveryAddressShown = deliveryAddressRaw
     .replace(/\s*\n\s*/g, ", ")
     .replace(/\s*,\s*/g, ", ")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .concat(`, ${city || "N/A"}, ${state || "N/A"}, ${pincode || "N/A"}`);
 
-  const pocName = client?.name || "N/A";
-  const pocPhone = client?.phone || "N/A";
+  const pocName = consigneeName || "N/A";
+  const pocPhone = consigneePhone || "N/A";
 
   const senderName = "FITPLAY INTERNATIONAL LLP";
   const senderAddress = "Wz-251 Shakurpur village near Gufa Mandir, New Delhi - 110034";
@@ -44,7 +45,7 @@ export async function generateShippingLabelPDF(order: any): Promise<Buffer> {
   y -= 22;
 
   // ✅ Wrap address in 2 lines max
-  const wrappedAddress = wrapText(companyAddress, fontRegular, 12, maxTextWidth);
+  const wrappedAddress = wrapText(deliveryAddressShown, fontRegular, 12, maxTextWidth);
   const firstLine = wrappedAddress[0] || "";
   const secondLine = wrappedAddress[1] || "";
 

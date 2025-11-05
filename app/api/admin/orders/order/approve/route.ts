@@ -43,6 +43,7 @@ export async function PATCH(req: NextRequest) {
       } 
       else if (status === "READY_FOR_DISPATCH") {
         // Generate and upload shipping label
+        console.log("Generating shipping label for order:", orderId);
         const pdfUrl = await uploadShippingLabelToUploadThing(order);
 
         // Update order with shipping label URL
