@@ -54,13 +54,31 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No account found with this email" }, { status: 404 });
         }
 
+        // Check if there's already a valid (non-expired) reset token
+        const existingToken = await prisma.resetToken.findUnique({
+            where: { identifier: email }
+        });
+
+        if (existingToken && existingToken.expires > new Date()) {
+            // Token is still valid, don't send another email
+            return NextResponse.json({ 
+                message: "Reset link sent successfully", 
+                note: "If you don't see the email, check your spam folder or wait a few minutes before requesting again."
+            });
+        }
+
         // Generate secure token and expiry
         const resetToken = crypto.randomUUID();
         const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
 
-        // Store in ResetToken table 
-        await prisma.resetToken.create({
-            data: {
+        // Store in ResetToken table (upsert to handle existing tokens)
+        await prisma.resetToken.upsert({
+            where: { identifier: email },
+            update: {
+                token: resetToken,
+                expires: resetTokenExpiry,
+            },
+            create: {
                 identifier: email,
                 token: resetToken,
                 expires: resetTokenExpiry,
@@ -68,8 +86,9 @@ export async function POST(req: NextRequest) {
         });
 
         const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
-        // Send reset password email
         const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+
+        // Send reset password email
         await resend.emails.send({
             from: "noreply@fitplaysolutions.com",
             to: email,
