@@ -42,8 +42,8 @@ export function ProductFormDialog({
           </DialogTitle>
           <DialogDescription>
             {editingProduct
-              ? "Update the product information."
-              : "Fill in the details to add a new product."}
+              ? "Update the product information. Fields marked with * are required."
+              : "Fill in the details to add a new product. Fields marked with * are required."}
           </DialogDescription>
         </DialogHeader>
         <div 
@@ -58,9 +58,50 @@ export function ProductFormDialog({
               display: none;
             }
           `}</style>
-          <form onSubmit={handleSubmit} className="space-y-4 pt-2 pb-4 min-w-0">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              
+              // Validate all required fields
+              if (!formData.name.trim()) {
+                toast.error("Product name is required");
+                return;
+              }
+              if (!formData.price || Number(formData.price) <= 0) {
+                toast.error("Price is required and must be greater than 0");
+                return;
+              }
+              if (!formData.company) {
+                toast.error("Company selection is required");
+                return;
+              }
+              if (!formData.categories) {
+                toast.error("Category selection is required");
+                return;
+              }
+              if (!formData.skuSuffix.trim()) {
+                toast.error("SKU is required");
+                return;
+              }
+              if (!formData.availableStock || Number(formData.availableStock) < 0) {
+                toast.error("Stock is required and cannot be negative");
+                return;
+              }
+              if (!formData.description.trim()) {
+                toast.error("Description is required");
+                return;
+              }
+              if (!formData.image.trim()) {
+                toast.error("Product image is required");
+                return;
+              }
+              
+              handleSubmit(e);
+            }} 
+            className="space-y-4 pt-2 pb-4 min-w-0"
+          >
           <div className="space-y-2">
-            <Label htmlFor="name">Product Name</Label>
+            <Label htmlFor="name">Product Name <span className="text-red-500">*</span></Label>
             <Input
               id="name"
               value={formData.name}
@@ -73,7 +114,7 @@ export function ProductFormDialog({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Price</Label>
+              <Label htmlFor="price">Price <span className="text-red-500">*</span></Label>
               <Input
                 id="price"
                 type="number"
@@ -82,10 +123,13 @@ export function ProductFormDialog({
                   setFormData({ ...formData, price: e.target.value })
                 }
                 placeholder="Enter price"
+                required
+                min="0"
+                step="0.01"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Company</Label>
+              <Label htmlFor="company">Company <span className="text-red-500">*</span></Label>
               <Select
                 value={formData.company}
                 onValueChange={(value) =>
@@ -106,7 +150,7 @@ export function ProductFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
               <Select
                 value={formData.categories}
                 onValueChange={(value) =>
@@ -131,7 +175,7 @@ export function ProductFormDialog({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>SKU</Label>
+              <Label>SKU <span className="text-red-500">*</span></Label>
               <div className="flex items-center gap-1">
                 <Input
                   value={formData.companyShort}
@@ -160,7 +204,7 @@ export function ProductFormDialog({
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="stock">Stock</Label>
+              <Label htmlFor="stock">Stock <span className="text-red-500">*</span></Label>
               <Input
                 id="stock"
                 type="number"
@@ -174,7 +218,7 @@ export function ProductFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -187,7 +231,7 @@ export function ProductFormDialog({
           </div>
 
             <div className="space-y-4">
-            <Label>Product Image</Label>
+            <Label>Product Image <span className="text-red-500">*</span></Label>
             <div className="space-y-4">
               {/* Show upload dropzone only if no image is uploaded */}
               {!formData.image && (
