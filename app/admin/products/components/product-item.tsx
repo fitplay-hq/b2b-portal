@@ -46,7 +46,7 @@ export function ProductItem({
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            SKU: {product.sku} • Stock: {product.availableStock}
+            SKU: {product.sku} • <span className="font-semibold text-foreground">Stock: {product.availableStock}</span>
             {product.price && (
               <>
                 {" • "}

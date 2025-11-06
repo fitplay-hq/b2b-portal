@@ -49,10 +49,18 @@ export async function POST(req: NextRequest) {
       return result.data;
     });
 
-    const productsData: Prisma.ProductCreateInput[] = parsedProducts.map((p) => ({
-      id: uuidv4(),
-      ...p, // ✅ Spread validated product data
-    }));
+    const productsData: Prisma.ProductCreateInput[] = parsedProducts.map((p) => {
+      const initialStock = p.availableStock || 0;
+      const initialLogEntry = initialStock > 0 
+        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE`
+        : null;
+
+      return {
+        id: uuidv4(),
+        ...p, // ✅ Spread validated product data
+        inventoryLogs: initialLogEntry ? [initialLogEntry] : [],
+      };
+    });
 
     const products = await prisma.product.createMany({
       data: productsData,
@@ -93,6 +101,9 @@ export async function GET(req: NextRequest) {
     const safeSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
     const products = await prisma.product.findMany({
+      include: {
+        companies: true,
+      },
       orderBy: {
         [safeSortBy]: safeSortOrder,
       },

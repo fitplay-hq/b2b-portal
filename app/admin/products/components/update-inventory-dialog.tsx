@@ -131,15 +131,16 @@ export function UpdateInventoryDialog({
             <div className="space-y-6">
               {/* Current Stock Display */}
               <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                <span className="font-medium">Current Stock:</span>
+                <span className="text-lg font-semibold">Current Stock:</span>
                 <Badge
-                  variant={
+                  variant="outline"
+                  className={`text-lg font-bold px-4 py-2 ${
                     product.availableStock === 0
-                      ? "destructive"
+                      ? "border-red-500 text-red-700 bg-red-50"
                       : product.availableStock < 50
-                      ? "secondary"
-                      : "default"
-                  }
+                      ? "border-yellow-500 text-yellow-700 bg-yellow-50"
+                      : "border-green-500 text-green-700 bg-green-50"
+                  }`}
                 >
                   {product.availableStock}{" "}
                   {product.availableStock === 1 ? "unit" : "units"}
@@ -210,13 +211,13 @@ export function UpdateInventoryDialog({
 
               {/* Preview */}
               {quantity && direction && reason && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-base text-blue-800">
                     {direction === "add" ? "Will add" : "Will remove"} {quantity}{" "}
                     {parseInt(quantity) === 1 ? "unit" : "units"}
                     {direction === "add" ? " to" : " from"} inventory
                   </p>
-                  <p className="text-sm font-medium text-blue-900">
+                  <p className="text-lg font-semibold text-blue-900">
                     New stock:{" "}
                     {direction === "add"
                       ? (product.availableStock || 0) + parseInt(quantity)

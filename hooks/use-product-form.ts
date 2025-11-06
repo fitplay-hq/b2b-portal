@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
-import { Product, Prisma, Category } from "@/lib/generated/prisma";
+import { Product, Prisma, Category, Company } from "@/lib/generated/prisma";
 import { toast } from "sonner";
 import { useCreateProduct, useUpdateProduct, useProducts } from "@/data/product/admin.hooks";
 import { useCompanies } from "@/data/company/admin.hooks";
+
+type ProductWithCompanies = Product & {
+  companies: Company[];
+};
 
 interface UseProductFormProps {
   onSuccess: () => void;
@@ -146,7 +150,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (product: Product) => {
+  const openEditDialog = (product: ProductWithCompanies) => {
     setEditingProduct(product);
 
     // Parse SKU into parts
@@ -155,9 +159,12 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     const categoryShort = skuParts[1] || '';
     const skuSuffix = skuParts[2] || '';
 
+    // Get the first company associated with the product (if any)
+    const associatedCompany = product.companies?.[0]?.id || "";
+
     setFormData({
       name: product.name,
-      company: "", // TODO: if we have company relation, set it
+      company: associatedCompany,
       companyShort,
       categories: product.categories,
       categoryShort,
@@ -243,7 +250,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     formData,
     setFormData,
     openNewDialog,
-    openEditDialog,
+    openEditDialog: openEditDialog as (product: Product) => void, // Type assertion for compatibility
     handleSubmit,
     companies,
   };

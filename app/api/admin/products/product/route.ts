@@ -1,6 +1,5 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { Category } from "@/lib/generated/prisma";
 import { withPermissions } from "@/lib/auth-middleware";
 
 import {
@@ -47,8 +46,17 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Create initial inventory log entry for the starting stock
+      const initialStock = result.data.availableStock || 0;
+      const initialLogEntry = initialStock > 0 
+        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE`
+        : null;
+
       const product = await prisma.product.create({
-        data: result.data,
+        data: {
+          ...result.data,
+          inventoryLogs: initialLogEntry ? [initialLogEntry] : [],
+        },
       });
 
       return NextResponse.json(product, { status: 201 });
