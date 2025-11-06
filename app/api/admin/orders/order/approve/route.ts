@@ -28,6 +28,10 @@ export async function PATCH(req: NextRequest) {
 
       let updatedOrder;
 
+      // Handle inventory changes based on status transitions
+      const currentStatus = order.status;
+      console.log("Status transition:", { from: currentStatus, to: status });
+
       if (status === "DISPATCHED") {
         if (!consignmentNumber || !deliveryService) {
           return NextResponse.json(
@@ -54,17 +58,7 @@ export async function PATCH(req: NextRequest) {
 
           if (currentProduct) {
             const newStock = Math.max(0, currentProduct.availableStock - item.quantity);
-            const logEntry = JSON.stringify({
-              date: new Date().toISOString(),
-              change: `-${item.quantity}`,
-              reason: "NEW_ORDER",
-              orderId: orderId,
-              user: "System",
-              role: "ADMIN",
-              currentStock: newStock,
-              productName: currentProduct.name,
-              sku: currentProduct.sku,
-            });
+            const logEntry = `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER`;
 
             await prisma.product.update({
               where: { id: item.productId },
@@ -86,27 +80,25 @@ export async function PATCH(req: NextRequest) {
             shippingLabelUrl: pdfUrl,
           },
         });
-      } 
-      else if (status === "APPROVED") {
-        // When order is approved, reduce inventory and create logs
+      }
+      else {
+        updatedOrder = await prisma.order.update({
+          where: { id: orderId },
+          data: { status: status || "PENDING" },
+        });
+      }
+
+      // Handle inventory restoration when cancelling an approved/ready order
+      if (status === "CANCELLED" && (currentStatus === "APPROVED" || currentStatus === "READY_FOR_DISPATCH")) {
+        console.log("Restoring inventory for cancelled order:", orderId);
         for (const item of order.orderItems) {
           const currentProduct = await prisma.product.findUnique({
             where: { id: item.productId },
           });
 
           if (currentProduct) {
-            const newStock = Math.max(0, currentProduct.availableStock - item.quantity);
-            const logEntry = JSON.stringify({
-              date: new Date().toISOString(),
-              change: `-${item.quantity}`,
-              reason: "NEW_ORDER",
-              orderId: orderId,
-              user: "System",
-              role: "ADMIN", 
-              currentStock: newStock,
-              productName: currentProduct.name,
-              sku: currentProduct.sku,
-            });
+            const newStock = currentProduct.availableStock + item.quantity;
+            const logEntry = `${new Date().toISOString()} | Added ${item.quantity} units | Reason: RETURN_FROM_PREVIOUS_DISPATCH`;
 
             await prisma.product.update({
               where: { id: item.productId },
@@ -119,38 +111,19 @@ export async function PATCH(req: NextRequest) {
             });
           }
         }
-
-        updatedOrder = await prisma.order.update({
-          where: { id: orderId },
-          data: { status: status || "PENDING" },
-        });
-      }
-      else {
-        updatedOrder = await prisma.order.update({
-          where: { id: orderId },
-          data: { status: status || "PENDING" },
-        });
       }
 
-      if (status === "CANCELLED") {
+      // Handle inventory reduction when approving a new or cancelled order  
+      if (status === "APPROVED" && (currentStatus !== "APPROVED" && currentStatus !== "READY_FOR_DISPATCH")) {
+        console.log("Creating new order inventory logs for:", orderId);
         for (const item of order.orderItems) {
           const currentProduct = await prisma.product.findUnique({
             where: { id: item.productId },
           });
 
           if (currentProduct) {
-            const newStock = currentProduct.availableStock + item.quantity;
-            const logEntry = JSON.stringify({
-              date: new Date().toISOString(),
-              change: `+${item.quantity}`,
-              reason: "RETURN_FROM_PREVIOUS_DISPATCH",
-              orderId: orderId,
-              user: "System",
-              role: "ADMIN",
-              currentStock: newStock,
-              productName: currentProduct.name,
-              sku: currentProduct.sku,
-            });
+            const newStock = Math.max(0, currentProduct.availableStock - item.quantity);
+            const logEntry = `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER`;
 
             await prisma.product.update({
               where: { id: item.productId },
