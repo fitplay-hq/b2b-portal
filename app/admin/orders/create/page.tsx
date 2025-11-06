@@ -32,6 +32,7 @@ import {
   ArrowLeft,
   Mail,
   CheckCircle,
+  ShoppingCart,
 } from "lucide-react";
 import { useProducts } from "@/data/product/admin.hooks";
 import { useClients } from "@/data/client/admin.hooks";
@@ -121,7 +122,13 @@ export default function CreateDispatchOrderPage() {
   const searchResults = React.useMemo(() => {
     if (!products) return [] as Product[];
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return [] as Product[];
+    if (!term) {
+      // Show top 20 products by available stock when no search term
+      return products
+        .filter(p => p.availableStock > 0)
+        .sort((a, b) => b.availableStock - a.availableStock)
+        .slice(0, 20);
+    }
     return products.filter(
       (p) =>
         p.name.toLowerCase().includes(term) ||
@@ -426,71 +433,126 @@ export default function CreateDispatchOrderPage() {
                 <div className="relative mt-1">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by product name or SKU..."
+                    placeholder="Search by product name or SKU... (Leave empty to see popular products)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 pr-8"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchResults.length > 0) {
+                        const firstResult = searchResults[0];
+                        const isSelected = selectedProducts.some(p => p.id === firstResult.id);
+                        handleProductToggle(firstResult, !isSelected);
+                      } else if (e.key === 'Escape') {
+                        setSearchTerm("");
+                      }
+                    }}
                   />
-                  {isProductsLoading && (
+                  {searchTerm && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1 h-6 w-6 p-0 hover:bg-gray-100"
+                      onClick={() => setSearchTerm("")}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                  {isProductsLoading && !searchTerm && (
                     <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
                   )}
                 </div>
               </div>
 
-              {searchTerm && (
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">
-                    Search Results ({searchResults.length})
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">
+                    {searchTerm 
+                      ? `Search Results (${searchResults.length})` 
+                      : `Popular Products (${searchResults.length})`
+                    }
                   </Label>
-                  <div className="border rounded-md">
-                    {searchResults.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No products found
-                      </p>
-                    ) : (
-                      <div className="divide-y">
-                        {searchResults.slice(0, 40).map((product) => {
-                          const isSelected = selectedProducts.some(
-                            (p) => p.id === product.id
-                          );
-                          return (
-                            <div
-                              key={product.id}
-                              className={`flex items-center justify-between p-3 hover:bg-muted cursor-pointer ${
-                                isSelected ? "bg-blue-50 border-blue-200" : ""
-                              }`}
-                              onClick={() =>
-                                handleProductToggle(product, !isSelected)
-                              }
-                            >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <Checkbox
-                                  checked={isSelected}
-                                  onChange={() => {}}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">
-                                    {product.name}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    SKU: {product.sku || "N/A"} • Stock:{" "}
-                                    {product.availableStock}
-                                  </p>
-                                </div>
-                              </div>
-                              {isSelected && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Selected
-                                </Badge>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  {searchResults.length > 0 && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          searchResults.forEach(product => {
+                            const isSelected = selectedProducts.some(p => p.id === product.id);
+                            if (!isSelected) {
+                              handleProductToggle(product, true);
+                            }
+                          });
+                        }}
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          searchResults.forEach(product => {
+                            handleProductToggle(product, false);
+                          });
+                        }}
+                      >
+                        Deselect All
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
+                <div className="border rounded-md">
+                  {searchResults.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      {searchTerm ? "No products found" : "No products available"}
+                    </p>
+                  ) : (
+                    <div className="divide-y">
+                      {searchResults.slice(0, 40).map((product) => {
+                        const isSelected = selectedProducts.some(
+                          (p) => p.id === product.id
+                        );
+                        return (
+                          <div
+                            key={product.id}
+                            className={`flex items-center justify-between p-3 hover:bg-muted cursor-pointer transition-colors ${
+                              isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""
+                            }`}
+                            onClick={() =>
+                              handleProductToggle(product, !isSelected)
+                            }
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <Checkbox
+                                checked={isSelected}
+                                onChange={() => {}}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">
+                                  {product.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  SKU: {product.sku || "N/A"} • Stock:{" "}
+                                  <span className={product.availableStock > 10 ? "text-green-600" : "text-orange-600"}>
+                                    {product.availableStock}
+                                  </span>
+                                </p>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                                Selected
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div>
                 <Label className="text-sm font-medium mb-2 block">
@@ -539,24 +601,68 @@ export default function CreateDispatchOrderPage() {
                               <Label className="text-xs text-muted-foreground">
                                 Qty:
                               </Label>
-                              <Input
-                                type="number"
-                                min="1"
-                                value={product.quantity}
-                                onChange={(e) =>
-                                  handleUpdateProduct(
-                                    product.id,
-                                    parseInt(e.target.value) || 0
-                                  )
-                                }
-                                className="w-24 h-8 text-xs"
-                              />
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => {
+                                    const newQty = Math.max(1, product.quantity - 1);
+                                    handleUpdateProduct(product.id, newQty);
+                                  }}
+                                >
+                                  -
+                                </Button>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max={product.availableStock}
+                                  value={product.quantity}
+                                  onChange={(e) =>
+                                    handleUpdateProduct(
+                                      product.id,
+                                      Math.min(product.availableStock, parseInt(e.target.value) || 0)
+                                    )
+                                  }
+                                  className="w-20 h-8 text-xs text-center"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => {
+                                    const newQty = Math.min(product.availableStock, product.quantity + 1);
+                                    handleUpdateProduct(product.id, newQty);
+                                  }}
+                                >
+                                  +
+                                </Button>
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground ml-auto">
-                              Will dispatch:{" "}
-                              <span className="font-medium">
-                                {product.quantity}
-                              </span>
+                            <div className="flex items-center gap-2 ml-auto">
+                              <div className="flex gap-1">
+                                {[1, 5, 10].map(qty => (
+                                  <Button
+                                    key={qty}
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs"
+                                    onClick={() => handleUpdateProduct(product.id, Math.min(product.availableStock, qty))}
+                                    disabled={qty > product.availableStock}
+                                  >
+                                    {qty}
+                                  </Button>
+                                ))}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Will dispatch:{" "}
+                                <span className="font-medium">
+                                  {product.quantity}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>

@@ -71,18 +71,25 @@ export function BulkInventoryDialog({
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const { products, isLoading: isSearching } = useProducts();
-  const { updateBulkInventory, isBulkUpdating, bulkUpdateError } =
-    useBulkInventory();
+  const { updateBulkInventory, isBulkUpdating } = useBulkInventory();
 
   // Filter products based on search term
-  const searchResults =
-    products?.filter(
+  const searchResults = React.useMemo(() => {
+    if (!products) return [];
+    const term = debouncedSearchTerm.trim().toLowerCase();
+    if (!term) {
+      // Show top 20 products by available stock when no search term
+      return products
+        .filter(p => p.availableStock > 0)
+        .sort((a, b) => b.availableStock - a.availableStock)
+        .slice(0, 20);
+    }
+    return products.filter(
       (product) =>
-        product.name
-          .toLowerCase()
-          .includes(debouncedSearchTerm.toLowerCase()) ||
-        product.sku?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-    ) || [];
+        product.name.toLowerCase().includes(term) ||
+        product.sku?.toLowerCase().includes(term)
+    );
+  }, [products, debouncedSearchTerm]);
 
   const handleProductSelect = (product: Product, selected: boolean) => {
     if (selected) {
@@ -181,12 +188,31 @@ export function BulkInventoryDialog({
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="search"
-                placeholder="Search by product name or SKU..."
+                placeholder="Search by product name or SKU... (Leave empty to see popular products)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                className="pl-9 pr-8"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchResults.length > 0) {
+                    const firstResult = searchResults[0];
+                    const isSelected = selectedProducts.some(p => p.id === firstResult.id);
+                    handleProductSelect(firstResult, !isSelected);
+                  } else if (e.key === 'Escape') {
+                    setSearchTerm("");
+                  }
+                }}
               />
-              {isSearching && (
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1 h-6 w-6 p-0 hover:bg-gray-100"
+                  onClick={() => setSearchTerm("")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+              {isSearching && !searchTerm && (
                 <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
               )}
             </div>
@@ -194,60 +220,96 @@ export function BulkInventoryDialog({
 
           <div className="grid grid-cols-1 gap-4 min-h-0">
             {/* Search Results - Compact List */}
-            {debouncedSearchTerm && (
-              <div className="flex-shrink-0">
-                <Label className="text-sm font-medium mb-2 block">
-                  Search Results ({searchResults.length})
+            <div className="flex-shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">
+                  {debouncedSearchTerm 
+                    ? `Search Results (${searchResults.length})` 
+                    : `Popular Products (${searchResults.length})`
+                  }
                 </Label>
-                <div className="border rounded-md">
-                  {searchResults.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No products found matching "{debouncedSearchTerm}"
-                    </p>
-                  ) : (
-                    <div className="divide-y">
-                      {searchResults.slice(0, 20).map((product) => {
-                        const isSelected = selectedProducts.some(
-                          (p) => p.id === product.id
-                        );
-                        return (
-                          <div
-                            key={product.id}
-                            className={`flex items-center justify-between p-3 hover:bg-muted cursor-pointer ${
-                              isSelected ? "bg-blue-50 border-blue-200" : ""
-                            }`}
-                            onClick={() =>
-                              handleProductSelect(product, !isSelected)
-                            }
-                          >
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <Checkbox
-                                checked={isSelected}
-                                onChange={() => {}}
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">
-                                  {product.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  SKU: {product.sku || "N/A"} • Stock:{" "}
-                                  {product.availableStock}
-                                </p>
-                              </div>
-                            </div>
-                            {isSelected && (
-                              <Badge variant="secondary" className="text-xs">
-                                Selected
-                              </Badge>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                {searchResults.length > 0 && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        searchResults.forEach(product => {
+                          const isSelected = selectedProducts.some(p => p.id === product.id);
+                          if (!isSelected) {
+                            handleProductSelect(product, true);
+                          }
+                        });
+                      }}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        searchResults.forEach(product => {
+                          handleProductSelect(product, false);
+                        });
+                      }}
+                    >
+                      Deselect All
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
+              <div className="border rounded-md">
+                {searchResults.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    {debouncedSearchTerm ? `No products found matching "${debouncedSearchTerm}"` : "No products available"}
+                  </p>
+                ) : (
+                  <div className="divide-y">
+                    {searchResults.slice(0, 20).map((product) => {
+                      const isSelected = selectedProducts.some(
+                        (p) => p.id === product.id
+                      );
+                      return (
+                        <div
+                          key={product.id}
+                          className={`flex items-center justify-between p-3 hover:bg-muted cursor-pointer transition-colors ${
+                            isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""
+                          }`}
+                          onClick={() =>
+                            handleProductSelect(product, !isSelected)
+                          }
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <Checkbox
+                              checked={isSelected}
+                              onChange={() => {}}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {product.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                SKU: {product.sku || "N/A"} • Stock:{" "}
+                                <span className={product.availableStock > 10 ? "text-green-600" : "text-orange-600"}>
+                                  {product.availableStock}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                              Selected
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Selected Products - Compact Grid */}
             <div className="flex-1 min-h-0">

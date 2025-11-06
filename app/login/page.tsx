@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Package, Shield, Users, TrendingUp, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { ImageWithFallback } from "@/components/image";
+import { FitplayLogo } from "@/components/fitplay-logo";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -94,15 +95,9 @@ export default function LoginPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.6 }}
-              className="flex items-center gap-3 mb-8"
+              className="flex justify-center mb-8"
             >
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Package className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">B2B Portal</h1>
-                <p className="text-neutral-300 text-sm">Business Ordering Portal</p>
-              </div>
+              <FitplayLogo variant="white" size="xl" />
             </motion.div>
 
             <motion.div
@@ -177,14 +172,8 @@ export default function LoginPage() {
             className="w-full max-w-md"
           >
             <div className="lg:hidden text-center mb-8">
-              <div className="flex justify-center items-center gap-3 mb-4">
-                <div className="p-3 bg-neutral-700 rounded-xl">
-                  <Package className="h-8 w-8 text-white" />
-                </div>
-                <div className="text-left">
-                  <h1 className="text-2xl font-bold text-neutral-900">B2B Portal</h1>
-                  <p className="text-gray-600 text-sm">Business Ordering Portal</p>
-                </div>
+              <div className="flex justify-center mb-4">
+                <FitplayLogo variant="black" size="xl" />
               </div>
             </div>
 

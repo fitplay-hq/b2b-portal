@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { SessionProvider } from "next-auth/react";
 import NavItems from "./nav-items";
 import AccountInfo from "./account-info";
+import { FitplayLogo } from "./fitplay-logo";
 
 interface LayoutProps {
   children: ReactNode;
@@ -95,21 +96,13 @@ export default function Layout({ children, isClient }: LayoutProps) {
           >
             {/* Logo Section */}
             
-            <div className={`border-b border-gray-100 transition-all duration-300 ${(sidebarOpen || isMobile) ? 'p-6' : 'p-3'}`}>
-              <div className={`flex items-center ${(sidebarOpen || isMobile) ? 'gap-3' : 'justify-center'}`}>
-                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center shadow-sm">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                  </svg>
-                </div>
-                {(sidebarOpen || isMobile) && (
-                  <div className="overflow-hidden">
-                    <h1 className="font-semibold text-gray-900 truncate">Fitplay B2B</h1>
-                    <p className="text-xs text-gray-500 truncate">
-                      {isClient ? "Client Portal" : "Admin Dashboard"}
-                    </p>
-                  </div>
-                )}
+            <div className={`border-b border-gray-100 transition-all duration-300 ${(sidebarOpen || isMobile) ? 'p-6' : 'p-4'}`}>
+              <div className="flex items-center justify-center">
+                <FitplayLogo 
+                  variant="black" 
+                  size={(sidebarOpen || isMobile) ? "xl" : "lg"}
+                  className="flex justify-center"
+                />
               </div>
             </div>
 

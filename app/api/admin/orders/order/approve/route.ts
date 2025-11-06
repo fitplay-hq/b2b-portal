@@ -46,6 +46,38 @@ export async function PATCH(req: NextRequest) {
         console.log("Generating shipping label for order:", orderId);
         const pdfUrl = await uploadShippingLabelToUploadThing(order);
 
+        // Update inventory and create logs for order items
+        for (const item of order.orderItems) {
+          const currentProduct = await prisma.product.findUnique({
+            where: { id: item.productId },
+          });
+
+          if (currentProduct) {
+            const newStock = Math.max(0, currentProduct.availableStock - item.quantity);
+            const logEntry = JSON.stringify({
+              date: new Date().toISOString(),
+              change: `-${item.quantity}`,
+              reason: "NEW_ORDER",
+              orderId: orderId,
+              user: "System",
+              role: "ADMIN",
+              currentStock: newStock,
+              productName: currentProduct.name,
+              sku: currentProduct.sku,
+            });
+
+            await prisma.product.update({
+              where: { id: item.productId },
+              data: {
+                availableStock: newStock,
+                inventoryLogs: {
+                  push: logEntry,
+                },
+              },
+            });
+          }
+        }
+
         // Update order with shipping label URL
         updatedOrder = await prisma.order.update({
           where: { id: orderId },
@@ -55,6 +87,44 @@ export async function PATCH(req: NextRequest) {
           },
         });
       } 
+      else if (status === "APPROVED") {
+        // When order is approved, reduce inventory and create logs
+        for (const item of order.orderItems) {
+          const currentProduct = await prisma.product.findUnique({
+            where: { id: item.productId },
+          });
+
+          if (currentProduct) {
+            const newStock = Math.max(0, currentProduct.availableStock - item.quantity);
+            const logEntry = JSON.stringify({
+              date: new Date().toISOString(),
+              change: `-${item.quantity}`,
+              reason: "NEW_ORDER",
+              orderId: orderId,
+              user: "System",
+              role: "ADMIN", 
+              currentStock: newStock,
+              productName: currentProduct.name,
+              sku: currentProduct.sku,
+            });
+
+            await prisma.product.update({
+              where: { id: item.productId },
+              data: {
+                availableStock: newStock,
+                inventoryLogs: {
+                  push: logEntry,
+                },
+              },
+            });
+          }
+        }
+
+        updatedOrder = await prisma.order.update({
+          where: { id: orderId },
+          data: { status: status || "PENDING" },
+        });
+      }
       else {
         updatedOrder = await prisma.order.update({
           where: { id: orderId },
@@ -64,10 +134,34 @@ export async function PATCH(req: NextRequest) {
 
       if (status === "CANCELLED") {
         for (const item of order.orderItems) {
-          await prisma.product.update({
+          const currentProduct = await prisma.product.findUnique({
             where: { id: item.productId },
-            data: { availableStock: item.product.availableStock + item.quantity },
           });
+
+          if (currentProduct) {
+            const newStock = currentProduct.availableStock + item.quantity;
+            const logEntry = JSON.stringify({
+              date: new Date().toISOString(),
+              change: `+${item.quantity}`,
+              reason: "RETURN_FROM_PREVIOUS_DISPATCH",
+              orderId: orderId,
+              user: "System",
+              role: "ADMIN",
+              currentStock: newStock,
+              productName: currentProduct.name,
+              sku: currentProduct.sku,
+            });
+
+            await prisma.product.update({
+              where: { id: item.productId },
+              data: {
+                availableStock: newStock,
+                inventoryLogs: {
+                  push: logEntry,
+                },
+              },
+            });
+          }
         }
       }
 

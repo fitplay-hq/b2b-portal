@@ -7,6 +7,10 @@ import { InventoryLogsTable } from "@/components/inventory-logs-table";
 import { useInventoryLogs, InventoryLogsFilters } from "@/data/inventory/admin.hooks";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useDebouncedSearch } from "@/hooks/use-debounced-search";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { RotateCcw, X, Filter, Calendar, Package, FileText } from "lucide-react";
 
 export default function InventoryLogsPage() {
   const { RESOURCES } = usePermissions();
@@ -18,14 +22,31 @@ export default function InventoryLogsPage() {
     sortOrder: "desc",
   });
 
-  // Debounced search hook
+  const [advancedFilters, setAdvancedFilters] = useState({
+    dateFrom: "",
+    dateTo: "",
+    productName: "",
+    sku: "",
+    reason: "",
+  });
+
+  // Debounced search hook with 2.5 second delay for automatic search
   const { searchValue, handleSearch } = useDebouncedSearch((searchTerm: string) => {
     setFilters(prev => ({ 
       ...prev, 
       search: searchTerm || undefined, 
       page: 1 
     }));
-  }, 500); // 500ms delay
+  }, 2500); // 2.5 second delay for automatic search
+
+  // Immediate search function for Enter key
+  const handleImmediateSearch = (searchTerm: string) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      search: searchTerm || undefined, 
+      page: 1 
+    }));
+  };
 
   const { logs, pagination, error, isLoading } = useInventoryLogs(filters);
 
@@ -42,11 +63,111 @@ export default function InventoryLogsPage() {
       Object.entries(newFilters).filter(([, value]) => value !== "")
     );
     
+    setAdvancedFilters(prev => ({ ...prev, ...newFilters }));
+    
     setFilters(prev => ({
       ...prev,
       ...cleanFilters,
       page: 1, // Reset to first page when filters change
     }));
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      page: 1,
+      limit: 20,
+      sortBy: "date",
+      sortOrder: "desc",
+    });
+    setAdvancedFilters({
+      dateFrom: "",
+      dateTo: "",
+      productName: "",
+      sku: "",
+      reason: "",
+    });
+    handleSearch(""); // Clear search as well
+  };
+
+  // Get active filters for display
+  const getActiveFilters = () => {
+    const activeFilters = [];
+    
+    if (searchValue) {
+      activeFilters.push({
+        key: 'search',
+        label: 'Search',
+        value: searchValue,
+        icon: FileText
+      });
+    }
+    
+    if (advancedFilters.dateFrom) {
+      activeFilters.push({
+        key: 'dateFrom',
+        label: 'From Date',
+        value: new Date(advancedFilters.dateFrom).toLocaleDateString(),
+        icon: Calendar
+      });
+    }
+    
+    if (advancedFilters.dateTo) {
+      activeFilters.push({
+        key: 'dateTo',
+        label: 'To Date',
+        value: new Date(advancedFilters.dateTo).toLocaleDateString(),
+        icon: Calendar
+      });
+    }
+    
+    if (advancedFilters.productName) {
+      activeFilters.push({
+        key: 'productName',
+        label: 'Product',
+        value: advancedFilters.productName,
+        icon: Package
+      });
+    }
+    
+    if (advancedFilters.sku) {
+      activeFilters.push({
+        key: 'sku',
+        label: 'SKU',
+        value: advancedFilters.sku,
+        icon: Package
+      });
+    }
+    
+    if (advancedFilters.reason) {
+      activeFilters.push({
+        key: 'reason',
+        label: 'Reason',
+        value: advancedFilters.reason,
+        icon: FileText
+      });
+    }
+    
+    return activeFilters;
+  };
+
+  const removeFilter = (filterKey: string) => {
+    if (filterKey === 'search') {
+      handleSearch("");
+    } else {
+      // Update advanced filters state
+      const updatedAdvancedFilters = { ...advancedFilters, [filterKey]: '' };
+      setAdvancedFilters(updatedAdvancedFilters);
+      
+      // Update main filters state to trigger API call
+      setFilters(prev => {
+        const newFilters = { ...prev };
+        delete newFilters[filterKey as keyof typeof newFilters];
+        return {
+          ...newFilters,
+          page: 1, // Reset to first page
+        };
+      });
+    }
   };
 
   if (error) {
@@ -71,8 +192,92 @@ export default function InventoryLogsPage() {
                   Complete history of all inventory movements across all products
                 </p>
               </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline" 
+                  size="sm" 
+                  onClick={resetFilters}
+                  disabled={getActiveFilters().length === 0}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Reset Filters
+                </Button>
+              </div>
             </div>
           </div>
+
+          {/* Active Filters Display */}
+          {getActiveFilters().length > 0 ? (
+            <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-900">
+                      Active Filters ({getActiveFilters().length})
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetFilters}
+                    className="h-6 px-2 text-xs text-blue-700 hover:text-blue-900 hover:bg-blue-100"
+                  >
+                    Clear All
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {getActiveFilters().map((filter) => {
+                    const IconComponent = filter.icon;
+                    return (
+                      <Badge
+                        key={filter.key}
+                        variant="secondary"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-blue-200 text-blue-800 hover:bg-blue-50 group cursor-pointer transition-all"
+                      >
+                        <IconComponent className="h-3 w-3" />
+                        <span className="text-xs font-medium">{filter.label}:</span>
+                        <span className="text-xs max-w-32 truncate">{filter.value}</span>
+                        <button
+                          onClick={() => removeFilter(filter.key)}
+                          className="ml-1 opacity-60 hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="text-xs text-blue-600">
+                    Showing {logs?.length || 0} results with applied filters
+                  </div>
+                  <div className="text-xs text-blue-500">
+                    Showing filtered results
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">
+                      No Filters Applied
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Showing all {logs?.length || 0} inventory logs
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-gray-600">
+                  🔍 Use the search bar or click &quot;Filters&quot; in the table below to narrow down results by date, product, or reason
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="flex-1">
             <InventoryLogsTable
@@ -82,6 +287,7 @@ export default function InventoryLogsPage() {
               onPageChange={handlePageChange}
               onSortChange={handleSortChange}
               onSearch={handleSearch}
+              onImmediateSearch={handleImmediateSearch}
               onFilterChange={handleFilterChange}
               currentSort={{ 
                 sortBy: filters.sortBy || "date", 
@@ -91,6 +297,9 @@ export default function InventoryLogsPage() {
               title="All Inventory Movements"
               description="Track every inventory change across your entire product catalog"
               searchValue={searchValue}
+              onResetFilters={resetFilters}
+              activeFilters={getActiveFilters()}
+              currentFilters={advancedFilters}
             />
           </div>
         </div>
