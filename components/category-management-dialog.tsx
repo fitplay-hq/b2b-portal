@@ -102,9 +102,19 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
   };
 
   const handleDelete = async (categoryId: string, categoryName: string) => {
-    if (window.confirm(`Are you sure you want to delete the category "${categoryName}"? This action cannot be undone.`)) {
-      await deleteCategory(categoryId);
-    }
+    // Show confirmation toast
+    toast.error(
+      `Delete category "${categoryName}"? This action cannot be undone.`,
+      {
+        action: {
+          label: 'Delete',
+          onClick: () => deleteCategory(categoryId),
+        },
+        cancel: {
+          label: 'Cancel',
+        },
+      }
+    );
   };
 
   const generateShortCode = (displayName: string) => {
