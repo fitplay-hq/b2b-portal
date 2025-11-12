@@ -48,6 +48,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAnalytics, type AnalyticsFilters } from '@/hooks/use-analytics';
 import { useInstantPermissions } from '@/hooks/use-instant-permissions';
+import { useCategories } from '@/hooks/use-category-management';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Layout from '@/components/layout';
@@ -56,6 +57,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function AnalyticsPage() {
   const { canUserPerformAction } = useInstantPermissions();
+  const { categories } = useCategories();
   const [filters, setFilters] = useState<AnalyticsFilters>({
     period: '30d'
   });
@@ -621,11 +623,11 @@ export default function AnalyticsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="stationery">Stationery</SelectItem>
-                      <SelectItem value="accessories">Accessories</SelectItem>
-                      <SelectItem value="funAndStickers">Fun & Stickers</SelectItem>
-                      <SelectItem value="drinkware">Drinkware</SelectItem>
-                      <SelectItem value="apparel">Apparel</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          {category.displayName}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

@@ -16,9 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { $Enums } from "@/lib/generated/prisma";
 import { UploadDropzone } from "@/components/uploadthing";
 import { toast } from "sonner";
+import { useCategories } from "@/hooks/use-category-management";
 
 import { useProductForm } from "@/hooks/use-product-form";
 type ProductFormProps = ReturnType<typeof useProductForm>;
@@ -33,6 +33,8 @@ export function ProductFormDialog({
   handleSubmit,
   companies,
 }: ProductFormProps) {
+  const { categories, isLoading: categoriesLoading } = useCategories();
+
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent className="max-w-2xl">
@@ -101,15 +103,15 @@ export function ProductFormDialog({
                   setFormData({ ...formData, categories: value })
                 }
                 required
+                disabled={categoriesLoading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values($Enums.Category).map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() +
-                        cat.slice(1).replace(/([A-Z])/g, " $1")}
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      {category.displayName}
                     </SelectItem>
                   ))}
                 </SelectContent>

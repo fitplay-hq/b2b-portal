@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import Layout from "@/components/layout";
 import PageGuard from "@/components/page-guard";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Boxes, Upload } from "lucide-react";
+import { Plus, Loader2, Settings } from "lucide-react";
 import { useProductFilters } from "@/hooks/use-product-filters";
 import { useProductForm } from "@/hooks/use-product-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -16,6 +16,7 @@ import { ProductFilters } from "./components/product-filters";
 import { ProductList } from "./components/product-list";
 import { ProductFormDialog } from "./components/product-form-dialog";
 import { UpdateInventoryDialog } from "./components/update-inventory-dialog";
+import { CategoryManagementDialog } from "@/components/category-management-dialog";
 import {
   useCreateProducts,
   useDeleteProduct,
@@ -39,6 +40,9 @@ export default function AdminProductsPage() {
     isOpen: false,
     product: null,
   });
+
+  // Category management dialog state
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
   const { filteredProducts, ...filterProps } = useProductFilters(products);
   const formControls = useProductForm({ onSuccess: () => mutate() });
@@ -112,7 +116,15 @@ export default function AdminProductsPage() {
                   Manage your product catalog and inventory
                 </p>
               </div>
-              <div className="flex space-x-4">
+              <div className="flex space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setCategoryDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  Manage Categories
+                </Button>
                 {actions.products.create && (
                   <Button onClick={formControls.openNewDialog}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -144,6 +156,10 @@ export default function AdminProductsPage() {
           product={inventoryDialog.product}
           isOpen={inventoryDialog.isOpen}
           onClose={handleCloseInventoryDialog}
+        />
+        <CategoryManagementDialog
+          isOpen={categoryDialogOpen}
+          onClose={() => setCategoryDialogOpen(false)}
         />
       </Layout>
     </PageGuard>
