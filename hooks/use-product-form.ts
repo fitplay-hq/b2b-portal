@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
-import { Product, Prisma, Category } from "@/lib/generated/prisma";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Product, Prisma, Category, Company } from "@/lib/generated/prisma";
 import { toast } from "sonner";
 import { useCreateProduct, useUpdateProduct } from "@/data/product/admin.hooks";
 import { useCompanies } from "@/data/company/admin.hooks";
+import { useCategories } from "./use-category-management";
 
 interface UseProductFormProps {
   onSuccess: () => void;
@@ -12,25 +13,28 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
   const { createProduct } = useCreateProduct();
   const { updateProduct } = useUpdateProduct();
   const { companies } = useCompanies();
+  const { categories } = useCategories();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Refs to track previous values and prevent infinite loops
+  const prevCompanyRef = useRef<string>('');
+  const prevCategoriesRef = useRef<string>('');
 
   // Hardcoded maps for short names
-  const companyShortMap: Record<string, string> = {
+  const companyShortMap: Record<string, string> = useMemo(() => ({
     'Github': 'GH',
     // Add more as needed
-  };
-  const categoryShortMap: Record<string, string> = {
-    'stationery': 'STN',
-    'accessories': 'ACC',
-    'funAndStickers': 'FUN',
-    'drinkware': 'DRK',
-    'apparel': 'APP',
-    'travelAndTech': 'TNT',
-    'books': 'BKS',
-    'welcomeKit': 'WKT',
-  };
+  }), []);
+
+  // Create dynamic category short map from database categories
+  const categoryShortMap: Record<string, string> = useMemo(() => {
+    return categories.reduce((acc, category) => {
+      acc[category.name] = category.shortCode;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [categories]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -47,25 +51,31 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
 
   // Auto-set companyShort when company changes
   useEffect(() => {
-    if (formData.company) {
-      const company = companies?.find((c: any) => c.id === formData.company);
-      const companyName: string = company?.name || '';
-      const short = companyShortMap[companyName] || companyName.slice(0,2).toUpperCase();
-      setFormData(prev => ({ ...prev, companyShort: short }));
-    } else {
-      setFormData(prev => ({ ...prev, companyShort: '' }));
+    if (formData.company !== prevCompanyRef.current) {
+      prevCompanyRef.current = formData.company;
+      if (formData.company) {
+        const company = companies?.find((c: Company) => c.id === formData.company);
+        const companyName: string = company?.name || '';
+        const short = companyShortMap[companyName] || companyName.slice(0,2).toUpperCase();
+        setFormData(prev => ({ ...prev, companyShort: short }));
+      } else {
+        setFormData(prev => ({ ...prev, companyShort: '' }));
+      }
     }
-  }, [formData.company, companies]);
+  }, [formData.company, companies, companyShortMap]);
 
   // Auto-set categoryShort when categories change
   useEffect(() => {
-    if (formData.categories) {
-      const short = categoryShortMap[formData.categories] || formData.categories.slice(0, 3).toUpperCase();
-      setFormData(prev => ({ ...prev, categoryShort: short }));
-    } else {
-      setFormData(prev => ({ ...prev, categoryShort: '' }));
+    if (formData.categories !== prevCategoriesRef.current) {
+      prevCategoriesRef.current = formData.categories;
+      if (formData.categories) {
+        const short = categoryShortMap[formData.categories] || formData.categories.slice(0, 3).toUpperCase();
+        setFormData(prev => ({ ...prev, categoryShort: short }));
+      } else {
+        setFormData(prev => ({ ...prev, categoryShort: '' }));
+      }
     }
-  }, [formData.categories]);
+  }, [formData.categories, categoryShortMap]);
 
   const sku = formData.companyShort && formData.categoryShort && formData.skuSuffix ? `${formData.companyShort}-${formData.categoryShort}-${formData.skuSuffix}` : "";
 

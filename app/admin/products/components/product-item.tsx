@@ -3,8 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/image";
 import { Product } from "@/lib/generated/prisma";
 import { Edit, Trash2, Package } from "lucide-react";
-import { getHumanFriendlyCategoryName } from "./product-filters";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useCategories } from "@/hooks/use-category-management";
 
 interface ProductItemProps {
   product: Product;
@@ -20,6 +20,13 @@ export function ProductItem({
   onManageInventory,
 }: ProductItemProps) {
   const { actions } = usePermissions();
+  const { categories } = useCategories();
+  
+  const getCategoryDisplayName = (categoryName: string) => {
+    const category = categories.find(c => c.name === categoryName);
+    return category?.displayName || categoryName;
+  };
+
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg">
       <div className="flex items-center gap-4">
@@ -34,7 +41,7 @@ export function ProductItem({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-medium">{product.name}</h3>
             <Badge variant="secondary">
-              {getHumanFriendlyCategoryName(product.categories)}
+              {getCategoryDisplayName(product.categories)}
             </Badge>
             {product.availableStock === 0 && (
               <Badge variant="destructive">Out of Stock</Badge>

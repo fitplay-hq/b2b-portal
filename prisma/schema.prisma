@@ -55,24 +55,39 @@ model Client {
   orders      Order[]
 }
 
+model ProductCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique @db.VarChar(50)
+  displayName String    @db.VarChar(100)
+  description String?   @db.VarChar(255)
+  shortCode   String    @unique @db.VarChar(10) // For SKU generation
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0) // For custom ordering
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[] // One-to-many relation
+}
+
 model Product {
-  id                    String      @id @default(uuid())
-  name                  String      @db.VarChar(50)
+  id                    String           @id @default(uuid())
+  name                  String           @db.VarChar(50)
   images                String[]
   price                 Int?
-  sku                   String      @unique @db.VarChar(100)
+  sku                   String           @unique @db.VarChar(100)
   availableStock        Int
   inventoryUpdateReason Reason?
   inventoryLogs         String[]
   description           String
-  categories            Category
+  categories            Category         // Keep enum for backward compatibility
+  categoryId            String?          // New relation to ProductCategory table
+  category              ProductCategory? @relation(fields: [categoryId], references: [id])
   avgRating             Float?
   noOfReviews           Int?
-  brand                 String?     @db.VarChar(30)
+  brand                 String?          @db.VarChar(30)
   companies             Company[]
   orderItems            OrderItem[]
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 }
 
 model Order {
