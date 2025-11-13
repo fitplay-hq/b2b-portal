@@ -78,7 +78,7 @@ model Product {
   inventoryUpdateReason Reason?
   inventoryLogs         String[]
   description           String
-  categories            Category         // Keep enum for backward compatibility
+  categories            Category?        // Keep enum for backward compatibility, now optional
   categoryId            String?          // New relation to ProductCategory table
   category              ProductCategory? @relation(fields: [categoryId], references: [id])
   avgRating             Float?
@@ -144,6 +144,7 @@ enum Category {
   travelAndTech
   books
   welcomeKit
+  newcategory
 }
 
 enum Status {

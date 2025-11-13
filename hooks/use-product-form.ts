@@ -140,6 +140,26 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     }
 
     try {
+      // Check if categories are loaded
+      if (!categories || categories.length === 0) {
+        toast.error("Categories are not loaded yet. Please wait and try again.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Find the category based on the selected category name
+      const selectedCategory = categories?.find(cat => cat.name === formData.categories);
+      
+      // Validate that the selected category exists
+      if (!selectedCategory && formData.categories) {
+        toast.error(`Selected category "${formData.categories}" not found. Please refresh and try again.`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check if the category exists in the old enum (for backward compatibility)
+      const isLegacyCategory = ['stationery', 'accessories', 'funAndStickers', 'drinkware', 'apparel', 'travelAndTech', 'books', 'welcomeKit'].includes(formData.categories);
+
       if (editingProduct) {
         const productUpdateData: Prisma.ProductUpdateInput = {
           id: editingProduct.id,
@@ -147,7 +167,9 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           sku,
           price,
           availableStock,
-          categories: formData.categories as Category,
+          // Only set categories enum field if it's a legacy category
+          ...(isLegacyCategory && { categories: formData.categories as Category }),
+          category: selectedCategory ? { connect: { id: selectedCategory.id } } : { disconnect: true }, // Set the new relationship
           description: formData.description,
           images: [
             formData.image ||
@@ -163,7 +185,9 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           sku,
           price,
           availableStock,
-          categories: formData.categories as Category,
+          // Only set categories enum field if it's a legacy category
+          ...(isLegacyCategory && { categories: formData.categories as Category }),
+          category: selectedCategory ? { connect: { id: selectedCategory.id } } : undefined, // Set the new relationship
           description: formData.description,
           images: [
             formData.image ||
@@ -177,9 +201,16 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       onSuccess();
       setIsDialogOpen(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "An unknown error occurred."
-      );
+      console.error("Product creation error:", error);
+      let errorMessage = "An unknown error occurred.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.log("Error message:", errorMessage);
+      }
+      
+      // Show a more user-friendly message
+      toast.error(errorMessage.length > 200 ? "Product creation failed. Check console for details." : errorMessage);
     } finally {
       setIsSubmitting(false);
     }

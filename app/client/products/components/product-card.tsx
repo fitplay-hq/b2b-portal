@@ -12,10 +12,18 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useCategories } from "@/hooks/use-category-management";
 
+type ProductWithCategory = Product & { 
+  category?: { 
+    displayName: string; 
+    name: string; 
+    id: string; 
+  } 
+};
+
 interface ProductCardProps {
-  product: Product;
+  product: ProductWithCategory;
   cartQuantity: number;
-  onAddToCartClick: (product: Product) => void;
+  onAddToCartClick: (product: ProductWithCategory) => void;
 }
 
 export function ProductCard({
@@ -26,9 +34,19 @@ export function ProductCard({
   const isInStock = product.availableStock > 0;
   const { categories } = useCategories();
   
-  const getCategoryDisplayName = (categoryName: string) => {
-    const category = categories.find(c => c.name === categoryName);
-    return category?.displayName || categoryName;
+  const getCategoryDisplayName = (product: ProductWithCategory) => {
+    // Prioritize the relationship-based category data
+    if (product.category?.displayName) {
+      return product.category.displayName;
+    }
+    
+    // Fallback to dynamic lookup for enum-based categories
+    if (product.categories) {
+      const category = categories.find(c => c.name === product.categories);
+      return category?.displayName || product.categories;
+    }
+    
+    return 'Uncategorized';
   };
 
   return (
@@ -53,7 +71,7 @@ export function ProductCard({
             {product.name}
           </CardTitle>
           <Badge variant="secondary" className="text-xs shrink-0">
-            {getCategoryDisplayName(product.categories)}
+            {getCategoryDisplayName(product)}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground mt-2">SKU: {product.sku}</p>
