@@ -93,6 +93,10 @@ export async function GET(req: NextRequest) {
     const safeSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
     const products = await prisma.product.findMany({
+      include: {
+        category: true, // Include the category relationship
+        companies: true, // Keep existing includes
+      },
       orderBy: {
         [safeSortBy]: safeSortOrder,
       },

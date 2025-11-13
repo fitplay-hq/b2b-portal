@@ -1,15 +1,23 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Product, Category } from "@/lib/generated/prisma";
+import { Product } from "@/lib/generated/prisma";
 import { ProductItem } from "./product-item";
 import { EmptyState } from "./empty-state";
 import { SortOption } from "@/hooks/use-product-filters";
 
+type ProductWithCategory = Product & { 
+  category?: { 
+    displayName: string; 
+    name: string; 
+    id: string; 
+  } 
+};
+
 interface ProductListProps {
-  products: Product[];
-  allProducts: Product[];
-  onEdit: (product: Product) => void;
+  products: ProductWithCategory[];
+  allProducts: ProductWithCategory[];
+  onEdit: (product: ProductWithCategory) => void;
   onDelete: (productId: string) => void;
-  onManageInventory: (product: Product) => void;
+  onManageInventory: (product: ProductWithCategory) => void;
   hasProductsInitially: boolean;
   selectedSort: SortOption | undefined;
 }
@@ -59,13 +67,14 @@ export function ProductList({
 
   // Group products by category when showing all categories
   const groupedProducts = products.reduce((acc, product) => {
-    const category = product.categories;
-    if (!acc[category]) {
-      acc[category] = [];
+    // Prioritize relationship-based category, fallback to enum
+    const categoryKey = product.category?.displayName || product.categories || 'Uncategorized';
+    if (!acc[categoryKey]) {
+      acc[categoryKey] = [];
     }
-    acc[category].push(product);
+    acc[categoryKey].push(product);
     return acc;
-  }, {} as Record<Category, Product[]>);
+  }, {} as Record<string, Product[]>);
 
   return (
     <Card>
@@ -78,8 +87,8 @@ export function ProductList({
             ([category, categoryProducts]) => (
               <div key={category} className="space-y-4">
                 <div className="border-b pb-2 mb-4">
-                  <h3 className="text-lg font-semibold capitalize">
-                    {category.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()}
+                  <h3 className="text-lg font-semibold">
+                    {category === 'Uncategorized' ? category : category}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     ({categoryProducts.length} items)
