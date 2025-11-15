@@ -91,10 +91,6 @@ export function ProductFormDialog({
                 toast.error("Description is required");
                 return;
               }
-              if (!formData.image.trim()) {
-                toast.error("Product image is required");
-                return;
-              }
               
               handleSubmit(e);
             }} 
@@ -141,7 +137,7 @@ export function ProductFormDialog({
                   <SelectValue placeholder="Select company" />
                 </SelectTrigger>
                 <SelectContent>
-                  {companies?.map((company: any) => (
+                  {companies?.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name}
                     </SelectItem>
@@ -231,7 +227,7 @@ export function ProductFormDialog({
           </div>
 
             <div className="space-y-4">
-            <Label>Product Image <span className="text-red-500">*</span></Label>
+            <Label>Product Image</Label>
             <div className="space-y-4">
               {/* Show upload dropzone only if no image is uploaded */}
               {!formData.image && (
