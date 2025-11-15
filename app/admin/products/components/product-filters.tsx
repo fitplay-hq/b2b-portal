@@ -11,7 +11,12 @@ import { $Enums } from "@/lib/generated/prisma";
 import { Search } from "lucide-react";
 
 // Function to convert enum values to human-friendly names
-export const getHumanFriendlyCategoryName = (category: string): string => {
+export const getHumanFriendlyCategoryName = (category: string | null): string => {
+  // Handle null or undefined categories
+  if (!category) {
+    return "Uncategorized";
+  }
+
   // Use the actual enum values from Prisma with friendly names
   const friendlyNames: Record<string, string> = {
     stationery: "Stationery",

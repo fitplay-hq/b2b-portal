@@ -1,15 +1,21 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Product, Category } from "@/lib/generated/prisma";
+import { Product, ProductCategory, Company } from "@/lib/generated/prisma";
 import { ProductItem } from "./product-item";
 import { EmptyState } from "./empty-state";
 import { SortOption } from "@/hooks/use-product-filters";
 
+// Extended Product type that includes the category relationship
+type ProductWithRelations = Product & {
+  category?: ProductCategory | null;
+  companies?: Company[];
+};
+
 interface ProductListProps {
-  products: Product[];
-  allProducts: Product[];
-  onEdit: (product: Product) => void;
+  products: ProductWithRelations[];
+  allProducts: ProductWithRelations[];
+  onEdit: (product: ProductWithRelations) => void;
   onDelete: (productId: string) => void;
-  onManageInventory: (product: Product) => void;
+  onManageInventory: (product: ProductWithRelations) => void;
   hasProductsInitially: boolean;
   selectedSort: SortOption | undefined;
 }
@@ -59,13 +65,18 @@ export function ProductList({
 
   // Group products by category when showing all categories
   const groupedProducts = products.reduce((acc, product) => {
-    const category = product.categories;
-    if (!acc[category]) {
-      acc[category] = [];
+    // Prioritize the new category relationship, fall back to enum, then "Uncategorized"
+    const categoryName = product.category?.displayName || 
+                        product.category?.name || 
+                        product.categories || 
+                        "Uncategorized";
+    
+    if (!acc[categoryName]) {
+      acc[categoryName] = [];
     }
-    acc[category].push(product);
+    acc[categoryName].push(product);
     return acc;
-  }, {} as Record<Category, Product[]>);
+  }, {} as Record<string, ProductWithRelations[]>);
 
   return (
     <Card>
@@ -78,8 +89,10 @@ export function ProductList({
             ([category, categoryProducts]) => (
               <div key={category} className="space-y-4">
                 <div className="border-b pb-2 mb-4">
-                  <h3 className="text-lg font-semibold capitalize">
-                    {category.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()}
+                  <h3 className="text-lg font-semibold">
+                    {category === "Uncategorized" ? category : 
+                     category.includes(" ") ? category : 
+                     category.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     ({categoryProducts.length} items)

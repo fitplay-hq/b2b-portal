@@ -109,6 +109,7 @@ export async function GET(req: NextRequest) {
         [safeSortBy]: safeSortOrder,
       },
     });
+    
     return NextResponse.json(products);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Something went wrong";

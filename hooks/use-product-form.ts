@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { Product, Prisma, Category, Company } from "@/lib/generated/prisma";
+import { useState, useEffect, useRef } from "react";
+import { Product, Category, Company } from "@/lib/generated/prisma";
 import { toast } from "sonner";
 import { useCreateProduct, useUpdateProduct, useProducts } from "@/data/product/admin.hooks";
 import { useCompanies } from "@/data/company/admin.hooks";
@@ -25,19 +25,13 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Hardcoded maps for short names
-  const companyShortMap: Record<string, string> = useMemo(() => ({
-    'Github': 'GH',
-    // Add more as needed
-  }), []);
+  // Note: companyShortMap is now created directly in the useEffect to avoid dependency issues
 
-  // Create dynamic category short map from database categories
-  const categoryShortMap: Record<string, string> = useMemo(() => {
-    return categories.reduce((acc, category) => {
-      acc[category.name] = category.shortCode;
-      return acc;
-    }, {} as Record<string, string>);
-  }, [categories]);
+  // Note: categoryShortMap is now created directly in the useEffect to avoid dependency issues
+
+  // Refs to track previous values and prevent infinite loops
+  const prevCompanyRef = useRef<string>('');
+  const prevCategoriesRef = useRef<string>('');
 
   const [formData, setFormData] = useState({
     name: "",
@@ -54,41 +48,59 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
 
   // Auto-set companyShort when company changes
   useEffect(() => {
-    if (formData.company) {
-      const company = companies?.find((c: { id: string; name: string }) => c.id === formData.company);
-      const companyName: string = company?.name || '';
-      console.log('Selected company:', companyName);
-      
-      // Try exact match first, then fallback to auto-generation
-      let short = companyShortMap[companyName];
-      if (!short) {
-        // Auto-generate from company name: take first 2-3 characters
-        short = companyName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+    if (formData.company !== prevCompanyRef.current) {
+      prevCompanyRef.current = formData.company;
+      if (formData.company) {
+        const company = companies?.find((c: { id: string; name: string }) => c.id === formData.company);
+        const companyName: string = company?.name || '';
+        console.log('Selected company:', companyName);
+        
+        // Create map directly in the effect to avoid dependency issues
+        const dynamicCompanyShortMap: Record<string, string> = {
+          'Github': 'GH',
+          // Add more as needed
+        };
+        
+        // Try exact match first, then fallback to auto-generation
+        let short = dynamicCompanyShortMap[companyName];
+        if (!short) {
+          // Auto-generate from company name: take first 2-3 characters
+          short = companyName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+        }
+        console.log('Generated company short:', short);
+        setFormData(prev => ({ ...prev, companyShort: short }));
+      } else {
+        setFormData(prev => ({ ...prev, companyShort: '' }));
       }
-      console.log('Generated company short:', short);
-      setFormData(prev => ({ ...prev, companyShort: short }));
-    } else {
-      setFormData(prev => ({ ...prev, companyShort: '' }));
     }
   }, [formData.company, companies]);
 
   // Auto-set categoryShort when categories change
   useEffect(() => {
-    if (formData.categories) {
-      console.log('Selected category:', formData.categories);
-      
-      // Try exact match first, then fallback to auto-generation
-      let short = categoryShortMap[formData.categories];
-      if (!short) {
-        // Auto-generate from category name: take first 3 characters, remove underscores
-        short = formData.categories.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+    if (formData.categories !== prevCategoriesRef.current) {
+      prevCategoriesRef.current = formData.categories;
+      if (formData.categories) {
+        console.log('Selected category:', formData.categories);
+        
+        // Create map directly in the effect to avoid dependency issues
+        const dynamicCategoryShortMap = categories.reduce((acc, category) => {
+          acc[category.name] = category.shortCode;
+          return acc;
+        }, {} as Record<string, string>);
+        
+        // Try exact match first, then fallback to auto-generation
+        let short = dynamicCategoryShortMap[formData.categories];
+        if (!short) {
+          // Auto-generate from category name: take first 3 characters, remove underscores
+          short = formData.categories.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+        }
+        console.log('Generated category short:', short);
+        setFormData(prev => ({ ...prev, categoryShort: short }));
+      } else {
+        setFormData(prev => ({ ...prev, categoryShort: '' }));
       }
-      console.log('Generated category short:', short);
-      setFormData(prev => ({ ...prev, categoryShort: short }));
-    } else {
-      setFormData(prev => ({ ...prev, categoryShort: '' }));
     }
-  }, [formData.categories]);
+  }, [formData.categories, categories]);
 
   // Auto-generate SKU suffix when both companyShort and categoryShort are available
   useEffect(() => {
@@ -185,38 +197,52 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     }
 
     try {
+      // Find the selected category from the database categories
+      const selectedCategory = categories.find(cat => cat.name === formData.categories);
+      
+      // Check if it's a legacy category (exists in enum)
+      const isLegacyCategory = ['stationery', 'accessories', 'funAndStickers', 'drinkware', 'apparel', 'travelAndTech', 'books', 'welcomeKit'].includes(formData.categories);
+
       if (editingProduct) {
-        const productUpdateData: Prisma.ProductUpdateInput = {
+        // Prepare the data for the API (not Prisma format)
+        const productUpdateData = {
           id: editingProduct.id,
           name: formData.name,
           sku,
           price,
           availableStock,
-          categories: formData.categories as Category,
+          // Only set categories enum field if it's a legacy category
+          ...(isLegacyCategory && { categories: formData.categories as Category }),
+          categoryId: selectedCategory?.id, // Send categoryId directly
+          categories: formData.categories, // Send category name for API lookup
           description: formData.description,
           images: [
             formData.image ||
               "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
-          companies: formData.company ? { set: [{ id: formData.company }] } : undefined,
+          companies: formData.company ? [{ id: formData.company }] : undefined,
         };
-        await updateProduct(productUpdateData);
+        await updateProduct(productUpdateData as any);
         toast.success("Product updated successfully!");
       } else {
-        const productCreateData: Prisma.ProductCreateInput = {
+        // Prepare the data for the API (not Prisma format)
+        const productCreateData = {
           name: formData.name,
           sku,
           price,
           availableStock,
-          categories: formData.categories as Category,
+          // Only set categories enum field if it's a legacy category
+          ...(isLegacyCategory && { categories: formData.categories as Category }),
+          categoryId: selectedCategory?.id, // Send categoryId directly
+          categories: formData.categories, // Send category name for API lookup
           description: formData.description,
           images: [
             formData.image ||
               "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
-          companies: formData.company ? { connect: [{ id: formData.company }] } : undefined,
+          companies: formData.company ? [{ id: formData.company }] : undefined,
         };
-        await createProduct(productCreateData);
+        await createProduct(productCreateData as any);
         toast.success("Product added successfully!");
       }
       onSuccess();

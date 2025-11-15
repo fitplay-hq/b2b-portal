@@ -1,16 +1,22 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/image";
-import { Product } from "@/lib/generated/prisma";
+import { Product, ProductCategory, Company } from "@/lib/generated/prisma";
 import { Edit, Trash2, Package } from "lucide-react";
 import { getHumanFriendlyCategoryName } from "./product-filters";
 import { usePermissions } from "@/hooks/use-permissions";
 
+// Extended Product type that includes the category relationship
+type ProductWithRelations = Product & {
+  category?: ProductCategory | null;
+  companies?: Company[];
+};
+
 interface ProductItemProps {
-  product: Product;
-  onEdit: (product: Product) => void;
+  product: ProductWithRelations;
+  onEdit: (product: ProductWithRelations) => void;
   onDelete: (productId: string) => void;
-  onManageInventory: (product: Product) => void;
+  onManageInventory: (product: ProductWithRelations) => void;
 }
 
 export function ProductItem({
@@ -34,7 +40,10 @@ export function ProductItem({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-medium">{product.name}</h3>
             <Badge variant="secondary">
-              {getHumanFriendlyCategoryName(product.categories)}
+              {product.category?.displayName || 
+               (product.category?.name ? getHumanFriendlyCategoryName(product.category.name) : null) ||
+               (product.categories ? getHumanFriendlyCategoryName(product.categories) : null) ||
+               "Uncategorized"}
             </Badge>
             {product.availableStock === 0 && (
               <Badge variant="destructive">Out of Stock</Badge>
