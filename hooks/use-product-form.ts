@@ -24,10 +24,6 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Refs to track previous values and prevent infinite loops
-  const prevCompanyRef = useRef<string>('');
-  const prevCategoriesRef = useRef<string>('');
 
   // Hardcoded maps for short names
   const companyShortMap: Record<string, string> = useMemo(() => ({
@@ -58,31 +54,41 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
 
   // Auto-set companyShort when company changes
   useEffect(() => {
-    if (formData.company !== prevCompanyRef.current) {
-      prevCompanyRef.current = formData.company;
-      if (formData.company) {
-        const company = companies?.find((c: Company) => c.id === formData.company);
-        const companyName: string = company?.name || '';
-        const short = companyShortMap[companyName] || companyName.slice(0, 2).toUpperCase();
-        setFormData(prev => ({ ...prev, companyShort: short }));
-      } else {
-        setFormData(prev => ({ ...prev, companyShort: '' }));
+    if (formData.company) {
+      const company = companies?.find((c: { id: string; name: string }) => c.id === formData.company);
+      const companyName: string = company?.name || '';
+      console.log('Selected company:', companyName);
+      
+      // Try exact match first, then fallback to auto-generation
+      let short = companyShortMap[companyName];
+      if (!short) {
+        // Auto-generate from company name: take first 2-3 characters
+        short = companyName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
       }
+      console.log('Generated company short:', short);
+      setFormData(prev => ({ ...prev, companyShort: short }));
+    } else {
+      setFormData(prev => ({ ...prev, companyShort: '' }));
     }
-  }, [formData.company, companies, companyShortMap]);
+  }, [formData.company, companies]);
 
   // Auto-set categoryShort when categories change
   useEffect(() => {
-    if (formData.categories !== prevCategoriesRef.current) {
-      prevCategoriesRef.current = formData.categories;
-      if (formData.categories) {
-        const short = categoryShortMap[formData.categories] || formData.categories.slice(0, 3).toUpperCase();
-        setFormData(prev => ({ ...prev, categoryShort: short }));
-      } else {
-        setFormData(prev => ({ ...prev, categoryShort: '' }));
+    if (formData.categories) {
+      console.log('Selected category:', formData.categories);
+      
+      // Try exact match first, then fallback to auto-generation
+      let short = categoryShortMap[formData.categories];
+      if (!short) {
+        // Auto-generate from category name: take first 3 characters, remove underscores
+        short = formData.categories.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
       }
+      console.log('Generated category short:', short);
+      setFormData(prev => ({ ...prev, categoryShort: short }));
+    } else {
+      setFormData(prev => ({ ...prev, categoryShort: '' }));
     }
-  }, [formData.categories, categoryShortMap]);
+  }, [formData.categories]);
 
   // Auto-generate SKU suffix when both companyShort and categoryShort are available
   useEffect(() => {
@@ -179,26 +185,6 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     }
 
     try {
-      // Check if categories are loaded
-      if (!categories || categories.length === 0) {
-        toast.error("Categories are not loaded yet. Please wait and try again.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Find the category based on the selected category name
-      const selectedCategory = categories?.find(cat => cat.name === formData.categories);
-      
-      // Validate that the selected category exists
-      if (!selectedCategory && formData.categories) {
-        toast.error(`Selected category "${formData.categories}" not found. Please refresh and try again.`);
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Check if the category exists in the old enum (for backward compatibility)
-      const isLegacyCategory = ['stationery', 'accessories', 'funAndStickers', 'drinkware', 'apparel', 'travelAndTech', 'books', 'welcomeKit'].includes(formData.categories);
-
       if (editingProduct) {
         const productUpdateData: Prisma.ProductUpdateInput = {
           id: editingProduct.id,
@@ -206,9 +192,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           sku,
           price,
           availableStock,
-          // Only set categories enum field if it's a legacy category
-          ...(isLegacyCategory && { categories: formData.categories as Category }),
-          category: selectedCategory ? { connect: { id: selectedCategory.id } } : { disconnect: true }, // Set the new relationship
+          categories: formData.categories as Category,
           description: formData.description,
           images: [
             formData.image ||
@@ -224,9 +208,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           sku,
           price,
           availableStock,
-          // Only set categories enum field if it's a legacy category
-          ...(isLegacyCategory && { categories: formData.categories as Category }),
-          category: selectedCategory ? { connect: { id: selectedCategory.id } } : undefined, // Set the new relationship
+          categories: formData.categories as Category,
           description: formData.description,
           images: [
             formData.image ||
@@ -240,16 +222,9 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       onSuccess();
       setIsDialogOpen(false);
     } catch (error) {
-      console.error("Product creation error:", error);
-      let errorMessage = "An unknown error occurred.";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-        console.log("Error message:", errorMessage);
-      }
-      
-      // Show a more user-friendly message
-      toast.error(errorMessage.length > 200 ? "Product creation failed. Check console for details." : errorMessage);
+      toast.error(
+        error instanceof Error ? error.message : "An unknown error occurred."
+      );
     } finally {
       setIsSubmitting(false);
     }

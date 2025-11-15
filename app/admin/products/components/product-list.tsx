@@ -1,23 +1,15 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Product } from "@/lib/generated/prisma";
+import { Product, Category } from "@/lib/generated/prisma";
 import { ProductItem } from "./product-item";
 import { EmptyState } from "./empty-state";
 import { SortOption } from "@/hooks/use-product-filters";
 
-type ProductWithCategory = Product & { 
-  category?: { 
-    displayName: string; 
-    name: string; 
-    id: string; 
-  } 
-};
-
 interface ProductListProps {
-  products: ProductWithCategory[];
-  allProducts: ProductWithCategory[];
-  onEdit: (product: ProductWithCategory) => void;
+  products: Product[];
+  allProducts: Product[];
+  onEdit: (product: Product) => void;
   onDelete: (productId: string) => void;
-  onManageInventory: (product: ProductWithCategory) => void;
+  onManageInventory: (product: Product) => void;
   hasProductsInitially: boolean;
   selectedSort: SortOption | undefined;
 }
@@ -67,14 +59,13 @@ export function ProductList({
 
   // Group products by category when showing all categories
   const groupedProducts = products.reduce((acc, product) => {
-    // Prioritize relationship-based category, fallback to enum
-    const categoryKey = product.category?.displayName || product.categories || 'Uncategorized';
-    if (!acc[categoryKey]) {
-      acc[categoryKey] = [];
+    const category = product.categories;
+    if (!acc[category]) {
+      acc[category] = [];
     }
-    acc[categoryKey].push(product);
+    acc[category].push(product);
     return acc;
-  }, {} as Record<string, Product[]>);
+  }, {} as Record<Category, Product[]>);
 
   return (
     <Card>
@@ -87,8 +78,8 @@ export function ProductList({
             ([category, categoryProducts]) => (
               <div key={category} className="space-y-4">
                 <div className="border-b pb-2 mb-4">
-                  <h3 className="text-lg font-semibold">
-                    {category === 'Uncategorized' ? category : category}
+                  <h3 className="text-lg font-semibold capitalize">
+                    {category.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     ({categoryProducts.length} items)

@@ -27,19 +27,7 @@ export async function createProduct(url: string, productData: Prisma.ProductCrea
     body: JSON.stringify(productData),
   });
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    // console.error("Product creation error response:", errorData); // Debug log
-    // console.error("Product data being sent:", productData); // Debug log
-    
-    let errorMessage = `Failed to create product (${response.status})`;
-    if (errorData.error) {
-      if (typeof errorData.error === 'string') {
-        errorMessage = errorData.error;
-      } else {
-        errorMessage = JSON.stringify(errorData.error, null, 2);
-      }
-    }
-    throw new Error(errorMessage);
+    throw new Error("Failed to create product");
   }
   return await response.json();
 }

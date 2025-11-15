@@ -39,10 +39,6 @@ export async function GET(req: NextRequest) {
     });
 
     const products = await prisma.product.findMany({
-      include: {
-        category: true, // Include the category relationship
-        companies: true, // Keep existing includes
-      },
       where: {
         companies: {
           some: {
@@ -61,16 +57,15 @@ export async function GET(req: NextRequest) {
         return product;
       } else {
         // Remove price from response
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { price, ...productWithoutPrice } = product;
         return productWithoutPrice;
       }
     });
 
     return NextResponse.json(productsWithConditionalPrice);
-  } catch (error: unknown) {
+  } catch (error: any) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Something went wrong" },
+      { error: error.message || "Something went wrong" },
       { status: 500 }
     );
   }

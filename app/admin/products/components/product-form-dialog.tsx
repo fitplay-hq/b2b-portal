@@ -229,7 +229,7 @@ export function ProductFormDialog({
           </div>
 
             <div className="space-y-4">
-            <Label>Product Image </Label>
+            <Label>Product Image (Optional)</Label>
             <div className="space-y-4">
               {/* Show upload dropzone only if no image is uploaded */}
               {!formData.image && (
