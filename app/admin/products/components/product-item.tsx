@@ -3,14 +3,22 @@ import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/image";
 import { Product } from "@/lib/generated/prisma";
 import { Edit, Trash2, Package } from "lucide-react";
-import { getHumanFriendlyCategoryName } from "./product-filters";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useCategories } from "@/hooks/use-category-management";
+
+type ProductWithCategory = Product & { 
+  category?: { 
+    displayName: string; 
+    name: string; 
+    id: string; 
+  } 
+};
 
 interface ProductItemProps {
-  product: Product;
-  onEdit: (product: Product) => void;
+  product: ProductWithCategory;
+  onEdit: (product: ProductWithCategory) => void;
   onDelete: (productId: string) => void;
-  onManageInventory: (product: Product) => void;
+  onManageInventory: (product: ProductWithCategory) => void;
 }
 
 export function ProductItem({
@@ -20,6 +28,23 @@ export function ProductItem({
   onManageInventory,
 }: ProductItemProps) {
   const { actions } = usePermissions();
+  const { categories } = useCategories();
+  
+  const getCategoryDisplayName = (product: ProductWithCategory) => {
+    // Prioritize the relationship-based category data
+    if (product.category?.displayName) {
+      return product.category.displayName;
+    }
+    
+    // Fallback to dynamic lookup for enum-based categories
+    if (product.categories) {
+      const category = categories.find(c => c.name === product.categories);
+      return category?.displayName || product.categories;
+    }
+    
+    return 'Uncategorized';
+  };
+
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg">
       <div className="flex items-center gap-4">
@@ -34,7 +59,7 @@ export function ProductItem({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-medium">{product.name}</h3>
             <Badge variant="secondary">
-              {getHumanFriendlyCategoryName(product.categories)}
+              {getCategoryDisplayName(product)}
             </Badge>
             {product.availableStock === 0 && (
               <Badge variant="destructive">Out of Stock</Badge>

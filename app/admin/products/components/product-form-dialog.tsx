@@ -16,9 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { $Enums } from "@/lib/generated/prisma";
 import { UploadDropzone } from "@/components/uploadthing";
 import { toast } from "sonner";
+import { useCategories } from "@/hooks/use-category-management";
 
 import { useProductForm } from "@/hooks/use-product-form";
 type ProductFormProps = ReturnType<typeof useProductForm>;
@@ -33,6 +33,8 @@ export function ProductFormDialog({
   handleSubmit,
   companies,
 }: ProductFormProps) {
+  const { categories, isLoading: categoriesLoading } = useCategories();
+
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent className="max-w-2xl max-h-[90vh] my-4 overflow-hidden flex flex-col">
@@ -42,8 +44,8 @@ export function ProductFormDialog({
           </DialogTitle>
           <DialogDescription>
             {editingProduct
-              ? "Update the product information. Fields marked with * are required."
-              : "Fill in the details to add a new product. Fields marked with * are required."}
+              ? "Update the product information. Fields marked with * are required. Image is optional and will use a default if not provided."
+              : "Fill in the details to add a new product. Fields marked with * are required. Image is optional and will use a default if not provided."}
           </DialogDescription>
         </DialogHeader>
         <div 
@@ -89,10 +91,6 @@ export function ProductFormDialog({
               }
               if (!formData.description.trim()) {
                 toast.error("Description is required");
-                return;
-              }
-              if (!formData.image.trim()) {
-                toast.error("Product image is required");
                 return;
               }
               
@@ -157,15 +155,15 @@ export function ProductFormDialog({
                   setFormData({ ...formData, categories: value })
                 }
                 required
+                disabled={categoriesLoading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values($Enums.Category).map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() +
-                        cat.slice(1).replace(/([A-Z])/g, " $1")}
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      {category.displayName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -231,7 +229,7 @@ export function ProductFormDialog({
           </div>
 
             <div className="space-y-4">
-            <Label>Product Image <span className="text-red-500">*</span></Label>
+            <Label>Product Image </Label>
             <div className="space-y-4">
               {/* Show upload dropzone only if no image is uploaded */}
               {!formData.image && (

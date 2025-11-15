@@ -1,15 +1,10 @@
-import { auth } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { withPermissions } from "@/lib/auth-middleware";
 
 export async function PATCH(req: NextRequest) {
-  try {
-    const session = await getServerSession(auth);
-
-    if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  return withPermissions(req, async (req) => {
+    try {
 
     const body = await req.json();
     const { productId, quantity, reason, direction } = body;
@@ -45,27 +40,24 @@ export async function PATCH(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         error:
-          error.message ||
+          (error as Error).message ||
           "Something went wrong, couldn't update stocks",
       },
       { status: 500 }
     );
   }
+  }, "products", "edit");
 }
 
 
 // get inventory logs for a product
 export async function GET(req: NextRequest) {
-  try {
-    const session = await getServerSession(auth);
-
-    if (!session || !session?.user || session?.user?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  return withPermissions(req, async (req) => {
+    try {
 
     const productId = req.nextUrl.searchParams.get("productId");
 
@@ -95,14 +87,15 @@ export async function GET(req: NextRequest) {
       inventoryLogs: product.inventoryLogs,
       availableStock: product.availableStock,
     }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         error:
-          error.message ||
+          (error as Error).message ||
           "Something went wrong, couldn't fetch inventory logs",
       },
       { status: 500 }
     );
   }
+  }, "products", "view");
 }

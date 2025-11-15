@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Product, Prisma, Category, Company } from "@/lib/generated/prisma";
 import { toast } from "sonner";
 import { useCreateProduct, useUpdateProduct, useProducts } from "@/data/product/admin.hooks";
 import { useCompanies } from "@/data/company/admin.hooks";
+import { useCategories } from "./use-category-management";
 
 type ProductWithCompanies = Product & {
   companies: Company[];
@@ -12,44 +13,35 @@ interface UseProductFormProps {
   onSuccess: () => void;
 }
 
-// Enhanced maps for short names with more robust fallbacks (moved outside component)
-const companyShortMap: Record<string, string> = {
-  'Github': 'GH',
-  'Fitplay': 'FP',
-  'Adacats': 'AD',
-  'Fun And Stickers': 'FUN',
-  // Add more as needed
-};
 
-const categoryShortMap: Record<string, string> = {
-  // Primary enum values (camelCase from Prisma)
-  'stationery': 'STN',
-  'accessories': 'ACC',
-  'funAndStickers': 'FUN',
-  'drinkware': 'DRK',
-  'apparel': 'APP',
-  'travelAndTech': 'TNT',
-  'books': 'BKS',
-  'welcomeKit': 'WKT',
-  // Fallbacks for other formats
-  'STATIONERY': 'STN',
-  'ACCESSORIES': 'ACC', 
-  'FUN_AND_STICKERS': 'FUN',
-  'DRINKWARE': 'DRK',
-  'APPAREL': 'APP',
-  'TRAVEL_AND_TECH': 'TNT',
-  'BOOKS': 'BKS',
-  'WELCOME_KIT': 'WKT',
-};
 
 export function useProductForm({ onSuccess }: UseProductFormProps) {
   const { createProduct } = useCreateProduct();
   const { updateProduct } = useUpdateProduct();
   const { companies } = useCompanies();
   const { products } = useProducts();
+  const { categories } = useCategories();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Refs to track previous values and prevent infinite loops
+  const prevCompanyRef = useRef<string>('');
+  const prevCategoriesRef = useRef<string>('');
+
+  // Hardcoded maps for short names
+  const companyShortMap: Record<string, string> = useMemo(() => ({
+    'Github': 'GH',
+    // Add more as needed
+  }), []);
+
+  // Create dynamic category short map from database categories
+  const categoryShortMap: Record<string, string> = useMemo(() => {
+    return categories.reduce((acc, category) => {
+      acc[category.name] = category.shortCode;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [categories]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -66,41 +58,31 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
 
   // Auto-set companyShort when company changes
   useEffect(() => {
-    if (formData.company) {
-      const company = companies?.find((c: { id: string; name: string }) => c.id === formData.company);
-      const companyName: string = company?.name || '';
-      console.log('Selected company:', companyName);
-      
-      // Try exact match first, then fallback to auto-generation
-      let short = companyShortMap[companyName];
-      if (!short) {
-        // Auto-generate from company name: take first 2-3 characters
-        short = companyName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+    if (formData.company !== prevCompanyRef.current) {
+      prevCompanyRef.current = formData.company;
+      if (formData.company) {
+        const company = companies?.find((c: Company) => c.id === formData.company);
+        const companyName: string = company?.name || '';
+        const short = companyShortMap[companyName] || companyName.slice(0, 2).toUpperCase();
+        setFormData(prev => ({ ...prev, companyShort: short }));
+      } else {
+        setFormData(prev => ({ ...prev, companyShort: '' }));
       }
-      console.log('Generated company short:', short);
-      setFormData(prev => ({ ...prev, companyShort: short }));
-    } else {
-      setFormData(prev => ({ ...prev, companyShort: '' }));
     }
-  }, [formData.company, companies]);
+  }, [formData.company, companies, companyShortMap]);
 
   // Auto-set categoryShort when categories change
   useEffect(() => {
-    if (formData.categories) {
-      console.log('Selected category:', formData.categories);
-      
-      // Try exact match first, then fallback to auto-generation
-      let short = categoryShortMap[formData.categories];
-      if (!short) {
-        // Auto-generate from category name: take first 3 characters, remove underscores
-        short = formData.categories.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+    if (formData.categories !== prevCategoriesRef.current) {
+      prevCategoriesRef.current = formData.categories;
+      if (formData.categories) {
+        const short = categoryShortMap[formData.categories] || formData.categories.slice(0, 3).toUpperCase();
+        setFormData(prev => ({ ...prev, categoryShort: short }));
+      } else {
+        setFormData(prev => ({ ...prev, categoryShort: '' }));
       }
-      console.log('Generated category short:', short);
-      setFormData(prev => ({ ...prev, categoryShort: short }));
-    } else {
-      setFormData(prev => ({ ...prev, categoryShort: '' }));
     }
-  }, [formData.categories]);
+  }, [formData.categories, categoryShortMap]);
 
   // Auto-generate SKU suffix when both companyShort and categoryShort are available
   useEffect(() => {
@@ -166,7 +148,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       name: product.name,
       company: associatedCompany,
       companyShort,
-      categories: product.categories,
+      categories: product.categories || "",
       categoryShort,
       skuSuffix,
       price: product.price?.toString() || "",
@@ -197,6 +179,26 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     }
 
     try {
+      // Check if categories are loaded
+      if (!categories || categories.length === 0) {
+        toast.error("Categories are not loaded yet. Please wait and try again.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Find the category based on the selected category name
+      const selectedCategory = categories?.find(cat => cat.name === formData.categories);
+      
+      // Validate that the selected category exists
+      if (!selectedCategory && formData.categories) {
+        toast.error(`Selected category "${formData.categories}" not found. Please refresh and try again.`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check if the category exists in the old enum (for backward compatibility)
+      const isLegacyCategory = ['stationery', 'accessories', 'funAndStickers', 'drinkware', 'apparel', 'travelAndTech', 'books', 'welcomeKit'].includes(formData.categories);
+
       if (editingProduct) {
         const productUpdateData: Prisma.ProductUpdateInput = {
           id: editingProduct.id,
@@ -204,7 +206,9 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           sku,
           price,
           availableStock,
-          categories: formData.categories as Category,
+          // Only set categories enum field if it's a legacy category
+          ...(isLegacyCategory && { categories: formData.categories as Category }),
+          category: selectedCategory ? { connect: { id: selectedCategory.id } } : { disconnect: true }, // Set the new relationship
           description: formData.description,
           images: [
             formData.image ||
@@ -220,7 +224,9 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           sku,
           price,
           availableStock,
-          categories: formData.categories as Category,
+          // Only set categories enum field if it's a legacy category
+          ...(isLegacyCategory && { categories: formData.categories as Category }),
+          category: selectedCategory ? { connect: { id: selectedCategory.id } } : undefined, // Set the new relationship
           description: formData.description,
           images: [
             formData.image ||
@@ -234,9 +240,16 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       onSuccess();
       setIsDialogOpen(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "An unknown error occurred."
-      );
+      console.error("Product creation error:", error);
+      let errorMessage = "An unknown error occurred.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.log("Error message:", errorMessage);
+      }
+      
+      // Show a more user-friendly message
+      toast.error(errorMessage.length > 200 ? "Product creation failed. Check console for details." : errorMessage);
     } finally {
       setIsSubmitting(false);
     }
