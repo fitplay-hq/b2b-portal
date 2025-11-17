@@ -94,8 +94,9 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
-      // Handle inventory reduction when approving a new or cancelled order  
-      if (status === "APPROVED" && (currentStatus !== "APPROVED" && currentStatus !== "READY_FOR_DISPATCH")) {
+      // Handle inventory reduction only when approving a new order for the FIRST time
+      // Only reduce inventory when transitioning from PENDING or CANCELLED to APPROVED
+      if (status === "APPROVED" && (currentStatus === "PENDING" || currentStatus === "CANCELLED")) {
         console.log("Creating new order inventory logs for:", orderId);
         for (const item of order.orderItems) {
           const currentProduct = await prisma.product.findUnique({
