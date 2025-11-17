@@ -101,6 +101,9 @@ export default function Layout({ children, isClient }: LayoutProps) {
                 <FitplayLogo 
                   variant="black" 
                   size={(sidebarOpen || isMobile) ? "xl" : "lg"}
+                  showText={sidebarOpen || isMobile}
+                  textColor="dark"
+                  spacing="sidebar"
                   className="flex justify-center"
                 />
               </div>

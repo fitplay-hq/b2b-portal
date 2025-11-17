@@ -90,14 +90,14 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="relative z-10 flex flex-col justify-center px-12 py-16 text-white">
+          <div className="relative z-10 flex flex-col px-12 py-16 text-white">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.6 }}
-              className="flex justify-center mb-8"
+              className="flex mb-8"
             >
-              <FitplayLogo variant="white" size="xl" />
+              <FitplayLogo variant="white" size="4xl" showText textColor="light" spacing="tight" />
             </motion.div>
 
             <motion.div
@@ -164,17 +164,15 @@ export default function LoginPage() {
         </motion.div>
 
         {/* Right Panel */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+        <div className="w-full lg:w-1/2 flex items-center lg:justify-center p-8">
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
             className="w-full max-w-md"
           >
-            <div className="lg:hidden text-center mb-8">
-              <div className="flex justify-center mb-4">
-                <FitplayLogo variant="black" size="xl" />
-              </div>
+            <div className="lg:hidden mb-8">
+              <FitplayLogo variant="black" size="4xl" showText textColor="dark" spacing="tight" />
             </div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

@@ -90,7 +90,7 @@ function ResetPasswordForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-6 flex justify-center">
-            <FitplayLogo variant="black" size="xl" />
+            <FitplayLogo variant="black" size="xl" showText textColor="dark" />
           </div>
           <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
           <CardDescription>
@@ -194,7 +194,7 @@ function LoadingFallback() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-6 flex justify-center">
-            <FitplayLogo variant="black" size="xl" />
+            <FitplayLogo variant="black" size="xl" showText textColor="dark" />
           </div>
           <CardTitle className="text-2xl font-bold">Loading...</CardTitle>
         </CardHeader>

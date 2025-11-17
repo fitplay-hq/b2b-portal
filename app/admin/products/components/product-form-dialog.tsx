@@ -139,7 +139,7 @@ export function ProductFormDialog({
                   <SelectValue placeholder="Select company" />
                 </SelectTrigger>
                 <SelectContent>
-                  {companies?.map((company: any) => (
+                  {companies?.map((company: { id: string; name: string }) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name}
                     </SelectItem>
@@ -178,25 +178,25 @@ export function ProductFormDialog({
                 <Input
                   value={formData.companyShort}
                   readOnly
-                  className="w-12 border-0 bg-transparent px-0 text-center font-mono"
+                  className="w-16 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
                   placeholder="CO"
                 />
-                <span className="font-mono">-</span>
+                <span className="font-mono text-gray-400">-</span>
                 <Input
                   value={formData.categoryShort}
                   readOnly
-                  className="w-12 border-0 bg-transparent px-0 text-center font-mono"
+                  className="w-16 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
                   placeholder="CAT"
                 />
-                <span className="font-mono">-</span>
+                <span className="font-mono text-gray-400">-</span>
                 <Input
                   value={formData.skuSuffix}
                   onChange={(e) =>
                     setFormData({ ...formData, skuSuffix: e.target.value })
                   }
-                  className="flex-1 font-mono"
+                  className="w-20 font-mono text-centerfocus:bg-white"
                   placeholder="001"
-                  title="Auto-generated based on company and category, but can be edited"
+                  title="Auto-generated sequentially, but can be manually edited"
                   required
                 />
               </div>

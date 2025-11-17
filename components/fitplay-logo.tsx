@@ -2,12 +2,13 @@ import Image from "next/image";
 
 interface FitplayLogoProps {
   variant?: "black" | "white";
-  size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl";
   className?: string;
   showText?: boolean;
   textColor?: "light" | "dark";
-  title?: string;
   subtitle?: string;
+  tight?: boolean; // New prop to control tight cropping
+  spacing?: "tight" | "normal" | "loose" | "sidebar"; 
 }
 
 const sizeClasses = {
@@ -15,15 +16,9 @@ const sizeClasses = {
   md: "h-8 w-8", 
   lg: "h-12 w-12",
   xl: "h-16 w-16",
-  "2xl": "h-20 w-20"
-};
-
-const textSizeClasses = {
-  sm: "text-sm",
-  md: "text-base",
-  lg: "text-lg", 
-  xl: "text-xl",
-  "2xl": "text-2xl"
+  "2xl": "h-20 w-20",
+  "3xl": "h-24 w-24",
+  "4xl": "h-32 w-32"
 };
 
 export function FitplayLogo({ 
@@ -32,32 +27,35 @@ export function FitplayLogo({
   className = "",
   showText = false,
   textColor = "dark",
-  title = "Fitplay B2B",
-  subtitle = "Business Portal"
+  subtitle = "Business Ordering Portal",
+  tight = false,
+  spacing = "normal"
 }: FitplayLogoProps) {
   const logoSrc = variant === "black" ? "/logo_black.png" : "/logo_white.png";
   const logoAlt = `Fitplay ${variant} logo`;
   
+  const spacingClasses = {
+    tight: "-mt-17",
+    normal: "-mt-6", 
+    loose: "-mt-8",
+    sidebar: "-mt-4"
+  };
+  
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <div className={`${sizeClasses[size]} relative flex-shrink-0`}>
+    <div className={`${showText ? 'flex flex-col items-start' : 'flex items-center gap-3'} ${className}`}>
+      <div className={`${sizeClasses[size]} relative flex-shrink-0 ${tight ? 'overflow-hidden' : ''}`}>
         <Image
           src={logoSrc}
           alt={logoAlt}
           fill
-          className="object-contain"
+          className={`${tight ? 'object-cover scale-110' : 'object-contain object-top'}`}
           priority
         />
       </div>
       {showText && (
-        <div className="overflow-hidden min-w-0">
-          <h1 className={`font-semibold truncate ${textSizeClasses[size]} ${
-            textColor === "light" ? "text-white" : "text-gray-900"
-          }`}>
-            {title}
-          </h1>
-          <p className={`text-xs truncate ${
-            textColor === "light" ? "text-gray-300" : "text-gray-500"
+        <div className={`overflow-hidden min-w-0 ${spacingClasses[spacing]}`}>
+          <p className={`text-base font-medium truncate ${
+            textColor === "light" ? "text-gray-300" : "text-gray-600"
           }`}>
             {subtitle}
           </p>
@@ -66,3 +64,5 @@ export function FitplayLogo({
     </div>
   );
 }
+
+

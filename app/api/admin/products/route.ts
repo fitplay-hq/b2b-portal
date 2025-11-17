@@ -13,7 +13,7 @@ const InventoryUpdateSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.number().positive(),
   direction: z.enum(["incr", "dec"]),
-  inventoryUpdateReason: z.enum(["NEW_PURCHASE", "PHYSICAL_STOCK_CHECK", "RETURN_FROM_PREVIOUS_DISPATCH"]),
+  inventoryUpdateReason: z.enum(["NEW_PURCHASE", "PHYSICAL_STOCK_CHECK", "RETURN_FROM_PREVIOUS_DISPATCH", "NEW_ORDER"]),
 });
 
 export async function POST(req: NextRequest) {

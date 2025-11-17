@@ -43,7 +43,7 @@ export default function AdminDashboardPage() {
 
   return (
     <Layout isClient={false}>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <WelcomeHeader />
         <MetricsGrid {...metrics} />
         <OverviewSection {...metrics} /> {/* Pass all required metrics */}

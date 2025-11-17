@@ -104,32 +104,63 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
 
   // Auto-generate SKU suffix when both companyShort and categoryShort are available
   useEffect(() => {
+    // Only generate for new products (not editing) and when we have both company and category
     if (formData.companyShort && formData.categoryShort && !editingProduct) {
+      console.log('🔧 SKU Generation triggered');
+      console.log('Company Short:', formData.companyShort);
+      console.log('Category Short:', formData.categoryShort);
+      console.log('Products loaded:', !!products);
+      console.log('Products count:', products?.length || 0);
+      
+      if (!products) {
+        console.log('⏳ Products not loaded yet, skipping SKU generation');
+        return;
+      }
+
       // Find existing products with same company-category prefix
       const skuPrefix = `${formData.companyShort}-${formData.categoryShort}`;
-      console.log('SKU Prefix:', skuPrefix);
-      console.log('All products:', products?.map(p => p.sku));
+      console.log('🎯 SKU Prefix:', skuPrefix);
       
-      const existingSKUs = (products || [])
-        .map(product => product.sku)
-        .filter(sku => sku && sku.startsWith(skuPrefix))
-        .map(sku => {
-          const parts = sku.split('-');
-          const suffix = parts[2];
-          return parseInt(suffix) || 0;
+      // Filter products that match our prefix and extract numeric suffixes
+      const matchingProducts = products.filter(product => 
+        product.sku && product.sku.startsWith(skuPrefix + '-')
+      );
+      
+      console.log('📋 Matching products:', matchingProducts.map(p => ({ name: p.name, sku: p.sku })));
+      
+      const existingSKUs = matchingProducts
+        .map(product => {
+          const parts = product.sku.split('-');
+          // Make sure we have exactly 3 parts and the third part is numeric
+          if (parts.length === 3) {
+            const suffix = parts[2];
+            const num = parseInt(suffix, 10);
+            return !isNaN(num) ? num : 0;
+          }
+          return 0;
         })
-        .filter(num => !isNaN(num));
+        .filter(num => num > 0); // Only keep valid numbers > 0
 
-      console.log('Existing SKUs for prefix:', existingSKUs);
+      console.log('🔢 Existing numeric suffixes:', existingSKUs);
+      console.log(`📊 Found ${existingSKUs.length} existing products with prefix "${skuPrefix}"`);
 
       // Find the next available number
       const nextNumber = existingSKUs.length === 0 ? 1 : Math.max(...existingSKUs) + 1;
       const paddedNumber = nextNumber.toString().padStart(3, '0');
       
-      console.log('Generated suffix:', paddedNumber);
+      console.log('✨ Generated suffix:', paddedNumber, `(next after ${existingSKUs.length} existing products)`);
       setFormData(prev => ({ ...prev, skuSuffix: paddedNumber }));
     }
   }, [formData.companyShort, formData.categoryShort, products, editingProduct]);
+
+  // Force regenerate SKU suffix when company or category changes (even if suffix already exists)
+  useEffect(() => {
+    if (formData.companyShort && formData.categoryShort && !editingProduct && products && 
+        (prevCompanyRef.current !== formData.company || prevCategoriesRef.current !== formData.categories)) {
+      // Clear the suffix first to trigger regeneration
+      setFormData(prev => ({ ...prev, skuSuffix: '' }));
+    }
+  }, [formData.company, formData.categories, formData.companyShort, formData.categoryShort, products, editingProduct]);
 
   const sku = formData.companyShort && formData.categoryShort && formData.skuSuffix ? `${formData.companyShort}-${formData.categoryShort}-${formData.skuSuffix}` : "";
 

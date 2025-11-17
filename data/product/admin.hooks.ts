@@ -132,7 +132,7 @@ export function useBulkInventory() {
         productId: string;
         quantity: number;
         direction: "incr" | "dec"; // From API Zod schema
-        inventoryUpdateReason: "NEW_PURCHASE" | "PHYSICAL_STOCK_CHECK" | "RETURN_FROM_PREVIOUS_DISPATCH"; // From API Zod schema
+        inventoryUpdateReason: "NEW_PURCHASE" | "PHYSICAL_STOCK_CHECK" | "RETURN_FROM_PREVIOUS_DISPATCH" | "NEW_ORDER"; // From API Zod schema
       }>
     }) => updateBulkInventory(url, arg),
     {

@@ -50,27 +50,8 @@ export async function PATCH(req: NextRequest) {
         console.log("Generating shipping label for order:", orderId);
         const pdfUrl = await uploadShippingLabelToUploadThing(order);
 
-        // Update inventory and create logs for order items
-        for (const item of order.orderItems) {
-          const currentProduct = await prisma.product.findUnique({
-            where: { id: item.productId },
-          });
-
-          if (currentProduct) {
-            const newStock = Math.max(0, currentProduct.availableStock - item.quantity);
-            const logEntry = `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER`;
-
-            await prisma.product.update({
-              where: { id: item.productId },
-              data: {
-                availableStock: newStock,
-                inventoryLogs: {
-                  push: logEntry,
-                },
-              },
-            });
-          }
-        }
+        // DO NOT update inventory here - inventory should only be updated when order is APPROVED
+        // This status change happens after APPROVED, so inventory was already reduced
 
         // Update order with shipping label URL
         updatedOrder = await prisma.order.update({

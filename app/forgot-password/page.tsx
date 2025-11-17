@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-6 flex justify-center">
-            <FitplayLogo variant="black" size="xl" />
+            <FitplayLogo variant="black" size="xl" showText textColor="dark" spacing="loose" />
           </div>
           <CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
           <CardDescription>

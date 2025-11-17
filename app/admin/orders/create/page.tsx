@@ -123,11 +123,8 @@ export default function CreateDispatchOrderPage() {
     if (!products) return [] as Product[];
     const term = searchTerm.trim().toLowerCase();
     if (!term) {
-      // Show top 20 products by available stock when no search term
-      return products
-        .filter(p => p.availableStock > 0)
-        .sort((a, b) => b.availableStock - a.availableStock)
-        .slice(0, 20);
+      // Return empty array when no search term - no prefilled list
+      return [];
     }
     return products.filter(
       (p) =>
@@ -234,8 +231,8 @@ export default function CreateDispatchOrderPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-1 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-1 space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Client</CardTitle>
@@ -422,7 +419,7 @@ export default function CreateDispatchOrderPage() {
           </Card>
         </div>
 
-        <div className="xl:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Products</CardTitle>
@@ -433,7 +430,7 @@ export default function CreateDispatchOrderPage() {
                 <div className="relative mt-1">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by product name or SKU... (Leave empty to see popular products)"
+                    placeholder="Start typing to search by product name or SKU... (⏎ to select first result, ⎋ to clear)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9 pr-8"
@@ -442,6 +439,7 @@ export default function CreateDispatchOrderPage() {
                         const firstResult = searchResults[0];
                         const isSelected = selectedProducts.some(p => p.id === firstResult.id);
                         handleProductToggle(firstResult, !isSelected);
+                        toast.success(`${isSelected ? 'Removed' : 'Added'} ${firstResult.name}`);
                       } else if (e.key === 'Escape') {
                         setSearchTerm("");
                       }
@@ -457,7 +455,7 @@ export default function CreateDispatchOrderPage() {
                       <X className="h-3 w-3" />
                     </Button>
                   )}
-                  {isProductsLoading && !searchTerm && (
+                  {isProductsLoading && (
                     <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
                   )}
                 </div>
@@ -468,7 +466,7 @@ export default function CreateDispatchOrderPage() {
                   <Label className="text-sm font-medium">
                     {searchTerm 
                       ? `Search Results (${searchResults.length})` 
-                      : `Popular Products (${searchResults.length})`
+                      : `Search for Products`
                     }
                   </Label>
                   {searchResults.length > 0 && (
@@ -476,76 +474,122 @@ export default function CreateDispatchOrderPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs"
+                        className="h-8 text-xs px-3 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
                         onClick={() => {
+                          let addedCount = 0;
                           searchResults.forEach(product => {
                             const isSelected = selectedProducts.some(p => p.id === product.id);
                             if (!isSelected) {
                               handleProductToggle(product, true);
+                              addedCount++;
                             }
                           });
+                          toast.success(`Added ${addedCount} product(s) to order`);
                         }}
                       >
-                        Select All
+                        ✓ Select All ({searchResults.length})
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs"
+                        className="h-8 text-xs px-3 bg-red-50 hover:bg-red-100 border-red-200 text-red-700"
                         onClick={() => {
+                          let removedCount = 0;
                           searchResults.forEach(product => {
-                            handleProductToggle(product, false);
+                            const isSelected = selectedProducts.some(p => p.id === product.id);
+                            if (isSelected) {
+                              handleProductToggle(product, false);
+                              removedCount++;
+                            }
                           });
+                          if (removedCount > 0) {
+                            toast.success(`Removed ${removedCount} product(s) from order`);
+                          }
                         }}
                       >
-                        Deselect All
+                        ✕ Deselect All
                       </Button>
                     </div>
                   )}
                 </div>
-                <div className="border rounded-md">
+                <div className="border rounded-md max-h-96 overflow-y-auto">
                   {searchResults.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      {searchTerm ? "No products found" : "No products available"}
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      {searchTerm ? `No products found matching "${searchTerm}"` : "Start typing to search for products..."}
                     </p>
                   ) : (
                     <div className="divide-y">
-                      {searchResults.slice(0, 40).map((product) => {
+                      {searchResults.map((product) => {
                         const isSelected = selectedProducts.some(
                           (p) => p.id === product.id
                         );
                         return (
                           <div
                             key={product.id}
-                            className={`flex items-center justify-between p-3 hover:bg-muted cursor-pointer transition-colors ${
-                              isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""
+                            className={`flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-all duration-200 border-l-4 ${
+                              isSelected 
+                                ? "bg-blue-50 border-l-blue-500 shadow-sm" 
+                                : "border-l-transparent hover:border-l-gray-200"
                             }`}
-                            onClick={() =>
-                              handleProductToggle(product, !isSelected)
-                            }
+                            onClick={() => {
+                              handleProductToggle(product, !isSelected);
+                              toast.success(`${isSelected ? 'Removed' : 'Added'} ${product.name}`, {
+                                duration: 1000,
+                              });
+                            }}
                           >
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <Checkbox
-                                checked={isSelected}
-                                onChange={() => {}}
-                              />
+                            <div className="flex items-center gap-4 min-w-0 flex-1">
+                              <div className={`rounded-md p-1 ${isSelected ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                                <Checkbox
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  className="data-[state=checked]:bg-blue-600"
+                                />
+                              </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">
-                                  {product.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  SKU: {product.sku || "N/A"} • Stock:{" "}
-                                  <span className={product.availableStock > 10 ? "text-green-600" : "text-orange-600"}>
-                                    {product.availableStock}
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold truncate text-gray-900">
+                                    {product.name}
+                                  </p>
+                                  {isSelected && (
+                                    <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 font-medium">
+                                      ✓ Selected
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <span className="text-xs text-gray-600 font-medium">
+                                    SKU: {product.sku || "N/A"}
                                   </span>
-                                </p>
+                                  <span className="text-xs">•</span>
+                                  <span className="text-xs">
+                                    Stock:{" "}
+                                    <span className={`font-semibold ${
+                                      product.availableStock === 0 
+                                        ? "text-red-600" 
+                                        : product.availableStock < 10 
+                                          ? "text-orange-600" 
+                                          : "text-green-600"
+                                    }`}>
+                                      {product.availableStock} units
+                                    </span>
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                            {isSelected && (
-                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
-                                Selected
-                              </Badge>
-                            )}
+                            <div className="flex items-center">
+                              {isSelected ? (
+                                <div className="text-blue-600">
+                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              ) : (
+                                <div className="text-gray-400 hover:text-gray-600">
+                                  <Plus className="w-5 h-5" />
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -555,17 +599,30 @@ export default function CreateDispatchOrderPage() {
               </div>
 
               <div>
-                <Label className="text-sm font-medium mb-2 block">
-                  Selected Products ({selectedProducts.length})
-                </Label>
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-base font-semibold text-gray-900">
+                    Selected Products ({selectedProducts.length})
+                  </Label>
+                  {selectedProducts.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedProducts([])}
+                      className="text-xs h-8 bg-red-50 hover:bg-red-100 border-red-200 text-red-700"
+                    >
+                      ✕ Clear All
+                    </Button>
+                  )}
+                </div>
                 {selectedProducts.length === 0 ? (
                   <div className="border rounded-md p-8 text-center">
+                    <ShoppingCart className="h-12 w-12 mx-auto text-gray-300 mb-4" />
                     <p className="text-sm text-muted-foreground">
-                      Search and select products to add them to this order
+                      Search and select products above to add them to this order
                     </p>
                   </div>
                 ) : (
-                  <div className="border rounded-md overflow-hidden">
+                  <div className="border rounded-md overflow-hidden max-h-96 overflow-y-auto">
                     <div>
                       {selectedProducts.map((product, index) => (
                         <div

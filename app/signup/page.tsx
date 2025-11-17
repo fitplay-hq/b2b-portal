@@ -12,7 +12,6 @@ import {
   Users,
   TrendingUp,
   ArrowRight,
-  CheckCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ImageWithFallback } from "@/components/image";
@@ -55,7 +54,7 @@ export default function SignupPage() {
       // For now, just redirect to login
       alert("Signup functionality not implemented yet. Redirecting to login.");
       router.push("/login");
-    } catch (err) {
+    } catch {
       setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -100,15 +99,15 @@ export default function SignupPage() {
             />
           </div>
 
-          <div className="relative z-10 flex flex-col justify-center px-12 py-16 text-white">
+          <div className="relative z-10 flex flex-col px-12 py-16 text-white">
             {/* Logo */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.6 }}
-              className="flex items-center gap-3 mb-8"
+              className="flex mb-8"
             >
-              <FitplayLogo variant="white" size="xl" />
+              <FitplayLogo variant="white" size="4xl" showText textColor="light" />
             </motion.div>
 
             {/* Main Heading */}
@@ -182,7 +181,7 @@ export default function SignupPage() {
         </motion.div>
 
         {/* Right Panel - Signup Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+        <div className="w-full lg:w-1/2 flex items-center lg:justify-center p-8">
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -190,10 +189,8 @@ export default function SignupPage() {
             className="w-full max-w-md"
           >
             {/* Mobile Logo */}
-            <div className="lg:hidden text-center mb-8">
-              <div className="flex justify-center mb-4">
-                <FitplayLogo variant="black" size="xl" />
-              </div>
+            <div className="lg:hidden mb-8">
+              <FitplayLogo variant="black" size="4xl" showText textColor="dark" />
             </div>
 
             <motion.div

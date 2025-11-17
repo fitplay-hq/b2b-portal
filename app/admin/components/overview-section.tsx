@@ -26,8 +26,6 @@ interface OverviewSectionProps {
 
 export function OverviewSection({
   pendingOrders,
-  approvedOrders,
-  rejectedOrders,
   lowStockProducts,
   activeClients,
 }: OverviewSectionProps) {
@@ -43,14 +41,14 @@ export function OverviewSection({
     return acc;
   }, {} as Record<string, number>);
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Order Status Overview</CardTitle>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Order Status Overview</CardTitle>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+        <CardContent className="p-3">
+          <ResponsiveContainer width="100%" height={350}>
+            <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <Pie
                 data={Object.entries(ordersByStatus).map(([status, count]) => ({
                   name: status.replace(/_/g, ' '),
@@ -58,8 +56,9 @@ export function OverviewSection({
                   status: status
                 }))}
                 cx="50%"
-                cy="40%"
-                outerRadius={90}
+                cy="45%"
+                outerRadius={100}
+                innerRadius={0}
                 fill="#8884d8"
                 dataKey="value"
               >
@@ -78,24 +77,25 @@ export function OverviewSection({
               />
               <Legend 
                 verticalAlign="bottom" 
-                height={80}
+                height={60}
                 wrapperStyle={{
-                  paddingTop: '20px',
-                  fontSize: '12px'
+                  paddingTop: '10px',
+                  fontSize: '11px',
+                  lineHeight: '1.2'
                 }}
                 formatter={(value: string) => (
-                  <span style={{ color: '#374151', fontSize: '11px' }}>{value}</span>
+                  <span style={{ color: '#374151', fontSize: '10px' }}>{value}</span>
                 )}
               />
             </PieChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>System Alerts</CardTitle>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">System Alerts</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 p-3">
           <AlertItem
             Icon={AlertCircle}
             title="Low Stock Items"
@@ -140,11 +140,11 @@ function AlertItem({
     green: "bg-green-50 text-green-600",
   };
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-lg ${colors[color]}`}>
-      <Icon className="h-5 w-5" />
-      <div>
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+    <div className={`flex items-center gap-2 p-2.5 rounded-lg ${colors[color]}`}>
+      <Icon className="h-4 w-4 flex-shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium leading-tight">{title}</p>
+        <p className="text-xs text-muted-foreground leading-tight">{description}</p>
       </div>
     </div>
   );

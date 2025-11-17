@@ -58,7 +58,7 @@ type InventoryUpdate = {
   productId: string;
   quantity: number;
   direction: "incr" | "dec";
-  inventoryUpdateReason: "NEW_PURCHASE" | "PHYSICAL_STOCK_CHECK" | "RETURN_FROM_PREVIOUS_DISPATCH";
+  inventoryUpdateReason: "NEW_PURCHASE" | "PHYSICAL_STOCK_CHECK" | "RETURN_FROM_PREVIOUS_DISPATCH" | "NEW_ORDER";
 };
 
 export async function updateBulkInventory(url: string, inventoryUpdates: InventoryUpdate[]) {

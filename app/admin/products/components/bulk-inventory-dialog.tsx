@@ -78,11 +78,8 @@ export function BulkInventoryDialog({
     if (!products) return [];
     const term = debouncedSearchTerm.trim().toLowerCase();
     if (!term) {
-      // Show top 20 products by available stock when no search term
-      return products
-        .filter(p => p.availableStock > 0)
-        .sort((a, b) => b.availableStock - a.availableStock)
-        .slice(0, 20);
+      // Return empty array when no search term - no prefilled list
+      return [];
     }
     return products.filter(
       (product) =>
@@ -167,7 +164,7 @@ export function BulkInventoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-5xl max-h-[95vh] flex flex-col">
+      <DialogContent className="sm:max-w-6xl max-h-[95vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -178,7 +175,7 @@ export function BulkInventoryDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 min-h-0 flex-1">
+        <div className="flex flex-col gap-4 min-h-0 flex-1 overflow-hidden">
           {/* Search Section */}
           <div className="flex-shrink-0">
             <Label htmlFor="search" className="text-sm font-medium">
@@ -219,14 +216,14 @@ export function BulkInventoryDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 min-h-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 flex-1 overflow-hidden">
             {/* Search Results - Compact List */}
-            <div className="flex-shrink-0">
+            <div className="flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-sm font-medium">
                   {debouncedSearchTerm 
                     ? `Search Results (${searchResults.length})` 
-                    : `Popular Products by Stock (${searchResults.length})`
+                    : `Search for Products`
                   }
                 </Label>
                 {searchResults.length > 0 && (
@@ -272,14 +269,14 @@ export function BulkInventoryDialog({
                   </div>
                 )}
               </div>
-              <div className="border rounded-md">
+              <div className="border rounded-md max-h-96 overflow-y-auto">
                 {searchResults.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    {debouncedSearchTerm ? `No products found matching "${debouncedSearchTerm}"` : "No products available"}
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    {debouncedSearchTerm ? `No products found matching "${debouncedSearchTerm}"` : "Start typing to search for products..."}
                   </p>
                 ) : (
                   <div className="divide-y">
-                    {searchResults.slice(0, 20).map((product) => {
+                    {searchResults.map((product) => {
                       const isSelected = selectedProducts.some(
                         (p) => p.id === product.id
                       );
@@ -359,7 +356,7 @@ export function BulkInventoryDialog({
             </div>
 
             {/* Selected Products - Compact Grid */}
-            <div className="flex-1 min-h-0">
+            <div className="flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-3">
                 <Label className="text-base font-semibold text-gray-900">
                   Selected Products ({selectedProducts.length})
@@ -400,7 +397,7 @@ export function BulkInventoryDialog({
                   </p>
                 </div>
               ) : (
-                <div className="border rounded-md overflow-hidden">
+                <div className="border rounded-md overflow-hidden max-h-96 overflow-y-auto">
                   <div>
                     {selectedProducts.map((product, index) => (
                       <div

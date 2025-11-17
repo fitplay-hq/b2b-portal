@@ -204,46 +204,33 @@ export async function POST(req: NextRequest) {
       nextSequence++;
     }
 
-    const order = await prisma.$transaction(async (tx) => {
-      const newOrder = await tx.order.create({
-        data: {
-          id: orderId,
-          clientId: client.id,
-          consigneeName,
-          consigneePhone,
-          consigneeEmail,
-          city,
-          state,
-          pincode,
-          requiredByDate,
-          modeOfDelivery,
-          deliveryAddress,
-          deliveryReference,
-          packagingInstructions,
-          note,
-          totalAmount,
-          orderItems: {
-            create: items.map((item: any) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price ?? 0,
-            })),
-          },
+    // Create order WITHOUT updating inventory - inventory is updated only on approval
+    const order = await prisma.order.create({
+      data: {
+        id: orderId,
+        clientId: client.id,
+        consigneeName,
+        consigneePhone,
+        consigneeEmail,
+        city,
+        state,
+        pincode,
+        requiredByDate,
+        modeOfDelivery,
+        deliveryAddress,
+        deliveryReference,
+        packagingInstructions,
+        note,
+        totalAmount,
+        orderItems: {
+          create: items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price ?? 0,
+          })),
         },
-        include: { orderItems: true },
-      });
-
-      for (const item of newOrder.orderItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            availableStock: {
-              decrement: item.quantity,
-            },
-          },
-        });
-      }
-      return newOrder;
+      },
+      include: { orderItems: true },
     });
 
     return NextResponse.json(order);
