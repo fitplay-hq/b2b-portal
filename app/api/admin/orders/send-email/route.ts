@@ -62,12 +62,13 @@ export async function POST(req: NextRequest) {
     toggleTracker = !toggleTracker;
 
     const adminEmail = process.env.ADMIN_EMAIL!;
+    const ownerEmail = "vaibhav@fitplaysolutions.com";
     const ccEmail = process.env.CC_EMAIL_1!;
 
     const mail =await resend.emails.send({
-      from: adminEmail,
+      from: "orders@fitplaysolutions.com",
       to: clientEmail,
-      cc: [ccEmail],
+      cc: [adminEmail, ownerEmail],
       subject: "New Order Awaiting Approval",
       html: `
           <h2>New Dispatch Order</h2>
