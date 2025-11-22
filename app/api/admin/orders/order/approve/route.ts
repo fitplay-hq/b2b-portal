@@ -176,7 +176,7 @@ export async function PATCH(req: NextRequest) {
           <h2>Order Dispatched</h2>
           <p>Order <b>${order.id}</b> has been dispatched.</p>
           <p><b>Mode of Delivery:</b> ${order.modeOfDelivery}</p>
-          <p><b>AWB:</b> ${awb ? awb : "N/A"}</p>
+          <p><b>Consignment Number:</b> ${consignmentNumber}</p>
           <p><b>Courier:</b> ${deliveryService}</p>
           <p><b>Estimated Delivery (EDD):</b> ${updatedOrder.requiredByDate ? new Date(updatedOrder.requiredByDate).toLocaleDateString() : "N/A"}</p>
           <h3>Order Summary</h3>
