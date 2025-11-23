@@ -1,47 +1,101 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { AlertCircle, Clock, CheckCircle, LucideProps } from "lucide-react";
 import { ForwardRefExoticComponent, RefAttributes } from "react";
+import {
+  PieChart,
+  Pie,
+  ResponsiveContainer,
+  Tooltip,
+  Cell,
+  Legend
+} from 'recharts';
+import { useAnalytics } from "@/hooks/use-analytics";
+
+// Colors for pie chart - extended for all possible statuses
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
 interface OverviewSectionProps {
   pendingOrders: number;
-  approvedOrders: number; // Assuming you'd calculate this in the hook too
+  approvedOrders: number;
+  rejectedOrders: number;
   completionRate: number;
   lowStockProducts: number;
   activeClients: number;
-  rejectedOrders: number;
+  totalOrders: number;
 }
 
 export function OverviewSection({
   pendingOrders,
-  completionRate,
   lowStockProducts,
   activeClients,
 }: OverviewSectionProps) {
+  // Use analytics data to get real order status distribution  
+  const { data: analyticsData } = useAnalytics({ period: '90d' });
+  
+  // Define all possible order statuses to ensure they all show up
+  const allStatuses = ['PENDING', 'APPROVED', 'CANCELLED', 'READY_FOR_DISPATCH', 'DISPATCHED', 'AT_DESTINATION', 'DELIVERED'];
+  
+  // Create complete status data with all statuses (even if count is 0)
+  const ordersByStatus = allStatuses.reduce((acc, status) => {
+    acc[status] = analyticsData?.ordersByStatus?.[status] || 0;
+    return acc;
+  }, {} as Record<string, number>);
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Order Status Distribution</CardTitle>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Order Status Overview</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {/* ... status details ... */}
-          <div className="pt-2">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm">Completion Rate</span>
-              <span className="text-sm font-medium">
-                {completionRate.toFixed(1)}%
-              </span>
-            </div>
-            <Progress value={completionRate} className="h-2" />
-          </div>
+        <CardContent className="p-3">
+          <ResponsiveContainer width="100%" height={350}>
+            <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <Pie
+                data={Object.entries(ordersByStatus).map(([status, count]) => ({
+                  name: status.replace(/_/g, ' '),
+                  value: count,
+                  status: status
+                }))}
+                cx="50%"
+                cy="45%"
+                outerRadius={100}
+                innerRadius={0}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {Object.entries(ordersByStatus).map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#fff', 
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}
+                formatter={(value: number) => [value, 'Orders']}
+              />
+              <Legend 
+                verticalAlign="bottom" 
+                height={60}
+                wrapperStyle={{
+                  paddingTop: '10px',
+                  fontSize: '11px',
+                  lineHeight: '1.2'
+                }}
+                formatter={(value: string) => (
+                  <span style={{ color: '#374151', fontSize: '10px' }}>{value}</span>
+                )}
+              />
+            </PieChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>System Alerts</CardTitle>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">System Alerts</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 p-3">
           <AlertItem
             Icon={AlertCircle}
             title="Low Stock Items"
@@ -86,11 +140,11 @@ function AlertItem({
     green: "bg-green-50 text-green-600",
   };
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-lg ${colors[color]}`}>
-      <Icon className="h-5 w-5" />
-      <div>
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+    <div className={`flex items-center gap-2 p-2.5 rounded-lg ${colors[color]}`}>
+      <Icon className="h-4 w-4 flex-shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium leading-tight">{title}</p>
+        <p className="text-xs text-muted-foreground leading-tight">{description}</p>
       </div>
     </div>
   );

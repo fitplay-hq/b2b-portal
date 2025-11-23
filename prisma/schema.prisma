@@ -3,19 +3,19 @@
 
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-generator zod {
-  provider = "prisma-zod-generator"
-}
-
 generator client {
   provider = "prisma-client-js"
   output   = "../lib/generated/prisma"
 }
 
+generator zod {
+  provider = "prisma-zod-generator"
+  output   = "../lib/generated/zod"
+}
+
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url = env("DATABASE_URL")
 }
 
 model Admin {
@@ -166,6 +166,7 @@ enum Reason {
   NEW_PURCHASE
   PHYSICAL_STOCK_CHECK
   RETURN_FROM_PREVIOUS_DISPATCH
+  NEW_ORDER
 }
 
 enum Gender {

@@ -1,24 +1,22 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/image";
-import { Product } from "@/lib/generated/prisma";
+import { Product, ProductCategory, Company } from "@/lib/generated/prisma";
 import { Edit, Trash2, Package } from "lucide-react";
+import { getHumanFriendlyCategoryName } from "./product-filters";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useCategories } from "@/hooks/use-category-management";
 
-type ProductWithCategory = Product & { 
-  category?: { 
-    displayName: string; 
-    name: string; 
-    id: string; 
-  } 
+// Extended Product type that includes the category relationship
+type ProductWithRelations = Product & {
+  category?: ProductCategory | null;
+  companies?: Company[];
 };
 
 interface ProductItemProps {
-  product: ProductWithCategory;
-  onEdit: (product: ProductWithCategory) => void;
+  product: ProductWithRelations;
+  onEdit: (product: ProductWithRelations) => void;
   onDelete: (productId: string) => void;
-  onManageInventory: (product: ProductWithCategory) => void;
+  onManageInventory: (product: ProductWithRelations) => void;
 }
 
 export function ProductItem({
@@ -28,23 +26,6 @@ export function ProductItem({
   onManageInventory,
 }: ProductItemProps) {
   const { actions } = usePermissions();
-  const { categories } = useCategories();
-  
-  const getCategoryDisplayName = (product: ProductWithCategory) => {
-    // Prioritize the relationship-based category data
-    if (product.category?.displayName) {
-      return product.category.displayName;
-    }
-    
-    // Fallback to dynamic lookup for enum-based categories
-    if (product.categories) {
-      const category = categories.find(c => c.name === product.categories);
-      return category?.displayName || product.categories;
-    }
-    
-    return 'Uncategorized';
-  };
-
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg">
       <div className="flex items-center gap-4">
@@ -59,7 +40,10 @@ export function ProductItem({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-medium">{product.name}</h3>
             <Badge variant="secondary">
-              {getCategoryDisplayName(product)}
+              {product.category?.displayName || 
+               (product.category?.name ? getHumanFriendlyCategoryName(product.category.name) : null) ||
+               (product.categories ? getHumanFriendlyCategoryName(product.categories) : null) ||
+               "Uncategorized"}
             </Badge>
             {product.availableStock === 0 && (
               <Badge variant="destructive">Out of Stock</Badge>
@@ -71,7 +55,7 @@ export function ProductItem({
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            SKU: {product.sku} • Stock: {product.availableStock}
+            SKU: {product.sku} • <span className="font-semibold text-foreground">Stock: {product.availableStock}</span>
             {product.price && (
               <>
                 {" • "}

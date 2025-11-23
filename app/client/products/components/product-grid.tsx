@@ -59,6 +59,9 @@ export function ProductGrid({
   // Group products by category when showing all categories
   const groupedProducts = products.reduce((acc, product) => {
     const category = product.categories;
+    if (!category) {
+      return acc;
+    }
     if (!acc[category]) {
       acc[category] = [];
     }

@@ -17,10 +17,6 @@ export async function GET(req: NextRequest) {
             );
         }
         const products = await prisma.product.findMany({
-            include: {
-                category: true, // Include the category relationship
-                companies: true, // Keep existing includes
-            },
             where: {
                 name: {
                     contains: query || "",

@@ -10,7 +10,7 @@ import {
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Skeleton } from "./ui/skeleton";
-import { Building, LogIn, LogOut, User } from "lucide-react";
+import { Building, LogIn, LogOut, User, Key } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
 interface AccountInfoProps {
@@ -62,7 +62,7 @@ const AccountInfo = React.memo(({ isCollapsed = false }: AccountInfoProps) => {
 
   const roleDisplayText = React.useMemo(() => {
     if (!userData) return "";
-    if (userData.role === "ADMIN") return "Administrator";
+    if (userData.role === "ADMIN") return "Admin";
     if (userData.role === "SYSTEM_USER") return userData.systemRole || "System User";
     if (userData.role === "CLIENT") return "Client";
     return userData.role;
@@ -166,6 +166,11 @@ const AccountInfo = React.memo(({ isCollapsed = false }: AccountInfoProps) => {
           <DropdownMenuItem>
             <User className="h-4 w-4 mr-2" />
             Profile Settings
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => window.location.href = '/forgot-password'}>
+            <Key className="h-4 w-4 mr-2" />
+            Change Password
           </DropdownMenuItem>
 
           <DropdownMenuItem>

@@ -7,8 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SortOption } from "@/hooks/use-product-filters";
+import { $Enums } from "@/lib/generated/prisma";
 import { Search, Filter } from "lucide-react";
-import { useCategories } from "@/hooks/use-category-management";
 
 interface ProductFiltersProps {
   searchTerm: string;
@@ -21,9 +21,36 @@ interface ProductFiltersProps {
   totalCount: number;
 }
 
+// Function to convert enum values to human-friendly names
+const getHumanFriendlyCategoryName = (category: string): string => {
+  // Use the actual enum values from Prisma with friendly names
+  const friendlyNames: Record<string, string> = {
+    stationery: "Stationery",
+    accessories: "Accessories",
+    funAndStickers: "Fun & Stickers",
+    drinkware: "Drinkware",
+    apparel: "Apparel",
+    travelAndTech: "Travel & Tech",
+    books: "Books",
+    welcomeKit: "Welcome Kit",
+  };
 
+  // Check if we have a specific friendly name for this category
+  if (friendlyNames[category]) {
+    return friendlyNames[category];
+  }
 
-export default function ProductFilters({
+  // Fallback: Handle unknown categories
+  // Convert camelCase to Title Case by splitting on capital letters
+  return category
+    .replace(/([a-z])([A-Z])/g, "$1 $2") // Add space between lowercase and uppercase
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1 $2") // Handle consecutive uppercase letters
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
+export function ProductFilters({
   searchTerm,
   setSearchTerm,
   selectedCategory,
@@ -33,7 +60,6 @@ export default function ProductFilters({
   resultsCount,
   totalCount,
 }: ProductFiltersProps) {
-  const { categories } = useCategories();
   return (
     <div className="space-y-4 bg-card rounded-lg border p-4">
       <div className="flex items-center gap-2 text-sm font-medium">
@@ -77,9 +103,9 @@ export default function ProductFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="All Categories">All Categories</SelectItem>
-            {categories?.map((category) => (
-              <SelectItem key={category.id} value={category.name}>
-                {category.displayName}
+            {Object.values($Enums.Category).map((category) => (
+              <SelectItem key={category} value={category}>
+                {getHumanFriendlyCategoryName(category)}
               </SelectItem>
             ))}
           </SelectContent>

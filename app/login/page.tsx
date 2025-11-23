@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Package, Shield, Users, TrendingUp, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { ImageWithFallback } from "@/components/image";
+import { FitplayLogo } from "@/components/fitplay-logo";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -89,20 +90,14 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="relative z-10 flex flex-col justify-center px-12 py-16 text-white">
+          <div className="relative z-10 flex flex-col px-12 py-16 text-white">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.6 }}
-              className="flex items-center gap-3 mb-8"
+              className="flex mb-8"
             >
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Package className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">B2B Portal</h1>
-                <p className="text-neutral-300 text-sm">Business Ordering Portal</p>
-              </div>
+              <FitplayLogo variant="white" size="4xl" showText textColor="light" spacing="tight" />
             </motion.div>
 
             <motion.div
@@ -169,23 +164,15 @@ export default function LoginPage() {
         </motion.div>
 
         {/* Right Panel */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+        <div className="w-full lg:w-1/2 flex items-center lg:justify-center p-8">
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
             className="w-full max-w-md"
           >
-            <div className="lg:hidden text-center mb-8">
-              <div className="flex justify-center items-center gap-3 mb-4">
-                <div className="p-3 bg-neutral-700 rounded-xl">
-                  <Package className="h-8 w-8 text-white" />
-                </div>
-                <div className="text-left">
-                  <h1 className="text-2xl font-bold text-neutral-900">B2B Portal</h1>
-                  <p className="text-gray-600 text-sm">Business Ordering Portal</p>
-                </div>
-              </div>
+            <div className="lg:hidden mb-8">
+              <FitplayLogo variant="black" size="4xl" showText textColor="dark" spacing="tight" />
             </div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -227,6 +214,14 @@ export default function LoginPage() {
                         className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
                         required
                       />
+                      <div className="text-right">
+                        <a 
+                          href="/forgot-password"
+                          className="text-sm text-blue-600 hover:text-blue-500"
+                        >
+                          Forgot password?
+                        </a>
+                      </div>
                     </div>
 
                     {error && (

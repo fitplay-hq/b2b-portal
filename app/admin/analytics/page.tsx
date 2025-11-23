@@ -48,16 +48,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAnalytics, type AnalyticsFilters } from '@/hooks/use-analytics';
 import { useInstantPermissions } from '@/hooks/use-instant-permissions';
-import { useCategories } from '@/hooks/use-category-management';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Layout from '@/components/layout';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
 export default function AnalyticsPage() {
   const { canUserPerformAction } = useInstantPermissions();
-  const { categories } = useCategories();
   const [filters, setFilters] = useState<AnalyticsFilters>({
     period: '30d'
   });
@@ -69,6 +67,9 @@ export default function AnalyticsPage() {
     dateFrom: dateFrom?.toISOString().split('T')[0],
     dateTo: dateTo?.toISOString().split('T')[0]
   });
+
+  // Get all orders data without date filtering for accurate pie chart
+  const { data: allOrdersData } = useAnalytics({});
 
   const [exportLoading, setExportLoading] = useState<string | null>(null);
 
@@ -429,34 +430,61 @@ export default function AnalyticsPage() {
                   <CardDescription>Distribution of order statuses</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={Object.entries(data?.ordersByStatus || {}).map(([status, count]) => ({
-                          name: status.replace(/_/g, ' '),
-                          value: count
-                        }))}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }: any) => `${name}: ${value}`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {Object.entries(data?.ordersByStatus || {}).map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#fff', 
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px'
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {(() => {
+                    // Define all possible order statuses to ensure they all show up
+                    const allStatuses = ['PENDING', 'APPROVED', 'CANCELLED', 'READY_FOR_DISPATCH', 'DISPATCHED', 'AT_DESTINATION', 'DELIVERED'];
+                    
+                    // Use all orders data (without date filtering) for accurate status counts
+                    const ordersByStatusSource = allOrdersData?.ordersByStatus || data?.ordersByStatus || {};
+                    
+                    // Create complete status data with all statuses (even if count is 0)
+                    const completeOrdersByStatus = allStatuses.reduce((acc, status) => {
+                      acc[status] = ordersByStatusSource[status] || 0;
+                      return acc;
+                    }, {} as Record<string, number>);
+
+                    return (
+                      <ResponsiveContainer width="100%" height={400}>
+                        <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                          <Pie
+                            data={Object.entries(completeOrdersByStatus).map(([status, count]) => ({
+                              name: status.replace(/_/g, ' '),
+                              value: count
+                            }))}
+                            cx="50%"
+                            cy="40%"
+                            outerRadius={90}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {Object.entries(completeOrdersByStatus).map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: '#fff', 
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                            formatter={(value: number) => [value, 'Orders']}
+                          />
+                          <Legend 
+                            verticalAlign="bottom" 
+                            height={80}
+                            wrapperStyle={{
+                              paddingTop: '20px',
+                              fontSize: '12px'
+                            }}
+                            formatter={(value: string) => (
+                              <span style={{ color: '#374151', fontSize: '11px' }}>{value}</span>
+                            )}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </div>
@@ -509,7 +537,7 @@ export default function AnalyticsPage() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, value }: any) => `${name}: ${value}`}
+                        label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
@@ -623,11 +651,11 @@ export default function AnalyticsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.name}>
-                          {category.displayName}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="stationery">Stationery</SelectItem>
+                      <SelectItem value="accessories">Accessories</SelectItem>
+                      <SelectItem value="funAndStickers">Fun & Stickers</SelectItem>
+                      <SelectItem value="drinkware">Drinkware</SelectItem>
+                      <SelectItem value="apparel">Apparel</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -755,7 +783,7 @@ export default function AnalyticsPage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, value }: any) => `${name}: ${value}`}
+                      label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"

@@ -9,7 +9,7 @@ import { useQuantityDialog } from "@/hooks/use-quantity-dialog";
 
 import { PageHeader } from "./components/page-header";
 import { ProductGrid } from "./components/product-grid";
-import ProductFilters from "./components/product-filters";
+import { ProductFilters } from "./components/product-filters";
 import { QuantityDialog } from "./components/quantity-dialog";
 import { useProducts } from "@/data/product/client.hooks";
 

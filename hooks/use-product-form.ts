@@ -1,40 +1,37 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { Product, Prisma, Category, Company } from "@/lib/generated/prisma";
+import { useState, useEffect, useRef } from "react";
+import { Product, Category, Company } from "@/lib/generated/prisma";
 import { toast } from "sonner";
-import { useCreateProduct, useUpdateProduct } from "@/data/product/admin.hooks";
+import { useCreateProduct, useUpdateProduct, useProducts } from "@/data/product/admin.hooks";
 import { useCompanies } from "@/data/company/admin.hooks";
 import { useCategories } from "./use-category-management";
+
+type ProductWithCompanies = Product & {
+  companies: Company[];
+};
 
 interface UseProductFormProps {
   onSuccess: () => void;
 }
 
+
+
 export function useProductForm({ onSuccess }: UseProductFormProps) {
   const { createProduct } = useCreateProduct();
   const { updateProduct } = useUpdateProduct();
   const { companies } = useCompanies();
+  const { products } = useProducts();
   const { categories } = useCategories();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
+  // Note: companyShortMap is now created directly in the useEffect to avoid dependency issues
+
+  // Note: categoryShortMap is now created directly in the useEffect to avoid dependency issues
+
   // Refs to track previous values and prevent infinite loops
   const prevCompanyRef = useRef<string>('');
   const prevCategoriesRef = useRef<string>('');
-
-  // Hardcoded maps for short names
-  const companyShortMap: Record<string, string> = useMemo(() => ({
-    'Github': 'GH',
-    // Add more as needed
-  }), []);
-
-  // Create dynamic category short map from database categories
-  const categoryShortMap: Record<string, string> = useMemo(() => {
-    return categories.reduce((acc, category) => {
-      acc[category.name] = category.shortCode;
-      return acc;
-    }, {} as Record<string, string>);
-  }, [categories]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -54,28 +51,116 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     if (formData.company !== prevCompanyRef.current) {
       prevCompanyRef.current = formData.company;
       if (formData.company) {
-        const company = companies?.find((c: Company) => c.id === formData.company);
+        const company = companies?.find((c: { id: string; name: string }) => c.id === formData.company);
         const companyName: string = company?.name || '';
-        const short = companyShortMap[companyName] || companyName.slice(0,2).toUpperCase();
+        console.log('Selected company:', companyName);
+        
+        // Create map directly in the effect to avoid dependency issues
+        const dynamicCompanyShortMap: Record<string, string> = {
+          'Github': 'GH',
+          // Add more as needed
+        };
+        
+        // Try exact match first, then fallback to auto-generation
+        let short = dynamicCompanyShortMap[companyName];
+        if (!short) {
+          // Auto-generate from company name: take first 2-3 characters
+          short = companyName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+        }
+        console.log('Generated company short:', short);
         setFormData(prev => ({ ...prev, companyShort: short }));
       } else {
         setFormData(prev => ({ ...prev, companyShort: '' }));
       }
     }
-  }, [formData.company, companies, companyShortMap]);
+  }, [formData.company, companies]);
 
   // Auto-set categoryShort when categories change
   useEffect(() => {
     if (formData.categories !== prevCategoriesRef.current) {
       prevCategoriesRef.current = formData.categories;
       if (formData.categories) {
-        const short = categoryShortMap[formData.categories] || formData.categories.slice(0, 3).toUpperCase();
+        console.log('Selected category:', formData.categories);
+        
+        // Create map directly in the effect to avoid dependency issues
+        const dynamicCategoryShortMap = categories.reduce((acc, category) => {
+          acc[category.name] = category.shortCode;
+          return acc;
+        }, {} as Record<string, string>);
+        
+        // Try exact match first, then fallback to auto-generation
+        let short = dynamicCategoryShortMap[formData.categories];
+        if (!short) {
+          // Auto-generate from category name: take first 3 characters, remove underscores
+          short = formData.categories.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+        }
+        console.log('Generated category short:', short);
         setFormData(prev => ({ ...prev, categoryShort: short }));
       } else {
         setFormData(prev => ({ ...prev, categoryShort: '' }));
       }
     }
-  }, [formData.categories, categoryShortMap]);
+  }, [formData.categories, categories]);
+
+  // Auto-generate SKU suffix when both companyShort and categoryShort are available
+  useEffect(() => {
+    // Only generate for new products (not editing) and when we have both company and category
+    if (formData.companyShort && formData.categoryShort && !editingProduct) {
+      console.log('🔧 SKU Generation triggered');
+      console.log('Company Short:', formData.companyShort);
+      console.log('Category Short:', formData.categoryShort);
+      console.log('Products loaded:', !!products);
+      console.log('Products count:', products?.length || 0);
+      
+      if (!products) {
+        console.log('⏳ Products not loaded yet, skipping SKU generation');
+        return;
+      }
+
+      // Find existing products with same company-category prefix
+      const skuPrefix = `${formData.companyShort}-${formData.categoryShort}`;
+      console.log('🎯 SKU Prefix:', skuPrefix);
+      
+      // Filter products that match our prefix and extract numeric suffixes
+      const matchingProducts = products.filter(product => 
+        product.sku && product.sku.startsWith(skuPrefix + '-')
+      );
+      
+      console.log('📋 Matching products:', matchingProducts.map(p => ({ name: p.name, sku: p.sku })));
+      
+      const existingSKUs = matchingProducts
+        .map(product => {
+          const parts = product.sku.split('-');
+          // Make sure we have exactly 3 parts and the third part is numeric
+          if (parts.length === 3) {
+            const suffix = parts[2];
+            const num = parseInt(suffix, 10);
+            return !isNaN(num) ? num : 0;
+          }
+          return 0;
+        })
+        .filter(num => num > 0); // Only keep valid numbers > 0
+
+      console.log('🔢 Existing numeric suffixes:', existingSKUs);
+      console.log(`📊 Found ${existingSKUs.length} existing products with prefix "${skuPrefix}"`);
+
+      // Find the next available number
+      const nextNumber = existingSKUs.length === 0 ? 1 : Math.max(...existingSKUs) + 1;
+      const paddedNumber = nextNumber.toString().padStart(3, '0');
+      
+      console.log('✨ Generated suffix:', paddedNumber, `(next after ${existingSKUs.length} existing products)`);
+      setFormData(prev => ({ ...prev, skuSuffix: paddedNumber }));
+    }
+  }, [formData.companyShort, formData.categoryShort, products, editingProduct]);
+
+  // Force regenerate SKU suffix when company or category changes (even if suffix already exists)
+  useEffect(() => {
+    if (formData.companyShort && formData.categoryShort && !editingProduct && products && 
+        (prevCompanyRef.current !== formData.company || prevCategoriesRef.current !== formData.categories)) {
+      // Clear the suffix first to trigger regeneration
+      setFormData(prev => ({ ...prev, skuSuffix: '' }));
+    }
+  }, [formData.company, formData.categories, formData.companyShort, formData.categoryShort, products, editingProduct]);
 
   const sku = formData.companyShort && formData.categoryShort && formData.skuSuffix ? `${formData.companyShort}-${formData.categoryShort}-${formData.skuSuffix}` : "";
 
@@ -96,7 +181,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (product: Product) => {
+  const openEditDialog = (product: ProductWithCompanies) => {
     setEditingProduct(product);
 
     // Parse SKU into parts
@@ -105,11 +190,14 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     const categoryShort = skuParts[1] || '';
     const skuSuffix = skuParts[2] || '';
 
+    // Get the first company associated with the product (if any)
+    const associatedCompany = product.companies?.[0]?.id || "";
+
     setFormData({
       name: product.name,
-      company: "", // TODO: if we have company relation, set it
+      company: associatedCompany,
       companyShort,
-      categories: product.categories,
+      categories: product.categories || "",
       categoryShort,
       skuSuffix,
       price: product.price?.toString() || "",
@@ -140,28 +228,15 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     }
 
     try {
-      // Check if categories are loaded
-      if (!categories || categories.length === 0) {
-        toast.error("Categories are not loaded yet. Please wait and try again.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Find the category based on the selected category name
-      const selectedCategory = categories?.find(cat => cat.name === formData.categories);
+      // Find the selected category from the database categories
+      const selectedCategory = categories.find(cat => cat.name === formData.categories);
       
-      // Validate that the selected category exists
-      if (!selectedCategory && formData.categories) {
-        toast.error(`Selected category "${formData.categories}" not found. Please refresh and try again.`);
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Check if the category exists in the old enum (for backward compatibility)
+      // Check if it's a legacy category (exists in enum)
       const isLegacyCategory = ['stationery', 'accessories', 'funAndStickers', 'drinkware', 'apparel', 'travelAndTech', 'books', 'welcomeKit'].includes(formData.categories);
 
       if (editingProduct) {
-        const productUpdateData: Prisma.ProductUpdateInput = {
+        // Prepare the data for the API (not Prisma format)
+        const productUpdateData = {
           id: editingProduct.id,
           name: formData.name,
           sku,
@@ -169,48 +244,44 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           availableStock,
           // Only set categories enum field if it's a legacy category
           ...(isLegacyCategory && { categories: formData.categories as Category }),
-          category: selectedCategory ? { connect: { id: selectedCategory.id } } : { disconnect: true }, // Set the new relationship
+          categoryId: selectedCategory?.id, // Send categoryId directly
+          categories: formData.categories, // Send category name for API lookup
           description: formData.description,
           images: [
             formData.image ||
               "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
-          companies: formData.company ? { set: [{ id: formData.company }] } : undefined,
+          companies: formData.company ? [{ id: formData.company }] : undefined,
         };
-        await updateProduct(productUpdateData);
+        await updateProduct(productUpdateData as any);
         toast.success("Product updated successfully!");
       } else {
-        const productCreateData: Prisma.ProductCreateInput = {
+        // Prepare the data for the API (not Prisma format)
+        const productCreateData = {
           name: formData.name,
           sku,
           price,
           availableStock,
           // Only set categories enum field if it's a legacy category
           ...(isLegacyCategory && { categories: formData.categories as Category }),
-          category: selectedCategory ? { connect: { id: selectedCategory.id } } : undefined, // Set the new relationship
+          categoryId: selectedCategory?.id, // Send categoryId directly
+          categories: formData.categories, // Send category name for API lookup
           description: formData.description,
           images: [
             formData.image ||
               "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
-          companies: formData.company ? { connect: [{ id: formData.company }] } : undefined,
+          companies: formData.company ? [{ id: formData.company }] : undefined,
         };
-        await createProduct(productCreateData);
+        await createProduct(productCreateData as any);
         toast.success("Product added successfully!");
       }
       onSuccess();
       setIsDialogOpen(false);
     } catch (error) {
-      console.error("Product creation error:", error);
-      let errorMessage = "An unknown error occurred.";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-        console.log("Error message:", errorMessage);
-      }
-      
-      // Show a more user-friendly message
-      toast.error(errorMessage.length > 200 ? "Product creation failed. Check console for details." : errorMessage);
+      toast.error(
+        error instanceof Error ? error.message : "An unknown error occurred."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -224,7 +295,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     formData,
     setFormData,
     openNewDialog,
-    openEditDialog,
+    openEditDialog: openEditDialog as (product: Product) => void, // Type assertion for compatibility
     handleSubmit,
     companies,
   };

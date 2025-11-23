@@ -7,13 +7,12 @@ import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 
 // Import the auto-generated Zod schema
-import { ProductCreateInputObjectSchema } from "@/prisma/generated/schemas";
 import z from "zod";
 const InventoryUpdateSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.number().positive(),
   direction: z.enum(["incr", "dec"]),
-  inventoryUpdateReason: z.enum(["NEW_PURCHASE", "PHYSICAL_STOCK_CHECK", "RETURN_FROM_PREVIOUS_DISPATCH"]),
+  inventoryUpdateReason: z.enum(["NEW_PURCHASE", "PHYSICAL_STOCK_CHECK", "RETURN_FROM_PREVIOUS_DISPATCH", "NEW_ORDER"]),
 });
 
 export async function POST(req: NextRequest) {
@@ -38,6 +37,7 @@ export async function POST(req: NextRequest) {
 
     // ✅ Validate each product with the Zod schema
     const parsedProducts = body.map((p, idx) => {
+      // @ts-ignore
       const result = ProductCreateInputObjectSchema.safeParse(p);
       if (!result.success) {
         throw new Error(
@@ -49,10 +49,18 @@ export async function POST(req: NextRequest) {
       return result.data;
     });
 
-    const productsData: Prisma.ProductCreateInput[] = parsedProducts.map((p) => ({
-      id: uuidv4(),
-      ...p, // ✅ Spread validated product data
-    }));
+    const productsData: Prisma.ProductCreateInput[] = parsedProducts.map((p) => {
+      const initialStock = p.availableStock || 0;
+      const initialLogEntry = initialStock > 0 
+        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE`
+        : null;
+
+      return {
+        id: uuidv4(),
+        ...p, // ✅ Spread validated product data
+        inventoryLogs: initialLogEntry ? [initialLogEntry] : [],
+      };
+    });
 
     const products = await prisma.product.createMany({
       data: productsData,
@@ -94,13 +102,14 @@ export async function GET(req: NextRequest) {
 
     const products = await prisma.product.findMany({
       include: {
+        companies: true,
         category: true, // Include the category relationship
-        companies: true, // Keep existing includes
       },
       orderBy: {
         [safeSortBy]: safeSortOrder,
       },
     });
+    
     return NextResponse.json(products);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Something went wrong";

@@ -39,24 +39,46 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid email" }, { status: 400 });
         }
 
-        // Check if user exists in User, or Admin table
-        const [client, admin] = await Promise.all([
+        // Check if user exists in database tables or is the env admin
+        const [client, admin, systemUser] = await Promise.all([
             prisma.client.findUnique({ where: { email } }),
-            prisma.admin.findUnique({ where: { email } })
+            prisma.admin.findUnique({ where: { email } }),
+            prisma.systemUser.findUnique({ where: { email } })
         ]);
 
-        const account = client || admin;
+        // Also check if this is the admin from environment variables
+        const isEnvAdmin = email === process.env.ADMIN_EMAIL?.replace(/['"]/g, '');
+        
+        const account = client || admin || systemUser || isEnvAdmin;
         if (!account) {
             return NextResponse.json({ error: "No account found with this email" }, { status: 404 });
+        }
+
+        // Check if there's already a valid (non-expired) reset token
+        const existingToken = await prisma.resetToken.findUnique({
+            where: { identifier: email }
+        });
+
+        if (existingToken && existingToken.expires > new Date()) {
+            // Token is still valid, don't send another email
+            return NextResponse.json({ 
+                message: "Reset link sent successfully", 
+                note: "If you don't see the email, check your spam folder or wait a few minutes before requesting again."
+            });
         }
 
         // Generate secure token and expiry
         const resetToken = crypto.randomUUID();
         const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
 
-        // Store in ResetToken table 
-        await prisma.resetToken.create({
-            data: {
+        // Store in ResetToken table (upsert to handle existing tokens)
+        await prisma.resetToken.upsert({
+            where: { identifier: email },
+            update: {
+                token: resetToken,
+                expires: resetTokenExpiry,
+            },
+            create: {
                 identifier: email,
                 token: resetToken,
                 expires: resetTokenExpiry,
@@ -64,8 +86,9 @@ export async function POST(req: NextRequest) {
         });
 
         const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
-        // Send reset password email
         const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+
+        // Send reset password email
         await resend.emails.send({
             from: "noreply@fitplaysolutions.com",
             to: email,
@@ -111,8 +134,8 @@ export async function PATCH(req: NextRequest) {
         const hashedPass = await bcrypt.hash(newPassword, 10);
 
         // Update password in the appropriate table
-        const user = await prisma.client.findUnique({ where: { email: record.identifier } });
-        if (user) {
+        const client = await prisma.client.findUnique({ where: { email: record.identifier } });
+        if (client) {
             await prisma.client.update({
                 where: { email: record.identifier },
                 data: { password: hashedPass },
@@ -124,6 +147,28 @@ export async function PATCH(req: NextRequest) {
                     where: { email: record.identifier },
                     data: { password: hashedPass },
                 });
+            } else {
+                const systemUser = await prisma.systemUser.findUnique({ where: { email: record.identifier } });
+                if (systemUser) {
+                    await prisma.systemUser.update({
+                        where: { email: record.identifier },
+                        data: { password: hashedPass },
+                    });
+                } else {
+                    // Check if this is the env admin - create admin record in database
+                    const isEnvAdmin = record.identifier === process.env.ADMIN_EMAIL?.replace(/['"]/g, '');
+                    if (isEnvAdmin) {
+                        const emailName = record.identifier.split('@')[0];
+                        const adminName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+                        await prisma.admin.create({
+                            data: {
+                                email: record.identifier,
+                                password: hashedPass,
+                                name: adminName,
+                            },
+                        });
+                    }
+                }
             }
         }
 

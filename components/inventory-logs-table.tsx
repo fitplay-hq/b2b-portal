@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,9 @@ import {
   ArrowDown, 
   ChevronLeft, 
   ChevronRight,
-  Filter
+  Filter,
+  RotateCcw,
+  Loader2
 } from "lucide-react";
 import { InventoryLogEntry } from "@/data/inventory/admin.hooks";
 interface InventoryLogsTableProps {
@@ -29,12 +31,27 @@ interface InventoryLogsTableProps {
   onPageChange?: (page: number) => void;
   onSortChange?: (sortBy: string, sortOrder: "asc" | "desc") => void;
   onSearch?: (search: string) => void;
+  onImmediateSearch?: (search: string) => void;
   onFilterChange?: (filters: Record<string, string>) => void;
   currentSort?: { sortBy: string; sortOrder: "asc" | "desc" };
   showFilters?: boolean;
   title?: string;
   description?: string;
   searchValue?: string; // Controlled search value
+  onResetFilters?: () => void;
+  activeFilters?: Array<{
+    key: string;
+    label: string;
+    value: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }>;
+  currentFilters?: {
+    dateFrom: string;
+    dateTo: string;
+    productName: string;
+    sku: string;
+    reason: string;
+  };
 }
 
 export function InventoryLogsTable({
@@ -44,21 +61,29 @@ export function InventoryLogsTable({
   onPageChange,
   onSortChange,
   onSearch,
+  onImmediateSearch,
   onFilterChange,
   currentSort = { sortBy: "date", sortOrder: "desc" },
   showFilters = true,
   title = "Inventory Logs",
   description = "Complete history of all inventory movements",
   searchValue = "",
+  onResetFilters,
+  activeFilters = [],
+  currentFilters,
 }: InventoryLogsTableProps) {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [filters, setFilters] = useState({
+  const [localFilters, setLocalFilters] = useState({
     dateFrom: "",
     dateTo: "",
     productName: "",
     sku: "",
     reason: "",
   });
+  
+  // Use local filters for display (instant updates), but parent filters control API
+  const displayFilters = localFilters;
+  const filters = useMemo(() => currentFilters || localFilters, [currentFilters, localFilters]);
 
   const handleSearch = (value: string) => {
     onSearch?.(value); // This will now be debounced from the parent
@@ -85,21 +110,55 @@ export function InventoryLogsTable({
   };
 
   const filterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isFilteringLoading, setIsFilteringLoading] = useState(false);
 
-  const handleFilterChange = useCallback((key: string, value: string) => {
+  const handleFilterChange = useCallback((key: string, value: string, immediate = false) => {
+    // Always update local filters immediately for instant UI response
+    setLocalFilters(prev => ({ ...prev, [key]: value }));
+    
     const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
     
     // Clear existing timeout
     if (filterTimeoutRef.current) {
       clearTimeout(filterTimeoutRef.current);
     }
     
+    // If immediate, apply filter right away (for Enter key or blur)
+    if (immediate) {
+      setIsFilteringLoading(false);
+      onFilterChange?.(newFilters);
+      return;
+    }
+    
+    // For text inputs, use longer debounce delay
+    const isTextInput = ['productName', 'sku', 'reason'].includes(key);
+    const debounceDelay = isTextInput ? 2500 : 300; // 2.5s for text, 300ms for dates
+    
+    // Show loading state for text inputs
+    if (isTextInput && value.length > 0) {
+      setIsFilteringLoading(true);
+    }
+    
     // Debounce filter changes to prevent rapid API calls
     filterTimeoutRef.current = setTimeout(() => {
+      setIsFilteringLoading(false);
       onFilterChange?.(newFilters);
-    }, 300);
+    }, debounceDelay);
   }, [filters, onFilterChange]);
+
+  const handleKeyPress = (key: string, value: string, e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleFilterChange(key, value, true); // Apply immediately on Enter
+    }
+  };
+
+  const handleBlur = (key: string, value: string) => {
+    // Apply filter immediately when user leaves the input field
+    if (value.length > 0) {
+      handleFilterChange(key, value, true);
+    }
+  };
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -160,14 +219,26 @@ export function InventoryLogsTable({
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           </div>
           {showFilters && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
+            <div className="flex gap-2">
+              {onResetFilters && activeFilters.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onResetFilters}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Reset
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>
@@ -179,11 +250,20 @@ export function InventoryLogsTable({
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by product name, SKU, or reason..."
+                placeholder="Search by product name, SKU, or reason... (2.5s auto-search, Enter for instant)"
                 value={searchValue}
                 onChange={(e) => handleSearch(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onImmediateSearch?.(searchValue);
+                  }
+                }}
                 className="pl-8"
               />
+              {isLoading && (
+                <Loader2 className="absolute right-2 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
             </div>
 
             {showAdvancedFilters && (
@@ -193,7 +273,7 @@ export function InventoryLogsTable({
                   <Input
                     key="dateFrom"
                     type="date"
-                    value={filters.dateFrom}
+                    value={displayFilters.dateFrom}
                     onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
                   />
                 </div>
@@ -202,36 +282,60 @@ export function InventoryLogsTable({
                   <Input
                     key="dateTo"
                     type="date"
-                    value={filters.dateTo}
+                    value={displayFilters.dateTo}
                     onChange={(e) => handleFilterChange("dateTo", e.target.value)}
                   />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Product Name</label>
-                  <Input
-                    key="productName"
-                    placeholder="Filter by product"
-                    value={filters.productName}
-                    onChange={(e) => handleFilterChange("productName", e.target.value)}
-                  />
+                  <div className="relative">
+                    <Input
+                      key="productName"
+                      placeholder="Filter by product... (2.5s auto, Enter instant)"
+                      value={displayFilters.productName}
+                      onChange={(e) => handleFilterChange("productName", e.target.value)}
+                      onKeyPress={(e) => handleKeyPress("productName", displayFilters.productName, e)}
+                      onBlur={() => handleBlur("productName", displayFilters.productName)}
+                      className="pr-8"
+                    />
+                    {isFilteringLoading && displayFilters.productName && (
+                      <Loader2 className="absolute right-2 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">SKU</label>
-                  <Input
-                    key="sku"
-                    placeholder="Filter by SKU"
-                    value={filters.sku}
-                    onChange={(e) => handleFilterChange("sku", e.target.value)}
-                  />
+                  <div className="relative">
+                    <Input
+                      key="sku"
+                      placeholder="Filter by SKU... (2.5s auto, Enter instant)"
+                      value={displayFilters.sku}
+                      onChange={(e) => handleFilterChange("sku", e.target.value)}
+                      onKeyPress={(e) => handleKeyPress("sku", displayFilters.sku, e)}
+                      onBlur={() => handleBlur("sku", displayFilters.sku)}
+                      className="pr-8"
+                    />
+                    {isFilteringLoading && displayFilters.sku && (
+                      <Loader2 className="absolute right-2 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Reason</label>
-                  <Input
-                    key="reason"
-                    placeholder="Filter by reason"
-                    value={filters.reason}
-                    onChange={(e) => handleFilterChange("reason", e.target.value)}
-                  />
+                  <div className="relative">
+                    <Input
+                      key="reason"
+                      placeholder="Filter by reason... (2.5s auto, Enter instant)"
+                      value={displayFilters.reason}
+                      onChange={(e) => handleFilterChange("reason", e.target.value)}
+                      onKeyPress={(e) => handleKeyPress("reason", displayFilters.reason, e)}
+                      onBlur={() => handleBlur("reason", displayFilters.reason)}
+                      className="pr-8"
+                    />
+                    {isFilteringLoading && displayFilters.reason && (
+                      <Loader2 className="absolute right-2 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
               </div>
             )}

@@ -3,12 +3,16 @@ import prisma from "../lib/prisma";
 
 async function main() {
   // Seed original admin
+  const adminEmail = process.env.ADMIN_EMAIL!;
+  const emailName = adminEmail.split('@')[0];
+  const adminName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+  
   await prisma.admin.upsert({
-    where: { email: process.env.ADMIN_EMAIL! },
-    update: {},
+    where: { email: adminEmail },
+    update: { name: adminName }, // Update name if admin already exists
     create: {
-      email: process.env.ADMIN_EMAIL!,
-      name: "Admin",
+      email: adminEmail,
+      name: adminName,
       password: process.env.ADMIN_PASSWORD_HASH!,
       role: $Enums.Role.ADMIN,
     },

@@ -71,18 +71,22 @@ export function BulkInventoryDialog({
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const { products, isLoading: isSearching } = useProducts();
-  const { updateBulkInventory, isBulkUpdating, bulkUpdateError } =
-    useBulkInventory();
+  const { updateBulkInventory, isBulkUpdating } = useBulkInventory();
 
   // Filter products based on search term
-  const searchResults =
-    products?.filter(
+  const searchResults = React.useMemo(() => {
+    if (!products) return [];
+    const term = debouncedSearchTerm.trim().toLowerCase();
+    if (!term) {
+      // Return empty array when no search term - no prefilled list
+      return [];
+    }
+    return products.filter(
       (product) =>
-        product.name
-          .toLowerCase()
-          .includes(debouncedSearchTerm.toLowerCase()) ||
-        product.sku?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-    ) || [];
+        product.name.toLowerCase().includes(term) ||
+        product.sku?.toLowerCase().includes(term)
+    );
+  }, [products, debouncedSearchTerm]);
 
   const handleProductSelect = (product: Product, selected: boolean) => {
     if (selected) {
@@ -160,7 +164,7 @@ export function BulkInventoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-5xl max-h-[95vh] flex flex-col">
+      <DialogContent className="sm:max-w-6xl max-h-[95vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -171,7 +175,7 @@ export function BulkInventoryDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 min-h-0 flex-1">
+        <div className="flex flex-col gap-4 min-h-0 flex-1 overflow-hidden">
           {/* Search Section */}
           <div className="flex-shrink-0">
             <Label htmlFor="search" className="text-sm font-medium">
@@ -181,89 +185,207 @@ export function BulkInventoryDialog({
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="search"
-                placeholder="Search by product name or SKU..."
+                placeholder="Search by product name or SKU... (⏎ to select first result, ⎋ to clear)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                className="pl-9 pr-8"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchResults.length > 0) {
+                    const firstResult = searchResults[0];
+                    const isSelected = selectedProducts.some(p => p.id === firstResult.id);
+                    handleProductSelect(firstResult, !isSelected);
+                    toast.success(`${isSelected ? 'Removed' : 'Added'} ${firstResult.name}`);
+                  } else if (e.key === 'Escape') {
+                    setSearchTerm("");
+                  }
+                }}
               />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1 h-6 w-6 p-0 hover:bg-gray-100"
+                  onClick={() => setSearchTerm("")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
               {isSearching && (
                 <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 min-h-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 flex-1 overflow-hidden">
             {/* Search Results - Compact List */}
-            {debouncedSearchTerm && (
-              <div className="flex-shrink-0">
-                <Label className="text-sm font-medium mb-2 block">
-                  Search Results ({searchResults.length})
+            <div className="flex flex-col min-h-0">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">
+                  {debouncedSearchTerm 
+                    ? `Search Results (${searchResults.length})` 
+                    : `Search for Products`
+                  }
                 </Label>
-                <div className="border rounded-md">
-                  {searchResults.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No products found matching "{debouncedSearchTerm}"
-                    </p>
-                  ) : (
-                    <div className="divide-y">
-                      {searchResults.slice(0, 20).map((product) => {
-                        const isSelected = selectedProducts.some(
-                          (p) => p.id === product.id
-                        );
-                        return (
-                          <div
-                            key={product.id}
-                            className={`flex items-center justify-between p-3 hover:bg-muted cursor-pointer ${
-                              isSelected ? "bg-blue-50 border-blue-200" : ""
-                            }`}
-                            onClick={() =>
-                              handleProductSelect(product, !isSelected)
-                            }
-                          >
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                {searchResults.length > 0 && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs px-3 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                      onClick={() => {
+                        let addedCount = 0;
+                        searchResults.forEach(product => {
+                          const isSelected = selectedProducts.some(p => p.id === product.id);
+                          if (!isSelected) {
+                            handleProductSelect(product, true);
+                            addedCount++;
+                          }
+                        });
+                        toast.success(`Added ${addedCount} product(s) to bulk update`);
+                      }}
+                    >
+                      ✓ Select All ({searchResults.length})
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs px-3 bg-red-50 hover:bg-red-100 border-red-200 text-red-700"
+                      onClick={() => {
+                        let removedCount = 0;
+                        searchResults.forEach(product => {
+                          const isSelected = selectedProducts.some(p => p.id === product.id);
+                          if (isSelected) {
+                            handleProductSelect(product, false);
+                            removedCount++;
+                          }
+                        });
+                        if (removedCount > 0) {
+                          toast.success(`Removed ${removedCount} product(s) from selection`);
+                        }
+                      }}
+                    >
+                      ✕ Deselect All
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="border rounded-md max-h-96 overflow-y-auto">
+                {searchResults.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    {debouncedSearchTerm ? `No products found matching "${debouncedSearchTerm}"` : "Start typing to search for products..."}
+                  </p>
+                ) : (
+                  <div className="divide-y">
+                    {searchResults.map((product) => {
+                      const isSelected = selectedProducts.some(
+                        (p) => p.id === product.id
+                      );
+                      return (
+                        <div
+                          key={product.id}
+                          className={`flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-all duration-200 border-l-4 ${
+                            isSelected 
+                              ? "bg-blue-50 border-l-blue-500 shadow-sm" 
+                              : "border-l-transparent hover:border-l-gray-200"
+                          }`}
+                          onClick={() => {
+                            handleProductSelect(product, !isSelected);
+                            toast.success(`${isSelected ? 'Removed' : 'Added'} ${product.name}`, {
+                              duration: 1000,
+                            });
+                          }}
+                        >
+                          <div className="flex items-center gap-4 min-w-0 flex-1">
+                            <div className={`rounded-md p-1 ${isSelected ? 'bg-blue-100' : 'bg-gray-100'}`}>
                               <Checkbox
                                 checked={isSelected}
                                 onChange={() => {}}
+                                className="data-[state=checked]:bg-blue-600"
                               />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold truncate text-gray-900">
                                   {product.name}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
-                                  SKU: {product.sku || "N/A"} • Stock:{" "}
-                                  {product.availableStock}
-                                </p>
+                                {isSelected && (
+                                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 font-medium">
+                                    ✓ Selected
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 mt-1">
+                                <span className="text-xs text-gray-600 font-medium">
+                                  SKU: {product.sku || "N/A"}
+                                </span>
+                                <span className="text-xs">•</span>
+                                <span className="text-xs">
+                                  Stock:{" "}
+                                  <span className={`font-semibold ${
+                                    product.availableStock === 0 
+                                      ? "text-red-600" 
+                                      : product.availableStock < 10 
+                                        ? "text-orange-600" 
+                                        : "text-green-600"
+                                  }`}>
+                                    {product.availableStock} units
+                                  </span>
+                                </span>
                               </div>
                             </div>
-                            {isSelected && (
-                              <Badge variant="secondary" className="text-xs">
-                                Selected
-                              </Badge>
+                          </div>
+                          <div className="flex items-center">
+                            {isSelected ? (
+                              <div className="text-blue-600">
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            ) : (
+                              <div className="text-gray-400 hover:text-gray-600">
+                                <Plus className="w-5 h-5" />
+                              </div>
                             )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Selected Products - Compact Grid */}
-            <div className="flex-1 min-h-0">
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-medium">
+            <div className="flex flex-col min-h-0">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-base font-semibold text-gray-900">
                   Selected Products ({selectedProducts.length})
                 </Label>
                 {selectedProducts.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedProducts([])}
-                    className="text-xs h-7"
-                  >
-                    Clear All
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Quick set all to "Add 1 unit" for stock checks
+                        setSelectedProducts(prev => 
+                          prev.map(p => ({ ...p, direction: "add", quantity: 1, reason: "PHYSICAL_STOCK_CHECK" }))
+                        );
+                        toast.success("Set all to: Add 1 unit (Stock Check)");
+                      }}
+                      className="text-xs h-8 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                    >
+                      Quick: +1 Stock Check
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedProducts([])}
+                      className="text-xs h-8 bg-red-50 hover:bg-red-100 border-red-200 text-red-700"
+                    >
+                      ✕ Clear All
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -275,7 +397,7 @@ export function BulkInventoryDialog({
                   </p>
                 </div>
               ) : (
-                <div className="border rounded-md overflow-hidden">
+                <div className="border rounded-md overflow-hidden max-h-96 overflow-y-auto">
                   <div>
                     {selectedProducts.map((product, index) => (
                       <div
@@ -309,10 +431,11 @@ export function BulkInventoryDialog({
                           </Button>
                         </div>
 
-                        {/* Configuration Row - Compact */}
-                        <div className="flex items-center gap-3 flex-wrap">
+                        {/* Configuration Row - Improved */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                           {/* Direction */}
-                          <div className="flex items-center gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-gray-700">Action</Label>
                             <Select
                               value={product.direction}
                               onValueChange={(value: "add" | "subtract") =>
@@ -321,45 +444,61 @@ export function BulkInventoryDialog({
                                 })
                               }
                             >
-                              <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectTrigger className="h-9 text-sm">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="add" className="text-xs">
-                                  <Plus className="h-3 w-3 mr-2 inline" />
-                                  Add
+                                <SelectItem value="add" className="text-sm">
+                                  <Plus className="h-4 w-4 mr-2 inline text-green-600" />
+                                  Add Stock
                                 </SelectItem>
-                                <SelectItem
-                                  value="subtract"
-                                  className="text-xs"
-                                >
-                                  <Minus className="h-3 w-3 mr-2 inline" />
-                                  Remove
+                                <SelectItem value="subtract" className="text-sm">
+                                  <Minus className="h-4 w-4 mr-2 inline text-red-600" />
+                                  Remove Stock
                                 </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
 
                           {/* Quantity */}
-                          <div className="flex items-center gap-2">
-                            <Label className="text-xs text-muted-foreground">
-                              Qty:
-                            </Label>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={product.quantity}
-                              onChange={(e) =>
-                                handleUpdateProduct(product.id, {
-                                  quantity: parseInt(e.target.value) || 0,
-                                })
-                              }
-                              className="w-20 h-8 text-xs"
-                            />
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-gray-700">Quantity</Label>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 w-9 p-0"
+                                onClick={() => handleUpdateProduct(product.id, { quantity: Math.max(1, product.quantity - 1) })}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={product.quantity}
+                                onChange={(e) =>
+                                  handleUpdateProduct(product.id, {
+                                    quantity: parseInt(e.target.value) || 1,
+                                  })
+                                }
+                                className="h-9 text-center text-sm font-medium"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 w-9 p-0"
+                                onClick={() => handleUpdateProduct(product.id, { quantity: product.quantity + 1 })}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
 
                           {/* Reason */}
-                          <div className="flex items-center gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-gray-700">Reason</Label>
                             <Select
                               value={product.reason}
                               onValueChange={(
@@ -373,43 +512,67 @@ export function BulkInventoryDialog({
                                 })
                               }
                             >
-                              <SelectTrigger className="flex-1 min-w-0 h-8 text-xs">
+                              <SelectTrigger className="h-9 text-sm">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem
-                                  value="NEW_PURCHASE"
-                                  className="text-xs"
-                                >
-                                  Purchase
+                                <SelectItem value="NEW_PURCHASE" className="text-sm">
+                                  📦 New Purchase
                                 </SelectItem>
-                                <SelectItem
-                                  value="PHYSICAL_STOCK_CHECK"
-                                  className="text-xs"
-                                >
-                                  Stock Check
+                                <SelectItem value="PHYSICAL_STOCK_CHECK" className="text-sm">
+                                  📋 Physical Count
                                 </SelectItem>
-                                <SelectItem
-                                  value="RETURN_FROM_PREVIOUS_DISPATCH"
-                                  className="text-xs"
-                                >
-                                  Return
+                                <SelectItem value="RETURN_FROM_PREVIOUS_DISPATCH" className="text-sm">
+                                  📥 Return/Refund
                                 </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
 
                           {/* Preview */}
-                          <div className="flex-1 min-w-0 text-right">
-                            <p className="text-xs text-muted-foreground">
-                              New stock:{" "}
-                              <span className="font-medium">
-                                {product.direction === "add"
-                                  ? product.availableStock + product.quantity
-                                  : product.availableStock - product.quantity}
-                              </span>
-                            </p>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-gray-700">New Stock</Label>
+                            <div className={`h-9 px-3 rounded-md border flex items-center justify-center font-semibold text-sm ${
+                              product.direction === "add" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"
+                            }`}>
+                              {product.availableStock} → {" "}
+                              {product.direction === "add"
+                                ? product.availableStock + product.quantity
+                                : Math.max(0, product.availableStock - product.quantity)
+                              }
+                            </div>
                           </div>
+                        </div>
+
+                        {/* Quick Action Buttons */}
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                            onClick={() => handleUpdateProduct(product.id, { quantity: 1, direction: "add", reason: "PHYSICAL_STOCK_CHECK" })}
+                          >
+                            Quick: +1 Stock Check
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                            onClick={() => handleUpdateProduct(product.id, { quantity: 5, direction: "add", reason: "NEW_PURCHASE" })}
+                          >
+                            Quick: +5 Purchase
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7 bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
+                            onClick={() => handleUpdateProduct(product.id, { quantity: 10, direction: "add", reason: "NEW_PURCHASE" })}
+                          >
+                            Quick: +10 Purchase
+                          </Button>
                         </div>
                       </div>
                     ))}

@@ -353,5 +353,22 @@ html {
   100% { transform: translateX(100%); }
 }
 
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;             /* Safari and Chrome */
+  width: 0;                  /* Force width to 0 */
+  background: transparent;   /* Make background transparent */
+}
+.scrollbar-hide::-webkit-scrollbar-track {
+  display: none;
+}
+.scrollbar-hide::-webkit-scrollbar-thumb {
+  display: none;
+}
+
 
 
