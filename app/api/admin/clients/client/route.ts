@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { ClientUpdateInputObjectSchema } from "@/prisma/generated/schemas";
+import { ClientUpdateInputObjectSchema } from "@/lib/generated/zod/schemas";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import { withPermissions } from "@/lib/auth-middleware";
