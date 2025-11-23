@@ -110,26 +110,31 @@ export async function PATCH(req: NextRequest) {
       const clientEmail = order.client?.email ?? adminEmail;
 
       const orderTable = `
-        <table border="1" cellspacing="0" cellpadding="6">
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 16px;">
+        <thead>
           <tr>
-            <th>Product</th>
-            <th>Qty</th>
+            <th align="left">Product</th>
+            <th align="center">Quantity</th>
           </tr>
+        </thead>
+        <tbody>
           ${order.orderItems
             .map(
-              (i) =>
-                `<tr>
-                  <td>${i.product.name}</td>
-                  <td>${i.quantity}</td>
-                </tr>`
+              (item) => `
+            <tr>
+              <td>${item.product.name}</td>
+              <td align="center">${item.quantity}</td>
+            </tr>
+          `
             )
             .join("")}
-        </table>
+        </tbody>
+      </table>
       `;
 
       
 
-      const warehouseEmail = "ops@fitplaysolutions.com";
+      const warehouseEmail = "ops@fitplaysolutions.com"; 
 
       let subject = "";
       let footerMessage = "";

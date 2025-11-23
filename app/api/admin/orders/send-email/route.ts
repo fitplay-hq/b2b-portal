@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
 
     const adminEmail = process.env.ADMIN_EMAIL!;
     const ownerEmail = "vaibhav@fitplaysolutions.com";
-    const ccEmail = process.env.CC_EMAIL_1!;
 
     const mail =await resend.emails.send({
       from: "orders@fitplaysolutions.com",

@@ -76,7 +76,9 @@ export function ProductCard({
             {product.name}
           </CardTitle>
           <Badge variant="secondary" className="text-xs shrink-0">
-            {getHumanFriendlyCategoryName(product.categories)}
+            {getHumanFriendlyCategoryName(product.categories && product.categories[0]
+              ? product.categories[0]
+              : "Uncategorized")}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground mt-2">SKU: {product.sku}</p>
