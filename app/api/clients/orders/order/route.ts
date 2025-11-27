@@ -57,7 +57,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
-    // Generate order ID
     const year = new Date().getFullYear();
     const startOrder = company.name.split(" ")[0].toUpperCase();
 
@@ -83,7 +82,6 @@ export async function POST(req: NextRequest) {
       select: { id: true, price: true, availableStock: true },
     });
 
-    // Validate stock and inject prices if missing
     for (const item of items) {
       const product = itemsPrice.find((p) => p.id === item.productId);
       if (!product) {
@@ -109,46 +107,60 @@ export async function POST(req: NextRequest) {
     }
 
     let orderId = "";
-
     while (true) {
       orderId = `FP-${startOrder}${year}-${String(nextSequence).padStart(3, "0")}`;
-      const existingOrder = await prisma.order.findUnique({
-        where: { id: orderId },
-      });
+      const existingOrder = await prisma.order.findUnique({ where: { id: orderId } });
       if (!existingOrder) break;
       nextSequence++;
     }
 
-    // Create order WITHOUT updating inventory - inventory is updated only on approval
-    const order = await prisma.order.create({
-      data: {
-        id: orderId,
-        clientId: client.id,
-        consigneeName,
-        consigneePhone,
-        consigneeEmail,
-        city,
-        state,
-        pincode,
-        requiredByDate,
-        modeOfDelivery,
-        deliveryAddress,
-        deliveryReference,
-        packagingInstructions,
-        note,
-        totalAmount,
-        orderItems: {
-          create: items.map((item: any) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price ?? 0,
-          })),
+    // --------------------------
+    // 🔥 New logic: transaction (order + reduce stock)
+    // --------------------------
+    const order = await prisma.$transaction(async (tx) => {
+
+      const newOrder = await tx.order.create({
+        data: {
+          id: orderId,
+          clientId: client.id,
+          consigneeName,
+          consigneePhone,
+          consigneeEmail,
+          city,
+          state,
+          pincode,
+          requiredByDate,
+          modeOfDelivery,
+          deliveryAddress,
+          deliveryReference,
+          packagingInstructions,
+          note,
+          totalAmount,
+          orderItems: {
+            create: items.map((item: any) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price ?? 0,
+            })),
+          },
         },
-      },
-      include: { orderItems: true },
+        include: { orderItems: true },
+      });
+
+      for (const item of items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            availableStock: { decrement: item.quantity },
+            inventoryUpdateReason: "NEW_ORDER",
+          },
+        });
+      }
+
+      return newOrder;
     });
 
-    // ⬇️ your existing mail logic stays unchanged below
+    
     const products = await prisma.product.findMany({
       where: {
         id: {
@@ -189,7 +201,6 @@ export async function POST(req: NextRequest) {
     const ownerEmail = "vaibhav@fitplaysolutions.com";
 
     if (!adminEmail) throw new Error("Missing admin email");
-    if (!ccEmail) throw new Error("Missing CC email");
 
     const mail = await resend.emails.send({
       from: "orders@fitplaysolutions.com",
@@ -199,18 +210,9 @@ export async function POST(req: NextRequest) {
       html: `
         <h2>New Dispatch Order</h2>
         <p>A new order <b>${order.id}</b> has been created by ${session.user?.name || "Unknown Client"}.</p>
-        <h3>Consignee Details</h3>
-        <p><b>Name:</b> ${consigneeName}</p>
-        <p><b>Phone:</b> ${consigneePhone}</p>
-        <p><b>Email:</b> ${consigneeEmail}</p>
-        <p><b>Mode of Delivery:</b> ${modeOfDelivery}</p>
-        <p><b>Required By:</b> ${new Date(requiredByDate).toLocaleDateString()}</p>
-        <h3>Delivery Address</h3>
-        <p>${deliveryAddress}, ${city}, ${state}, ${pincode}</p>
         <h3>Order Summary</h3>
         ${orderTable}
         <p>${footerMessage}</p>
-        <p style="display: none;">&#8203;</p>
       `,
     });
 
@@ -227,6 +229,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
   }
 }
+
 
 
 export async function GET(req: NextRequest) {

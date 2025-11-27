@@ -86,25 +86,6 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
-      if (status === "APPROVED" && (currentStatus === "PENDING" || currentStatus === "CANCELLED")) {
-        console.log("Creating new order inventory logs for:", orderId);
-        for (const item of order.orderItems) {
-          const currentProduct = await prisma.product.findUnique({ where: { id: item.productId } });
-          if (!currentProduct) continue;
-          const newStock = Math.max(0, currentProduct.availableStock - item.quantity);
-          const logEntry = `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER`;
-          await prisma.product.update({
-            where: { id: item.productId },
-            data: {
-              availableStock: newStock,
-              inventoryLogs: {
-                push: logEntry,
-              },
-            },
-          });
-        }
-      }
-
       const adminEmail = process.env.ADMIN_EMAIL!;
       const ownerEmail = process.env.OWNER_EMAIL ?? "vaibhav@fitplaysolutions.com";
       const clientEmail = order.client?.email ?? adminEmail;
