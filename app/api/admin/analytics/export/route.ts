@@ -215,6 +215,12 @@ async function exportOrdersData(
 /**
  * Export inventory data as CSV
  */
+/**
+ * Export inventory data as CSV
+ */
+/**
+ * Export inventory data as CSV
+ */
 async function exportInventoryData(companyId: string | null) {
   console.log('📋 Starting inventory export with companyId:', companyId);
   const inventoryFilters: any = {};
@@ -238,7 +244,7 @@ async function exportInventoryData(companyId: string | null) {
   // Prepare data for Excel
   const excelData = products.map(product => {
     const stockQuantity = product.availableStock;
-    const lowThreshold = 10; // Default since field doesn't exist
+    const lowThreshold = 10;
     const stockStatus = stockQuantity === 0 
       ? 'Out of Stock' 
       : stockQuantity <= lowThreshold
@@ -247,9 +253,20 @@ async function exportInventoryData(companyId: string | null) {
     
     const stockValue = stockQuantity * (product.price || 0);
 
+    // Get first image URL if images is an array or string
+    let imageUrl = '';
+    if (product.images) {
+      if (Array.isArray(product.images)) {
+        imageUrl = product.images[0] || '';
+      } else if (typeof product.images === 'string') {
+        imageUrl = product.images;
+      }
+    }
+
     return {
       'Product ID': product.id,
       'Product Name': product.name,
+      'Product Image': imageUrl ? 'View Image' : 'No Image',
       'SKU': product.sku,
       'Category': product.categories || 'Uncategorized',
       'Companies': product.companies.map(c => c.name).join(', '),
@@ -267,10 +284,34 @@ async function exportInventoryData(companyId: string | null) {
   // Create worksheet
   const worksheet = XLSX.utils.json_to_sheet(excelData);
 
+  // Add hyperlinks to the Product Image column (Column C)
+  products.forEach((product, index) => {
+    if (product.images) {
+      // Extract image URL - handle both string and array
+      let imageUrl = '';
+      if (Array.isArray(product.images)) {
+        imageUrl = product.images[0] || '';
+      } else if (typeof product.images === 'string') {
+        imageUrl = product.images;
+      }
+
+      // Only add hyperlink if we have a valid string URL
+      if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '') {
+        const cellAddress = `C${index + 2}`; // Column C, starting from row 2
+        worksheet[cellAddress] = {
+          t: 's',
+          v: 'View Image',
+          l: { Target: imageUrl, Tooltip: 'Click to view product image' }
+        };
+      }
+    }
+  });
+
   // Set column widths for better readability
   const columnWidths = [
     { wch: 15 }, // Product ID
     { wch: 25 }, // Product Name
+    { wch: 15 }, // Product Image
     { wch: 15 }, // SKU
     { wch: 15 }, // Category
     { wch: 20 }, // Companies

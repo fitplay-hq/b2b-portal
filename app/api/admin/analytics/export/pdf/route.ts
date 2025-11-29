@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/lib/prisma';
-import { hasPermission } from '@/lib/utils';
-import { RESOURCES, PERMISSIONS } from '@/lib/utils';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { auth } from "@/app/api/auth/[...nextauth]/route";
+import prisma from "@/lib/prisma";
+import { hasPermission } from "@/lib/utils";
+import { RESOURCES, PERMISSIONS } from "@/lib/utils";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 /**
  * GET /api/admin/analytics/export/pdf
@@ -12,56 +12,74 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('🚀 PDF Export API called:', request.url);
+    console.log("🚀 PDF Export API called:", request.url);
     const session = await getServerSession(auth);
-    
+
     if (!session?.user) {
-      console.log('❌ No session found');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.log("❌ No session found");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log('✅ User authenticated:', session.user.email, 'Role:', session.user.role);
+    console.log(
+      "✅ User authenticated:",
+      session.user.email,
+      "Role:",
+      session.user.role
+    );
 
     // Check analytics export permission (ADMIN users have full access)
-    if (session.user.role !== 'ADMIN') {
+    if (session.user.role !== "ADMIN") {
       const userPermissions = session.user.permissions || [];
-      if (!hasPermission(userPermissions, RESOURCES.ANALYTICS, PERMISSIONS.EXPORT)) {
-        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      if (
+        !hasPermission(userPermissions, RESOURCES.ANALYTICS, PERMISSIONS.EXPORT)
+      ) {
+        return NextResponse.json(
+          { error: "Insufficient permissions" },
+          { status: 403 }
+        );
       }
     }
 
     const { searchParams } = new URL(request.url);
-    const exportType = searchParams.get('type') || 'orders'; // orders or inventory
-    const dateFrom = searchParams.get('dateFrom');
-    const dateTo = searchParams.get('dateTo');
-    const clientId = searchParams.get('clientId');
-    const companyId = searchParams.get('companyId');
-    const status = searchParams.get('status');
+    const exportType = searchParams.get("type") || "orders"; // orders or inventory
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
+    const clientId = searchParams.get("clientId");
+    const companyId = searchParams.get("companyId");
+    const status = searchParams.get("status");
 
-    console.log('📊 PDF Export parameters:', {
+    console.log("📊 PDF Export parameters:", {
       exportType,
       dateFrom,
       dateTo,
       clientId,
       companyId,
-      status
+      status,
     });
 
-    if (exportType === 'orders') {
-      console.log('📦 Exporting orders data as PDF...');
-      return await exportOrdersPDF(dateFrom, dateTo, clientId, companyId, status);
-    } else if (exportType === 'inventory') {
-      console.log('📋 Exporting inventory data as PDF...');
+    if (exportType === "orders") {
+      console.log("📦 Exporting orders data as PDF...");
+      return await exportOrdersPDF(
+        dateFrom,
+        dateTo,
+        clientId,
+        companyId,
+        status
+      );
+    } else if (exportType === "inventory") {
+      console.log("📋 Exporting inventory data as PDF...");
       return await exportInventoryPDF(companyId);
     } else {
-      console.log('❌ Invalid export type:', exportType);
-      return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
+      console.log("❌ Invalid export type:", exportType);
+      return NextResponse.json(
+        { error: "Invalid export type" },
+        { status: 400 }
+      );
     }
-
   } catch (error) {
-    console.error('Analytics PDF Export API Error:', error);
+    console.error("Analytics PDF Export API Error:", error);
     return NextResponse.json(
-      { error: 'Failed to export PDF analytics data' }, 
+      { error: "Failed to export PDF analytics data" },
       { status: 500 }
     );
   }
@@ -71,14 +89,20 @@ export async function GET(request: NextRequest) {
  * Export orders data as PDF
  */
 async function exportOrdersPDF(
-  dateFrom: string | null, 
-  dateTo: string | null, 
-  clientId: string | null, 
-  companyId: string | null, 
+  dateFrom: string | null,
+  dateTo: string | null,
+  clientId: string | null,
+  companyId: string | null,
   status: string | null
 ) {
-  console.log('📦 Starting orders PDF export with filters:', { dateFrom, dateTo, clientId, companyId, status });
-  
+  console.log("📦 Starting orders PDF export with filters:", {
+    dateFrom,
+    dateTo,
+    clientId,
+    companyId,
+    status,
+  });
+
   // Build date filter
   const dateFilter: Record<string, Date> = {};
   if (dateFrom) {
@@ -107,21 +131,21 @@ async function exportOrdersPDF(
     where: orderFilters,
     include: {
       client: {
-        select: { id: true, name: true, email: true }
+        select: { id: true, name: true, email: true },
       },
       orderItems: {
         include: {
           product: {
-            select: { id: true, name: true, categories: true }
-          }
-        }
-      }
+            select: { id: true, name: true, categories: true },
+          },
+        },
+      },
     },
-    orderBy: { createdAt: 'desc' },
-    take: 50 // Limit for PDF readability
+    orderBy: { createdAt: "desc" },
+    take: 50, // Limit for PDF readability
   });
 
-  console.log('📊 Orders found for PDF export:', orders.length);
+  console.log("📊 Orders found for PDF export:", orders.length);
 
   // Create PDF document
   const pdfDoc = await PDFDocument.create();
@@ -135,7 +159,7 @@ async function exportOrdersPDF(
   const lineHeight = 15;
 
   // Header
-  page.drawText('Orders Export Report', {
+  page.drawText("Orders Export Report", {
     x: margin,
     y: yPosition,
     size: 20,
@@ -176,10 +200,20 @@ async function exportOrdersPDF(
       order.deliveryAddress,
       order.city,
       order.state,
-      order.pincode
-    ].filter(part => part && part !== 'Address' && part !== 'City' && part !== 'State' && part !== '000000');
-    
-    const fullShippingAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Address not provided';
+      order.pincode,
+    ].filter(
+      (part) =>
+        part &&
+        part !== "Address" &&
+        part !== "City" &&
+        part !== "State" &&
+        part !== "000000"
+    );
+
+    const fullShippingAddress =
+      addressParts.length > 0
+        ? addressParts.join(", ")
+        : "Address not provided";
 
     // Order header
     page.drawText(`Order #${order.id.slice(-8)}`, {
@@ -191,22 +225,30 @@ async function exportOrdersPDF(
     });
 
     yPosition -= lineHeight;
-    page.drawText(`Client: ${order.client?.name || 'N/A'} | Status: ${order.status}`, {
-      x: margin,
-      y: yPosition,
-      size: 10,
-      font: font,
-      color: rgb(0.2, 0.2, 0.2),
-    });
+    page.drawText(
+      `Client: ${order.client?.name || "N/A"} | Status: ${order.status}`,
+      {
+        x: margin,
+        y: yPosition,
+        size: 10,
+        font: font,
+        color: rgb(0.2, 0.2, 0.2),
+      }
+    );
 
     yPosition -= lineHeight;
-    page.drawText(`Amount: Rs.${order.totalAmount || 0} | Date: ${new Date(order.createdAt).toLocaleDateString()}`, {
-      x: margin,
-      y: yPosition,
-      size: 10,
-      font: font,
-      color: rgb(0.2, 0.2, 0.2),
-    });
+    page.drawText(
+      `Amount: Rs.${order.totalAmount || 0} | Date: ${new Date(
+        order.createdAt
+      ).toLocaleDateString()}`,
+      {
+        x: margin,
+        y: yPosition,
+        size: 10,
+        font: font,
+        color: rgb(0.2, 0.2, 0.2),
+      }
+    );
 
     yPosition -= lineHeight;
     page.drawText(`Shipping: ${fullShippingAddress}`, {
@@ -220,7 +262,7 @@ async function exportOrdersPDF(
     // Items
     if (order.orderItems && order.orderItems.length > 0) {
       yPosition -= lineHeight;
-      page.drawText('Items:', {
+      page.drawText("Items:", {
         x: margin + 10,
         y: yPosition,
         size: 10,
@@ -234,14 +276,19 @@ async function exportOrdersPDF(
           page = pdfDoc.addPage([595.28, 841.89]);
           yPosition = 800;
         }
-        
-        page.drawText(`• ${item.product?.name || 'Unknown'} - Qty: ${item.quantity}, Price: Rs.${item.price}`, {
-          x: margin + 20,
-          y: yPosition,
-          size: 9,
-          font: font,
-          color: rgb(0.3, 0.3, 0.3),
-        });
+
+        page.drawText(
+          `• ${item.product?.name || "Unknown"} - Qty: ${
+            item.quantity
+          }, Price: Rs.${item.price}`,
+          {
+            x: margin + 20,
+            y: yPosition,
+            size: 9,
+            font: font,
+            color: rgb(0.3, 0.3, 0.3),
+          }
+        );
       }
     }
 
@@ -250,14 +297,21 @@ async function exportOrdersPDF(
 
   // Generate PDF bytes
   const pdfBytes = await pdfDoc.save();
-  const filename = `orders_export_${new Date().toISOString().split('T')[0]}.pdf`;
+  const filename = `orders_export_${
+    new Date().toISOString().split("T")[0]
+  }.pdf`;
 
-  console.log('📋 PDF generated, orders:', orders.length, 'filename:', filename);
+  console.log(
+    "📋 PDF generated, orders:",
+    orders.length,
+    "filename:",
+    filename
+  );
 
   return new NextResponse(Buffer.from(pdfBytes), {
     headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 }
@@ -265,9 +319,38 @@ async function exportOrdersPDF(
 /**
  * Export inventory data as PDF
  */
+
+function wrapText(text: string, maxChars: number) {
+  const lines: string[] = [];
+
+  // If the text contains spaces (normal text), wrap normally
+  if (text.includes(" ")) {
+    const words = text.split(" ");
+    let line = "";
+
+    for (const word of words) {
+      if ((line + word).length > maxChars) {
+        lines.push(line.trim());
+        line = word + " ";
+      } else {
+        line += word + " ";
+      }
+    }
+
+    if (line.trim()) lines.push(line.trim());
+  } else {
+    // No spaces (URL or long string) → slice in fixed chunks
+    for (let i = 0; i < text.length; i += maxChars) {
+      lines.push(text.slice(i, i + maxChars));
+    }
+  }
+
+  return lines;
+}
+
 async function exportInventoryPDF(companyId: string | null) {
-  console.log('📋 Starting inventory PDF export with companyId:', companyId);
-  
+  console.log("📋 Starting inventory PDF export with companyId:", companyId);
+
   const inventoryFilters: Record<string, any> = {};
   if (companyId) {
     inventoryFilters.companyId = companyId;
@@ -277,11 +360,11 @@ async function exportInventoryPDF(companyId: string | null) {
     where: inventoryFilters,
     include: {
       companies: {
-        select: { id: true, name: true }
-      }
+        select: { id: true, name: true },
+      },
     },
-    orderBy: { name: 'asc' },
-    take: 100 // Limit for PDF readability
+    orderBy: { name: "asc" },
+    take: 100, // Limit for PDF readability
   });
 
   // Create PDF document
@@ -296,7 +379,7 @@ async function exportInventoryPDF(companyId: string | null) {
   const lineHeight = 15;
 
   // Header
-  page.drawText('Inventory Export Report', {
+  page.drawText("Inventory Export Report", {
     x: margin,
     y: yPosition,
     size: 20,
@@ -334,12 +417,13 @@ async function exportInventoryPDF(companyId: string | null) {
 
     const stockQuantity = product.availableStock;
     const lowThreshold = 10;
-    const stockStatus = stockQuantity === 0 
-      ? 'Out of Stock' 
-      : stockQuantity <= lowThreshold
-      ? 'Low Stock'
-      : 'In Stock';
-    
+    const stockStatus =
+      stockQuantity === 0
+        ? "Out of Stock"
+        : stockQuantity <= lowThreshold
+        ? "Low Stock"
+        : "In Stock";
+
     const stockValue = stockQuantity * (product.price || 0);
 
     // Product header
@@ -352,45 +436,103 @@ async function exportInventoryPDF(companyId: string | null) {
     });
 
     yPosition -= lineHeight;
-    page.drawText(`SKU: ${product.sku || 'N/A'} | Category: ${product.categories || 'Uncategorized'}`, {
+
+    const imageUrl = product.images ? product.images.toString() : "No image";
+    // Print label first
+    page.drawText("Images:", {
       x: margin,
       y: yPosition,
       size: 10,
-      font: font,
-      color: rgb(0.2, 0.2, 0.2),
+      font,
     });
+    yPosition -= lineHeight;
+
+    // Wrap ONLY the URL part
+    const urlLines = wrapText(imageUrl, 100);
+
+    for (const line of urlLines) {
+      page.drawText(line, {
+        x: margin + 20, // indent for neat formatting
+        y: yPosition,
+        size: 10,
+        font,
+        color: rgb(0.2, 0.2, 0.8),
+      });
+
+      yPosition -= lineHeight;
+
+      if (yPosition < 100) {
+        page = pdfDoc.addPage([595.28, 841.89]);
+        yPosition = 800;
+      }
+    }
+
+    page.drawText(
+      `SKU: ${product.sku || "N/A"} | Category: ${
+        product.categories || "Uncategorized"
+      }`,
+      {
+        x: margin,
+        y: yPosition,
+        size: 10,
+        font: font,
+        color: rgb(0.2, 0.2, 0.2),
+      }
+    );
 
     yPosition -= lineHeight;
-    page.drawText(`Stock: ${stockQuantity} | Status: ${stockStatus} | Price: Rs.${product.price || 0}`, {
-      x: margin,
-      y: yPosition,
-      size: 10,
-      font: font,
-      color: stockStatus === 'Out of Stock' ? rgb(0.8, 0, 0) : stockStatus === 'Low Stock' ? rgb(0.8, 0.5, 0) : rgb(0, 0.6, 0),
-    });
+    page.drawText(
+      `Stock: ${stockQuantity} | Status: ${stockStatus} | Price: Rs.${
+        product.price || 0
+      }`,
+      {
+        x: margin,
+        y: yPosition,
+        size: 10,
+        font: font,
+        color:
+          stockStatus === "Out of Stock"
+            ? rgb(0.8, 0, 0)
+            : stockStatus === "Low Stock"
+            ? rgb(0.8, 0.5, 0)
+            : rgb(0, 0.6, 0),
+      }
+    );
 
     yPosition -= lineHeight;
-    page.drawText(`Value: Rs.${stockValue.toFixed(2)} | Companies: ${product.companies.map(c => c.name).join(', ')}`, {
-      x: margin,
-      y: yPosition,
-      size: 10,
-      font: font,
-      color: rgb(0.2, 0.2, 0.2),
-    });
+    page.drawText(
+      `Value: Rs.${stockValue.toFixed(2)} | Companies: ${product.companies
+        .map((c) => c.name)
+        .join(", ")}`,
+      {
+        x: margin,
+        y: yPosition,
+        size: 10,
+        font: font,
+        color: rgb(0.2, 0.2, 0.2),
+      }
+    );
 
     yPosition -= 25; // Space between products
   }
 
   // Generate PDF bytes
   const pdfBytes = await pdfDoc.save();
-  const filename = `inventory_export_${new Date().toISOString().split('T')[0]}.pdf`;
+  const filename = `inventory_export_${
+    new Date().toISOString().split("T")[0]
+  }.pdf`;
 
-  console.log('📋 PDF generated, products:', products.length, 'filename:', filename);
+  console.log(
+    "📋 PDF generated, products:",
+    products.length,
+    "filename:",
+    filename
+  );
 
   return new NextResponse(Buffer.from(pdfBytes), {
     headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 }
