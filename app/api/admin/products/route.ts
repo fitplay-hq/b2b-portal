@@ -8,7 +8,7 @@ import { RESOURCES } from "@/lib/utils";
 
 // Import the auto-generated Zod schema
 import z from "zod";
-import { ProductCreateInputObjectSchema } from "@/lib/generated/zod/schemas";
+import { ProductCreateInputObjectSchema } from "@/lib/generated/zod/schemas/objects";
 const InventoryUpdateSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.number().positive(),
