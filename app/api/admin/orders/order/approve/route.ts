@@ -209,6 +209,7 @@ export async function PATCH(req: NextRequest) {
           <p>${footerMessage}</p>
         `;
       }
+      
 
       if (status && status !== "PENDING" && subject && htmlBody && toEmails.length > 0) {
         try {
