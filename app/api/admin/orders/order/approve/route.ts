@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest) {
         });
       }
 
-      if (status === "CANCELLED" && (currentStatus === "APPROVED" || currentStatus === "READY_FOR_DISPATCH")) {
+      if (status === "CANCELLED" && (currentStatus === "PENDING" || currentStatus === "APPROVED" || currentStatus === "READY_FOR_DISPATCH")) {
         console.log("Restoring inventory for cancelled order:", orderId);
         for (const item of order.orderItems) {
           const currentProduct = await prisma.product.findUnique({ where: { id: item.productId } });
