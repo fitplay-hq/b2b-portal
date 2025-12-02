@@ -15,7 +15,7 @@ import { useProducts } from "@/data/product/client.hooks";
 
 export default function ClientProductsPage() {
   const { data: session, status } = useSession();
-  const { products, error, isLoading } = useProducts();
+  const { products, error, isLoading, mutate } = useProducts();
 
   const userId = session?.user.id || "1";
   const { totalCartItems, addToCart, getCartQuantity } = useCart(userId);
@@ -25,6 +25,10 @@ export default function ClientProductsPage() {
   const handleClearFilters = () => {
     filterProps.setSearchTerm("");
     filterProps.setSelectedCategory("All Categories");
+  };
+
+  const handleRefresh = async () => {
+    await mutate();
   };
 
   // Handle authentication
@@ -73,7 +77,11 @@ export default function ClientProductsPage() {
   return (
     <Layout title="Products" isClient>
       <div className="space-y-6">
-        <PageHeader totalCartItems={totalCartItems} />
+        <PageHeader 
+          totalCartItems={totalCartItems} 
+          onRefresh={handleRefresh}
+          isRefreshing={isLoading}
+        />
 
         <ProductFilters
           {...filterProps}

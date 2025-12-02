@@ -224,9 +224,9 @@ export default function ClientCheckout() {
                   >
                     <div className="w-20 h-20 flex-shrink-0">
                       <ImageWithFallback
-                        src={item.product.images[0]}
+                        src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
                         alt={item.product.name}
-                        className="w-full h-full object-cover rounded"
+                        className="w-16 h-16 object-cover rounded"
                       />
                     </div>
 
@@ -446,9 +446,9 @@ export default function ClientCheckout() {
                   <div key={item.product.id} className="flex gap-3">
                     <div className="w-12 h-12 flex-shrink-0">
                       <ImageWithFallback
-                        src={item.product.images[0]}
+                        src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
                         alt={item.product.name}
-                        className="w-full h-full object-cover rounded"
+                        className="w-12 h-12 object-cover rounded"
                       />
                     </div>
                     <div className="flex-1 min-w-0">

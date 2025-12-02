@@ -59,7 +59,7 @@ export function ProductCard({
       <CardHeader className="p-0">
         <div className="aspect-square relative">
           <ImageWithFallback
-            src={product.images[0]}
+            src={`${product.images[0]}?v=${product.updatedAt || Date.now()}`}
             alt={product.name}
             className="w-full h-full object-cover rounded-t-lg"
           />
