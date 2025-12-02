@@ -252,11 +252,6 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
               "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
         };
-
-        // Only include companies if it's explicitly set (preserve existing relationships if not changed)
-        if (formData.company) {
-          productUpdateData.companies = [{ id: formData.company }];
-        }
         await updateProduct(productUpdateData as any);
         toast.success("Product updated successfully!");
       } else {
