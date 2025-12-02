@@ -236,7 +236,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
 
       if (editingProduct) {
         // Prepare the data for the API (not Prisma format)
-        const productUpdateData = {
+        const productUpdateData: any = {
           id: editingProduct.id,
           name: formData.name,
           sku,
@@ -251,8 +251,12 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
             formData.image ||
               "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
-          companies: formData.company ? [{ id: formData.company }] : undefined,
         };
+
+        // Only include companies if it's explicitly set (preserve existing relationships if not changed)
+        if (formData.company) {
+          productUpdateData.companies = [{ id: formData.company }];
+        }
         await updateProduct(productUpdateData as any);
         toast.success("Product updated successfully!");
       } else {

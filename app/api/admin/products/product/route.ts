@@ -185,12 +185,12 @@ export async function PATCH(req: NextRequest) {
         ...(body.noOfReviews !== undefined && { noOfReviews: body.noOfReviews }),
         ...(body.inventoryUpdateReason && { inventoryUpdateReason: body.inventoryUpdateReason }),
         ...categoryData,
-        // Handle company relationships
-        ...(body.companies && Array.isArray(body.companies) 
+        // Handle company relationships - only update if companies is explicitly provided
+        ...(body.companies !== undefined && Array.isArray(body.companies) 
           ? { companies: { set: body.companies.map((c: any) => ({ id: c.id || c })) } }
-          : body.companies && body.companies.set 
+          : body.companies && typeof body.companies === 'object' && body.companies.set 
           ? { companies: body.companies }
-          : {}
+          : {} // Don't modify company relationships if not provided
         ),
       };
 
