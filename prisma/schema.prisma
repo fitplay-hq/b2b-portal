@@ -145,6 +145,7 @@ enum Category {
   books
   welcomeKit
   newcategory
+  consumables
 }
 
 enum Status {

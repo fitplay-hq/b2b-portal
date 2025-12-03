@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
         name: body.name,
         sku: body.sku,
         description: body.description || "",
+        categories : body.categories,
         price: body.price ? parseInt(body.price.toString()) : null,
         availableStock: body.availableStock,
         images: body.images || [],
@@ -176,6 +177,7 @@ export async function PATCH(req: NextRequest) {
       const updateData = {
         ...(body.name && { name: body.name }),
         ...(body.sku && { sku: body.sku }),
+        ...(body.categories && { categories: body.categories }),
         ...(body.description !== undefined && { description: body.description }),
         ...(body.price !== undefined && { price: body.price ? parseInt(body.price.toString()) : null }),
         ...(body.availableStock !== undefined && { availableStock: body.availableStock }),
@@ -194,7 +196,6 @@ export async function PATCH(req: NextRequest) {
         ),
       };
 
-      console.log("Updating product with data:", JSON.stringify(updateData, null, 2));
 
       const product = await prisma.product.update({
         where: { id: body.id.toString() },
