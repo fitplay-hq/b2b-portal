@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Resend } from "resend";
 import { tree } from "next/dist/build/templates/app-page";
+import { exit } from "process";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 if (!resendApiKey) throw new Error("RESEND_API_KEY is not defined");
@@ -22,29 +23,36 @@ export async function POST(req: NextRequest) {
             where: { email },
         });
 
-        if (isAdmin) {
-            return NextResponse.json(
-                { message: "Admins don't need 2FA", admin: true },
-                { status: 200 }
-            );
-        }
-
         let existingUser;
-        // Check if email already exists (for someone else)
-        existingUser = await prisma.client.findUnique({
-            where: { email },
-        });
-
-        if (!existingUser) {
-            existingUser = await prisma.systemUser.findUnique({
+        
+        if (isAdmin) {
+            existingUser = await prisma.admin.findUnique({
                 where: { email },
             });
+        }
+        else {
+            existingUser = await prisma.client.findUnique({
+                where: { email },
+            });
+    
             if (!existingUser) {
-                return NextResponse.json(
-                    { error: "User doesn't exists" },
-                    { status: 400 }
-                );
+                existingUser = await prisma.systemUser.findUnique({
+                    where: { email },
+                });
+                if (!existingUser) {
+                    return NextResponse.json(
+                        { error: "User doesn't exists" },
+                        { status: 400 }
+                    );
+                }
             }
+        }
+
+        if (!existingUser) {
+            return NextResponse.json(
+                { error: "User doesn't exists" },
+                { status: 400 }
+            );
         }
 
         // send verification mail
@@ -57,8 +65,7 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        const baseUrl =
-            process.env.VERCEL_URL ||
+        const baseUrl = process.env.NODE_ENV === "production" ? "https://portal.fitplaysolutions.com" :
             process.env.NEXTAUTH_URL ||
             "http://localhost:3000";
         const verifyLink = `${baseUrl}/verify?token=${verifyToken}`;
