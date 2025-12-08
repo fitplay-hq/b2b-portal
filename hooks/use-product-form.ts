@@ -241,7 +241,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           name: formData.name,
           sku,
           price,
-          availableStock,
+          // Don't send availableStock for updates - use inventory management instead
           // Only set categories enum field if it's a legacy category
           ...(isLegacyCategory && { categories: formData.categories as Category }),
           categoryId: selectedCategory?.id, // Send categoryId directly
