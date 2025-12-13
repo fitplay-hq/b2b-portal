@@ -7,9 +7,12 @@ import { RESOURCES } from "@/lib/utils";
 // GET /api/admin/users/[id] - Get user by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params for Next.js 15+ compatibility
+    const { id } = await params;
+
     // Check permissions - only ADMIN should access users
     const permissionCheck = await checkPermission(RESOURCES.USERS, 'view');
     if (!permissionCheck.success) {
@@ -20,7 +23,7 @@ export async function GET(
     }
 
     const user = await prisma.systemUser.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         role: {
           include: {
@@ -62,9 +65,12 @@ export async function GET(
 // PUT /api/admin/users/[id] - Update user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params for Next.js 15+ compatibility
+    const { id } = await params;
+
     // Check permissions - only ADMIN should update users
     const permissionCheck = await checkPermission(RESOURCES.USERS, 'update');
     if (!permissionCheck.success) {
@@ -79,7 +85,7 @@ export async function PUT(
 
     // Check if user exists
     const existingUser = await prisma.systemUser.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingUser) {
@@ -128,7 +134,7 @@ export async function PUT(
 
     // Update user
     const updatedUser = await prisma.systemUser.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         role: {
@@ -167,9 +173,22 @@ export async function PUT(
 // DELETE /api/admin/users/[id] - Delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params for Next.js 15+ compatibility
+    const { id } = await params;
+
+    // Validate that id exists
+    if (!id) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
+    console.log("DELETE user request - ID:", id);
+
     // Check permissions - only ADMIN should delete users
     const permissionCheck = await checkPermission(RESOURCES.USERS, 'delete');
     if (!permissionCheck.success) {
@@ -179,23 +198,42 @@ export async function DELETE(
       );
     }
 
+    // Get current user session to prevent self-deletion
+    const session = permissionCheck.session;
+    if (session?.user?.id === id) {
+      return NextResponse.json(
+        { error: "Cannot delete your own account" },
+        { status: 400 }
+      );
+    }
+
     // Check if user exists
     const existingUser = await prisma.systemUser.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    console.log("Deleting user:", { id, name: existingUser.name });
+
     // Delete user
     await prisma.systemUser.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     return NextResponse.json({ message: "User deleted successfully" });
   } catch (error) {
+    // Log detailed error for server-side debugging
     console.error("Error deleting user:", error);
+    console.error("Error details:", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+      userId: id
+    });
+    
+    // Return generic error message to frontend
     return NextResponse.json(
       { error: "Failed to delete user" },
       { status: 500 }

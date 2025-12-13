@@ -44,8 +44,8 @@ export function ProductFormDialog({
           </DialogTitle>
           <DialogDescription>
             {editingProduct
-              ? "Update the product information. Fields marked with * are required. Image is optional and will use a default if not provided."
-              : "Fill in the details to add a new product. Fields marked with * are required. Image is optional and will use a default if not provided."}
+              ? "Update the product information. Fields marked with * are required. Note: Stock levels are managed through inventory management with proper tracking reasons."
+              : "Fill in the details to add a new product. Fields marked with * are required. After creation, stock changes must be done through inventory management."}
           </DialogDescription>
         </DialogHeader>
         <div 
@@ -85,8 +85,9 @@ export function ProductFormDialog({
                 toast.error("SKU is required");
                 return;
               }
-              if (!formData.availableStock || Number(formData.availableStock) < 0) {
-                toast.error("Stock is required and cannot be negative");
+              // Stock validation only for new products
+              if (!editingProduct && (!formData.availableStock || Number(formData.availableStock) < 0)) {
+                toast.error("Initial stock is required for new products and cannot be negative");
                 return;
               }
               if (!formData.description.trim()) {
@@ -201,18 +202,22 @@ export function ProductFormDialog({
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="stock">Stock <span className="text-red-500">*</span></Label>
-              <Input
-                id="stock"
-                type="number"
-                value={formData.availableStock}
-                onChange={(e) =>
-                  setFormData({ ...formData, availableStock: e.target.value })
-                }
-                required
-              />
-            </div>
+            {/* Stock field only for new products */}
+            {!editingProduct && (
+              <div className="space-y-2">
+                <Label htmlFor="stock">Stock <span className="text-red-500">*</span></Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  value={formData.availableStock}
+                  onChange={(e) =>
+                    setFormData({ ...formData, availableStock: e.target.value })
+                  }
+                  required
+                  placeholder="Enter initial stock quantity"
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

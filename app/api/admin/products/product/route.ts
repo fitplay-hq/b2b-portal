@@ -180,7 +180,8 @@ export async function PATCH(req: NextRequest) {
         ...(body.categories && { categories: body.categories }),
         ...(body.description !== undefined && { description: body.description }),
         ...(body.price !== undefined && { price: body.price ? parseInt(body.price.toString()) : null }),
-        ...(body.availableStock !== undefined && { availableStock: body.availableStock }),
+        // Remove availableStock from updates - use inventory management instead
+        // ...(body.availableStock !== undefined && { availableStock: body.availableStock }),
         ...(body.images && { images: body.images }),
         ...(body.brand !== undefined && { brand: body.brand }),
         ...(body.avgRating !== undefined && { avgRating: body.avgRating }),
