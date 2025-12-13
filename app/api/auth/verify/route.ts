@@ -49,39 +49,53 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        let systemUser;
-        let admin;
+        // Since the backend developer stored userId and userType in the token,
+        // we can use that to directly authenticate the user
+        console.log(`🔑 Token contains userId: ${record.userId}, userType: ${record.userType}`);
 
-        // Check if user exists
-        const user = await prisma.client.findUnique({
-            where: { email: record.identifier },
-        });
+        // Verify the stored user still exists based on userType
+        let user;
+        let userRole;
+        
+        if (record.userType === "CLIENT") {
+            user = await prisma.client.findUnique({
+                where: { id: record.userId },
+            });
+            userRole = "CLIENT";
+        } else if (record.userType === "ADMIN") {
+            user = await prisma.admin.findUnique({
+                where: { id: record.userId },
+            });
+            userRole = "ADMIN";
+        } else if (record.userType === "SYSTEM_USER") {
+            user = await prisma.systemUser.findUnique({
+                where: { id: record.userId },
+                include: { role: true },
+            });
+            userRole = user?.role?.name || "SYSTEM_USER";
+        }
 
         if (!user) {
-            console.log(`❌ User not found for email: ${record.identifier}`);
-            systemUser = await prisma.systemUser.findUnique({
-                where: { email: record.identifier },
-            });
-
-            if (!systemUser) {
-                admin = await prisma.admin.findUnique({
-                    where: { email: record.identifier },
-                });
-
-                if (!admin) {
-                    return NextResponse.json({ error: "User not found" }, { status: 400 });
-                }
-            }
+            console.log(`❌ User not found for userId: ${record.userId}, userType: ${record.userType}`);
+            return NextResponse.json({ error: "User not found" }, { status: 400 });
         }
 
         // Delete the used token
         await prisma.resetToken.delete({ where: { token: String(token) } });
 
         console.log(`✅ Email verified successfully for: ${record.identifier}`);
+        
+        // Return user data for the frontend to handle NextAuth session creation
         return NextResponse.json({
             message: "Email verified successfully",
             verified: true,
             email: record.identifier,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: userRole,
+            }
         });
     } catch (err) {
         console.error("🔥 Verification error:", err);

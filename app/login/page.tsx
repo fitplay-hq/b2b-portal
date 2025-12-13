@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -25,13 +26,20 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
+    // Validate both email and password are provided
+    if (!email || !password) {
+      setError("Please provide both email and password");
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/auth/2fa", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -219,6 +227,21 @@ export default function LoginPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="Enter your email address"
+                          className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="password" className="text-gray-700 font-medium">
+                          Password
+                        </Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Enter your password"
                           className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
                           required
                         />

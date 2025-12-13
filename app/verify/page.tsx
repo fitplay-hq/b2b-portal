@@ -13,12 +13,9 @@ import { FitplayLogo } from "@/components/fitplay-logo";
 import { signIn } from "next-auth/react";
 
 function VerifyContent() {
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(true);
-  const [verified, setVerified] = useState(false);
-  const [email, setEmail] = useState("");
+  const [success, setSuccess] = useState(false);
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -38,41 +35,39 @@ function VerifyContent() {
       const response = await fetch(`/api/auth/verify?token=${token}`);
       const data = await response.json();
 
-      if (response.ok) {
-        setVerified(true);
+      if (response.ok && data.verified) {
+        console.log("✅ Email verification successful, logging in user");
+        
+        // Use NextAuth signIn with special password for email-verified users
+        const result = await signIn("credentials", {
+          email: data.email,
+          password: "EMAIL_VERIFIED", // Special flag for email verification flow
+          redirect: false,
+        });
+
+        if (result?.error) {
+          console.error("❌ Login after verification failed:", result.error);
+          setError("Login failed after verification. Please try logging in manually.");
+          setVerifying(false);
+          return;
+        }
+
+        console.log("✅ User logged in successfully after email verification");
+        setSuccess(true);
         setVerifying(false);
-        setEmail(data.email || "");
+        
+        // Redirect after showing success message
+        setTimeout(() => {
+          router.push("/");
+        }, 1500);
       } else {
         setError(data.error || "Verification failed");
         setVerifying(false);
       }
-    } catch {
+    } catch (err) {
+      console.error("Verification error:", err);
       setError("Verification failed. Please try again.");
       setVerifying(false);
-    }
-  };
-
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("Invalid password. Please try again.");
-      } else {
-        router.push("/");
-      }
-    } catch {
-      setError("Login failed. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -90,7 +85,7 @@ function VerifyContent() {
     );
   }
 
-  if (!verified) {
+  if (!success && error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -107,73 +102,37 @@ function VerifyContent() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <Card className="shadow-xl">
-          <CardContent className="p-8">
-            <div className="text-center mb-8">
-              <div className="flex justify-center mb-6">
-                <FitplayLogo size="3xl" className="mx-auto" />
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <Card className="shadow-xl">
+            <CardContent className="p-8">
+              <div className="text-center">
+                <div className="flex justify-center mb-6">
+                  <FitplayLogo size="3xl" className="mx-auto" />
+                </div>
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Successfully Verified!</h2>
+                <p className="text-gray-600 mb-6">You have been logged in automatically. Redirecting to your portal...</p>
+                
+                <div className="w-8 h-8 border-3 border-neutral-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-sm text-gray-500">Please wait while we redirect you</p>
               </div>
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Verified!</h2>
-              <p className="text-gray-600">Now enter your password to access your account</p>
-            </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
 
-            <form onSubmit={handlePasswordSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-700 font-medium">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
-                  required
-                />
-              </div>
-
-              {error && (
-                <Alert variant="destructive" className="border-red-200 bg-red-50">
-                  <AlertDescription className="text-red-700">
-                    {error}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full h-12 bg-gradient-to-r from-neutral-700 to-neutral-800 hover:from-neutral-800 hover:to-neutral-900 text-white font-medium transition-all duration-200"
-                disabled={loading}
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Signing In...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    Access Portal
-                    <ArrowRight className="h-4 w-4" />
-                  </div>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </motion.div>
-    </div>
-  );
+  return null;
 }
 
 // Loading component for Suspense fallback
