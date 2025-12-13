@@ -48,21 +48,21 @@ export async function POST(req: NextRequest) {
 
         // Also check if this is the admin from environment variables
         const isEnvAdmin = email === process.env.ADMIN_EMAIL?.replace(/['"]/g, '');
-        
+
         const account = client || admin || systemUser || isEnvAdmin;
         if (!account) {
             return NextResponse.json({ error: "No account found with this email" }, { status: 404 });
         }
 
         // Check if there's already a valid (non-expired) reset token
-        const existingToken = await prisma.resetToken.findUnique({
+        const existingToken = await prisma.resetToken.findFirst({
             where: { identifier: email }
         });
 
         if (existingToken && existingToken.expires > new Date()) {
             // Token is still valid, don't send another email
-            return NextResponse.json({ 
-                message: "Reset link sent successfully", 
+            return NextResponse.json({
+                message: "Reset link sent successfully",
                 note: "If you don't see the email, check your spam folder or wait a few minutes before requesting again."
             });
         }
@@ -71,19 +71,21 @@ export async function POST(req: NextRequest) {
         const resetToken = crypto.randomUUID();
         const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
 
-        // Store in ResetToken table (upsert to handle existing tokens)
-        await prisma.resetToken.upsert({
+        // Delete any previous tokens for this user
+        await prisma.resetToken.deleteMany({
             where: { identifier: email },
-            update: {
-                token: resetToken,
-                expires: resetTokenExpiry,
-            },
-            create: {
+        });
+
+        // Create a fresh reset token
+        await prisma.resetToken.create({
+            data: {
                 identifier: email,
                 token: resetToken,
                 expires: resetTokenExpiry,
+                password: "",
             },
         });
+
 
         const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
         const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
