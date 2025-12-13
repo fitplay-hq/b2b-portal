@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { motion } from "framer-motion";
 import { FitplayLogo } from "@/components/fitplay-logo";
 import { signIn } from "next-auth/react";
 
-export default function VerifyPage() {
+function VerifyContent() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -117,7 +117,9 @@ export default function VerifyPage() {
         <Card className="shadow-xl">
           <CardContent className="p-8">
             <div className="text-center mb-8">
-              <FitplayLogo className="h-12 mx-auto mb-6" />
+              <div className="flex justify-center mb-6">
+                <FitplayLogo size="3xl" className="mx-auto" />
+              </div>
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
@@ -171,5 +173,28 @@ export default function VerifyPage() {
         </Card>
       </motion.div>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function VerifyLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="p-8 text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading</h2>
+          <p className="text-gray-600">Please wait...</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<VerifyLoading />}>
+      <VerifyContent />
+    </Suspense>
   );
 }
