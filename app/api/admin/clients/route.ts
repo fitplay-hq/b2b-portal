@@ -5,7 +5,11 @@ import prisma from "@/lib/prisma";
 export async function GET(req: NextRequest) {
    return withPermissions(req, async () => {
        try {
-           const clients = await prisma.client.findMany();
+           const clients = await prisma.client.findMany({
+               include: {
+                   company: true,
+               },
+           });
            return NextResponse.json({ data: clients }, { status: 200 });
        } catch (error: any) {
            return NextResponse.json(
