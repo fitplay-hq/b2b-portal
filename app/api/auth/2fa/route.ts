@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Resend } from "resend";
-import { tree } from "next/dist/build/templates/app-page";
-import { exit } from "process";
+import { Role } from "@/lib/generated/prisma";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 if (!resendApiKey) throw new Error("RESEND_API_KEY is not defined");
@@ -17,14 +16,14 @@ function looksLikeEmail(value: string) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { email } = body;
+        const { email, password } = body;
 
         const isAdmin = await prisma.admin.findUnique({
             where: { email },
         });
 
         let existingUser;
-        
+
         if (isAdmin) {
             existingUser = await prisma.admin.findUnique({
                 where: { email },
@@ -34,10 +33,11 @@ export async function POST(req: NextRequest) {
             existingUser = await prisma.client.findUnique({
                 where: { email },
             });
-    
+
             if (!existingUser) {
                 existingUser = await prisma.systemUser.findUnique({
                     where: { email },
+                    include: { role: true }
                 });
                 if (!existingUser) {
                     return NextResponse.json(
@@ -55,12 +55,39 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const isCorrectPassword = await bcrypt.compare(
+            password,
+            existingUser.password
+        );
+
+        if (!isCorrectPassword) {
+            return NextResponse.json(
+                { error: "Incorrect password" },
+                { status: 400 }
+            );
+        }
+
+        function extractUserRole(user: any): Role {
+            // Admin & Client → role is already the Role enum
+            if (user.role && typeof user.role === "string") {
+                return user.role as Role;
+            }
+
+            // SystemUser → SystemRole object. We convert it manually.
+            return "SYSTEM_USER";
+        }
+
+        const userType = extractUserRole(existingUser);
+
         // send verification mail
         const verifyToken = crypto.randomUUID();
         await prisma.resetToken.create({
             data: {
                 identifier: existingUser.email,
                 token: verifyToken,
+                password: await bcrypt.hash(password, 10),
+                userId: existingUser.id,
+                userType: userType,
                 expires: new Date(Date.now() + 1 * 60 * 60 * 1000),
             },
         });

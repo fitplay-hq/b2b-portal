@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
         }
 
         let systemUser;
+        let admin;
 
         // Check if user exists
         const user = await prisma.client.findUnique({
@@ -63,7 +64,13 @@ export async function GET(req: NextRequest) {
             });
 
             if (!systemUser) {
-                return NextResponse.json({ error: "User not found" }, { status: 400 });
+                admin = await prisma.admin.findUnique({
+                    where: { email: record.identifier },
+                });
+
+                if (!admin) {
+                    return NextResponse.json({ error: "User not found" }, { status: 400 });
+                }
             }
         }
 

@@ -129,8 +129,11 @@ model OrderItem {
 
 model ResetToken {
   id         String   @id @default(uuid())
-  identifier String   @unique
+  identifier String   
+  password   String
   token      String   @unique
+  userId     String?
+  userType   Role?
   expires    DateTime
   createdAt  DateTime @default(now())
 }
