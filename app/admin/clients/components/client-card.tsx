@@ -52,7 +52,7 @@ export function ClientCard({ client, stats, onDelete }: ClientCardProps) {
             </span>
             <span className="flex items-center gap-1.5">
               <Building2 className="h-3 w-3" />
-              {client.company?.name || client.companyName || "—"}
+              {client.companyName}
             </span>
             <span className="flex items-center gap-1.5">
               <Calendar className="h-3 w-3" />
