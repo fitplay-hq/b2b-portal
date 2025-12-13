@@ -74,6 +74,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
             message: "Email verified successfully",
             verified: true,
+            email: record.identifier,
         });
     } catch (err) {
         console.error("🔥 Verification error:", err);

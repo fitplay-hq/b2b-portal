@@ -23,11 +23,10 @@ export default function SignupPage() {
     firstName: "",
     lastName: "",
     email: "",
-    password: "",
-    confirmPassword: "",
     companyName: "",
   });
   const [error, setError] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 

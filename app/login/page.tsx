@@ -15,37 +15,31 @@ import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
+      const response = await fetch("/api/auth/2fa", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
       });
 
-      if (result?.error) {
-        // Map backend errors to user-friendly messages
-        const errorMessages: { [key: string]: string } = {
-          "Invalid password": "Wrong password, please try again",
-          "No user found with this email": "Account not found. Please check your email address",
-          "Account is deactivated": "Your account has been deactivated. Please contact support",
-          "Email and password are required": "Please enter both email and password",
-          "CredentialsSignin": "Invalid email or password. Please try again",
-        };
+      const data = await response.json();
 
-        const friendlyMessage = errorMessages[result.error] || "Login failed. Please try again";
-        setError(friendlyMessage);
+      if (!response.ok) {
+        setError(data.error || "Failed to send verification email");
       } else {
-        router.push("/");
+        setEmailSent(true);
       }
     } catch {
       setError("An error occurred. Please try again.");
@@ -185,44 +179,50 @@ export default function LoginPage() {
                     </p>
                   </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-gray-700 font-medium">
-                        Email Address
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email address"
-                        className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-gray-700 font-medium">
-                        Password
-                      </Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
-                        required
-                      />
-                      <div className="text-right">
-                        <a 
-                          href="/forgot-password"
-                          className="text-sm text-blue-600 hover:text-blue-500"
-                        >
-                          Forgot password?
-                        </a>
+                  {emailSent ? (
+                    <div className="text-center space-y-4">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                        <Package className="h-8 w-8 text-green-600" />
                       </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Check Your Inbox</h3>
+                        <p className="text-gray-600 mt-2">
+                          We've sent a verification link to <br />
+                          <span className="font-medium">{email}</span>
+                        </p>
+                      </div>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          Click the link in your email to verify your account and continue to login.
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setEmailSent(false);
+                          setEmail("");
+                        }}
+                        className="w-full"
+                      >
+                        Use Different Email
+                      </Button>
                     </div>
+                  ) : (
+                    <form onSubmit={handleEmailVerification} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-gray-700 font-medium">
+                          Email Address
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Enter your email address"
+                          className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
+                          required
+                        />
+                      </div>
 
                     {error && (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -237,24 +237,25 @@ export default function LoginPage() {
                       </motion.div>
                     )}
 
-                    <Button
-                      type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-neutral-700 to-neutral-800 hover:from-neutral-800 hover:to-neutral-900 text-white font-medium transition-all duration-200 transform hover:scale-[1.02]"
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Signing in...
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          Sign In
-                          <ArrowRight className="h-4 w-4" />
-                        </div>
-                      )}
-                    </Button>
-                  </form>
+                      <Button
+                        type="submit"
+                        className="w-full h-12 bg-gradient-to-r from-neutral-700 to-neutral-800 hover:from-neutral-800 hover:to-neutral-900 text-white font-medium transition-all duration-200 transform hover:scale-[1.02]"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Sending Email...
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            Verify Email
+                            <ArrowRight className="h-4 w-4" />
+                          </div>
+                        )}
+                      </Button>
+                    </form>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
