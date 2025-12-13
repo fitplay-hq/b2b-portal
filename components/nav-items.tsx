@@ -357,8 +357,8 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             </Collapsible>
             )}
 
-            {/* Role Management Collapsible - ADMIN Only */}
-            {isAdminUser && (
+            {/* Role Management Collapsible - Check roles permission */}
+            {(isAdminUser || (!isLoading && pageAccess.roles)) && (
             <Collapsible open={rolesOpen} onOpenChange={setRolesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -414,8 +414,8 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             </Collapsible>
             )}
 
-            {/* User Management Collapsible - ADMIN Only */}
-            {isAdminUser && (
+            {/* User Management Collapsible - Check users permission */}
+            {(isAdminUser || (!isLoading && pageAccess.users)) && (
             <Collapsible open={usersOpen} onOpenChange={setUsersOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -556,8 +556,8 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </DropdownMenu>
           )}
 
-          {/* Role Management Dropdown - ADMIN Only */}
-          {isAdminUser && (
+          {/* Role Management Dropdown - Check roles permission */}
+          {(isAdminUser || (!isLoading && pageAccess.roles)) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -594,8 +594,8 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </DropdownMenu>
           )}
 
-          {/* User Management Dropdown - ADMIN Only */}
-          {isAdminUser && (
+          {/* User Management Dropdown - Check users permission */}
+          {(isAdminUser || (!isLoading && pageAccess.users)) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
