@@ -6,9 +6,12 @@ import { auth } from '@/app/api/auth/[...nextauth]/route';
 // GET /api/admin/roles/[id] - Get a specific role
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params for Next.js 15+ compatibility
+    const { id } = await params;
+
     const session = await getServerSession(auth);
     
     if (!session?.user || session.user.role !== 'ADMIN') {
@@ -16,7 +19,7 @@ export async function GET(
     }
 
     const role = await prisma.systemRole.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         permissions: true,
         users: {
@@ -68,9 +71,12 @@ export async function GET(
 // PUT /api/admin/roles/[id] - Update a role
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params for Next.js 15+ compatibility
+    const { id } = await params;
+
     const session = await getServerSession(auth);
     
     if (!session?.user || session.user.role !== 'ADMIN') {
@@ -81,7 +87,7 @@ export async function PUT(
 
     // Check if role exists
     const existingRole = await prisma.systemRole.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingRole) {
@@ -132,7 +138,7 @@ export async function PUT(
     }
 
     const role = await prisma.systemRole.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         permissions: true,
@@ -183,9 +189,12 @@ export async function PUT(
 // DELETE /api/admin/roles/[id] - Delete a role
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params for Next.js 15+ compatibility
+    const { id } = await params;
+
     const session = await getServerSession(auth);
     
     if (!session?.user || session.user.role !== 'ADMIN') {
@@ -194,7 +203,7 @@ export async function DELETE(
 
     // Check if role exists
     const existingRole = await prisma.systemRole.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: {
@@ -211,24 +220,29 @@ export async function DELETE(
     // Prevent deletion if role has users assigned
     if (existingRole._count.users > 0) {
       return NextResponse.json(
-        { 
-          error: 'Cannot delete role with assigned users',
-          details: `This role has ${existingRole._count.users} user(s) assigned. Please reassign or remove users before deleting the role.`
-        },
+        { error: 'Failed to delete role' },
         { status: 409 }
       );
     }
 
     // Delete the role
     await prisma.systemRole.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     return NextResponse.json({ 
       message: 'Role deleted successfully' 
     });
   } catch (error) {
+    // Log detailed error for server-side debugging
     console.error('Error deleting role:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Role deletion details:', {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+      roleId: id
+    });
+    
+    // Return generic error message to frontend
+    return NextResponse.json({ error: 'Failed to delete role' }, { status: 500 });
   }
 }
