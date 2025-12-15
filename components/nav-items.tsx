@@ -76,6 +76,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
       { href: "/client/products", label: "Products", icon: Package },
       { href: "/client/cart", label: "Cart", icon: ShoppingCart },
       { href: "/client/orders", label: "Order History", icon: History },
+      { href: "/client/analytics", label: "Analytics", icon: TrendingUp },
     ];
 
     return (

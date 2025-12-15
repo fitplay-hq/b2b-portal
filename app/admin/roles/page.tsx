@@ -14,6 +14,7 @@ import { Shield, UserPlus, Search, Settings, Eye, Trash2, Edit } from "lucide-re
 import Link from "next/link";
 import { toast } from "sonner";
 import { PageGuard } from "@/components/page-guard";
+import { RESOURCES } from "@/lib/utils";
 
 interface Role {
   id: string;
@@ -40,8 +41,13 @@ export default function RolesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if user is authorized (only ADMIN can access roles)
-  const isUnauthorized = session && session.user?.role !== "ADMIN";
+  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can access roles)
+  const isAdmin = session?.user?.role === "ADMIN";
+  const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
+                       session?.user?.systemRole && 
+                       session?.user?.systemRole.toLowerCase() === 'admin';
+  const hasAdminAccess = isAdmin || isSystemAdmin;
+  const isUnauthorized = session && !hasAdminAccess;
 
   useEffect(() => {
     if (status === "loading") return; // Still loading
@@ -334,7 +340,7 @@ export default function RolesPage() {
   }
 
   return (
-    <PageGuard adminOnly={true}>
+    <PageGuard resource={RESOURCES.ROLES} action="view">
       <Layout isClient={false}>
         <RoleManagementContent />
       </Layout>

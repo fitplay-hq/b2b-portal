@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { 
   Download, 
   Filter, 
@@ -47,7 +49,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAnalytics, type AnalyticsFilters } from '@/hooks/use-analytics';
-import { useInstantPermissions } from '@/hooks/use-instant-permissions';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Layout from '@/components/layout';
@@ -55,26 +56,55 @@ import Layout from '@/components/layout';
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
 export default function AnalyticsPage() {
-  const { canUserPerformAction } = useInstantPermissions();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [filters, setFilters] = useState<AnalyticsFilters>({
     period: '30d'
   });
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
 
-  const { data, error, isLoading, exportData, refreshData } = useAnalytics({
+  const { data, error, isLoading, exportData, refreshData } = useAnalytics('/api/admin/analytics', {
     ...filters,
     dateFrom: dateFrom?.toISOString().split('T')[0],
     dateTo: dateTo?.toISOString().split('T')[0]
   });
 
   // Get all orders data without date filtering for accurate pie chart
-  const { data: allOrdersData } = useAnalytics({});
+  const { data: allOrdersData } = useAnalytics('/api/admin/analytics', {});
 
   const [exportLoading, setExportLoading] = useState<string | null>(null);
 
+  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can access analytics)
+  const isAdmin = session?.user?.role === "ADMIN";
+  const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
+                       session?.user?.systemRole && 
+                       session?.user?.systemRole.toLowerCase() === 'admin';
+  const hasAdminAccess = isAdmin || isSystemAdmin;
+  const isUnauthorized = session && !hasAdminAccess;
+
+  // Show loading while session is being loaded
+  if (status === 'loading') {
+    return (
+      <Layout isClient={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!session) {
+    router.push('/login');
+    return null;
+  }
+
   // Check if user has permission to view analytics
-  if (!canUserPerformAction('analytics', 'read')) {
+  if (isUnauthorized) {
     return (
       <Layout isClient={false}>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -85,6 +115,7 @@ export default function AnalyticsPage() {
               <p className="text-gray-600 mb-4">
                 You do not have permission to view analytics. Please contact your administrator.
               </p>
+
               <Button variant="outline" onClick={() => window.history.back()}>
                 Go Back
               </Button>
@@ -100,7 +131,7 @@ export default function AnalyticsPage() {
   };
 
   const handleExport = async (type: 'orders' | 'inventory', format: 'xlsx' | 'pdf') => {
-    if (!canUserPerformAction('analytics', 'export')) return;
+    if (!hasAdminAccess) return;
     
     setExportLoading(`${type}-${format}`);
     const result = await exportData(type, format);
@@ -188,7 +219,7 @@ export default function AnalyticsPage() {
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset
                   </Button>
-                  {canUserPerformAction('analytics', 'export') && (
+                  {hasAdminAccess && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
@@ -610,7 +641,7 @@ export default function AnalyticsPage() {
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset
                   </Button>
-                  {canUserPerformAction('analytics', 'export') && (
+                  {hasAdminAccess && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 

@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma';
 import { hasPermission } from '@/lib/utils';
 import { RESOURCES, PERMISSIONS } from '@/lib/utils';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 /**
  * GET /api/admin/analytics/export
@@ -22,8 +24,14 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ User authenticated:', session.user.email, 'Role:', session.user.role);
 
-    // Check analytics export permission (ADMIN users have full access)
-    if (session.user.role !== 'ADMIN') {
+    // Check analytics export permission (ADMIN and SYSTEM_USER with admin role have full access)
+    const isAdmin = session.user.role === 'ADMIN';
+    const isSystemAdmin = session.user.role === 'SYSTEM_USER' && 
+                         session.user.systemRole && 
+                         session.user.systemRole.toLowerCase() === 'admin';
+    const hasAdminAccess = isAdmin || isSystemAdmin;
+    
+    if (!hasAdminAccess) {
       const userPermissions = session.user.permissions || [];
       if (!hasPermission(userPermissions, RESOURCES.ANALYTICS, PERMISSIONS.EXPORT)) {
         return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -32,6 +40,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const exportType = searchParams.get('type') || 'orders'; // orders or inventory
+    const format = searchParams.get('format') || 'xlsx'; // xlsx or pdf
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
     const clientId = searchParams.get('clientId');
@@ -49,10 +58,10 @@ export async function GET(request: NextRequest) {
 
     if (exportType === 'orders') {
       console.log('📦 Exporting orders data...');
-      return await exportOrdersData(dateFrom, dateTo, clientId, companyId, status);
+      return await exportOrdersData(dateFrom, dateTo, clientId, companyId, status, format);
     } else if (exportType === 'inventory') {
       console.log('📋 Exporting inventory data...');
-      return await exportInventoryData(companyId);
+      return await exportInventoryData(companyId, format);
     } else {
       console.log('❌ Invalid export type:', exportType);
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
@@ -75,7 +84,8 @@ async function exportOrdersData(
   dateTo: string | null, 
   clientId: string | null, 
   companyId: string | null, 
-  status: string | null
+  status: string | null,
+  format: string = 'xlsx'
 ) {
   console.log('📦 Starting orders export with filters:', { dateFrom, dateTo, clientId, companyId, status });
   
@@ -194,6 +204,49 @@ async function exportOrdersData(
   // Add worksheet to workbook
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders');
 
+  if (format === 'pdf') {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text('Orders Report', 20, 20);
+    
+    const tableColumns = [
+      'Order ID',
+      'Client Name', 
+      'Order Date',
+      'Status',
+      'Total Amount',
+      'Items Count'
+    ];
+    
+    const tableRows = excelData.map((order: any) => [
+      order['Order ID'],
+      order['Client Name'],
+      order['Order Date'],
+      order['Status'],
+      `Rs.${order['Total Amount']}`,
+      order['Items Count'].toString()
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumns],
+      body: tableRows,
+      startY: 30,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [66, 66, 66] }
+    });
+
+    const pdfBuffer = doc.output('arraybuffer');
+    const filename = `orders_export_${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    return new NextResponse(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`
+      }
+    });
+  }
+
   // Generate Excel buffer
   const excelBuffer = XLSX.write(workbook, {
     type: 'buffer',
@@ -221,7 +274,7 @@ async function exportOrdersData(
 /**
  * Export inventory data as CSV
  */
-async function exportInventoryData(companyId: string | null) {
+async function exportInventoryData(companyId: string | null, format: string = 'xlsx') {
   console.log('📋 Starting inventory export with companyId:', companyId);
   const inventoryFilters: any = {};
   if (companyId) {
@@ -328,6 +381,51 @@ async function exportInventoryData(companyId: string | null) {
 
   // Add worksheet to workbook
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventory');
+
+  if (format === 'pdf') {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text('Products Inventory Report', 20, 20);
+    
+    const tableColumns = [
+      'Product ID',
+      'Product Name', 
+      'SKU',
+      'Category',
+      'Stock Quantity',
+      'Stock Status',
+      'Unit Price'
+    ];
+    
+    const tableRows = excelData.map((product: any) => [
+      product['Product ID'],
+      product['Product Name'],
+      product['SKU'],
+      product['Category'],
+      product['Stock Quantity'].toString(),
+      product['Stock Status'],
+      `Rs.${product['Unit Price']}`
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumns],
+      body: tableRows,
+      startY: 30,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [66, 66, 66] }
+    });
+
+    const pdfBuffer = doc.output('arraybuffer');
+    const filename = `products_export_${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    return new NextResponse(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`
+      }
+    });
+  }
 
   // Generate Excel buffer
   const excelBuffer = XLSX.write(workbook, {

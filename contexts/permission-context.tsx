@@ -51,12 +51,15 @@ export function PersistentPermissionProvider({ children }: { children: ReactNode
 
     // Small delay to prevent rapid state changes and flashing
     const timeoutId = setTimeout(() => {
+      // Check if user has admin privileges (ADMIN role OR system admin role)
       const isAdmin = session?.user?.role === 'ADMIN';
+      const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
+                           session?.user?.systemRole?.toLowerCase().includes('admin');
       
-      // For admin users, set permissions immediately and never show loading
-      if (isAdmin) {
+      // For admin users (either ADMIN or system admin), set permissions immediately and never show loading
+      if (isAdmin || isSystemAdmin) {
         setPermissionState({
-          isAdmin: true,
+          isAdmin: true, // Set to true for both ADMIN and system admin users
           isLoading: false,
           pageAccess: {
             dashboard: true,

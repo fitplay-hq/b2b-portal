@@ -15,6 +15,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ClientOnly } from "@/components/client-only";
 import { PageGuard } from "@/components/page-guard";
+import { RESOURCES } from "@/lib/utils";
 
 interface Role {
   id: string;
@@ -42,8 +43,13 @@ export default function UsersPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
 
-  // Check if user is authorized (only ADMIN can access users)
-  const isUnauthorized = session && session.user?.role !== "ADMIN";
+  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can access users)
+  const isAdmin = session?.user?.role === "ADMIN";
+  const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
+                       session?.user?.systemRole && 
+                       session?.user?.systemRole.toLowerCase() === 'admin';
+  const hasAdminAccess = isAdmin || isSystemAdmin;
+  const isUnauthorized = session && !hasAdminAccess;
 
   useEffect(() => {
     if (status === "loading") return; // Still loading
@@ -359,7 +365,7 @@ export default function UsersPage() {
   }
 
   return (
-    <PageGuard adminOnly={true}>
+    <PageGuard resource={RESOURCES.USERS} action="view">
       <Layout isClient={false}>
         <UserManagementContent />
       </Layout>

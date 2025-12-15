@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma';
 import { hasPermission } from '@/lib/utils';
 import { RESOURCES, PERMISSIONS } from '@/lib/utils';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export async function GET(request: NextRequest) {
     try {
@@ -20,6 +22,7 @@ export async function GET(request: NextRequest) {
 
         const { searchParams } = new URL(request.url);
         const exportType = searchParams.get('type') || 'orders';
+        const format = searchParams.get('format') || 'xlsx';
         const dateFrom = searchParams.get('dateFrom');
         const dateTo = searchParams.get('dateTo');
         const clientId = searchParams.get('clientId');
@@ -44,12 +47,13 @@ export async function GET(request: NextRequest) {
                 status,
                 period,
                 session,
-                companyID
+                companyID,
+                format
             });
         }
 
         if (exportType === 'inventory') {
-            return await exportInventoryData({ session, companyID });
+            return await exportInventoryData({ session, companyID, format });
         }
 
         return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, session, companyID }: any) {
+async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, session, companyID, format = 'xlsx' }: any) {
     const dateFilter: any = {};
     if (dateFrom) dateFilter.gte = new Date(dateFrom);
     if (dateTo) dateFilter.lte = new Date(dateTo);
@@ -124,6 +128,50 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, se
         };
     });
 
+    if (format === 'pdf') {
+        const doc = new jsPDF();
+        
+        doc.setFontSize(20);
+        doc.text('Orders Report', 20, 20);
+        
+        const tableColumns = [
+            'Order ID',
+            'Client Name', 
+            'Order Date',
+            'Status',
+            'Total Amount',
+            'Items Count'
+        ];
+        
+        const tableRows = excelData.map((order: any) => [
+            order['Order ID'],
+            order['Client Name'],
+            order['Order Date'],
+            order['Status'],
+            `Rs.${order['Total Amount']}`,
+            order['Items Count'].toString()
+        ]);
+
+        autoTable(doc, {
+            head: [tableColumns],
+            body: tableRows,
+            startY: 30,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [66, 66, 66] }
+        });
+
+        const pdfBuffer = doc.output('arraybuffer');
+        const filename = `orders_export_${new Date().toISOString().split('T')[0]}.pdf`;
+        
+        return new NextResponse(pdfBuffer, {
+            headers: {
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `attachment; filename="${filename}"`
+            }
+        });
+    }
+
+    // Create Excel export
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders');
 
@@ -138,7 +186,7 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, se
     });
 }
 
-async function exportInventoryData({ session, companyID }: any) {
+async function exportInventoryData({ session, companyID, format = 'xlsx' }: any) {
     let inventoryWhere: any = {};
 
     if (session.user.role === 'CLIENT' && companyID) {
@@ -156,31 +204,77 @@ async function exportInventoryData({ session, companyID }: any) {
     const workbook = XLSX.utils.book_new();
 
     const excelData = products.map((p: any) => {
-        const stock = p.availableStock;
+        const stock = p.stockQuantity || p.availableStock || 0;
         const threshold = 10;
 
         return {
             'Product ID': p.id,
             'Product Name': p.name,
             'SKU': p.sku,
-            'Category': p.categories,
+            'Category': p.category || p.categories || '',
             'Companies': p.companies.map((c: any) => c.name).join(', '),
             'Stock Quantity': stock,
             'Stock Status':
                 stock === 0 ? 'Out of Stock' : stock <= threshold ? 'Low Stock' : 'In Stock',
-            'Unit Price': p.price,
-            'Stock Value': (p.price || 0) * stock,
+            'Unit Price': p.unitPrice || p.price || 0,
+            'Stock Value': (p.unitPrice || p.price || 0) * stock,
             'Brand': p.brand || '',
             'Created Date': new Date(p.createdAt).toLocaleDateString(),
             'Last Updated': new Date(p.updatedAt).toLocaleDateString()
         };
     });
 
+    if (format === 'pdf') {
+        const doc = new jsPDF();
+        
+        doc.setFontSize(20);
+        doc.text('Products Inventory Report', 20, 20);
+        
+        const tableColumns = [
+            'Product ID',
+            'Product Name', 
+            'SKU',
+            'Category',
+            'Stock Quantity',
+            'Stock Status',
+            'Unit Price'
+        ];
+        
+        const tableRows = excelData.map((product: any) => [
+            product['Product ID'],
+            product['Product Name'],
+            product['SKU'],
+            product['Category'],
+            product['Stock Quantity'].toString(),
+            product['Stock Status'],
+            `Rs.${product['Unit Price']}`
+        ]);
+
+        autoTable(doc, {
+            head: [tableColumns],
+            body: tableRows,
+            startY: 30,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [66, 66, 66] }
+        });
+
+        const pdfBuffer = doc.output('arraybuffer');
+        const filename = `products_export_${new Date().toISOString().split('T')[0]}.pdf`;
+        
+        return new NextResponse(pdfBuffer, {
+            headers: {
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `attachment; filename="${filename}"`
+            }
+        });
+    }
+
+    // Create Excel export
     const worksheet = XLSX.utils.json_to_sheet(excelData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventory');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
 
     const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-    const filename = `inventory_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const filename = `products_export_${new Date().toISOString().split('T')[0]}.xlsx`;
 
     return new NextResponse(buffer, {
         headers: {

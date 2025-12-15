@@ -60,7 +60,7 @@ const fetcher = async (url: string) => {
   return data;
 };
 
-export function useAnalytics(filters: AnalyticsFilters = {}) {
+export function useAnalytics(apiEndpoint: string = '/api/analytics', filters: AnalyticsFilters = {}) {
   // Build query string from filters
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -75,7 +75,8 @@ export function useAnalytics(filters: AnalyticsFilters = {}) {
     return params.toString();
   }, [filters]);
 
-  const apiUrl = `/api/admin/analytics${queryParams ? `?${queryParams}` : ''}`;
+  // Use the provided API endpoint
+  const apiUrl = `${apiEndpoint}${queryParams ? `?${queryParams}` : ''}`;
 
   const {
     data,
@@ -93,6 +94,7 @@ export function useAnalytics(filters: AnalyticsFilters = {}) {
     try {
       const exportParams = new URLSearchParams();
       exportParams.set('type', type);
+      exportParams.set('format', format);
       
       if (filters.dateFrom) exportParams.set('dateFrom', filters.dateFrom);
       if (filters.dateTo) exportParams.set('dateTo', filters.dateTo);
@@ -100,10 +102,8 @@ export function useAnalytics(filters: AnalyticsFilters = {}) {
       if (filters.companyId) exportParams.set('companyId', filters.companyId);
       if (filters.status) exportParams.set('status', filters.status);
 
-      // Choose the appropriate endpoint based on format
-      const exportUrl = format === 'pdf' 
-        ? `/api/admin/analytics/export/pdf?${exportParams.toString()}`
-        : `/api/admin/analytics/export?${exportParams.toString()}`;
+      // Use the client analytics export endpoint
+      const exportUrl = `${apiEndpoint}/export?${exportParams.toString()}`;
       
       // Create a temporary link to download the file
       const response = await fetch(exportUrl);

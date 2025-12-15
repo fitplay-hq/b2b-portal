@@ -16,9 +16,21 @@ export async function GET(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    console.log('✅ Analytics API - User authenticated:', { 
+      role: session.user.role, 
+      id: session.user.id,
+      systemRole: session.user.systemRole 
+    });
 
-    // Check analytics read permission (ADMIN users have full access)
-    if (session.user.role !== 'ADMIN') {
+    // Check analytics read permission (ADMIN, CLIENT, and SYSTEM_USER with admin role have full access)
+    const isAdmin = session.user.role === 'ADMIN';
+    const isSystemAdmin = session.user.role === 'SYSTEM_USER' && 
+                         session.user.systemRole && 
+                         session.user.systemRole.toLowerCase() === 'admin';
+    const hasAdminAccess = isAdmin || isSystemAdmin;
+    
+    if (!hasAdminAccess && session.user.role !== 'CLIENT') {
       const userPermissions = session.user.permissions || [];
       if (!hasPermission(userPermissions, RESOURCES.ANALYTICS, PERMISSIONS.READ)) {
         return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
