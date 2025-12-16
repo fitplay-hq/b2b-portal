@@ -78,8 +78,8 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
 
   const metrics = useMemo(() => ({
     totalOrders: orders.length,
-    pendingOrders: orders.filter((o) => o.status != "DELIVERED").length,
-    completedOrders: orders.filter((o) => (o.status == 'DELIVERED')).length,
+    pendingOrders: orders.filter((o) => o.status === "PENDING").length,
+    completedOrders: orders.filter((o) => (o.status === 'DELIVERED')).length,
     totalRevenue: orders
       .filter((o) => o.status !== "CANCELLED")
       .reduce((sum, order) => sum + order.totalAmount, 0),
