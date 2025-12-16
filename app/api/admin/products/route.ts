@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     const productsData: Prisma.ProductCreateInput[] = parsedProducts.map((p) => {
       const initialStock = p.availableStock || 0;
       const initialLogEntry = initialStock > 0 
-        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE`
+        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE | Updated stock: ${initialStock}`
         : null;
 
       return {
@@ -159,11 +159,23 @@ export async function PATCH(req: NextRequest) {
 
     const updatedProducts = await Promise.all(
       updates.map(async ({ productId, quantity, direction, inventoryUpdateReason }) => {
+
+        const product = await prisma.product.findUnique({
+          where: { id: productId },
+          select: { availableStock: true },
+        });
+        
+        if (!product) {
+          throw new Error(`Product with ID ${productId} not found`);
+        }
+
+        const newStock = direction === "incr"
+          ? product.availableStock + quantity
+          : product.availableStock - quantity;
         // Create a log entry for this update
         const logEntry = `${new Date().toISOString()} | ${
           direction === "incr" ? "Added" : "Removed"
-        } ${quantity} units | Reason: ${inventoryUpdateReason}`;
-
+        } ${quantity} units | Reason: ${inventoryUpdateReason} | Updated stock: ${newStock}`;
         // Update the product inventory and push the log
         return prisma.product.update({
           where: { id: productId },

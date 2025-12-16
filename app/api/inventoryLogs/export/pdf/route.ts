@@ -40,11 +40,8 @@ export async function GET(request: NextRequest) {
         const productId = searchParams.get("productId");
         const reason = searchParams.get("reason");
         const search = searchParams.get("search");
-        const clientId = searchParams.get("clientId");
-        const status = searchParams.get("status");
         const period = searchParams.get("period") || "30d";
 
-        // Determine client → which company they belong to
         let companyID: string | null = null;
         if (session.user.role === "CLIENT") {
             const client = await prisma.client.findUnique({
@@ -71,11 +68,12 @@ export async function GET(request: NextRequest) {
     } catch (err) {
         console.error("PDF EXPORT ERROR:", err);
         return NextResponse.json(
-            { error: "Failed to export PDF", details: String(err) },
+            { error: "Failed to export PDF" },
             { status: 500 }
         );
     }
 }
+
 /* ----------------------- INVENTORY LOGS EXPORT PDF ----------------------- */
 async function exportInventoryLogsPDF({
     dateFrom,
@@ -87,24 +85,31 @@ async function exportInventoryLogsPDF({
     session,
     companyID
 }: any) {
+
     const dateFilter: any = {};
     if (dateFrom) dateFilter.gte = new Date(dateFrom);
     if (dateTo) dateFilter.lte = new Date(dateTo);
 
     if (!dateFrom && !dateTo && period !== "all") {
-        const now = new Date();
         const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
-        dateFilter.gte = new Date(now.getTime() - days * 86400000);
+        dateFilter.gte = new Date(Date.now() - days * 86400000);
     }
 
     const productWhere: any = {};
     if (productId) productWhere.id = productId;
-    if (session.user.role === "CLIENT" && companyID)
+    if (session.user.role === "CLIENT" && companyID) {
         productWhere.companies = { some: { id: companyID } };
+    }
 
     const products = await prisma.product.findMany({
         where: productWhere,
-        select: { id: true, name: true, sku: true, inventoryLogs: true },
+        select: {
+            id: true,
+            name: true,
+            sku: true,
+            availableStock: true,
+            inventoryLogs: true
+        },
         orderBy: { name: "asc" }
     });
 
@@ -123,45 +128,33 @@ async function exportInventoryLogsPDF({
     let total = 0;
 
     for (const product of products) {
-        for (const log of product.inventoryLogs) {
-            let timestamp: Date | null = null;
-            let action = "";
-            let qty = 0;
-            let extractedReason: string | null = null;
 
-            if (log.startsWith("{")) {
-                const parsed = JSON.parse(log);
-                timestamp = new Date(parsed.date);
-                qty = parseInt(parsed.change);
-                extractedReason = parsed.reason;
-                action =
-                    qty > 0
-                        ? `Added ${qty} units`
-                        : `Removed ${Math.abs(qty)} units`;
-            } else {
-                const parts = log.split(" | ");
-                if (parts.length < 3) continue;
+        /* ================= BACKWARD STOCK CALC ================= */
+        let runningStock = product.availableStock ?? 0;
 
-                timestamp = new Date(parts[0]);
-                action = parts[1];
-                extractedReason = parts[2].replace("Reason:", "").trim();
+        const parsedLogs = product.inventoryLogs
+            .map(raw => parseInventoryLog(raw))
+            .filter((log): log is NonNullable<typeof log> => log !== null)
+            .sort((a: any, b: any) => b.timestamp - a.timestamp);
 
-                const match = action.match(/\d+/);
-                const parsedQty = match ? parseInt(match[0]) : 0;
-
-                qty = action.toLowerCase().includes("added")
-                    ? parsedQty
-                    : action.toLowerCase().includes("removed")
-                        ? -parsedQty
-                        : 0;
+        for (const log of parsedLogs) {
+            if (log.updatedStock == null) {
+                log.updatedStock = runningStock;
+                runningStock =
+                    log.changeDirection === "Added"
+                        ? runningStock - log.changeAmount
+                        : runningStock + log.changeAmount;
             }
+        }
 
-            // Apply filters
-            if (!timestamp) continue;
-            if (dateFilter.gte && timestamp < dateFilter.gte) continue;
-            if (dateFilter.lte && timestamp > dateFilter.lte) continue;
-            if (reason && extractedReason !== reason) continue;
-            if (search && !log.toLowerCase().includes(search.toLowerCase())) continue;
+        parsedLogs.reverse();
+        /* ======================================================== */
+
+        for (const log of parsedLogs) {
+            if (dateFilter.gte && log.timestamp < dateFilter.gte) continue;
+            if (dateFilter.lte && log.timestamp > dateFilter.lte) continue;
+            if (reason && log.reason !== reason) continue;
+            if (search && !log.raw.toLowerCase().includes(search.toLowerCase())) continue;
 
             total++;
 
@@ -176,40 +169,25 @@ async function exportInventoryLogsPDF({
             page.drawText(`SKU: ${product.sku}`, { x: m, y, size: 10, font });
             y -= lh;
 
-            page.drawText(`Timestamp: ${timestamp.toLocaleString()}`, {
+            page.drawText(`Timestamp: ${log.timestamp.toLocaleString()}`, { x: m, y, size: 10, font });
+            y -= lh;
+
+            page.drawText(`Action: ${log.action}`, { x: m, y, size: 10, font });
+            y -= lh;
+
+            page.drawText(`Quantity: ${log.changeDirection === "Added" ? "+" : "-"}${log.changeAmount}`, {
                 x: m, y, size: 10, font
             });
             y -= lh;
 
-            page.drawText(`Action: ${action}`, { x: m, y, size: 10, font });
+            page.drawText(`Updated Stock: ${log.updatedStock}`, { x: m, y, size: 10, font });
             y -= lh;
 
-            page.drawText(`Quantity: ${qty}`, { x: m, y, size: 10, font });
+            page.drawText(`Reason: ${log.reason}`, { x: m, y, size: 10, font });
             y -= lh;
 
-            page.drawText(`Reason: ${extractedReason}`, { x: m, y, size: 10, font });
-            y -= lh;
-
-            page.drawText(`Raw Log:`, { x: m, y, size: 10, font: boldFont });
-            y -= lh;
-
-            const wrapped = wrapText(log, 90);
-            for (const line of wrapped) {
-                page.drawText(line, { x: m + 20, y, size: 9, font });
-                y -= lh;
-                if (y < 100) {
-                    page = pdf.addPage([595.28, 841.89]);
-                    y = 800;
-                }
-            }
-
-            y -= 20;
+            y -= 15;
         }
-    }
-
-    if (y < 80) {
-        page = pdf.addPage([595.28, 841.89]);
-        y = 800;
     }
 
     page.drawText(`Total Logs: ${total}`, {
@@ -224,8 +202,34 @@ async function exportInventoryLogsPDF({
 }
 
 /* ============================================================
-   HELPERS
+   HELPERS (NEW – SAFE ADDITION)
 ============================================================ */
+function parseInventoryLog(raw: string) {
+    try {
+        const parts = raw.split(" | ");
+
+        const timestamp = new Date(parts[0]);
+        const actionText = parts[1] || "";
+        const reasonPart = parts.find(p => p.startsWith("Reason:"));
+        const stockPart = parts.find(p => p.startsWith("Updated stock"));
+
+        const qty = parseInt(actionText.match(/\d+/)?.[0] || "0");
+        const isAdd = actionText.toLowerCase().includes("added");
+
+        return {
+            raw,
+            timestamp,
+            action: actionText,
+            changeAmount: qty,
+            changeDirection: isAdd ? "Added" : "Removed",
+            updatedStock: stockPart ? parseInt(stockPart.match(/\d+/)?.[0] || "") : null,
+            reason: reasonPart?.replace("Reason:", "").trim() || null
+        };
+    } catch {
+        return null;
+    }
+}
+
 function sendPDF(bytes: Uint8Array, filename: string) {
     const name = `${filename}_${new Date().toISOString().split("T")[0]}.pdf`;
 
@@ -235,19 +239,4 @@ function sendPDF(bytes: Uint8Array, filename: string) {
             "Content-Disposition": `attachment; filename="${name}"`
         }
     });
-}
-
-function wrapText(text: string, maxLen: number) {
-    const words = text.split(" ");
-    const lines = [];
-    let line = "";
-
-    for (const word of words) {
-        if ((line + word).length > maxLen) {
-            lines.push(line);
-            line = word + " ";
-        } else line += word + " ";
-    }
-    if (line.trim()) lines.push(line.trim());
-    return lines;
 }

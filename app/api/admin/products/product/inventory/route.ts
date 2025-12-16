@@ -22,8 +22,24 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { availableStock: true },
+    });
+
+    if (!product) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    const newStock = direction === 1
+      ? product.availableStock + quantity
+      : product.availableStock - quantity;
+
     // Construct inventory log entry
-    const logEntry = `${new Date().toISOString()} | ${direction === 1 ? "Added" : "Removed"} ${quantity} units | Reason: ${reason}`;
+    const logEntry = `${new Date().toISOString()} | ${direction === 1 ? "Added" : "Removed"} ${quantity} units | Reason: ${reason} | Updated stock: ${newStock}`;
 
     // Update product inventory + log reason
     const productData = await prisma.product.update({

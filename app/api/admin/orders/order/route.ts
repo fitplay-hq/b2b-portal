@@ -214,13 +214,22 @@ export async function POST(req: NextRequest) {
 
         // Update stock
         for (const item of items) {
+
+          const itemStock = await tx.product.findUnique({
+            where: { id: item.productId },
+            select: { availableStock: true },
+          });
+
+          if (!itemStock) {
+            throw new Error(`Product with ID ${item.productId} not found during stock update`);
+          }
           await tx.product.update({
             where: { id: item.productId },
             data: {
               availableStock: { decrement: item.quantity },
               inventoryUpdateReason: "NEW_ORDER",
               inventoryLogs: {
-                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER`,
+                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity}`,
               },
             },
           });
