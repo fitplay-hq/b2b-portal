@@ -7,13 +7,31 @@ import { InventoryLogsTable } from "@/components/inventory-logs-table";
 import { useInventoryLogs, InventoryLogsFilters } from "@/data/inventory/admin.hooks";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useDebouncedSearch } from "@/hooks/use-debounced-search";
+import { useInventoryExport } from "@/hooks/use-inventory-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { RotateCcw, X, Filter, Calendar, Package, FileText } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { 
+  RotateCcw, 
+  X, 
+  Filter, 
+  Calendar, 
+  Package, 
+  FileText, 
+  Download, 
+  ChevronDown, 
+  FileSpreadsheet 
+} from "lucide-react";
 
 export default function InventoryLogsPage() {
   const { RESOURCES } = usePermissions();
+  const { exportData, exportLoading } = useInventoryExport();
   
   const [filters, setFilters] = useState<InventoryLogsFilters>({
     page: 1,
@@ -170,6 +188,22 @@ export default function InventoryLogsPage() {
     }
   };
 
+  const handleExport = async (format: 'xlsx' | 'pdf') => {
+    // Convert current filters to export format matching /api/inventoryLogs expectations
+    const exportFilters = {
+      dateFrom: advancedFilters.dateFrom || undefined,
+      dateTo: advancedFilters.dateTo || undefined,
+      search: searchValue || undefined,
+      reason: advancedFilters.reason || undefined,
+      // The /api/inventoryLogs endpoint uses different filter names than admin hooks
+      productId: undefined, // We don't have direct product ID filter in the UI
+      period: !advancedFilters.dateFrom && !advancedFilters.dateTo ? 'all' : undefined,
+    };
+
+    // Toast notifications are handled inside the exportData function
+    await exportData(format, exportFilters);
+  };
+
   if (error) {
     return (
       <Layout isClient={false}>
@@ -202,6 +236,29 @@ export default function InventoryLogsPage() {
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Reset Filters
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={!!exportLoading}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      {exportLoading ? 'Exporting...' : 'Export Data'}
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                      Export as Excel
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Export as PDF
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>

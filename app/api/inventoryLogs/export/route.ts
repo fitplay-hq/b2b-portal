@@ -11,9 +11,16 @@ export async function GET(request: NextRequest) {
         const session = await getServerSession(auth);
         if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        if (session.user.role !== 'ADMIN' && session.user.role !== 'CLIENT') {
-            const perms = session.user.permissions || [];
-            if (!hasPermission(perms, RESOURCES.ANALYTICS, PERMISSIONS.EXPORT)) {
+        // Check permissions - ADMIN has full access, others need inventory view permission
+        const isAdmin = session.user.role === 'ADMIN';
+        const isSystemAdmin = session.user.role === 'SYSTEM_USER' && 
+                             session.user.systemRole && 
+                             session.user.systemRole.toLowerCase() === 'admin';
+        const hasAdminAccess = isAdmin || isSystemAdmin;
+        
+        if (!hasAdminAccess) {
+            const userPermissions = session.user.permissions || [];
+            if (!hasPermission(userPermissions, RESOURCES.INVENTORY, PERMISSIONS.READ)) {
                 return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
             }
         }
