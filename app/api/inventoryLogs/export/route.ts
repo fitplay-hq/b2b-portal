@@ -192,7 +192,6 @@ async function exportInventoryLogsData({
             }
 
             excelRows.push({
-                'Product ID': product.id,
                 'Product Name': product.name,
                 'SKU': product.sku,
                 'Timestamp': log.timestamp.toLocaleString(),
