@@ -6,7 +6,7 @@ import { hasPermission, RESOURCES, PERMISSIONS } from "@/lib/utils";
 
 /**
  * GET /api/inventoryLogs
- * Fetch inventory logs with computed final stock when missing
+ * Fetch inventory logs with computed final stock (newest → oldest)
  */
 export async function GET(request: NextRequest) {
     try {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         for (const product of products) {
             const productLogs: any[] = [];
 
-            /* Parse logs first */
+            /* Parse logs */
             for (const entry of product.inventoryLogs) {
                 const parts = entry.split(" | ");
                 if (parts.length < 3) continue;
@@ -81,9 +81,11 @@ export async function GET(request: NextRequest) {
                 const amount = qtyMatch ? parseInt(qtyMatch[0]) : 0;
 
                 const changeDirection =
-                    actionText.toLowerCase().includes("added") ? "Added" :
-                        actionText.toLowerCase().includes("removed") ? "Removed" :
-                            null;
+                    actionText.toLowerCase().includes("added")
+                        ? "Added"
+                        : actionText.toLowerCase().includes("removed")
+                            ? "Removed"
+                            : null;
 
                 const explicitFinalStock = stockText
                     ? parseInt(stockText.replace("Updated stock:", "").trim())
@@ -143,8 +145,10 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        /* Newest → Oldest for response */
-        finalLogs.sort((a, b) => b.timestamp - a.timestamp);
+        /* ---------------- FINAL SORT: NEWEST → OLDEST ---------------- */
+        finalLogs.sort(
+            (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+        );
 
         return NextResponse.json({
             count: finalLogs.length,

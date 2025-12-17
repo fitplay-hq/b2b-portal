@@ -13,11 +13,11 @@ export async function GET(request: NextRequest) {
 
         // Check permissions - ADMIN has full access, others need inventory view permission
         const isAdmin = session.user.role === 'ADMIN';
-        const isSystemAdmin = session.user.role === 'SYSTEM_USER' && 
-                             session.user.systemRole && 
-                             session.user.systemRole.toLowerCase() === 'admin';
+        const isSystemAdmin = session.user.role === 'SYSTEM_USER' &&
+            session.user.systemRole &&
+            session.user.systemRole.toLowerCase() === 'admin';
         const hasAdminAccess = isAdmin || isSystemAdmin;
-        
+
         if (!hasAdminAccess) {
             const userPermissions = session.user.permissions || [];
             if (!hasPermission(userPermissions, RESOURCES.INVENTORY, PERMISSIONS.READ)) {
@@ -207,9 +207,17 @@ async function exportInventoryLogsData({
         }
     }
 
+    /* ---------------- SORT NEWEST → OLDEST ---------------- */
+    excelRows.sort((a, b) => {
+        const aTime = new Date(a["Timestamp"]).getTime();
+        const bTime = new Date(b["Timestamp"]).getTime();
+        return bTime - aTime;
+    });
+
     /* ---------------- EXCEL GENERATION ---------------- */
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.json_to_sheet(excelRows);
+
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventory Logs');
 
     const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
