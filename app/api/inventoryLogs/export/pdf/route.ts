@@ -17,14 +17,17 @@ export async function GET(request: NextRequest) {
         // Permission check
         // Check permissions - ADMIN has full access, others need inventory view permission
         const isAdmin = session.user.role === "ADMIN";
-        const isSystemAdmin = session.user.role === "SYSTEM_USER" && 
-                             session.user.systemRole && 
-                             session.user.systemRole.toLowerCase() === "admin";
+        const isSystemAdmin =
+            session.user.role === "SYSTEM_USER" &&
+            session.user.systemRole &&
+            session.user.systemRole.toLowerCase() === "admin";
         const hasAdminAccess = isAdmin || isSystemAdmin;
-        
+
         if (!hasAdminAccess) {
             const userPermissions = session.user.permissions || [];
-            if (!hasPermission(userPermissions, RESOURCES.INVENTORY, PERMISSIONS.READ)) {
+            if (
+                !hasPermission(userPermissions, RESOURCES.INVENTORY, PERMISSIONS.READ)
+            ) {
                 return NextResponse.json(
                     { error: "Insufficient permissions" },
                     { status: 403 }
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
         if (session.user.role === "CLIENT") {
             const client = await prisma.client.findUnique({
                 where: { id: session.user.id },
-                select: { companyID: true }
+                select: { companyID: true },
             });
             companyID = client?.companyID || null;
         }
@@ -60,7 +63,7 @@ export async function GET(request: NextRequest) {
                 reason,
                 search,
                 session,
-                companyID
+                companyID,
             });
         }
 
@@ -83,9 +86,8 @@ async function exportInventoryLogsPDF({
     reason,
     search,
     session,
-    companyID
+    companyID,
 }: any) {
-
     const dateFilter: any = {};
     if (dateFrom) dateFilter.gte = new Date(dateFrom);
     if (dateTo) dateFilter.lte = new Date(dateTo);
@@ -108,10 +110,57 @@ async function exportInventoryLogsPDF({
             name: true,
             sku: true,
             availableStock: true,
-            inventoryLogs: true
+            inventoryLogs: true,
         },
-        orderBy: { name: "asc" }
     });
+
+    products.sort((a, b) => {
+        const aLatest = Math.max(
+            ...a.inventoryLogs.map((l) => new Date(l.split(" | ")[0]).getTime())
+        );
+        const bLatest = Math.max(
+            ...b.inventoryLogs.map((l) => new Date(l.split(" | ")[0]).getTime())
+        );
+        return bLatest - aLatest;
+    });
+
+    /* ================= FLATTEN ALL LOGS ================= */
+const allLogs: Array<{
+    productName: string;
+    sku: string;
+    log: any;
+}> = [];
+
+for (const product of products) {
+    let runningStock = product.availableStock ?? 0;
+
+    const parsedLogs = product.inventoryLogs
+        .map(raw => parseInventoryLog(raw))
+        .filter((log): log is NonNullable<typeof log> => log !== null)
+        .sort((a: any, b: any) => b.timestamp - a.timestamp);
+
+    for (const log of parsedLogs) {
+        if (log.updatedStock == null) {
+            log.updatedStock = runningStock;
+            runningStock =
+                log.changeDirection === "Added"
+                    ? runningStock - log.changeAmount
+                    : runningStock + log.changeAmount;
+        }
+    }
+
+    for (const log of parsedLogs) {
+        allLogs.push({
+            productName: product.name,
+            sku: product.sku,
+            log
+        });
+    }
+}
+
+/* 🔥 GLOBAL SORT: NEWEST → OLDEST */
+allLogs.sort((a, b) => b.log.timestamp - a.log.timestamp);
+
 
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -127,74 +176,54 @@ async function exportInventoryLogsPDF({
 
     let total = 0;
 
-    for (const product of products) {
+    for (const entry of allLogs) {
+    const { productName, sku, log } = entry;
 
-        /* ================= BACKWARD STOCK CALC ================= */
-        let runningStock = product.availableStock ?? 0;
+    if (dateFilter.gte && log.timestamp < dateFilter.gte) continue;
+    if (dateFilter.lte && log.timestamp > dateFilter.lte) continue;
+    if (reason && log.reason !== reason) continue;
+    if (search && !log.raw.toLowerCase().includes(search.toLowerCase())) continue;
 
-        const parsedLogs = product.inventoryLogs
-            .map(raw => parseInventoryLog(raw))
-            .filter((log): log is NonNullable<typeof log> => log !== null)
-            .sort((a: any, b: any) => b.timestamp - a.timestamp);
+    total++;
 
-        for (const log of parsedLogs) {
-            if (log.updatedStock == null) {
-                log.updatedStock = runningStock;
-                runningStock =
-                    log.changeDirection === "Added"
-                        ? runningStock - log.changeAmount
-                        : runningStock + log.changeAmount;
-            }
-        }
-
-        parsedLogs.reverse();
-        /* ======================================================== */
-
-        for (const log of parsedLogs) {
-            if (dateFilter.gte && log.timestamp < dateFilter.gte) continue;
-            if (dateFilter.lte && log.timestamp > dateFilter.lte) continue;
-            if (reason && log.reason !== reason) continue;
-            if (search && !log.raw.toLowerCase().includes(search.toLowerCase())) continue;
-
-            total++;
-
-            if (y < 100) {
-                page = pdf.addPage([595.28, 841.89]);
-                y = 800;
-            }
-
-            page.drawText(product.name, { x: m, y, size: 12, font: boldFont });
-            y -= lh;
-
-            page.drawText(`SKU: ${product.sku}`, { x: m, y, size: 10, font });
-            y -= lh;
-
-            page.drawText(`Timestamp: ${log.timestamp.toLocaleString()}`, { x: m, y, size: 10, font });
-            y -= lh;
-
-            page.drawText(`Action: ${log.action}`, { x: m, y, size: 10, font });
-            y -= lh;
-
-            page.drawText(`Quantity: ${log.changeDirection === "Added" ? "+" : "-"}${log.changeAmount}`, {
-                x: m, y, size: 10, font
-            });
-            y -= lh;
-
-            page.drawText(`Updated Stock: ${log.updatedStock}`, { x: m, y, size: 10, font });
-            y -= lh;
-
-            page.drawText(`Reason: ${log.reason}`, { x: m, y, size: 10, font });
-            y -= lh;
-
-            y -= 15;
-        }
+    if (y < 100) {
+        page = pdf.addPage([595.28, 841.89]);
+        y = 800;
     }
+
+    page.drawText(productName, { x: m, y, size: 12, font: boldFont });
+    y -= lh;
+
+    page.drawText(`SKU: ${sku}`, { x: m, y, size: 10, font });
+    y -= lh;
+
+    page.drawText(`Timestamp: ${log.timestamp.toLocaleString()}`, { x: m, y, size: 10, font });
+    y -= lh;
+
+    page.drawText(`Action: ${log.action}`, { x: m, y, size: 10, font });
+    y -= lh;
+
+    page.drawText(
+        `Quantity: ${log.changeDirection === "Added" ? "+" : "-"}${log.changeAmount}`,
+        { x: m, y, size: 10, font }
+    );
+    y -= lh;
+
+    page.drawText(`Updated Stock: ${log.updatedStock}`, { x: m, y, size: 10, font });
+    y -= lh;
+
+    page.drawText(`Reason: ${log.reason}`, { x: m, y, size: 10, font });
+    y -= lh;
+
+    y -= 15;
+}
+
 
     page.drawText(`Total Logs: ${total}`, {
         x: m,
         y,
         size: 12,
-        font: boldFont
+        font: boldFont,
     });
 
     const bytes = await pdf.save();
@@ -210,8 +239,8 @@ function parseInventoryLog(raw: string) {
 
         const timestamp = new Date(parts[0]);
         const actionText = parts[1] || "";
-        const reasonPart = parts.find(p => p.startsWith("Reason:"));
-        const stockPart = parts.find(p => p.startsWith("Updated stock"));
+        const reasonPart = parts.find((p) => p.startsWith("Reason:"));
+        const stockPart = parts.find((p) => p.startsWith("Updated stock"));
 
         const qty = parseInt(actionText.match(/\d+/)?.[0] || "0");
         const isAdd = actionText.toLowerCase().includes("added");
@@ -222,8 +251,10 @@ function parseInventoryLog(raw: string) {
             action: actionText,
             changeAmount: qty,
             changeDirection: isAdd ? "Added" : "Removed",
-            updatedStock: stockPart ? parseInt(stockPart.match(/\d+/)?.[0] || "") : null,
-            reason: reasonPart?.replace("Reason:", "").trim() || null
+            updatedStock: stockPart
+                ? parseInt(stockPart.match(/\d+/)?.[0] || "")
+                : null,
+            reason: reasonPart?.replace("Reason:", "").trim() || null,
         };
     } catch {
         return null;
@@ -236,7 +267,7 @@ function sendPDF(bytes: Uint8Array, filename: string) {
     return new NextResponse(Buffer.from(bytes), {
         headers: {
             "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="${name}"`
-        }
+            "Content-Disposition": `attachment; filename="${name}"`,
+        },
     });
 }
