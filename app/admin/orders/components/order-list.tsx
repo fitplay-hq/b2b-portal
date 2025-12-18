@@ -9,9 +9,10 @@ interface OrderListProps {
   expandedOrders: Set<string>;
   toggleOrderExpansion: (orderId: string) => void;
   openStatusDialog: (order: AdminOrder) => void;
+  onOrderUpdate?: (updatedOrder: AdminOrder) => void;
 }
 
-export function OrderList({ orders, ...props }: OrderListProps) {
+export function OrderList({ orders, onOrderUpdate, ...props }: OrderListProps) {
   if (orders.length === 0) {
     return (
       <Card>
@@ -33,8 +34,9 @@ export function OrderList({ orders, ...props }: OrderListProps) {
           key={order.id}
           order={order}
           isExpanded={props.expandedOrders.has(order.id)}
-          onToggleExpansion={() => props.toggleOrderExpansion(order.id)}
+          onToggleExpand={() => props.toggleOrderExpansion(order.id)}
           onOpenStatusDialog={() => props.openStatusDialog(order)}
+          onOrderUpdate={props.onOrderUpdate}
         />
       ))}
     </div>

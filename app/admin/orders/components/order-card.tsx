@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import {
   Collapsible,
@@ -127,12 +128,15 @@ const OrderSummary = ({ order }: { order: AdminOrder }) => {
 const OrderDetails = ({
   order,
   onOpenStatusDialog,
+  onOrderUpdate,
 }: {
   order: AdminOrder;
   onOpenStatusDialog: () => void;
+  onOrderUpdate?: (updatedOrder: AdminOrder) => void;
 }) => {
   const { actions } = usePermissions();
   const { sendOrderEmail, isSending } = useSendOrderEmail();
+  const [isGeneratingLabel, setIsGeneratingLabel] = useState(false);
 
   const handleSendEmail = async () => {
     try {
@@ -146,8 +150,33 @@ const OrderDetails = ({
     }
   };
 
-  const handleGenerateLabel = async (orderId: string) => {
+  const handleDownloadLabel = async (url: string) => {
     try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to download shipping label');
+      }
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `shipping-label-${order.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Error downloading label:', error);
+      toast.error('Failed to download shipping label');
+    }
+  };
+
+  const handleGenerateLabel = async (orderId: string) => {
+    if (isGeneratingLabel) return; // Prevent multiple clicks
+    
+    try {
+      setIsGeneratingLabel(true);
       console.log("Starting label regeneration for order:", orderId);
 
       const response = await fetch(`/api/admin/orders/regenerate-label`, {
@@ -176,8 +205,12 @@ const OrderDetails = ({
 
       if (result.shippingLabelUrl) {
         toast.success("Shipping label regenerated successfully");
-        // Trigger a page refresh to show the new label
-        window.location.reload();
+        // Update the order data to reflect the new shipping label URL
+        if (onOrderUpdate) {
+          onOrderUpdate({ ...order, shippingLabelUrl: result.shippingLabelUrl });
+        }
+        // Trigger download of the new label
+        handleDownloadLabel(result.shippingLabelUrl);
       } else {
         throw new Error("No shipping label URL received from server");
       }
@@ -188,6 +221,8 @@ const OrderDetails = ({
           ? error.message
           : "Failed to regenerate shipping label";
       toast.error(errorMessage);
+    } finally {
+      setIsGeneratingLabel(false);
     }
   };
 
@@ -214,40 +249,55 @@ const OrderDetails = ({
             order.status === "DELIVERED") && (
             <>
               {order.shippingLabelUrl ? (
-                <Link
-                  href={order.shippingLabelUrl || ""}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="sm" variant="outline">
+                <>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleDownloadLabel(order.shippingLabelUrl!)}
+                  >
                     <Download className="mr-2 h-4 w-4" />
-                    Download Shipping Label
+                    Download Label
                   </Button>
-                </Link>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleGenerateLabel(order.id)}
+                    disabled={isGeneratingLabel}
+                  >
+                    {isGeneratingLabel ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Regenerate Label
+                      </>
+                    )}
+                  </Button>
+                </>
               ) : (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleGenerateLabel(order.id)}
+                  disabled={isGeneratingLabel}
                 >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Generate Label
+                  {isGeneratingLabel ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate Label
+                    </>
+                  )}
                 </Button>
               )}
             </>
-          )}
-          {(order.status === "READY_FOR_DISPATCH" ||
-            order.status === "DISPATCHED" ||
-            order.status === "AT_DESTINATION" ||
-            order.status === "DELIVERED") && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleGenerateLabel(order.id)}
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Regenerate Label
-            </Button>
           )}
           {actions.orders.edit && (
             <Button
@@ -394,19 +444,21 @@ const OrderDetails = ({
 interface OrderCardProps {
   order: AdminOrder;
   isExpanded: boolean;
-  onToggleExpansion: () => void;
+  onToggleExpand: () => void;
   onOpenStatusDialog: () => void;
+  onOrderUpdate?: (updatedOrder: AdminOrder) => void;
 }
 
 export function OrderCard({
   order,
   isExpanded,
-  onToggleExpansion,
+  onToggleExpand,
   onOpenStatusDialog,
+  onOrderUpdate,
 }: OrderCardProps) {
   return (
     <Card>
-      <Collapsible open={isExpanded} onOpenChange={onToggleExpansion}>
+      <Collapsible open={isExpanded} onOpenChange={onToggleExpand}>
         <CollapsibleTrigger asChild>
           <div className="group cursor-pointer transition-colors hover:bg-muted/50">
             <CardHeader>
@@ -415,7 +467,7 @@ export function OrderCard({
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <OrderDetails order={order} onOpenStatusDialog={onOpenStatusDialog} />
+          <OrderDetails order={order} onOpenStatusDialog={onOpenStatusDialog} onOrderUpdate={onOrderUpdate} />
         </CollapsibleContent>
       </Collapsible>
     </Card>

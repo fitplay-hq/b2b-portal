@@ -15,6 +15,7 @@ import { formatStatus } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { AdminOrder } from "@/data/order/admin.actions";
 
 export default function AdminOrdersPage() {
   // 1. DATA FETCHING
@@ -24,6 +25,12 @@ export default function AdminOrdersPage() {
   // 2. LOGIC & STATE
   const { filteredOrders, ...filterProps } = useOrderFilters(orders);
   const { metrics, ...managementProps } = useOrderManagement(orders, mutate);
+
+  // Handle order updates (for shipping label regeneration)
+  const handleOrderUpdate = (updatedOrder: AdminOrder) => {
+    // Refresh the orders data
+    mutate();
+  };
 
   if (isLoading) {
     return (
@@ -74,7 +81,7 @@ export default function AdminOrdersPage() {
 
         <OrderStatsGrid {...metrics} />
         <OrderFilters {...filterProps} />
-          <OrderList orders={filteredOrders} {...managementProps} />
+          <OrderList orders={filteredOrders} onOrderUpdate={handleOrderUpdate} {...managementProps} />
           <UpdateStatusDialog {...managementProps} />
         </div>
       </Layout>
