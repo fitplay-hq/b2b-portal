@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       // Create initial inventory log entry for the starting stock
       const initialStock = body.availableStock || 0;
       const initialLogEntry = initialStock > 0 
-        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE | Updated stock: ${initialStock}`
+        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE | Updated stock: ${initialStock} | Remarks: `
         : null;
 
       // Handle category relationships properly

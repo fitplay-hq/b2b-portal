@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     const productsData: Prisma.ProductCreateInput[] = parsedProducts.map((p) => {
       const initialStock = p.availableStock || 0;
       const initialLogEntry = initialStock > 0
-        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE | Updated stock: ${initialStock}`
+        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE | Updated stock: ${initialStock} | Remarks: `
         : null;
 
       return {
@@ -211,25 +211,25 @@ export async function PATCH(req: NextRequest) {
     const adminEmail = process.env.ADMIN_EMAIL || "";
     const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
     updatedProducts.forEach(async (productData) => {
-    if (productData && productData.minStockThreshold) {
-      if (productData.availableStock < productData.minStockThreshold) {
-        const mail = await resend.emails.send({
-          from: "no-reply@fitplaysolutions.com",
-          to: [adminEmail],
-          cc: ownerEmail,
-          subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
-          html: `<p>Dear Admin,</p>
+      if (productData && productData.minStockThreshold) {
+        if (productData.availableStock < productData.minStockThreshold) {
+          const mail = await resend.emails.send({
+            from: "no-reply@fitplaysolutions.com",
+            to: [adminEmail],
+            cc: ownerEmail,
+            subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
+            html: `<p>Dear Admin,</p>
             <p>The stock for product <strong>${productData.name}</strong> has fallen below the minimum threshold.</p>
             <ul>
               <li>Current Stock: ${productData.availableStock}</li>
               <li>Minimum Threshold: ${productData.minStockThreshold}</li>
             </ul>`,
-        });
-    }
-  }
-  });
+          });
+        }
+      }
+    });
 
-  return NextResponse.json(
+    return NextResponse.json(
       {
         success: true,
         updatedProducts,

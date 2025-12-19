@@ -229,7 +229,7 @@ export async function POST(req: NextRequest) {
               availableStock: { decrement: item.quantity },
               inventoryUpdateReason: "NEW_ORDER",
               inventoryLogs: {
-                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity}`,
+                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
               },
             },
           });
