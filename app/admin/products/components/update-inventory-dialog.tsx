@@ -43,6 +43,7 @@ export function UpdateInventoryDialog({
   const [quantity, setQuantity] = useState<string>("");
   const [direction, setDirection] = useState<"add" | "subtract">("add");
   const [reason, setReason] = useState<string>("");
+  const [remarks, setRemarks] = useState<string>("");
 
   const { updateInventory, isUpdatingInventory } = useUpdateInventory();
 
@@ -70,6 +71,7 @@ export function UpdateInventoryDialog({
         quantity: qty,
         reason,
         direction: direction === "add" ? 1 : -1,
+        remarks,
       });
 
       toast.success(
@@ -85,6 +87,7 @@ export function UpdateInventoryDialog({
     setQuantity("");
     setDirection("add");
     setReason("");
+    setRemarks("");
     setActiveTab("update");
     onClose();
   };
@@ -207,6 +210,17 @@ export function UpdateInventoryDialog({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Remarks Input */}
+              <div className="space-y-2">
+                <Label htmlFor="remarks">Remarks (Optional)</Label>
+                <Input
+                  id="remarks"
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  placeholder="Enter any additional remarks or notes..."
+                />
               </div>
 
               {/* Preview */}

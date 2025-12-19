@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
                 name: true,
                 sku: true,
                 availableStock: true,
+                minStockThreshold: true,
                 inventoryLogs: true
             }
         });
@@ -130,6 +131,7 @@ export async function GET(request: NextRequest) {
                     changeAmount: amount,
                     changeDirection,
                     explicitFinalStock,
+                    minStockThreshold: product.minStockThreshold,
                     raw: entry
                 });
             }

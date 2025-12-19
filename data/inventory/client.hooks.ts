@@ -13,6 +13,8 @@ export interface ClientInventoryLogEntry {
   changeDirection: "Added" | "Removed" | null;
   finalStock: number;
   raw: string;
+  remarks?: string;
+  minStockThreshold?: number;
 }
 
 export interface ClientInventoryLogsResponse {

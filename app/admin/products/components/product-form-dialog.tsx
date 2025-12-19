@@ -90,6 +90,11 @@ export function ProductFormDialog({
                 toast.error("Initial stock is required for new products and cannot be negative");
                 return;
               }
+              // Minimum stock threshold validation for all products
+              if (!formData.minStockThreshold || Number(formData.minStockThreshold) < 0) {
+                toast.error("Minimum stock threshold is required and cannot be negative");
+                return;
+              }
               if (!formData.description.trim()) {
                 toast.error("Description is required");
                 return;
@@ -218,6 +223,23 @@ export function ProductFormDialog({
                 />
               </div>
             )}
+            
+            {/* Minimum Stock Threshold field for all products */}
+            <div className="space-y-2">
+              <Label htmlFor="minThreshold">Minimum Stock Threshold <span className="text-red-500">*</span></Label>
+              <Input
+                id="minThreshold"
+                type="number"
+                min="0"
+                value={formData.minStockThreshold}
+                onChange={(e) =>
+                  setFormData({ ...formData, minStockThreshold: e.target.value })
+                }
+                required
+                placeholder="Enter minimum stock alert threshold"
+                title="When stock falls below this number, email alerts will be sent"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(auth);
 
-    if (!session || !session?.user || session?.user?.role !== "ADMIN") {
+    if (!session || !session?.user || !["ADMIN", "SYSTEM_USER"].includes(session?.user?.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -64,24 +64,33 @@ export async function PATCH(req: NextRequest) {
       select: {
         name: true,
         availableStock: true,
+      },
+    });
+
+    // Get the updated product to check threshold
+    const updatedProduct = await prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        name: true,
+        availableStock: true,
         minStockThreshold: true,
       },
     });
 
     const adminEmail = process.env.ADMIN_EMAIL || "";
     const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
-    if (productData.minStockThreshold) {
-      if (productData.availableStock < productData.minStockThreshold) {
+    if (updatedProduct?.minStockThreshold) {
+      if (updatedProduct.availableStock < updatedProduct.minStockThreshold) {
         const mail = await resend.emails.send({
           from: "no-reply@fitplaysolutions.com",
           to: [adminEmail],
           cc: ownerEmail,
-          subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
+          subject: `Stock Alert: Product ${updatedProduct.name} below minimum threshold`,
           html: `<p>Dear Admin,</p>
-            <p>The stock for product <strong>${productData.name}</strong> has fallen below the minimum threshold.</p>
+            <p>The stock for product <strong>${updatedProduct.name}</strong> has fallen below the minimum threshold.</p>
             <ul>
-              <li>Current Stock: ${productData.availableStock}</li>
-              <li>Minimum Threshold: ${productData.minStockThreshold}</li>
+              <li>Current Stock: ${updatedProduct.availableStock}</li>
+              <li>Minimum Threshold: ${updatedProduct.minStockThreshold}</li>
             </ul>`,
         });
       }
@@ -112,7 +121,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(auth);
 
-    if (!session || !session?.user || session?.user?.role !== "ADMIN") {
+    if (!session || !session?.user || !["ADMIN", "SYSTEM_USER"].includes(session?.user?.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

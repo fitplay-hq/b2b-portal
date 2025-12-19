@@ -265,7 +265,8 @@ export function ClientInventoryLogsTable({
 
         <div className="rounded-md border">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <div className="min-w-[1000px]">
+              <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left p-4 font-medium">Date & Time</th>
@@ -274,12 +275,13 @@ export function ClientInventoryLogsTable({
                   <th className="text-left p-4 font-medium">Final Stock</th>
                   <th className="text-left p-4 font-medium">Reason</th>
                   <th className="text-left p-4 font-medium">Action</th>
+                  <th className="text-left p-4 font-medium">Remarks</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={7} className="text-center py-8 text-muted-foreground">
                       <Package2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <div>No inventory logs found</div>
                       <div className="text-sm mt-1">
@@ -311,7 +313,14 @@ export function ClientInventoryLogsTable({
                         </div>
                       </td>
                       <td className="p-4">
-                        <Badge variant="outline" className="font-mono">
+                        <Badge 
+                          variant="outline" 
+                          className={`font-mono ${
+                            log.minStockThreshold && log.finalStock < log.minStockThreshold 
+                              ? "text-red-600 border-red-600" 
+                              : ""
+                          }`}
+                        >
                           {log.finalStock}
                         </Badge>
                       </td>
@@ -329,15 +338,21 @@ export function ClientInventoryLogsTable({
                           {log.action}
                         </div>
                       </td>
+                      <td className="p-4">
+                        {log.remarks ? (
+                          <span className="text-sm text-muted-foreground italic">{log.remarks}</span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
-        </div>
-
-        {logs.length > 0 && (
+        </div>        {logs.length > 0 && (
           <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">
             <div>
               Showing {logs.length} inventory log{logs.length !== 1 ? 's' : ''}

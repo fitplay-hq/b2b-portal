@@ -14,6 +14,7 @@ export interface InventoryLogEntry {
   role: string;
   productId: string;
   currentStock: number;
+  minStockThreshold?: number;
 }
 
 export interface InventoryLogsResponse {
@@ -112,6 +113,7 @@ export function useProductInventoryLogs(productId: string) {
       reasonInfo: string;
       changeAmount: number;
       changeDirection: 'Added' | 'Removed';
+      remarks?: string;
     }> = [];
 
     data.inventoryLogs.forEach((logString, index) => {
@@ -121,6 +123,9 @@ export function useProductInventoryLogs(productId: string) {
           const date = parts[0];
           const changeInfo = parts[1];
           const reasonInfo = parts[2];
+          const remarksInfo = parts[4] || "";
+          const remarksMatch = remarksInfo.match(/Remarks:\s*(.+)/);
+          const remarks = remarksMatch ? remarksMatch[1].trim() : "";
           
           const changeMatch = changeInfo.match(/(Added|Removed)\s+(\d+)\s+units/);
           if (changeMatch) {
@@ -130,7 +135,8 @@ export function useProductInventoryLogs(productId: string) {
               changeInfo,
               reasonInfo,
               changeAmount: parseInt(changeMatch[2]),
-              changeDirection: changeMatch[1] as 'Added' | 'Removed'
+              changeDirection: changeMatch[1] as 'Added' | 'Removed',
+              remarks: remarks === "N/A" ? "" : remarks
             });
           }
         }
@@ -176,7 +182,7 @@ export function useProductInventoryLogs(productId: string) {
         sku: "", // Will be filled by the component
         change: change,
         reason: extractedReason,
-        remarks: "",
+        remarks: log.remarks || "",
         user: "Admin",
         role: "ADMIN",
         productId: productId,

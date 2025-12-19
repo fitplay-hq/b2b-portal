@@ -87,7 +87,6 @@ export async function POST(req: NextRequest) {
         name: body.name,
         sku: body.sku,
         description: body.description || "",
-        categories : body.categories,
         price: body.price ? parseInt(body.price.toString()) : null,
         availableStock: body.availableStock,
         minStockThreshold: body.minStockThreshold || 0,

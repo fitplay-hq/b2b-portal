@@ -58,6 +58,7 @@ interface SelectedProduct extends Product {
     | "NEW_PURCHASE"
     | "PHYSICAL_STOCK_CHECK"
     | "RETURN_FROM_PREVIOUS_DISPATCH";
+  remarks: string;
 }
 
 export function BulkInventoryDialog({
@@ -95,6 +96,7 @@ export function BulkInventoryDialog({
         quantity: 1,
         direction: "add",
         reason: "PHYSICAL_STOCK_CHECK",
+        remarks: "",
       };
       setSelectedProducts((prev) => [...prev, newSelectedProduct]);
     } else {
@@ -141,6 +143,7 @@ export function BulkInventoryDialog({
           | "incr"
           | "dec",
         inventoryUpdateReason: product.reason,
+        remarks: product.remarks,
       }));
 
       await updateBulkInventory(inventoryUpdates);
@@ -542,6 +545,21 @@ export function BulkInventoryDialog({
                               }
                             </div>
                           </div>
+                        </div>
+
+                        {/* Remarks Field */}
+                        <div className="mt-4">
+                          <Label className="text-xs font-medium text-gray-700">Remarks (Optional)</Label>
+                          <Input
+                            value={product.remarks}
+                            onChange={(e) =>
+                              handleUpdateProduct(product.id, {
+                                remarks: e.target.value,
+                              })
+                            }
+                            placeholder="Enter any additional remarks or notes..."
+                            className="h-9 text-sm mt-1"
+                          />
                         </div>
 
                         {/* Quick Action Buttons */}
