@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { withPermissions } from "@/lib/auth-middleware";
+import { min } from "date-fns";
 
 // Removed auto-generated schemas as we're handling validation manually
 // to properly support category relationships
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
         categories : body.categories,
         price: body.price ? parseInt(body.price.toString()) : null,
         availableStock: body.availableStock,
+        minStockThreshold: body.minStockThreshold || 0,
         images: body.images || [],
         inventoryLogs: initialLogEntry ? [initialLogEntry] : [],
         brand: body.brand,
@@ -180,6 +182,7 @@ export async function PATCH(req: NextRequest) {
         ...(body.categories && { categories: body.categories }),
         ...(body.description !== undefined && { description: body.description }),
         ...(body.price !== undefined && { price: body.price ? parseInt(body.price.toString()) : null }),
+        ...(body.minStockThreshold !== undefined && { minStockThreshold: body.minStockThreshold }),
         // Remove availableStock from updates - use inventory management instead
         // ...(body.availableStock !== undefined && { availableStock: body.availableStock }),
         ...(body.images && { images: body.images }),

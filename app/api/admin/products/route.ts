@@ -2,9 +2,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
-import { Prisma } from "@/lib/generated/prisma";
+import { Prisma, Product } from "@/lib/generated/prisma";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
+import { Resend } from "resend";
+
+const resendApiKey = process.env.RESEND_API_KEY;
+
+if (!resendApiKey) {
+  throw new Error("Missing Resend API key");
+}
+
+const resend = new Resend(resendApiKey);
 
 // Import the auto-generated Zod schema
 import z from "zod";
@@ -14,6 +23,7 @@ const InventoryUpdateSchema = z.object({
   quantity: z.number().positive(),
   direction: z.enum(["incr", "dec"]),
   inventoryUpdateReason: z.enum(["NEW_PURCHASE", "PHYSICAL_STOCK_CHECK", "RETURN_FROM_PREVIOUS_DISPATCH", "NEW_ORDER"]),
+  remarks: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -51,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     const productsData: Prisma.ProductCreateInput[] = parsedProducts.map((p) => {
       const initialStock = p.availableStock || 0;
-      const initialLogEntry = initialStock > 0 
+      const initialLogEntry = initialStock > 0
         ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE | Updated stock: ${initialStock}`
         : null;
 
@@ -109,7 +119,7 @@ export async function GET(req: NextRequest) {
         [safeSortBy]: safeSortOrder,
       },
     });
-    
+
     return NextResponse.json(products);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Something went wrong";
@@ -158,13 +168,17 @@ export async function PATCH(req: NextRequest) {
     });
 
     const updatedProducts = await Promise.all(
-      updates.map(async ({ productId, quantity, direction, inventoryUpdateReason }) => {
+      updates.map(async ({ productId, quantity, direction, inventoryUpdateReason, remarks }) => {
 
         const product = await prisma.product.findUnique({
           where: { id: productId },
-          select: { availableStock: true },
+          select: {
+            availableStock: true,
+            minStockThreshold: true,
+            name: true
+          },
         });
-        
+
         if (!product) {
           throw new Error(`Product with ID ${productId} not found`);
         }
@@ -173,11 +187,10 @@ export async function PATCH(req: NextRequest) {
           ? product.availableStock + quantity
           : product.availableStock - quantity;
         // Create a log entry for this update
-        const logEntry = `${new Date().toISOString()} | ${
-          direction === "incr" ? "Added" : "Removed"
-        } ${quantity} units | Reason: ${inventoryUpdateReason} | Updated stock: ${newStock}`;
+        const logEntry = `${new Date().toISOString()} | ${direction === "incr" ? "Added" : "Removed"
+          } ${quantity} units | Reason: ${inventoryUpdateReason} | Updated stock: ${newStock} | Remarks: ${remarks || "N/A"}`; // Then work on client side APIs for remarks and minStock threshold
         // Update the product inventory and push the log
-        return prisma.product.update({
+        return await prisma.product.update({
           where: { id: productId },
           data: {
             availableStock: {
@@ -186,11 +199,37 @@ export async function PATCH(req: NextRequest) {
             inventoryUpdateReason: inventoryUpdateReason,
             inventoryLogs: { push: logEntry }, // 👈 new line to store logs
           },
+          select: {
+            name: true,
+            availableStock: true,
+            minStockThreshold: true,
+          },
         });
       })
     );
 
-    return NextResponse.json(
+    const adminEmail = process.env.ADMIN_EMAIL || "";
+    const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
+    updatedProducts.forEach(async (productData) => {
+    if (productData && productData.minStockThreshold) {
+      if (productData.availableStock < productData.minStockThreshold) {
+        const mail = await resend.emails.send({
+          from: "no-reply@fitplaysolutions.com",
+          to: [adminEmail],
+          cc: ownerEmail,
+          subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
+          html: `<p>Dear Admin,</p>
+            <p>The stock for product <strong>${productData.name}</strong> has fallen below the minimum threshold.</p>
+            <ul>
+              <li>Current Stock: ${productData.availableStock}</li>
+              <li>Minimum Threshold: ${productData.minStockThreshold}</li>
+            </ul>`,
+        });
+    }
+  }
+  });
+
+  return NextResponse.json(
       {
         success: true,
         updatedProducts,

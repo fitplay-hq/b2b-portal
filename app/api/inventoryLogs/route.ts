@@ -72,10 +72,15 @@ export async function GET(request: NextRequest) {
                 const actionText = parts[1];
                 const reasonText = parts.find(p => p.startsWith("Reason:"));
                 const stockText = parts.find(p => p.startsWith("Updated stock:"));
+                const remarksText = parts.find(p => p.startsWith("Remarks:"));
 
                 const reason = reasonText?.replace("Reason:", "").trim() || null;
                 if (reasonFilter && reason !== reasonFilter) continue;
                 if (search && !entry.toLowerCase().includes(search.toLowerCase())) continue;
+
+                const remarks =
+                    remarksText?.replace("Remarks:", "").trim() || null;
+
 
                 const qtyMatch = actionText.match(/\d+/);
                 const amount = qtyMatch ? parseInt(qtyMatch[0]) : 0;
@@ -98,6 +103,7 @@ export async function GET(request: NextRequest) {
                     timestamp,
                     action: actionText,
                     reason,
+                    remarks,
                     changeAmount: amount,
                     changeDirection,
                     explicitFinalStock,
