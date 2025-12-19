@@ -125,8 +125,11 @@ async function exportInventoryLogsData({
             const actionText = parts[1];
             const reasonText = parts.find(p => p.startsWith('Reason:'));
             const stockText = parts.find(p => p.startsWith('Updated stock:'));
+            const remarksText = parts.find(p => p.startsWith('Remarks:'));
 
             const reason = reasonText?.replace('Reason:', '').trim() || null;
+            const remarks = remarksText?.replace('Remarks:', '').trim() || null;
+
             if (reasonFilter && reason !== reasonFilter) continue;
 
             if (search && !entry.toLowerCase().includes(search.toLowerCase())) continue;
@@ -149,6 +152,7 @@ async function exportInventoryLogsData({
                 timestamp,
                 actionText,
                 reason,
+                remarks,
                 changeAmount: amount,
                 changeDirection,
                 explicitFinalStock,
@@ -201,9 +205,11 @@ async function exportInventoryLogsData({
                         ? log.changeAmount
                         : -log.changeAmount,
                 'Reason': log.reason,
+                'Remarks': log.remarks, // ✅ NEW COLUMN
                 'Final Stock': log.finalStock,
                 'Raw Log': log.raw
             });
+
         }
     }
 

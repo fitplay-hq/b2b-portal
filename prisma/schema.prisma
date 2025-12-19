@@ -75,6 +75,7 @@ model Product {
   price                 Int?
   sku                   String           @unique @db.VarChar(100)
   availableStock        Int
+  minStockThreshold     Int?
   inventoryUpdateReason Reason?
   inventoryLogs         String[]
   description           String
