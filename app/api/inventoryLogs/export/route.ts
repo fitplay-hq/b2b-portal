@@ -12,13 +12,15 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         // Check permissions - ADMIN has full access, others need inventory view permission
+        // Exception: CLIENTs can export their own inventory logs without special permissions
         const isAdmin = session.user.role === 'ADMIN';
         const isSystemAdmin = session.user.role === 'SYSTEM_USER' &&
             session.user.systemRole &&
             session.user.systemRole.toLowerCase() === 'admin';
+        const isClient = session.user.role === 'CLIENT';
         const hasAdminAccess = isAdmin || isSystemAdmin;
 
-        if (!hasAdminAccess) {
+        if (!hasAdminAccess && !isClient) {
             const userPermissions = session.user.permissions || [];
             if (!hasPermission(userPermissions, RESOURCES.INVENTORY, PERMISSIONS.READ)) {
                 return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });

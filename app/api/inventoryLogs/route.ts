@@ -15,10 +15,16 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // Permission check: Admins can see everything, clients can see their own products
         if (session.user.role !== "ADMIN") {
-            const perms = session.user.permissions || [];
-            if (!hasPermission(perms, RESOURCES.INVENTORY, PERMISSIONS.READ)) {
-                return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+            // For non-admin users, they should be able to see inventory logs for products
+            // associated with their company - this is basic operational data
+            // Only block if they specifically lack inventory permissions AND are not a client
+            if (session.user.role !== "CLIENT") {
+                const perms = session.user.permissions || [];
+                if (!hasPermission(perms, RESOURCES.INVENTORY, PERMISSIONS.READ)) {
+                    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+                }
             }
         }
 
@@ -43,8 +49,25 @@ export async function GET(request: NextRequest) {
         }
 
         /* ---------------- FETCH PRODUCTS ---------------- */
+        // Build product filter
+        const productWhere: any = {};
+        if (productId) {
+            productWhere.id = productId;
+        }
+
+        // For clients, only show products associated with their company
+        if (session.user.role === "CLIENT") {
+            const client = await prisma.client.findUnique({
+                where: { id: session.user.id },
+                select: { companyID: true },
+            });
+            if (client?.companyID) {
+                productWhere.companies = { some: { id: client.companyID } };
+            }
+        }
+
         const products = await prisma.product.findMany({
-            where: productId ? { id: productId } : {},
+            where: productWhere,
             select: {
                 id: true,
                 name: true,
