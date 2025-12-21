@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
         sku: true,
         inventoryLogs: true,
         availableStock: true,
+        minStockThreshold: true,
       },
     });
 
@@ -67,6 +68,7 @@ export async function GET(req: NextRequest) {
           reasonInfo: string;
           changeAmount: number;
           changeDirection: 'Added' | 'Removed';
+          remarks?: string;
         }> = [];
 
         product.inventoryLogs.forEach((logString, index) => {
@@ -76,6 +78,10 @@ export async function GET(req: NextRequest) {
               const date = parts[0];
               const changeInfo = parts[1];
               const reasonInfo = parts[2];
+              // Extract remarks from parts[4] if available (parts[3] is "Updated stock: X")
+              const remarksInfo = parts[4] || "";
+              const remarksMatch = remarksInfo.match(/Remarks:\s*(.+)/);
+              const remarks = remarksMatch ? remarksMatch[1].trim() : "";
               
               const changeMatch = changeInfo.match(/(Added|Removed)\s+(\d+)\s+units/);
               if (changeMatch) {
@@ -85,7 +91,8 @@ export async function GET(req: NextRequest) {
                   changeInfo,
                   reasonInfo,
                   changeAmount: parseInt(changeMatch[2]),
-                  changeDirection: changeMatch[1] as 'Added' | 'Removed'
+                  changeDirection: changeMatch[1] as 'Added' | 'Removed',
+                  remarks: remarks === "N/A" ? "" : remarks
                 });
               }
             }
@@ -131,11 +138,12 @@ export async function GET(req: NextRequest) {
             sku: product.sku,
             change: change,
             reason: extractedReason,
-            remarks: "", // Can be extended later
+            remarks: log.remarks || "",
             user: "Admin", // For now, defaulting to Admin as logs don't store user info yet
             role: "ADMIN",
             productId: product.id,
             currentStock: runningStock, // This is now the stock AFTER this change
+            minStockThreshold: product.minStockThreshold,
           });
         });
       }

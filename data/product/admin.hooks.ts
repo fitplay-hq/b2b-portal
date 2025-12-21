@@ -105,7 +105,7 @@ export function useDeleteProduct() {
 export function useUpdateInventory() {
   const { trigger, isMutating, error } = useSWRMutation(
     "/api/admin/products/product/inventory",
-    (url, { arg }: { arg: { productId: string; quantity: number; reason: string; direction: 1 | -1 } }) => updateInventory(url, arg),
+    (url, { arg }: { arg: { productId: string; quantity: number; reason: string; direction: 1 | -1; remarks?: string } }) => updateInventory(url, arg),
     {
       onSuccess: () => {
         globalMutate('/api/admin/products')
@@ -133,6 +133,7 @@ export function useBulkInventory() {
         quantity: number;
         direction: "incr" | "dec"; // From API Zod schema
         inventoryUpdateReason: "NEW_PURCHASE" | "PHYSICAL_STOCK_CHECK" | "RETURN_FROM_PREVIOUS_DISPATCH" | "NEW_ORDER"; // From API Zod schema
+        remarks?: string; // Optional remarks field
       }>
     }) => updateBulkInventory(url, arg),
     {

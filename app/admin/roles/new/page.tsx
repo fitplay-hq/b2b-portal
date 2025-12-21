@@ -34,8 +34,13 @@ export default function NewRolePage() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
 
-  // Check if user is authorized (only ADMIN can create roles)
-  const isUnauthorized = session && session.user?.role !== "ADMIN";
+  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can create roles)
+  const isAdmin = session?.user?.role === "ADMIN";
+  const isSystemAdmin = session?.user?.role === "SYSTEM_USER" && 
+                        session?.user?.systemRole && 
+                        session?.user?.systemRole.toLowerCase() === "admin";
+  const hasAdminAccess = isAdmin || isSystemAdmin;
+  const isUnauthorized = session && !hasAdminAccess;
 
   useEffect(() => {
     if (status === "loading") return; // Still loading
@@ -46,14 +51,16 @@ export default function NewRolePage() {
     }
 
     // Don't redirect, just stop loading
-    if (session.user?.role !== "ADMIN") {
+    if (!hasAdminAccess) {
       setIsLoadingPermissions(false);
       return;
     }
-  }, [session, status, router]);
+  }, [session, status, router, hasAdminAccess]);
 
   // Fetch permissions from API
   useEffect(() => {
+    if (!hasAdminAccess) return;
+    
     const fetchPermissions = async () => {
       try {
         const response = await fetch("/api/admin/permissions");
@@ -74,7 +81,7 @@ export default function NewRolePage() {
     };
 
     fetchPermissions();
-  }, []);
+  }, [hasAdminAccess]);
 
   const handlePermissionChange = (permissionId: string, checked: boolean) => {
     const permission = permissions.find(p => p.id === permissionId);

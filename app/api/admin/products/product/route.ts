@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { withPermissions } from "@/lib/auth-middleware";
+import { min } from "date-fns";
 
 // Removed auto-generated schemas as we're handling validation manually
 // to properly support category relationships
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       // Create initial inventory log entry for the starting stock
       const initialStock = body.availableStock || 0;
       const initialLogEntry = initialStock > 0 
-        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE | Updated stock: ${initialStock}`
+        ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE | Updated stock: ${initialStock} | Remarks: `
         : null;
 
       // Handle category relationships properly
@@ -86,9 +87,9 @@ export async function POST(req: NextRequest) {
         name: body.name,
         sku: body.sku,
         description: body.description || "",
-        categories : body.categories,
         price: body.price ? parseInt(body.price.toString()) : null,
         availableStock: body.availableStock,
+        minStockThreshold: body.minStockThreshold || 0,
         images: body.images || [],
         inventoryLogs: initialLogEntry ? [initialLogEntry] : [],
         brand: body.brand,
@@ -180,6 +181,7 @@ export async function PATCH(req: NextRequest) {
         ...(body.categories && { categories: body.categories }),
         ...(body.description !== undefined && { description: body.description }),
         ...(body.price !== undefined && { price: body.price ? parseInt(body.price.toString()) : null }),
+        ...(body.minStockThreshold !== undefined && { minStockThreshold: body.minStockThreshold }),
         // Remove availableStock from updates - use inventory management instead
         // ...(body.availableStock !== undefined && { availableStock: body.availableStock }),
         ...(body.images && { images: body.images }),

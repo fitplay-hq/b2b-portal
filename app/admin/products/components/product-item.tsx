@@ -48,7 +48,7 @@ export function ProductItem({
             {product.availableStock === 0 && (
               <Badge variant="destructive">Out of Stock</Badge>
             )}
-            {product.availableStock > 0 && product.availableStock < 50 && (
+            {product.availableStock > 0 && product.minStockThreshold && product.availableStock < product.minStockThreshold && (
               <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80">
                 Low Stock
               </Badge>

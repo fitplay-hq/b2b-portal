@@ -59,6 +59,7 @@ type InventoryUpdate = {
   quantity: number;
   direction: "incr" | "dec";
   inventoryUpdateReason: "NEW_PURCHASE" | "PHYSICAL_STOCK_CHECK" | "RETURN_FROM_PREVIOUS_DISPATCH" | "NEW_ORDER";
+  remarks?: string;
 };
 
 export async function updateBulkInventory(url: string, inventoryUpdates: InventoryUpdate[]) {
@@ -78,6 +79,7 @@ export async function updateInventory(url: string, inventoryData: {
   quantity: number;
   reason: string;
   direction: 1 | -1;
+  remarks?: string;
 }) {
   const response = await fetch(url, {
     method: "PATCH",

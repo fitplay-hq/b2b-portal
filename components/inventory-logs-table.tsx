@@ -343,8 +343,9 @@ export function InventoryLogsTable({
         )}
 
         {/* Table */}
-        <div className="rounded-md border">
-          <table className="w-full">
+        <div className="rounded-md border overflow-x-auto">
+          <div className="min-w-[1200px]">
+            <table className="w-full">{/* Set minimum width to prevent cramping */}
             <thead className="bg-muted/50">
               <tr className="border-b">
                 <th className="text-left p-4 font-medium">
@@ -405,6 +406,7 @@ export function InventoryLogsTable({
                 <th className="text-left p-4 font-medium">Reason</th>
                 <th className="text-left p-4 font-medium">User</th>
                 <th className="text-left p-4 font-medium">Role</th>
+                <th className="text-left p-4 font-medium">Remarks</th>
               </tr>
             </thead>
             <tbody>
@@ -427,7 +429,11 @@ export function InventoryLogsTable({
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-green-600">
+                        <span className={`font-medium ${
+                          log.minStockThreshold && log.currentStock < log.minStockThreshold 
+                            ? "text-red-600" 
+                            : "text-green-600"
+                        }`}>
                           {log.currentStock}
                         </span>
                         <span className="text-xs text-muted-foreground">units</span>
@@ -442,20 +448,24 @@ export function InventoryLogsTable({
                     <td className="p-4 text-sm">
                       <Badge variant="secondary">{log.role}</Badge>
                     </td>
+                    <td className="p-4 text-sm">
+                      <div className="max-w-32 truncate" title={log.remarks || "No remarks"}>
+                        {log.remarks || <span className="text-muted-foreground italic">No remarks</span>}
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     No inventory logs found. Try adjusting your filters.
                   </td>
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
+            </table>
+          </div>
+        </div>        {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-muted-foreground">
