@@ -73,7 +73,7 @@ export async function PATCH(req: NextRequest) {
           const currentProduct = await prisma.product.findUnique({ where: { id: item.productId } });
           if (!currentProduct) continue;
           const newStock = currentProduct.availableStock + item.quantity;
-          const logEntry = `${new Date().toISOString()} | Added ${item.quantity} units | Reason: RETURN_FROM_PREVIOUS_DISPATCH | Updated stock: ${newStock}`;
+          const logEntry = `${new Date().toISOString()} | Added ${item.quantity} units | Reason: RETURN_FROM_PREVIOUS_DISPATCH | Updated stock: ${newStock} | Remarks: `;
           await prisma.product.update({
             where: { id: item.productId },
             data: {

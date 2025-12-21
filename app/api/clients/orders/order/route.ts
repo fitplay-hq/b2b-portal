@@ -17,20 +17,20 @@ let toggleTracker = true;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { 
-      deliveryAddress, 
-      items, 
-      consigneeName, 
-      consigneePhone, 
-      consigneeEmail, 
-      city, 
-      state, 
+    const {
+      deliveryAddress,
+      items,
+      consigneeName,
+      consigneePhone,
+      consigneeEmail,
+      city,
+      state,
       pincode,
       requiredByDate,
       modeOfDelivery,
       note = '',
-      deliveryReference = '', 
-      packagingInstructions = '' 
+      deliveryReference = '',
+      packagingInstructions = ''
     } = body;
 
     const session = await getServerSession(auth);
@@ -157,23 +157,55 @@ export async function POST(req: NextRequest) {
         if (!itemStock) {
           throw new Error(`Product with ID ${item.productId} not found during stock update`);
         }
-        
+
         await tx.product.update({
           where: { id: item.productId },
           data: {
             availableStock: { decrement: item.quantity },
             inventoryUpdateReason: "NEW_ORDER",
             inventoryLogs: {
-                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity}`,
-              },
+              push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
+            },
           },
         });
       }
 
+      const updatedProducts = await prisma.product.findMany({
+        where: {
+          id: { in: itemsId }
+        },
+        select: {
+          name: true,
+          availableStock: true,
+          minStockThreshold: true,
+        },
+      });
+
+      // Send stock alert emails if below threshold
+      const adminEmail = process.env.ADMIN_EMAIL || "";
+      const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
+      updatedProducts.forEach(async (productData) => {
+        if (productData && productData.minStockThreshold) {
+          if (productData.availableStock < productData.minStockThreshold) {
+            const mail = await resend.emails.send({
+              from: "no-reply@fitplaysolutions.com",
+              to: [adminEmail],
+              cc: ownerEmail,
+              subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
+              html: `<p>Dear Admin,</p>
+            <p>The stock for product <strong>${productData.name}</strong> has fallen below the minimum threshold.</p>
+            <ul>
+              <li>Current Stock: ${productData.availableStock}</li>
+              <li>Minimum Threshold: ${productData.minStockThreshold}</li>
+            </ul>`,
+            });
+          }
+        }
+      });
       return newOrder;
     });
 
-    
+
     const products = await prisma.product.findMany({
       where: {
         id: {
@@ -192,13 +224,13 @@ export async function POST(req: NextRequest) {
         </thead>
         <tbody>
           ${products.map(
-            (item) => `
+      (item) => `
               <tr>
                 <td>${item.name}</td>
                 <td align="center">${order.orderItems.find(i => i.productId === item.id)?.quantity}</td>
               </tr>
             `
-          ).join("")}
+    ).join("")}
         </tbody>
       </table>
     `;

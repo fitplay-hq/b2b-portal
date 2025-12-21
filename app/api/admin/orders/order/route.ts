@@ -1,6 +1,14 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { withPermissions } from "@/lib/auth-middleware";
+import { Resend } from "resend";
+const resendApiKey = process.env.RESEND_API_KEY;
+
+if (!resendApiKey) {
+  throw new Error("Missing Resend API key");
+}
+
+const resend = new Resend(resendApiKey);
 
 export async function GET(req: NextRequest) {
   return withPermissions(req, async () => {
@@ -229,11 +237,44 @@ export async function POST(req: NextRequest) {
               availableStock: { decrement: item.quantity },
               inventoryUpdateReason: "NEW_ORDER",
               inventoryLogs: {
-                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity}`,
+                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
               },
             },
           });
         }
+
+        const updatedProducts = await prisma.product.findMany({
+        where: {
+          id: { in: itemsId }
+        },
+        select: {
+          name: true,
+          availableStock: true,
+          minStockThreshold: true,
+        },
+      });
+
+      // Send stock alert emails if below threshold
+      const adminEmail = process.env.ADMIN_EMAIL || "";
+      const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
+      updatedProducts.forEach(async (productData) => {
+        if (productData && productData.minStockThreshold) {
+          if (productData.availableStock < productData.minStockThreshold) {
+            const mail = await resend.emails.send({
+              from: "no-reply@fitplaysolutions.com",
+              to: [adminEmail],
+              cc: ownerEmail,
+              subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
+              html: `<p>Dear Admin,</p>
+            <p>The stock for product <strong>${productData.name}</strong> has fallen below the minimum threshold.</p>
+            <ul>
+              <li>Current Stock: ${productData.availableStock}</li>
+              <li>Minimum Threshold: ${productData.minStockThreshold}</li>
+            </ul>`,
+            });
+          }
+        }
+      });
 
         return newOrder;
       });

@@ -42,6 +42,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     skuSuffix: "",
     price: "",
     availableStock: "",
+    minStockThreshold: "",
     description: "",
     image: "",
   });
@@ -175,6 +176,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       skuSuffix: "",
       price: "",
       availableStock: "",
+      minStockThreshold: "",
       description: "",
       image: "",
     });
@@ -202,6 +204,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       skuSuffix,
       price: product.price?.toString() || "",
       availableStock: product.availableStock.toString(),
+      minStockThreshold: product.minStockThreshold?.toString() || "",
       description: product.description,
       image: product.images[0] || "",
     });
@@ -213,10 +216,17 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     setIsSubmitting(true);
 
     const availableStock = parseInt(formData.availableStock);
+    const minStockThreshold = parseInt(formData.minStockThreshold);
     const price = formData.price ? parseInt(formData.price) : undefined;
 
     if (isNaN(availableStock)) {
       toast.error("Please enter valid numbers for stock.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (isNaN(minStockThreshold) || minStockThreshold < 0) {
+      toast.error("Please enter a valid minimum stock threshold (0 or greater).");
       setIsSubmitting(false);
       return;
     }
@@ -241,6 +251,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           name: formData.name,
           sku,
           price,
+          minStockThreshold,
           // Don't send availableStock for updates - use inventory management instead
           // Only set categories enum field if it's a legacy category
           ...(isLegacyCategory && { categories: formData.categories as Category }),
@@ -261,6 +272,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           sku,
           price,
           availableStock,
+          minStockThreshold,
           // Only set categories enum field if it's a legacy category
           ...(isLegacyCategory && { categories: formData.categories as Category }),
           categoryId: selectedCategory?.id, // Send categoryId directly

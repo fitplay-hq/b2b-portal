@@ -12,13 +12,15 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         // Check permissions - ADMIN has full access, others need inventory view permission
+        // Exception: CLIENTs can export their own inventory logs without special permissions
         const isAdmin = session.user.role === 'ADMIN';
         const isSystemAdmin = session.user.role === 'SYSTEM_USER' &&
             session.user.systemRole &&
             session.user.systemRole.toLowerCase() === 'admin';
+        const isClient = session.user.role === 'CLIENT';
         const hasAdminAccess = isAdmin || isSystemAdmin;
 
-        if (!hasAdminAccess) {
+        if (!hasAdminAccess && !isClient) {
             const userPermissions = session.user.permissions || [];
             if (!hasPermission(userPermissions, RESOURCES.INVENTORY, PERMISSIONS.READ)) {
                 return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -125,8 +127,11 @@ async function exportInventoryLogsData({
             const actionText = parts[1];
             const reasonText = parts.find(p => p.startsWith('Reason:'));
             const stockText = parts.find(p => p.startsWith('Updated stock:'));
+            const remarksText = parts.find(p => p.startsWith('Remarks:'));
 
             const reason = reasonText?.replace('Reason:', '').trim() || null;
+            const remarks = remarksText?.replace('Remarks:', '').trim() || null;
+
             if (reasonFilter && reason !== reasonFilter) continue;
 
             if (search && !entry.toLowerCase().includes(search.toLowerCase())) continue;
@@ -149,6 +154,7 @@ async function exportInventoryLogsData({
                 timestamp,
                 actionText,
                 reason,
+                remarks,
                 changeAmount: amount,
                 changeDirection,
                 explicitFinalStock,
@@ -201,9 +207,11 @@ async function exportInventoryLogsData({
                         ? log.changeAmount
                         : -log.changeAmount,
                 'Reason': log.reason,
+                'Remarks': log.remarks, // ✅ NEW COLUMN
                 'Final Stock': log.finalStock,
                 'Raw Log': log.raw
             });
+
         }
     }
 
