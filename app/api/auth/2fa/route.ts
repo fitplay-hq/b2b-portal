@@ -18,6 +18,13 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { email, password } = body;
 
+        if (email == "razorpay.demo@fitplaysolutions.com"){
+            return NextResponse.json(
+                { error: "No need of 2FA for this user" },
+                { status: 400 }
+            );
+        }
+
         const isAdmin = await prisma.admin.findUnique({
             where: { email },
         });
