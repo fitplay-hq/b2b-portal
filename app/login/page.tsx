@@ -302,7 +302,7 @@ export default function LoginPage() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            {isDemoUser ? "🚀 Login to Client Portal" : "Send OTP"}
+                            {isDemoUser ? "🚀 Login to Client Portal" : "Continue"}
                             <ArrowRight className="h-4 w-4" />
                           </div>
                         )}
