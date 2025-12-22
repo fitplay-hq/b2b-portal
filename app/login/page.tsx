@@ -19,7 +19,44 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [isDemoUser, setIsDemoUser] = useState(false);
   const router = useRouter();
+
+  // Check if current credentials are demo credentials
+  const checkIfDemo = (email: string, password: string) => {
+    const isDemo = email === "razorpay.demo@fitplaysolutions.com" && password === "test@2025";
+    setIsDemoUser(isDemo);
+    return isDemo;
+  };
+
+  // Handle demo user direct login
+  const handleDemoLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    console.log("🚀 Demo user direct login");
+    
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Demo login failed. Please check credentials.");
+      } else {
+        console.log("✅ Demo login successful, redirecting...");
+        window.location.replace("/client");
+      }
+    } catch (error) {
+      console.error("Demo login error:", error);
+      setError("Demo login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEmailVerification = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,42 +70,22 @@ export default function LoginPage() {
       return;
     }
 
+    // Regular flow - send verification email
     try {
-      // Special case: Razorpay demo client - direct authentication bypass
-      if (email === "razorpay.demo@fitplaysolutions.com" && password === "test@2025") {
-        console.log("🚀 Razorpay demo client - direct authentication");
-        
-        const result = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-        });
+      const response = await fetch("/api/auth/2fa", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-        if (result?.error) {
-          setError("Demo authentication failed. Please check credentials.");
-        } else {
-          console.log("✅ Demo authentication successful, redirecting...");
-          // Force redirect to client portal
-          window.location.replace("/client");
-          return;
-        }
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Failed to send verification email");
       } else {
-        // Regular flow - send verification email
-        const response = await fetch("/api/auth/2fa", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setError(data.error || "Failed to send verification email");
-        } else {
-          setEmailSent(true);
-        }
+        setEmailSent(true);
       }
     } catch {
       setError("An error occurred. Please try again.");
@@ -237,7 +254,7 @@ export default function LoginPage() {
                       </Button>
                     </div>
                   ) : (
-                    <form onSubmit={handleEmailVerification} className="space-y-6">
+                    <form onSubmit={isDemoUser ? handleDemoLogin : handleEmailVerification} className="space-y-6">
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-gray-700 font-medium">
                           Email Address
@@ -246,7 +263,10 @@ export default function LoginPage() {
                           id="email"
                           type="email"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            checkIfDemo(e.target.value, password);
+                          }}
                           placeholder="Enter your email address"
                           className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
                           required
@@ -270,7 +290,10 @@ export default function LoginPage() {
                           id="password"
                           type="password"
                           value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          onChange={(e) => {
+                            setPassword(e.target.value);
+                            checkIfDemo(email, e.target.value);
+                          }}
                           placeholder="Enter your password"
                           className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
                           required
@@ -293,19 +316,21 @@ export default function LoginPage() {
 
                       <Button
                         type="submit"
-                        className="w-full h-12 bg-gradient-to-r from-neutral-700 to-neutral-800 hover:from-neutral-800 hover:to-neutral-900 text-white font-medium transition-all duration-200 transform hover:scale-[1.02]"
+                        className={`w-full h-12 font-medium transition-all duration-200 transform hover:scale-[1.02] ${
+                          isDemoUser
+                            ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                            : "bg-gradient-to-r from-neutral-700 to-neutral-800 hover:from-neutral-800 hover:to-neutral-900 text-white"
+                        }`}
                         disabled={loading}
                       >
                         {loading ? (
                           <div className="flex items-center gap-2">
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            {email === "razorpay.demo@fitplaysolutions.com" && password === "test@2025" 
-                              ? "Logging in as Demo..." 
-                              : "Sending Email..."}
+                            {isDemoUser ? "Logging in..." : "Sending Email..."}
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            Verify Email
+                            {isDemoUser ? "🚀 Login to Client Portal" : "Verify Email"}
                             <ArrowRight className="h-4 w-4" />
                           </div>
                         )}

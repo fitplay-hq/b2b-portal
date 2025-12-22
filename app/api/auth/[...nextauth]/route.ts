@@ -21,59 +21,6 @@ export const auth: AuthOptions = {
           throw new Error("Email and password are required");
         }
 
-        // Special case: Razorpay demo client bypass
-        if (credentials.email === "razorpay.demo@fitplaysolutions.com" && credentials.password === "test@2025") {
-          console.log("🚀 Razorpay demo client bypass for:", credentials.email);
-          
-          // Find or create the Razorpay demo client
-          let demoClient = await prisma.client.findUnique({ 
-            where: { email: credentials.email },
-            include: { company: true }
-          });
-          
-          if (!demoClient) {
-            // Create demo company first if it doesn't exist
-            let demoCompany = await prisma.company.findFirst({
-              where: { name: "Razorpay Demo Company" }
-            });
-            
-            if (!demoCompany) {
-              demoCompany = await prisma.company.create({
-                data: {
-                  name: "Razorpay Demo Company",
-                  email: "demo@fitplaysolutions.com",
-                  phone: "+91-9999999999",
-                  address: "Demo Address, Mumbai, Maharashtra",
-                  isActive: true
-                }
-              });
-            }
-            
-            // Create demo client
-            demoClient = await prisma.client.create({
-              data: {
-                name: "Razorpay Demo Client",
-                email: credentials.email,
-                password: "$2a$12$demo.password.hash", // Dummy hash since we're bypassing
-                phone: "+91-9876543210",
-                address: "Demo Client Address",
-                companyID: demoCompany.id
-              },
-              include: { company: true }
-            });
-          }
-          
-          return {
-            id: demoClient.id,
-            name: demoClient.name,
-            email: demoClient.email,
-            role: "CLIENT",
-            companyId: demoClient.companyID,
-            companyName: demoClient.company?.name,
-            isDemo: true, // Flag to identify demo accounts
-          };
-        }
-
         // Special case: Email verification flow
         if (credentials.password === "EMAIL_VERIFIED") {
           console.log("🔓 Email verified login attempt for:", credentials.email);
