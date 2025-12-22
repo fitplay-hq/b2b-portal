@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Layout from "@/components/layout";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,9 @@ import { PageGuard } from "@/components/page-guard";
 
 export default function NewClientPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const companyIdFromUrl = searchParams.get("companyId");
+  
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -27,8 +30,8 @@ export default function NewClientPage() {
     phone: "",
     address: "",
     companyAddress: "",
-    selectedCompanyId: "create-new",
-    isNewCompany: true, // Default to creating new company
+    selectedCompanyId: companyIdFromUrl || "create-new",
+    isNewCompany: !companyIdFromUrl, // If companyId provided, it's existing company
   });
 
   // Use SWR hooks for data fetching
@@ -92,6 +95,14 @@ export default function NewClientPage() {
     }
   };
 
+  // Pre-select company if companyId is provided in URL
+  useEffect(() => {
+    if (companyIdFromUrl && companies && companies.length > 0) {
+      handleCompanySelect(companyIdFromUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyIdFromUrl, companies]);
+
   const handleProductToggle = (productId: string) => {
     setSelectedProducts((prev) =>
       prev.includes(productId)
@@ -130,7 +141,7 @@ export default function NewClientPage() {
         }
       }
 
-      router.push("/admin/clients");
+      router.push("/admin/companies-clients");
     } catch (error) {
       console.error("Failed to create client:", error);
       // Handle error - could show toast notification
@@ -225,7 +236,7 @@ export default function NewClientPage() {
 
               {/* Enhanced Action Buttons */}
               <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
-                <Link href="/admin/clients">
+                <Link href="/admin/companies-clients">
                   <Button type="button" variant="outline" className="px-6 py-2.5 rounded-xl font-medium">
                     Cancel
                   </Button>
