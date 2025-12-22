@@ -139,6 +139,17 @@ model ResetToken {
   createdAt  DateTime @default(now())
 }
 
+model LoginToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  identifier String
+  password  String
+  userId    String?
+  userType  Role?
+  createdAt DateTime @default(now())
+  expires   DateTime
+}
+
 enum Category {
   stationery
   accessories
