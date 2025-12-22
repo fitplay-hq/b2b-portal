@@ -19,6 +19,9 @@ declare module "next-auth" {
       systemRole?: string // For SYSTEM_USER, this contains the actual role name
       systemRoleId?: string // For SYSTEM_USER, this contains the role ID
       permissions?: Permission[] // User's permissions
+      companyId?: string // For CLIENT users
+      companyName?: string // For CLIENT users
+      isDemo?: boolean // Flag for demo accounts
     } & DefaultSession["user"]
   }
 
@@ -30,6 +33,9 @@ declare module "next-auth" {
     systemRole?: string // For SYSTEM_USER, this contains the actual role name
     systemRoleId?: string // For SYSTEM_USER, this contains the role ID
     permissions?: Permission[] // User's permissions
+    companyId?: string // For CLIENT users
+    companyName?: string // For CLIENT users
+    isDemo?: boolean // Flag for demo accounts
   }
 }
 
@@ -41,5 +47,9 @@ declare module "next-auth/jwt" {
     role?: $Enums.Role
     systemRole?: string // For SYSTEM_USER, this contains the actual role name
     systemRoleId?: string // For SYSTEM_USER, this contains the role ID
+    permissions?: Permission[] // User's permissions
+    companyId?: string // For CLIENT users
+    companyName?: string // For CLIENT users
+    isDemo?: boolean // Flag for demo accounts
   }
 }

@@ -34,20 +34,40 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch("/api/auth/2fa", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      // Special case: Razorpay demo client - bypass email verification
+      if (email === "razorpay.demo@fitplaysolutions.com" && password === "test@2025") {
+        console.log("🚀 Razorpay demo client - bypassing verification");
+        
+        const result = await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+        });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || "Failed to send verification email");
+        if (result?.error) {
+          setError("Authentication failed. Please try again.");
+        } else {
+          // Redirect directly to client portal
+          window.location.href = "/client";
+          return;
+        }
       } else {
-        setEmailSent(true);
+        // Regular flow - send verification email
+        const response = await fetch("/api/auth/2fa", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(data.error || "Failed to send verification email");
+        } else {
+          setEmailSent(true);
+        }
       }
     } catch {
       setError("An error occurred. Please try again.");
@@ -255,6 +275,7 @@ export default function LoginPage() {
                           required
                         />
                       </div>
+
 
                     {error && (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
