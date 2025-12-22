@@ -3,6 +3,7 @@
 import { useState } from "react";
 import React from "react";
 import { useRouter, useParams } from "next/navigation";
+import { mutate } from "swr";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
@@ -308,6 +309,9 @@ export default function EditClientPage() {
         }
       }
 
+      // Invalidate the clients cache to refresh the overview page
+      await mutate('/api/admin/clients');
+      
       router.push("/admin/companies-clients");
     } catch (error) {
       console.error("Failed to update client:", error);

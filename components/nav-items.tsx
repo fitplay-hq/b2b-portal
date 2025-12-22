@@ -238,7 +238,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             Management
           </h3>
           <nav className="space-y-1">
-            {/* Companies & Clients Unified Collapsible */}
+            {/* Clients Unified Collapsible */}
             {((isAdminUser || (!isLoading && (pageAccess.companies || pageAccess.clients))) && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
@@ -251,13 +251,13 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   )}
                   suppressHydrationWarning={true}
                 >
-                  <Building2 className={cn(
+                  <Users className={cn(
                     "h-4 w-4 transition-colors",
                     companiesOpen || pathname.startsWith("/admin/companies") || pathname.startsWith("/admin/companies-clients") || pathname.startsWith("/admin/clients")
                       ? "text-teal-600"
                       : "text-gray-400 group-hover:text-gray-600"
                   )} />
-                  Companies & Clients
+                  Clients
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 ml-auto transition-transform duration-200",
@@ -271,13 +271,37 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   href="/admin/companies-clients"
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
-                    pathname === "/admin/companies-clients" || pathname === "/admin/companies/new" || pathname === "/admin/clients/new"
+                    pathname === "/admin/companies-clients"
                       ? "bg-teal-100 text-teal-800"
                       : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                   )}
                 >
                   <List className="h-3 w-3" />
-                  Companies & Clients
+                  Overview
+                </Link>
+                <Link
+                  href="/admin/companies/new"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                    pathname === "/admin/companies/new"
+                      ? "bg-teal-100 text-teal-800"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Company
+                </Link>
+                <Link
+                  href="/admin/clients/new"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                    pathname === "/admin/clients/new"
+                      ? "bg-teal-100 text-teal-800"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Client
                 </Link>
               </CollapsibleContent>
             </Collapsible>
@@ -406,7 +430,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           {/* Separator line */}
           <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
           
-          {/* Companies & Clients Unified Dropdown */}
+          {/* Clients Unified Dropdown */}
           {((isAdminUser || (!isLoading && (pageAccess.companies || pageAccess.clients))) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -419,19 +443,31 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
-                <Building2 className="h-4 w-4 flex-shrink-0" />
+                <Users className="h-4 w-4 flex-shrink-0" />
                 <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 group-focus:opacity-0">
-                  Companies & Clients
+                  Clients
                 </div>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" className="w-48 ml-2">
-              <DropdownMenuLabel>Companies & Clients</DropdownMenuLabel>
+              <DropdownMenuLabel>Clients</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/admin/companies-clients" className="flex items-center gap-2 cursor-pointer">
                   <List className="h-4 w-4" />
-                  Companies & Clients
+                  Clients
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/companies/new" className="flex items-center gap-2 cursor-pointer">
+                  <Plus className="h-4 w-4" />
+                  Add Company
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/clients/new" className="flex items-center gap-2 cursor-pointer">
+                  <Plus className="h-4 w-4" />
+                  Add Client
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>

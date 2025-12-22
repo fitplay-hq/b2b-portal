@@ -4,13 +4,15 @@ import { useState, useMemo } from "react";
 import Layout from "@/components/layout";
 import { PageGuard } from "@/components/page-guard";
 import { Button } from "@/components/ui/button";
-import { Plus, Building2, Users, Package, Search, ChevronDown, ChevronUp } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Building2, Users, Package, Search, ChevronDown, ChevronUp, Grid3x3, Table } from "lucide-react";
 import Link from "next/link";
 import { useCompanies } from "@/data/company/admin.hooks";
 import { useClients, useDeleteClient } from "@/data/client/admin.hooks";
 import { usePermissions } from "@/hooks/use-permissions";
 import { UnifiedStatsGrid } from "./components/unified-stats-grid";
 import { CompanyCard } from "./components/company-card";
+import { ClientsTable } from "./components/clients-table";
 import { Input } from "@/components/ui/input";
 import { RESOURCES } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
@@ -30,6 +32,7 @@ export default function CompaniesClientsPage() {
   const { deleteClient } = useDeleteClient();
   
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewType, setViewType] = useState<"row" | "table">("row");
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
@@ -72,6 +75,21 @@ export default function CompaniesClientsPage() {
       return companyMatches || clientsMatch;
     });
   }, [companies, searchTerm, clientsByCompany]);
+
+  // Filter clients for table view
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    const term = searchTerm.toLowerCase();
+    if (!term) return clients;
+
+    return clients.filter((client) =>
+      client.name.toLowerCase().includes(term) ||
+      client.email.toLowerCase().includes(term) ||
+      client.phone.toLowerCase().includes(term) ||
+      client.address.toLowerCase().includes(term) ||
+      (client.companyName && client.companyName.toLowerCase().includes(term))
+    );
+  }, [clients, searchTerm]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -211,10 +229,10 @@ export default function CompaniesClientsPage() {
               {/* Unified Stats Grid */}
               <UnifiedStatsGrid {...stats} />
 
-              {/* Search and Controls */}
+              {/* Search Controls */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1 relative">
+                <div className="flex items-center justify-start">
+                  <div className="relative max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
                     <Input
                       placeholder="Search companies or clients..."
@@ -223,73 +241,137 @@ export default function CompaniesClientsPage() {
                       className="pl-10"
                     />
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={expandAll}
-                      disabled={filteredCompanies.length === 0}
-                    >
-                      <ChevronDown className="h-4 w-4 mr-2" />
-                      Expand All
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={collapseAll}
-                      disabled={expandedCompanies.size === 0}
-                    >
-                      <ChevronUp className="h-4 w-4 mr-2" />
-                      Collapse All
-                    </Button>
-                  </div>
                 </div>
               </div>
 
-              {/* Companies List with Clients */}
+              {/* Companies and Clients with Tabs */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="p-8 border-b border-gray-200 bg-gray-50">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                    Companies & Clients ({filteredCompanies.length})
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    Click on a company to view its clients (POCs) and assigned products
-                  </p>
-                </div>
-                <div className="p-8">
-                  {filteredCompanies.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                        No companies found
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        {searchTerm
-                          ? "Try adjusting your search terms."
-                          : "Get started by creating your first company."}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                        Companies & Clients ({viewType === "row" ? filteredCompanies.length : filteredClients.length})
+                      </h2>
+                      <p className="text-sm text-gray-500">
+                        {viewType === "row" 
+                          ? "Click on a company to view its clients (POCs) and assigned products"
+                          : "Table view of all clients with their details and actions"
+                        }
                       </p>
-                      {!searchTerm && actions.companies.create && (
-                        <Link href="/admin/companies/new">
-                          <Button>
-                            <Building2 className="h-4 w-4 mr-2" />
-                            Create First Company
-                          </Button>
-                        </Link>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={viewType === "row" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setViewType("row")}
+                      >
+                        <Grid3x3 className="h-4 w-4 mr-2" />
+                        Row View
+                      </Button>
+                      <Button
+                        variant={viewType === "table" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setViewType("table")}
+                      >
+                        <Table className="h-4 w-4 mr-2" />
+                        Table View
+                      </Button>
+                    </div>
+                  </div>
+
+                  {viewType === "row" && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={expandAll}
+                        disabled={filteredCompanies.length === 0}
+                      >
+                        <ChevronDown className="h-4 w-4 mr-2" />
+                        Expand All
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={collapseAll}
+                        disabled={expandedCompanies.size === 0}
+                      >
+                        <ChevronUp className="h-4 w-4 mr-2" />
+                        Collapse All
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-8">
+                  {viewType === "row" ? (
+                    // Row View - Companies with expandable clients
+                    <>
+                      {filteredCompanies.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+                            No companies found
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            {searchTerm
+                              ? "Try adjusting your search terms."
+                              : "Get started by creating your first company."}
+                          </p>
+                          {!searchTerm && actions.companies.create && (
+                            <Link href="/admin/companies/new">
+                              <Button>
+                                <Building2 className="h-4 w-4 mr-2" />
+                                Create First Company
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {filteredCompanies.map((company) => (
+                            <CompanyCard
+                              key={company.id}
+                              company={company}
+                              clients={clientsByCompany.get(company.id) || []}
+                              isExpanded={expandedCompanies.has(company.id)}
+                              onToggle={() => toggleCompany(company.id)}
+                              onDeleteClient={handleDeleteClient}
+                            />
+                          ))}
+                        </div>
                       )}
-                    </div>
+                    </>
                   ) : (
-                    <div className="space-y-4">
-                    {filteredCompanies.map((company) => (
-                      <CompanyCard
-                        key={company.id}
-                        company={company}
-                        clients={clientsByCompany.get(company.id) || []}
-                        isExpanded={expandedCompanies.has(company.id)}
-                        onToggle={() => toggleCompany(company.id)}
-                        onDeleteClient={handleDeleteClient}
-                      />
-                    ))}
-                    </div>
+                    // Table View - All clients in table format
+                    <>
+                      {filteredClients.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+                            No clients found
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            {searchTerm
+                              ? "Try adjusting your search terms."
+                              : "Get started by creating your first client."}
+                          </p>
+                          {!searchTerm && actions.clients.create && (
+                            <Link href="/admin/clients/new">
+                              <Button>
+                                <Users className="h-4 w-4 mr-2" />
+                                Create First Client
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
+                      ) : (
+                        <ClientsTable 
+                          clients={filteredClients}
+                          onDeleteClient={handleDeleteClient}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               </div>

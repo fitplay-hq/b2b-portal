@@ -8,6 +8,22 @@ export async function GET(req: NextRequest) {
            const clients = await prisma.client.findMany({
                include: {
                    company: true,
+                   products: {
+                       select: {
+                           product: {
+                               select: {
+                                   id: true,
+                                   name: true,
+                                   sku: true,
+                               }
+                           }
+                       }
+                   },
+                   _count: {
+                       select: {
+                           products: true
+                       }
+                   }
                },
            });
            return NextResponse.json({ data: clients }, { status: 200 });

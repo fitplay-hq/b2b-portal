@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, MapPin, Edit, Trash2, Eye } from "lucide-react";
+import { Mail, Phone, MapPin, Edit, Trash2, Package } from "lucide-react";
 import Link from "next/link";
 import { usePermissions } from "@/hooks/use-permissions";
 
@@ -14,6 +14,9 @@ interface Client {
   companyID: string | null;
   companyName: string | null;
   createdAt: string;
+  _count?: {
+    products: number;
+  };
 }
 
 interface ClientCardProps {
@@ -51,6 +54,12 @@ export function ClientCard({ client, onDelete }: ClientCardProps) {
             <Badge className="bg-green-100 text-green-800 hover:bg-green-100/80 text-xs">
               Active
             </Badge>
+            {client._count?.products !== undefined && (
+              <Badge variant="outline" className="text-xs">
+                <Package className="h-3 w-3 mr-1" />
+                {client._count.products} products
+              </Badge>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
@@ -69,14 +78,6 @@ export function ClientCard({ client, onDelete }: ClientCardProps) {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {actions.clients.edit && (
-          <Link href={`/admin/clients/${client.id}`}>
-            <Button variant="outline" size="sm">
-              <Eye className="h-3 w-3 mr-1" />
-              View
-            </Button>
-          </Link>
-        )}
         {actions.clients.edit && (
           <Link href={`/admin/clients/${client.id}`}>
             <Button variant="outline" size="sm">
