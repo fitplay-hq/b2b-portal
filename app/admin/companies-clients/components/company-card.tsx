@@ -90,7 +90,7 @@ export function CompanyCard({
         <CardContent className="p-0">
           {/* Company Header */}
           <div
-            className="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
+            className="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
             onClick={onToggle}
           >
             <div className="flex items-center justify-between">
@@ -99,7 +99,7 @@ export function CompanyCard({
                   <Building2 className="h-6 w-6" />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-1">
                     <h3 className="text-lg font-semibold text-gray-900">
                       {company.name}
                     </h3>
@@ -172,9 +172,9 @@ export function CompanyCard({
           {/* Expanded Content - Clients List */}
           {isExpanded && (
             <div className="border-t border-gray-200 bg-gray-50">
-              <div className="p-6">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between mb-4">
+              <div className="p-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       Clients (POCs) - {clients.length}
@@ -189,7 +189,7 @@ export function CompanyCard({
                     )}
                   </div>
                   {clients.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground border border-dashed border-gray-300 rounded-lg">
+                    <div className="text-center py-6 text-muted-foreground border border-dashed border-gray-300 rounded-lg">
                       <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p className="text-sm mb-4">
                         No clients assigned to this company yet.
