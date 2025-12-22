@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Layout from "@/components/layout";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
@@ -14,9 +14,7 @@ import { useProducts } from "@/data/product/admin.hooks";
 import { useCompanies } from "@/data/company/admin.hooks";
 import { PageGuard } from "@/components/page-guard";
 
-
-
-export default function NewClientPage() {
+function NewClientForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const companyIdFromUrl = searchParams.get("companyId");
@@ -169,10 +167,10 @@ export default function NewClientPage() {
               {/* Enhanced Header */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
         <div className="flex items-center gap-6">
-          <Link href="/admin/clients">
+          <Link href="/admin/companies-clients">
             <Button variant="outline" size="sm" className="border-gray-300 hover:border-gray-400">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Clients
+              Back to Companies & Clients
             </Button>
           </Link>
           <div>
@@ -256,5 +254,21 @@ export default function NewClientPage() {
         </div>
       </Layout>
     </PageGuard>
+  );
+}
+
+export default function NewClientPage() {
+  return (
+    <Suspense fallback={
+      <PageGuard resource="clients" action="create">
+        <Layout isClient={false}>
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </Layout>
+      </PageGuard>
+    }>
+      <NewClientForm />
+    </Suspense>
   );
 }

@@ -54,7 +54,7 @@ export default function NewCompanyPage() {
         });
       }
 
-      router.push("/admin/companies");
+      router.push("/admin/companies-clients");
     } catch (error) {
       console.error("Failed to create company:", error);
       // Handle error - could show toast notification
@@ -90,10 +90,10 @@ export default function NewCompanyPage() {
               {/* Enhanced Header */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
         <div className="flex items-center gap-6">
-          <Link href="/admin/companies">
+          <Link href="/admin/companies-clients">
             <Button variant="outline" size="sm" className="border-gray-300 hover:border-gray-400">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Companies
+              Back to Companies & Clients
             </Button>
           </Link>
           <div>
@@ -153,7 +153,7 @@ export default function NewCompanyPage() {
 
               {/* Enhanced Action Buttons */}
               <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
-                <Link href="/admin/companies">
+                <Link href="/admin/companies-clients">
                   <Button type="button" variant="outline" className="px-6 py-2.5 rounded-xl font-medium">
                     Cancel
                   </Button>
