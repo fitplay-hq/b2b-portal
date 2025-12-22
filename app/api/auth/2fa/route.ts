@@ -18,10 +18,11 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { email, password } = body;
 
-        if (email == "razorpay.demo@fitplaysolutions.com"){
+        // Skip 2FA check for demo user - will be handled by frontend bypass
+        if (email === "razorpay.demo@fitplaysolutions.com") {
             return NextResponse.json(
-                { error: "No need of 2FA for this user" },
-                { status: 400 }
+                { message: "Demo user detected - use frontend bypass" },
+                { status: 200 }
             );
         }
 

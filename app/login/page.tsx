@@ -34,9 +34,9 @@ export default function LoginPage() {
     }
 
     try {
-      // Special case: Razorpay demo client - bypass email verification
+      // Special case: Razorpay demo client - direct authentication bypass
       if (email === "razorpay.demo@fitplaysolutions.com" && password === "test@2025") {
-        console.log("🚀 Razorpay demo client - bypassing verification");
+        console.log("🚀 Razorpay demo client - direct authentication");
         
         const result = await signIn("credentials", {
           email,
@@ -45,10 +45,11 @@ export default function LoginPage() {
         });
 
         if (result?.error) {
-          setError("Authentication failed. Please try again.");
+          setError("Demo authentication failed. Please check credentials.");
         } else {
-          // Redirect directly to client portal
-          window.location.href = "/client";
+          console.log("✅ Demo authentication successful, redirecting...");
+          // Force redirect to client portal
+          window.location.replace("/client");
           return;
         }
       } else {
@@ -298,7 +299,9 @@ export default function LoginPage() {
                         {loading ? (
                           <div className="flex items-center gap-2">
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Sending Email...
+                            {email === "razorpay.demo@fitplaysolutions.com" && password === "test@2025" 
+                              ? "Logging in as Demo..." 
+                              : "Sending Email..."}
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
