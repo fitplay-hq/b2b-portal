@@ -67,6 +67,52 @@ export const auth: AuthOptions = {
           throw new Error("User not found");
         }
 
+        // Special case: OTP verification flow
+        if (credentials.password === "OTP_VERIFIED") {
+          console.log("🔓 OTP verified login attempt for:", credentials.email);
+          
+          // Check which type of user this is
+          const client = await prisma.client.findUnique({ where: { email: credentials.email } });
+          if (client) {
+            return {
+              id: client.id,
+              name: client.name,
+              email: client.email,
+              role: "CLIENT",
+            };
+          }
+
+          const admin = await prisma.admin.findUnique({ where: { email: credentials.email } });
+          if (admin) {
+            return {
+              id: admin.id,
+              name: admin.name,
+              email: admin.email,
+              role: "ADMIN",
+            };
+          }
+
+          const systemUser = await prisma.systemUser.findUnique({ 
+            where: { email: credentials.email },
+            include: { role: true }
+          });
+          if (systemUser) {
+            if (!systemUser.isActive) {
+              throw new Error("Account is deactivated");
+            }
+            return {
+              id: systemUser.id,
+              name: systemUser.name,
+              email: systemUser.email,
+              role: "SYSTEM_USER",
+              systemRole: systemUser.role.name,
+              systemRoleId: systemUser.role.id,
+            };
+          }
+
+          throw new Error("User not found");
+        }
+
         // Regular password-based authentication
         // 1. Check Admin
         const admin = await prisma.admin.findUnique({ where: { email: credentials.email } });
