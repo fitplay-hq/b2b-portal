@@ -123,7 +123,7 @@ export default function EditCompanyPage() {
         }
       }
 
-      router.push("/admin/companies");
+      router.push("/admin/companies-clients");
     } catch (error) {
       console.error("Failed to update company:", error);
       // Handle error - could show toast notification
@@ -170,10 +170,10 @@ export default function EditCompanyPage() {
               The company may have been deleted or the ID may be incorrect.
             </p>
           </div>
-          <Link href="/admin/companies">
+          <Link href="/admin/companies-clients">
             <Button variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Companies
+              Back to Companies & Clients
             </Button>
           </Link>
         </div>
@@ -187,10 +187,10 @@ export default function EditCompanyPage() {
         {/* Header */}
         <div className="flex items-center">
           <div className="flex items-center gap-6">
-            <Link href="/admin/companies">
+            <Link href="/admin/companies-clients">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Companies
+                Back to Companies & Clients
               </Button>
             </Link>
             <div>
@@ -234,7 +234,7 @@ export default function EditCompanyPage() {
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-4">
-            <Link href="/admin/companies">
+            <Link href="/admin/companies-clients">
               <Button type="button" variant="outline">
                 Cancel
               </Button>

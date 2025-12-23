@@ -39,20 +39,21 @@ model Company {
 }
 
 model Client {
-  id          String   @id @default(uuid())
-  name        String   @db.VarChar(50)
-  email       String   @unique
+  id          String          @id @default(uuid())
+  name        String          @db.VarChar(50)
+  email       String          @unique
   password    String
-  phone       String   @unique
-  company     Company? @relation(fields: [companyID], references: [id])
+  phone       String          @unique
+  company     Company?        @relation(fields: [companyID], references: [id])
   companyID   String?
   companyName String?
-  isShowPrice Boolean  @default(false)
-  address     String   @db.VarChar(100)
-  role        Role     @default(CLIENT)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isShowPrice Boolean         @default(false)
+  address     String          @db.VarChar(100)
+  role        Role            @default(CLIENT)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   orders      Order[]
+  products    ClientProduct[] // Client-specific product access
 }
 
 model ProductCategory {
@@ -86,6 +87,7 @@ model Product {
   noOfReviews           Int?
   brand                 String?          @db.VarChar(30)
   companies             Company[]
+  clients               ClientProduct[]  // Client-specific product access
   orderItems            OrderItem[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
@@ -148,6 +150,19 @@ model LoginToken {
   userType  Role?
   createdAt DateTime @default(now())
   expires   DateTime
+}
+
+// Client-specific product access relationship
+model ClientProduct {
+  id        String   @id @default(uuid())
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId  String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, productId]) // Prevent duplicate client-product relationships
 }
 
 enum Category {
