@@ -11,6 +11,7 @@ import { CheckCircle, AlertCircle, ArrowRight, Mail, ArrowLeft } from "lucide-re
 import { motion } from "framer-motion";
 import { FitplayLogo } from "@/components/fitplay-logo";
 import { signIn } from "next-auth/react";
+import { toast } from "sonner";
 
 function VerifyOTPContent() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -18,6 +19,7 @@ function VerifyOTPContent() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [email, setEmail] = useState("");
+  const [countdown, setCountdown] = useState(0);
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -30,7 +32,17 @@ function VerifyOTPContent() {
       return;
     }
     setEmail(emailParam);
+    // Start countdown immediately when page loads
+    setCountdown(60);
   }, [searchParams]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return; // Only allow single digit
@@ -125,9 +137,28 @@ function VerifyOTPContent() {
   };
 
   const resendOTP = async () => {
-    // For now, redirect back to login to get new OTP
-    // In future iterations, we could implement a proper resend mechanism
-    router.push("/login");
+    if (countdown > 0) return;
+    
+    try {
+      const response = await fetch('/api/auth/resend-otp', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        setCountdown(60);
+        toast.success('OTP resent successfully!');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to resend OTP. Please try again.');
+      }
+    } catch (error) {
+      console.error('Resend error:', error);
+      toast.error('An error occurred while resending OTP.');
+    }
   };
 
   if (!email) {
@@ -252,10 +283,17 @@ function VerifyOTPContent() {
                 <button
                   type="button"
                   onClick={resendOTP}
-                  disabled={loading}
-                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                  disabled={loading || countdown > 0}
+                  className={`text-sm transition-colors ${
+                    countdown > 0 
+                      ? 'text-gray-400 cursor-not-allowed' 
+                      : 'text-blue-600 hover:text-blue-800 hover:underline'
+                  }`}
                 >
-                  Didn't receive code? Resend OTP
+                  {countdown > 0 
+                    ? `Resend OTP in ${countdown}s` 
+                    : "Didn't receive code? Resend OTP"
+                  }
                 </button>
 
                 <button
