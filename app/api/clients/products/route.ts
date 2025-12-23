@@ -46,6 +46,11 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      include: {
+        companies: true,
+        category: true,
+        subCategory: true,
+      },
       orderBy: {
         [safeSortBy]: safeSortOrder,
       },

@@ -17,7 +17,32 @@ const resend = new Resend(resendApiKey);
 
 // Import the auto-generated Zod schema
 import z from "zod";
-import { ProductCreateInputObjectSchema } from "@/lib/generated/zod/schemas/objects";
+const ProductCreateSchema = z.object({
+  name: z.string(),
+  images: z.array(z.string()),
+  price: z.number().int().optional(),
+  sku: z.string(),
+  availableStock: z.number().int(),
+  minStockThreshold: z.number().int().optional(),
+  description: z.string(),
+  brand: z.string().optional(),
+
+  categoryId: z.string().uuid(),
+  subCategoryId: z.string().uuid(),
+
+  inventoryUpdateReason: z.enum([
+    "NEW_PURCHASE",
+    "PHYSICAL_STOCK_CHECK",
+    "RETURN_FROM_PREVIOUS_DISPATCH",
+    "NEW_ORDER",
+  ]).optional(),
+
+  inventoryLogs: z.array(z.string()).optional(),
+
+  avgRating: z.number().min(0).max(5).optional(),
+  noOfReviews: z.number().int().nonnegative().optional(),
+});
+
 const InventoryUpdateSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.number().positive(),
@@ -48,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     // ✅ Validate each product with the Zod schema
     const parsedProducts = body.map((p, idx) => {
-      const result = ProductCreateInputObjectSchema.safeParse(p);
+      const result = ProductCreateSchema.safeParse(p);
       if (!result.success) {
         throw new Error(
           `Validation error in product at index ${idx}: ${JSON.stringify(
@@ -56,6 +81,8 @@ export async function POST(req: NextRequest) {
           )}`,
         );
       }
+
+      const {categoryId, subCategoryId, ...rest} = result.data;
       return result.data;
     });
 
@@ -114,6 +141,7 @@ export async function GET(req: NextRequest) {
       include: {
         companies: true,
         category: true, // Include the category relationship
+        subCategory: true, // Include the subcategory relationship
       },
       orderBy: {
         [safeSortBy]: safeSortOrder,

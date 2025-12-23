@@ -9,20 +9,25 @@ export async function GET(req: NextRequest) {
 
     try {
         const session = await getServerSession(auth);
-        
-            if (!session || !session?.user?.email) {
-              return NextResponse.json(
+
+        if (!session || !session?.user?.email) {
+            return NextResponse.json(
                 { error: "Unauthorized" },
                 { status: 401 }
-              );
-            }
+            );
+        }
         const products = await prisma.product.findMany({
             where: {
                 name: {
                     contains: query || "",
                     mode: "insensitive",
                 },
-            }
+            },
+            include: {
+                companies: true,
+                category: true,
+                subCategory: true,
+            },
         });
 
         if (products.length === 0) {
