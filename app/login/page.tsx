@@ -18,7 +18,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
   const [isDemoUser, setIsDemoUser] = useState(false);
   const router = useRouter();
 
@@ -59,7 +58,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleEmailVerification = async (e: React.FormEvent) => {
+  const handleOTPRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -71,7 +70,7 @@ export default function LoginPage() {
       return;
     }
 
-    // Regular flow - send verification email
+    // Send OTP request
     try {
       const response = await fetch("/api/auth/2fa", {
         method: "POST",
@@ -84,9 +83,10 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Failed to send verification email");
+        setError(data.error || "Failed to send OTP");
       } else {
-        setEmailSent(true);
+        // Redirect to OTP verification page with email
+        router.push(`/verify?email=${encodeURIComponent(email)}`);
       }
     } catch {
       setError("An error occurred. Please try again.");
@@ -226,36 +226,7 @@ export default function LoginPage() {
                     </p>
                   </div>
 
-                  {emailSent ? (
-                    <div className="text-center space-y-4">
-                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                        <Package className="h-8 w-8 text-green-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">Check Your Inbox</h3>
-                        <p className="text-gray-600 mt-2">
-                          We've sent a verification link to <br />
-                          <span className="font-medium">{email}</span>
-                        </p>
-                      </div>
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-sm text-blue-800">
-                          Click the link in your email to verify your account and continue to login.
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setEmailSent(false);
-                          setEmail("");
-                        }}
-                        className="w-full"
-                      >
-                        Use Different Email
-                      </Button>
-                    </div>
-                  ) : (
-                    <form onSubmit={isDemoUser ? handleDemoLogin : handleEmailVerification} className="space-y-6">
+                    <form onSubmit={isDemoUser ? handleDemoLogin : handleOTPRequest} className="space-y-6">
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-gray-700 font-medium">
                           Email Address
@@ -327,17 +298,16 @@ export default function LoginPage() {
                         {loading ? (
                           <div className="flex items-center gap-2">
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            {isDemoUser ? "Logging in..." : "Sending Email..."}
+                            {isDemoUser ? "Logging in..." : "Sending OTP..."}
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            {isDemoUser ? "🚀 Login to Client Portal" : "Verify Email"}
+                            {isDemoUser ? "🚀 Login to Client Portal" : "Continue"}
                             <ArrowRight className="h-4 w-4" />
                           </div>
                         )}
                       </Button>
                     </form>
-                  )}
                 </CardContent>
               </Card>
             </motion.div>
