@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
           availableStock: body.availableStock,
           minStockThreshold: body.minStockThreshold,
           images: body.images || [],
-          inventoryLogs: initialLog,
+          inventoryLogs: initialLogEntry ? [initialLogEntry] : [],
           inventoryUpdateReason: body.inventoryUpdateReason,
           brand: body.brand,
           avgRating: body.avgRating,
