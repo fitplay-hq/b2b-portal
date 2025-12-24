@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 // GET - Get a specific company by ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(auth);
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const companyId = params.id;
+    const { id: companyId } = await context.params;
 
     const company = await prisma.company.findUnique({
       where: { id: companyId },
@@ -47,7 +47,7 @@ export async function GET(
 // PATCH - Update a company
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(auth);
@@ -55,7 +55,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const companyId = params.id;
+    const { id: companyId } = await context.params;
     const { name, address } = await req.json();
 
     if (!name || !address) {
@@ -90,7 +90,7 @@ export async function PATCH(
 // DELETE - Delete a company
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(auth);
@@ -98,7 +98,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const companyId = params.id;
+    const companyId = (await context.params).id;
 
     // Check if company has clients
     const companyWithClients = await prisma.company.findUnique({

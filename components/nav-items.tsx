@@ -57,11 +57,8 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
 
   
   // Simplified nav state - no need for complex caching here since permissions are already cached
-  const [clientsOpen, setClientsOpen] = useState(
-    pathname.startsWith("/admin/clients")
-  );
   const [companiesOpen, setCompaniesOpen] = useState(
-    pathname.startsWith("/admin/companies")
+    pathname.startsWith("/admin/companies") || pathname.startsWith("/admin/companies-clients") || pathname.startsWith("/admin/clients")
   );
   const [rolesOpen, setRolesOpen] = useState(
     pathname.startsWith("/admin/roles")
@@ -241,85 +238,26 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             Management
           </h3>
           <nav className="space-y-1">
-            {/* Clients Collapsible */}
-            {(isAdminUser || (!isLoading && pageAccess.clients)) && (
-              <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
-                <CollapsibleTrigger asChild>
-                  <button
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-left text-sm font-medium group",
-                      clientsOpen || pathname.startsWith("/admin/clients")
-                        ? "bg-orange-50 text-orange-700"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                    )}
-                    suppressHydrationWarning={true}
-                  >
-                    <Users className={cn(
-                      "h-4 w-4 transition-colors",
-                      clientsOpen || pathname.startsWith("/admin/clients")
-                        ? "text-orange-600"
-                        : "text-gray-400 group-hover:text-gray-600"
-                    )} />
-                    Clients
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 ml-auto transition-transform duration-200",
-                        clientsOpen ? "rotate-180" : ""
-                      )}
-                    />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-1 ml-6 space-y-1">
-                  <Link
-                    href="/admin/clients"
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
-                      pathname === "/admin/clients"
-                        ? "bg-orange-100 text-orange-800"
-                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                    )}
-                  >
-                    <List className="h-3 w-3" />
-                    All Clients
-                  </Link>
-                  {(isAdminUser || (!isLoading && actions.clients?.create)) && (
-                    <Link
-                      href="/admin/clients/new"
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
-                        pathname === "/admin/clients/new"
-                          ? "bg-orange-100 text-orange-800"
-                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                      )}
-                    >
-                      <Plus className="h-3 w-3" />
-                      Add Client
-                    </Link>
-                  )}
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-
-            {/* Companies Collapsible */}
-            {(isAdminUser || (!isLoading && pageAccess.companies)) && (
+            {/* Clients Unified Collapsible */}
+            {((isAdminUser || (!isLoading && (pageAccess.companies || pageAccess.clients))) && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
                 <button
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-left text-sm font-medium group",
-                    companiesOpen || pathname.startsWith("/admin/companies")
+                    companiesOpen || pathname.startsWith("/admin/companies") || pathname.startsWith("/admin/companies-clients") || pathname.startsWith("/admin/clients")
                       ? "bg-teal-50 text-teal-700"
                       : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   )}
                   suppressHydrationWarning={true}
                 >
-                  <Building2 className={cn(
+                  <Users className={cn(
                     "h-4 w-4 transition-colors",
-                    companiesOpen || pathname.startsWith("/admin/companies")
+                    companiesOpen || pathname.startsWith("/admin/companies") || pathname.startsWith("/admin/companies-clients") || pathname.startsWith("/admin/clients")
                       ? "text-teal-600"
                       : "text-gray-400 group-hover:text-gray-600"
                   )} />
-                  Companies
+                  Clients
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 ml-auto transition-transform duration-200",
@@ -330,34 +268,44 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-1 ml-6 space-y-1">
                 <Link
-                  href="/admin/companies"
+                  href="/admin/companies-clients"
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
-                    pathname === "/admin/companies"
+                    pathname === "/admin/companies-clients"
                       ? "bg-teal-100 text-teal-800"
                       : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                   )}
                 >
                   <List className="h-3 w-3" />
-                  All Companies
+                  Overview
                 </Link>
-                {(isAdminUser || (!isLoading && actions.companies?.create)) && (
-                  <Link
-                    href="/admin/companies/new"
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
-                      pathname === "/admin/companies/new"
-                        ? "bg-teal-100 text-teal-800"
-                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                    )}
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add Company
-                  </Link>
-                )}
+                <Link
+                  href="/admin/companies/new"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                    pathname === "/admin/companies/new"
+                      ? "bg-teal-100 text-teal-800"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Company
+                </Link>
+                <Link
+                  href="/admin/clients/new"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
+                    pathname === "/admin/clients/new"
+                      ? "bg-teal-100 text-teal-800"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Client
+                </Link>
               </CollapsibleContent>
             </Collapsible>
-            )}
+            ))}
 
             {/* Role Management Collapsible - Check roles permission */}
             {(isAdminUser || (!isLoading && pageAccess.roles)) && (
@@ -482,15 +430,15 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           {/* Separator line */}
           <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
           
-          {/* Clients Dropdown */}
-          {(isAdminUser || (!isLoading && pageAccess.clients)) && (
+          {/* Clients Unified Dropdown */}
+          {((isAdminUser || (!isLoading && (pageAccess.companies || pageAccess.clients))) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
                   "flex items-center justify-center px-2 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium group relative w-full",
-                  pathname.startsWith("/admin/clients")
-                    ? "bg-orange-50 text-orange-700"
+                  pathname.startsWith("/admin/companies") || pathname.startsWith("/admin/companies-clients") || pathname.startsWith("/admin/clients")
+                    ? "bg-teal-50 text-teal-700"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 )}
                 onClick={(e) => e.stopPropagation()}
@@ -505,9 +453,15 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
               <DropdownMenuLabel>Clients</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/admin/clients" className="flex items-center gap-2 cursor-pointer">
+                <Link href="/admin/companies-clients" className="flex items-center gap-2 cursor-pointer">
                   <List className="h-4 w-4" />
-                  All Clients
+                  Clients
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/companies/new" className="flex items-center gap-2 cursor-pointer">
+                  <Plus className="h-4 w-4" />
+                  Add Company
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -518,45 +472,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          )}
-
-          {/* Companies Dropdown */}
-          {(isAdminUser || (!isLoading && pageAccess.companies)) && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className={cn(
-                  "flex items-center justify-center px-2 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium group relative w-full",
-                  pathname.startsWith("/admin/companies")
-                    ? "bg-teal-50 text-teal-700"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                )}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Building2 className="h-4 w-4 flex-shrink-0" />
-                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 group-focus:opacity-0">
-                  Companies
-                </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" className="w-48 ml-2">
-              <DropdownMenuLabel>Companies</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/admin/companies" className="flex items-center gap-2 cursor-pointer">
-                  <List className="h-4 w-4" />
-                  All Companies
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/admin/companies/new" className="flex items-center gap-2 cursor-pointer">
-                  <Plus className="h-4 w-4" />
-                  Add Company
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          )}
+          ))}
 
           {/* Role Management Dropdown - Check roles permission */}
           {(isAdminUser || (!isLoading && pageAccess.roles)) && (

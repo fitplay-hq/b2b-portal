@@ -18,10 +18,47 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+  const [isDemoUser, setIsDemoUser] = useState(false);
   const router = useRouter();
 
-  const handleEmailVerification = async (e: React.FormEvent) => {
+  // Check if current credentials are demo credentials
+  const checkIfDemo = (email: string, password: string) => {
+    const isDemo = email.trim().toLowerCase() === "razorpay.demo@fitplaysolutions.com" && password === "Test@2025";
+    console.log("Demo check:", { email: email.trim().toLowerCase(), password, isDemo });
+    setIsDemoUser(isDemo);
+    return isDemo;
+  };
+
+  // Handle demo user direct login
+  const handleDemoLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    console.log("🚀 Demo user direct login");
+    
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Demo login failed. Please check credentials.");
+      } else {
+        console.log("✅ Demo login successful, redirecting...");
+        window.location.replace("/client");
+      }
+    } catch (error) {
+      console.error("Demo login error:", error);
+      setError("Demo login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOTPRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -33,6 +70,7 @@ export default function LoginPage() {
       return;
     }
 
+    // Send OTP request
     try {
       const response = await fetch("/api/auth/2fa", {
         method: "POST",
@@ -45,9 +83,10 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Failed to send verification email");
+        setError(data.error || "Failed to send OTP");
       } else {
-        setEmailSent(true);
+        // Redirect to OTP verification page with email
+        router.push(`/verify?email=${encodeURIComponent(email)}`);
       }
     } catch {
       setError("An error occurred. Please try again.");
@@ -187,36 +226,7 @@ export default function LoginPage() {
                     </p>
                   </div>
 
-                  {emailSent ? (
-                    <div className="text-center space-y-4">
-                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                        <Package className="h-8 w-8 text-green-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">Check Your Inbox</h3>
-                        <p className="text-gray-600 mt-2">
-                          We've sent a verification link to <br />
-                          <span className="font-medium">{email}</span>
-                        </p>
-                      </div>
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-sm text-blue-800">
-                          Click the link in your email to verify your account and continue to login.
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setEmailSent(false);
-                          setEmail("");
-                        }}
-                        className="w-full"
-                      >
-                        Use Different Email
-                      </Button>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleEmailVerification} className="space-y-6">
+                    <form onSubmit={isDemoUser ? handleDemoLogin : handleOTPRequest} className="space-y-6">
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-gray-700 font-medium">
                           Email Address
@@ -225,7 +235,10 @@ export default function LoginPage() {
                           id="email"
                           type="email"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            checkIfDemo(e.target.value, password);
+                          }}
                           placeholder="Enter your email address"
                           className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
                           required
@@ -249,12 +262,16 @@ export default function LoginPage() {
                           id="password"
                           type="password"
                           value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          onChange={(e) => {
+                            setPassword(e.target.value);
+                            checkIfDemo(email, e.target.value);
+                          }}
                           placeholder="Enter your password"
                           className="h-12 border-gray-200 focus:border-neutral-500 focus:ring-neutral-500"
                           required
                         />
                       </div>
+
 
                     {error && (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -271,23 +288,26 @@ export default function LoginPage() {
 
                       <Button
                         type="submit"
-                        className="w-full h-12 bg-gradient-to-r from-neutral-700 to-neutral-800 hover:from-neutral-800 hover:to-neutral-900 text-white font-medium transition-all duration-200 transform hover:scale-[1.02]"
+                        className={`w-full h-12 font-medium transition-all duration-200 transform hover:scale-[1.02] ${
+                          isDemoUser
+                            ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                            : "bg-gradient-to-r from-neutral-700 to-neutral-800 hover:from-neutral-800 hover:to-neutral-900 text-white"
+                        }`}
                         disabled={loading}
                       >
                         {loading ? (
                           <div className="flex items-center gap-2">
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Sending Email...
+                            {isDemoUser ? "Logging in..." : "Sending OTP..."}
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            Verify Email
+                            {isDemoUser ? "🚀 Login to Client Portal" : "Continue"}
                             <ArrowRight className="h-4 w-4" />
                           </div>
                         )}
                       </Button>
                     </form>
-                  )}
                 </CardContent>
               </Card>
             </motion.div>
