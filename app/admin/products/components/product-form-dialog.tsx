@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UploadDropzone } from "@/components/uploadthing";
 import { toast } from "sonner";
 import { useCategories } from "@/hooks/use-category-management";
+import { useSubcategoryManagement } from "@/hooks/use-subcategory-management";
 
 import { useProductForm } from "@/hooks/use-product-form";
 type ProductFormProps = ReturnType<typeof useProductForm>;
@@ -34,6 +35,11 @@ export function ProductFormDialog({
   companies,
 }: ProductFormProps) {
   const { categories, isLoading: categoriesLoading } = useCategories();
+  const { getSubcategoriesByCategory } = useSubcategoryManagement();
+  
+  // Get subcategories for the selected category
+  const selectedCategory = categories.find(cat => cat.name === formData.categories);
+  const availableSubcategories = selectedCategory ? getSubcategoriesByCategory(selectedCategory.id) : [];
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -81,6 +87,10 @@ export function ProductFormDialog({
                 toast.error("Category selection is required");
                 return;
               }
+              if (!formData.subcategories) {
+                toast.error("Subcategory selection is required");
+                return;
+              }
               if (!formData.skuSuffix.trim()) {
                 toast.error("SKU is required");
                 return;
@@ -113,6 +123,18 @@ export function ProductFormDialog({
                 setFormData({ ...formData, name: e.target.value })
               }
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="brand">Brand</Label>
+            <Input
+              id="brand"
+              value={formData.brand}
+              onChange={(e) =>
+                setFormData({ ...formData, brand: e.target.value })
+              }
+              placeholder="Enter brand name"
             />
           </div>
 
@@ -179,20 +201,56 @@ export function ProductFormDialog({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="subcategory">Subcategory <span className="text-red-500">*</span></Label>
+              <Select
+                value={formData.subcategories}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, subcategories: value })
+                }
+                required
+                disabled={!formData.categories || !availableSubcategories || availableSubcategories.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    !formData.categories ? "Select category first" :
+                    !availableSubcategories || availableSubcategories.length === 0 ? "No subcategories available" :
+                    "Select subcategory"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSubcategories && availableSubcategories.map((subcategory) => (
+                    <SelectItem key={subcategory.id} value={subcategory.name}>
+                      {subcategory.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label>SKU <span className="text-red-500">*</span></Label>
               <div className="flex items-center gap-1">
                 <Input
                   value={formData.companyShort}
                   readOnly
-                  className="w-16 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
+                  className="w-14 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
                   placeholder="CO"
                 />
                 <span className="font-mono text-gray-400">-</span>
                 <Input
                   value={formData.categoryShort}
                   readOnly
-                  className="w-16 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
+                  className="w-14 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
                   placeholder="CAT"
+                />
+                <span className="font-mono text-gray-400">-</span>
+                <Input
+                  value={formData.subcategoryShort}
+                  readOnly
+                  className="w-14 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
+                  placeholder="SUB"
                 />
                 <span className="font-mono text-gray-400">-</span>
                 <Input
