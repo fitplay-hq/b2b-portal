@@ -14,6 +14,7 @@ export interface ProductCategory {
   updatedAt: Date;
   _count: {
     products: number;
+    subCategories: number;
   };
 }
 

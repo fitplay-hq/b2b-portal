@@ -76,6 +76,7 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
   const [formMode, setFormMode] = useState<FormMode>('category');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'category' | 'subcategory'; id: string; name: string } | null>(null);
   
   const [categoryFormData, setCategoryFormData] = useState<CategoryFormData>({
     name: '',
@@ -184,34 +185,26 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
     setShowAddForm(true);
   };
 
-  const handleDelete = async (categoryId: string, categoryName: string) => {
-    toast.error(
-      `Delete category "${categoryName}"? This action cannot be undone.`,
-      {
-        action: {
-          label: 'Delete',
-          onClick: () => deleteCategory(categoryId),
-        },
-        cancel: {
-          label: 'Cancel',
-        },
-      }
-    );
+  const handleDelete = (categoryId: string, categoryName: string) => {
+    setDeleteConfirm({ type: 'category', id: categoryId, name: categoryName });
   };
 
-  const handleDeleteSubcategory = async (subcategoryId: string, subcategoryName: string) => {
-    toast.error(
-      `Delete subcategory "${subcategoryName}"? This action cannot be undone.`,
-      {
-        action: {
-          label: 'Delete',
-          onClick: () => deleteSubcategory(subcategoryId),
-        },
-        cancel: {
-          label: 'Cancel',
-        },
+  const handleDeleteSubcategory = (subcategoryId: string, subcategoryName: string) => {
+    setDeleteConfirm({ type: 'subcategory', id: subcategoryId, name: subcategoryName });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    
+    try {
+      if (deleteConfirm.type === 'category') {
+        await deleteCategory(deleteConfirm.id);
+      } else {
+        await deleteSubcategory(deleteConfirm.id);
       }
-    );
+    } finally {
+      setDeleteConfirm(null);
+    }
   };
 
   const toggleCategoryExpanded = (categoryId: string) => {
@@ -243,8 +236,12 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[90vw] h-[90vh] max-w-none p-6 gap-0 overflow-hidden flex flex-col">
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        onClose();
+      }
+    }}>
+      <DialogContent className="w-[90vw] h-[75vh] max-w-none p-6 gap-0 overflow-hidden flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader className="pb-4 border-b shrink-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
@@ -579,6 +576,41 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
           </div>
         </div>
       </DialogContent>
+
+      {deleteConfirm && (
+        <Dialog open={!!deleteConfirm} onOpenChange={(open) => {
+          if (!open) setDeleteConfirm(null);
+        }}>
+          <DialogContent className="max-w-sm" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle className="text-lg">
+                Delete {deleteConfirm.type === 'category' ? 'Category' : 'Subcategory'}?
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Are you sure you want to delete <strong>"{deleteConfirm.name}"</strong>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirm(null)}
+                disabled={isDeleting || isDeletingSubcategory}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDelete}
+                disabled={isDeleting || isDeletingSubcategory}
+              >
+                {isDeleting || isDeletingSubcategory ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }

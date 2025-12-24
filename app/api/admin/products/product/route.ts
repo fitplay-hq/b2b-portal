@@ -183,12 +183,41 @@ export async function DELETE(req: NextRequest) {
         );
       }
 
+      // Check if product exists first
+      const product = await prisma.product.findUnique({
+        where: { id: id },
+        include: {
+          _count: {
+            select: { orderItems: true },
+          },
+        },
+      });
+
+      if (!product) {
+        return NextResponse.json(
+          { error: "Product not found" },
+          { status: 404 },
+        );
+      }
+
+      // Check if product is referenced in any orders
+      if (product._count.orderItems > 0) {
+        return NextResponse.json(
+          { error: `Cannot delete product. It is referenced in ${product._count.orderItems} order(s). Please remove it from orders first.` },
+          { status: 400 },
+        );
+      }
+
       await prisma.product.delete({
         where: { id: id },
       });
 
-      return NextResponse.json({ message: "Product deleted successfully" });
+      return NextResponse.json({ 
+        success: true,
+        message: "Product deleted successfully" 
+      });
     } catch (error: unknown) {
+      console.error('Error deleting product:', error);
       return NextResponse.json(
         { error: (error as Error).message || "Something went wrong" },
         { status: 500 },
