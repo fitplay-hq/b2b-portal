@@ -54,7 +54,13 @@ export default function EditRolePage({ params }: EditRolePageProps) {
     const fetchData = async () => {
       try {
         // Fetch role data
-        const roleResponse = await fetch(`/api/admin/roles/${resolvedParams.id}`);
+        const roleResponse = await fetch(`/api/admin/roles/${resolvedParams.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Include cookies for session
+        });
         if (roleResponse.ok) {
           const roleData = await roleResponse.json();
           const fetchedRole = roleData.role;
@@ -64,17 +70,26 @@ export default function EditRolePage({ params }: EditRolePageProps) {
           setIsActive(fetchedRole.isActive);
           setSelectedPermissions(fetchedRole.permissions.map((p: Permission) => p.id));
         } else {
-          toast.error("Failed to fetch role data");
+          const errorData = await roleResponse.json().catch(() => ({}));
+          console.error(`Role fetch failed with status ${roleResponse.status}:`, errorData);
+          toast.error("Failed to fetch role data. You may not have permission to access this.");
           router.push("/admin/roles");
           return;
         }
 
         // Fetch all permissions
-        const permissionsResponse = await fetch("/api/admin/permissions");
+        const permissionsResponse = await fetch("/api/admin/permissions", {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Include cookies for session
+        });
         if (permissionsResponse.ok) {
           const permissionsData = await permissionsResponse.json();
           setAllPermissions(permissionsData.permissions || []);
         } else {
+          console.error("Permissions fetch failed");
           toast.error("Failed to fetch permissions");
         }
       } catch (error) {
