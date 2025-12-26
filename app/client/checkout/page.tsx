@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/image";
 import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,15 +30,15 @@ import {
 } from "@/lib/mockData";
 import { useRouter } from "next/navigation";
 import { Prisma } from "@/lib/generated/prisma";
-import { createOrder } from "@/data/order/admin.actions";
+import { useCreateOrder } from "@/data/order/client.hooks";
 import { usePincodeLookup } from "@/hooks/use-pincode-lookup";
 
 export default function ClientCheckout() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { createOrder, isCreating } = useCreateOrder();
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(false);
 
   // Form state
   const [poNumber, setPONumber] = useState("");
@@ -152,20 +153,47 @@ export default function ClientCheckout() {
       return;
     }
 
-    setLoading(true);
-
     try {
-      const _orderItems: Prisma.OrderItemCreateManyOrderInput[] = cartItems.map(
-        (item) => ({
-          productId: item.product.id,
-          price: item.product.price ?? 0,
-          quantity: item.quantity,
-        })
-      );
+      // Validate required fields
+      if (!consigneeName.trim() || !consigneePhone.trim() || !consigneeEmail.trim() || !deliveryAddress.trim() || !city.trim() || !state.trim() || !pincode.trim()) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
 
-      // Convert date string to ISO DateTime format for Prisma
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(consigneeEmail.trim())) {
+        toast.error("Please enter a valid email address");
+        return;
+      }
+
+      // Validate phone number (10 digits)
+      const phoneRegex = /^\d{10}$/;
+      if (!phoneRegex.test(consigneePhone.trim())) {
+        toast.error("Please enter a valid 10-digit phone number");
+        return;
+      }
+
+      // Prepare order items
+      const _orderItems = cartItems
+        .filter(item => !item.isBundleItem)
+        .map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.price,
+        }));
+
+      const _bundleOrderItems = cartItems
+        .filter(item => item.isBundleItem)
+        .map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.price,
+          bundleProductQuantity: item.bundleCount || 1,
+        }));
+
       const dateTimeForPrisma = requiredByDate
-        ? new Date(requiredByDate + "T23:59:59.999Z").toISOString()
+        ? new Date(requiredByDate).toISOString()
         : new Date().toISOString();
 
       const _order = {
@@ -181,9 +209,11 @@ export default function ClientCheckout() {
         requiredByDate: dateTimeForPrisma,
         note: note.trim() || null,
         items: _orderItems,
+        bundleOrderItems: _bundleOrderItems,
+        numberOfBundles: _bundleOrderItems.length > 0 ? cartItems.find(item => item.isBundleItem)?.bundleQuantity || 1 : 0,
       };
 
-      await createOrder("/api/clients/orders/order", _order);
+      await createOrder(_order);
 
       // Clear the cart after successful order creation
       setStoredData(`fitplay_cart_${session?.user.id}`, []);
@@ -192,8 +222,6 @@ export default function ClientCheckout() {
       router.push("/client/orders");
     } catch (error) {
       toast.error("Failed to create dispatch order");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -270,7 +298,14 @@ export default function ClientCheckout() {
                     <div className="flex-1 space-y-2">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="font-medium">{item.product.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium">{item.product.name}</h3>
+                            {item.isBundleItem && (
+                              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
+                                Bundle Item
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             SKU: {item.product.sku}
                           </p>
@@ -279,7 +314,13 @@ export default function ClientCheckout() {
                               Price: ₹{item.product.price}
                             </p>
                           )}
-                          <p className="text-sm font-medium">Product Item</p>
+                          <p className="text-sm font-medium">
+                            {item.isBundleItem ? (
+                              `${item.bundleQuantity} per bundle × ${item.bundleCount} bundles = ${item.quantity} total`
+                            ) : (
+                              'Individual product'
+                            )}
+                          </p>
                         </div>
                       </div>
 
@@ -466,8 +507,12 @@ export default function ClientCheckout() {
                     id="consigneePhone"
                     type="tel"
                     value={consigneePhone}
-                    onChange={(e) => setConsigneePhone(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                      setConsigneePhone(value);
+                    }}
                     placeholder="10-digit phone number"
+                    maxLength={10}
                     required
                   />
                 </div>
@@ -555,10 +600,10 @@ export default function ClientCheckout() {
                   type="submit"
                   className="w-full"
                   size="lg"
-                  disabled={loading}
+                  disabled={isCreating}
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  {loading ? "Creating DO..." : "Create Dispatch Order"}
+                  {isCreating ? "Creating DO..." : "Create Dispatch Order"}
                 </Button>
 
                 <div className="mt-4 text-xs text-muted-foreground text-center space-y-1">

@@ -17,6 +17,7 @@ let toggleTracker = true;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log('Client order creation request body:', JSON.stringify(body, null, 2));
     const {
       deliveryAddress,
       items,
@@ -35,6 +36,11 @@ export async function POST(req: NextRequest) {
       packagingInstructions = "",
     } = body;
 
+    // Basic validation
+    if (!consigneeName || !consigneePhone || !consigneeEmail || !city || !state || !pincode || !requiredByDate || !modeOfDelivery || !deliveryAddress) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
     const session = await getServerSession(auth);
 
     if (!session || !session?.user?.email) {
@@ -42,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     const client = await prisma.client.findUnique({
-      where: { email: session.user.email },
+      where: { id: session.user.id },
       select: { id: true, companyID: true },
     });
 
@@ -80,8 +86,8 @@ export async function POST(req: NextRequest) {
       if (!isNaN(lastSeq)) nextSequence = lastSeq + 1;
     }
 
-    const itemsId = items.map((item: any) => item.productId);
-    const bundleItemsId = bundleOrderItems.map((item: any) => item.productId);
+    const itemsId = items.map((item: any) => item.productId).filter(Boolean);
+    const bundleItemsId = bundleOrderItems.map((item: any) => item.productId).filter(Boolean);
 
     const itemsPrice = await prisma.product.findMany({
       where: { id: { in: itemsId } },
@@ -134,7 +140,7 @@ export async function POST(req: NextRequest) {
       if (!item.price) item.price = product.price;
     }
 
-    if (items.length === 0) {
+    if (items.length === 0 && bundleOrderItems.length === 0) {
       return NextResponse.json(
         { error: "At least one order item is required" },
         { status: 400 }
@@ -212,7 +218,6 @@ export async function POST(req: NextRequest) {
           bundleOrderItems: {
             create: bundleOrderItems.map((item: any) => ({
               bundleId: bundle.id,
-              orderId: orderId,
               productId: item.productId,
               quantity: item.quantity,
               price: item.price ?? 0,
@@ -327,8 +332,7 @@ export async function POST(req: NextRequest) {
 
       // Send stock alert emails if below threshold
       const adminEmail = process.env.ADMIN_EMAIL || "";
-      const ownerEmail =
-        process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
+      const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
       updatedProducts.forEach(async (productData) => {
         if (productData && productData.minStockThreshold) {
           if (productData.availableStock < productData.minStockThreshold) {
@@ -426,6 +430,16 @@ export async function POST(req: NextRequest) {
       await prisma.order.update({
         where: { id: orderId },
         data: { isMailSent: true },
+      });
+
+      // Create email history record
+      await prisma.orderEmail.create({
+        data: {
+          orderId: order.id,
+          purpose: "PENDING",
+          isSent: true,
+          sentAt: new Date(),
+        },
       });
     }
 

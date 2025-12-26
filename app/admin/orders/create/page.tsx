@@ -380,6 +380,7 @@ export default function CreateDispatchOrderPage() {
                   <Input
                     value={consigneePhone}
                     onChange={(e) => setConsigneePhone(e.target.value)}
+                    maxLength={10}
                   />
                 </div>
                 <div className="space-y-2">
