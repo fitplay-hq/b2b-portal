@@ -30,6 +30,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Prisma } from "@/lib/generated/prisma";
 import { createOrder } from "@/data/order/admin.actions";
+import { usePincodeLookup } from "@/hooks/use-pincode-lookup";
 
 export default function ClientCheckout() {
   const { data: session, status } = useSession();
@@ -47,12 +48,21 @@ export default function ClientCheckout() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [pincode, setPincode] = useState("");
+  const [manuallyEditedFields, setManuallyEditedFields] = useState<{city: boolean, state: boolean}>({city: false, state: false});
   const [deliveryReference, setDeliveryReference] = useState("");
-  const [modeOfDelivery, setModeOfDelivery] = useState<"AIR" | "SURFACE">(
+  const [modeOfDelivery, setModeOfDelivery] = useState<"AIR" | "SURFACE" | "HAND_DELIVERY">(
     "SURFACE"
   );
   const [requiredByDate, setRequiredByDate] = useState<string>("");
   const [note, setNote] = useState("");
+
+  const {
+    data: pincodeData,
+    isLoading: isPincodeLoading,
+    error: pincodeError,
+    lookupPincode,
+    clearError,
+  } = usePincodeLookup();
 
   useEffect(() => {
     if (!session || !session.user) {
@@ -71,6 +81,33 @@ export default function ClientCheckout() {
     }
     // Client info is now displayed as read-only, no pre-filling needed
   }, [session?.user?.name, session?.user?.email]);
+
+  useEffect(() => {
+    if (pincodeData && pincodeData.success) {
+      // Only auto-fill if the fields haven't been manually edited since the last pincode lookup
+      if (!manuallyEditedFields.city) {
+        setCity(pincodeData.city);
+      }
+      if (!manuallyEditedFields.state) {
+        setState(pincodeData.state);
+      }
+    }
+  }, [pincodeData, manuallyEditedFields]);
+
+  const handlePincodeChange = (value: string) => {
+    setPincode(value);
+    clearError();
+
+    if (value.length === 6 && /^\d{6}$/.test(value)) {
+      // Reset manual edit flags when looking up a new pincode
+      setManuallyEditedFields({city: false, state: false});
+      lookupPincode(value);
+    } else if (value.length !== 6) {
+      setCity("");
+      setState("");
+      setManuallyEditedFields({city: false, state: false});
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -307,8 +344,11 @@ export default function ClientCheckout() {
                       id="city"
                       type="text"
                       value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="City"
+                      onChange={(e) => {
+                        setCity(e.target.value);
+                        setManuallyEditedFields(prev => ({...prev, city: true}));
+                      }}
+                      placeholder="Auto-filled from pincode"
                       required
                     />
                   </div>
@@ -319,23 +359,35 @@ export default function ClientCheckout() {
                       id="state"
                       type="text"
                       value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      placeholder="State"
+                      onChange={(e) => {
+                        setState(e.target.value);
+                        setManuallyEditedFields(prev => ({...prev, state: true}));
+                      }}
+                      placeholder="Auto-filled from pincode"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="pincode">Pincode *</Label>
-                    <Input
-                      id="pincode"
-                      type="number"
-                      value={pincode}
-                      maxLength={6}
-                      onChange={(e) => setPincode(e.target.value)}
-                      placeholder="PIN Code"
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="pincode"
+                        type="text"
+                        value={pincode}
+                        maxLength={6}
+                        onChange={(e) => handlePincodeChange(e.target.value)}
+                        placeholder="Enter 6-digit pincode"
+                        className={pincodeError ? "border-red-500" : ""}
+                        required
+                      />
+                      {isPincodeLoading && (
+                        <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    {pincodeError && (
+                      <p className="text-sm text-red-500">{pincodeError}</p>
+                    )}
                   </div>
                 </div>
 
@@ -372,6 +424,7 @@ export default function ClientCheckout() {
                     <SelectContent>
                       <SelectItem value="SURFACE">Surface</SelectItem>
                       <SelectItem value="AIR">Air</SelectItem>
+                      <SelectItem value="HAND_DELIVERY">Hand Delivery</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

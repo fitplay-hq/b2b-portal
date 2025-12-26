@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { useUpdateOrderStatus } from "@/data/order/admin.hooks";
+import { useUpdateOrderStatus, useSendOrderEmail } from "@/data/order/admin.hooks";
 import { KeyedMutator } from "swr";
 import { AdminOrder } from "@/data/order/admin.actions";
 
@@ -12,8 +12,10 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
     newStatus: "",
     consignmentNumber: "",
     deliveryService: "",
+    sendEmail: false,
   });
   const { updateOrderStatus } = useUpdateOrderStatus()
+  const { sendOrderEmail } = useSendOrderEmail()
 
   const toggleOrderExpansion = (orderId: string) => {
     const newExpanded = new Set(expandedOrders);
@@ -54,6 +56,7 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
       newStatus: dialogState.newStatus,
       consignmentNumber: dialogState.consignmentNumber,
       deliveryService: dialogState.deliveryService,
+      sendEmail: dialogState.sendEmail,
     });
 
     try {
@@ -67,7 +70,23 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
       });
       
       console.log("Status update result:", result);
-      toast.success(`Order ${dialogState.order.id} status updated.`);
+
+      // Send email if requested
+      if (dialogState.sendEmail) {
+        try {
+          await sendOrderEmail({
+            orderId: dialogState.order.id,
+            clientEmail: dialogState.order.client.email,
+          });
+          toast.success("Order status updated and email sent.");
+        } catch (emailError) {
+          console.error("Email sending error:", emailError);
+          toast.success("Order status updated, but failed to send email.");
+        }
+      } else {
+        toast.success(`Order ${dialogState.order.id} status updated.`);
+      }
+
       closeStatusDialog();
       mutate(); // Refresh the orders list
     } catch (error) {

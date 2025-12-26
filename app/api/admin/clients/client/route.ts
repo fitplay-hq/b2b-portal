@@ -59,7 +59,20 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        return NextResponse.json({ data: client, message: "Client added successfully" }, { status: 200 });
+        // Fetch the created client with relationships
+        const createdClient = await prisma.client.findUnique({
+            where: { id: client.id },
+            include: {
+                company: true,
+                products: {
+                    include: {
+                        product: true
+                    }
+                }
+            }
+        });
+
+        return NextResponse.json({ data: createdClient, message: "Client added successfully" }, { status: 200 });
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Something went wrong couldn't add client";
         return NextResponse.json({ error: errorMessage }, { status: 500 });
@@ -78,7 +91,14 @@ export async function GET(req: NextRequest) {
 
         const client = await prisma.client.findUnique({
             where: { id: clientId },
-            include: { company: true }
+            include: { 
+                company: true,
+                products: {
+                    include: {
+                        product: true
+                    }
+                }
+            }
         });
 
         if (!client) {

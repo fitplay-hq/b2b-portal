@@ -42,6 +42,11 @@ export async function withPermissions(
       return handler(request);
     }
 
+    // SYSTEM_USER with admin role has access to everything
+    if (user.role === 'SYSTEM_USER' && user.systemRole?.toLowerCase().includes('admin')) {
+      return handler(request);
+    }
+
     // For SYSTEM_USER, check permissions
     if (user.role === 'SYSTEM_USER') {
       // URGENT FIX: Try to get permissions from storage first (no DB call)

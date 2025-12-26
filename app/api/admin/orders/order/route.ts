@@ -118,6 +118,8 @@ export async function POST(req: NextRequest) {
   return withPermissions(req, async () => {
     try {
       const body = await req.json();
+      console.log('Order creation request body:', JSON.stringify(body, null, 2));
+      
       const {
         clientEmail,
         deliveryAddress,
@@ -137,7 +139,15 @@ export async function POST(req: NextRequest) {
         packagingInstructions = "",
       } = body;
 
+      console.log('Extracted data:', {
+        clientEmail,
+        itemsCount: items?.length || 0,
+        bundleOrderItemsCount: bundleOrderItems?.length || 0,
+        numberOfBundles
+      });
+
       if (!clientEmail) {
+        console.log('Validation failed: Client email is required');
         return NextResponse.json({ error: "Client email is required" }, { status: 400 });
       }
 
@@ -146,11 +156,15 @@ export async function POST(req: NextRequest) {
         select: { id: true, companyID: true },
       });
 
+      console.log('Client lookup result:', { client });
+
       if (!client?.id) {
+        console.log('Validation failed: Client not found');
         return NextResponse.json({ error: "Client not found" }, { status: 404 });
       }
 
       if (!client.companyID) {
+        console.log('Validation failed: Client has no associated company');
         return NextResponse.json({ error: "Client has no associated company" }, { status: 400 });
       }
 
@@ -228,12 +242,12 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      if (items.length === 0) {
+      if (items.length === 0 && bundleOrderItems.length === 0) {
+        console.log('Validation failed: At least one order item is required', {
+          itemsLength: items.length,
+          bundleOrderItemsLength: bundleOrderItems.length
+        });
         return NextResponse.json({ error: "At least one order item is required" }, { status: 400 });
-      }
-
-      if (bundleOrderItems.length === 0) {
-        return NextResponse.json({ error: "At least one bundle item is required" }, { status: 400 });
       }
 
       const totalItemsAmount = items.reduce((sum: number, item: any) => {
@@ -254,11 +268,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Total amount cannot be negative" }, { status: 400 });
       }
 
-      // create a bundle before an order
-      let bundle = await prisma.bundle.create({
-        data: {
-        },
-      });
+      // create a bundle only if there are bundle items
+      let bundle = null;
+      if (bundleOrderItems.length > 0) {
+        bundle = await prisma.bundle.create({
+          data: {},
+        });
+      }
 
       let orderId = "";
       while (true) {
@@ -269,7 +285,7 @@ export async function POST(req: NextRequest) {
       }
 
       // --------------------------
-      // 🔥 MAIN CHANGE: Use a transaction to create order + update inventory
+// 🔥 MAIN CHANGE: Use a transaction to create order + update inventory
       // --------------------------
       const order = await prisma.$transaction(async (tx) => {
 
@@ -291,31 +307,30 @@ export async function POST(req: NextRequest) {
             packagingInstructions,
             note,
             totalAmount,
-            orderItems: {
+            orderItems: items.length > 0 ? {
               create: items.map((item: any) => ({
                 productId: item.productId,
                 quantity: item.quantity,
                 price: item.price ?? 0,
               })),
-            },
-            numberOfBundles: numberOfBundles,
-            bundleOrderItems: {
+            } : undefined,
+            numberOfBundles: bundleOrderItems.length > 0 ? numberOfBundles : 0,
+            bundleOrderItems: bundleOrderItems.length > 0 ? {
               create: bundleOrderItems.map((item: any) => ({
-                bundleId: bundle.id,
-                orderId: orderId,
+                bundleId: bundle!.id,
                 productId: item.productId,
                 quantity: item.quantity,
                 price: item.price ?? 0,
                 bundleItems: {
                   create: {
-                    bundleId: bundle.id,
+                    bundleId: bundle!.id,
                     productId: item.productId,
                     bundleProductQuantity: item.bundleProductQuantity,
                     price: item.price ?? 0,
                   }
                 }
               })),
-            }
+            } : undefined
           },
           include: {
             orderItems: true,
@@ -326,63 +341,67 @@ export async function POST(req: NextRequest) {
         const eachBundlePrice = bundleOrderItems.reduce((sum: number, item: any) => {
           return sum + item.bundleProductQuantity * item.price;
         }, 0);
-        bundle = await tx.bundle.update({
-          where: { id: bundle.id },
-          data: {
-            orderId: newOrder.id,
-            price: eachBundlePrice,
-          },
-        });
-
-        // Update stock
-        for (const item of items) {
-
-          const itemStock = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { availableStock: true },
-          });
-
-          if (!itemStock) {
-            throw new Error(`Product with ID ${item.productId} not found during stock update`);
-          }
-          await tx.product.update({
-            where: { id: item.productId },
+        if (bundle) {
+          bundle = await tx.bundle.update({
+            where: { id: bundle.id },
             data: {
-              availableStock: { decrement: item.quantity },
-              inventoryUpdateReason: "NEW_ORDER",
-              inventoryLogs: {
-                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
-              },
+              orderId: newOrder.id,
+              price: eachBundlePrice,
             },
           });
         }
 
-        // Update stock for bundle items
-        for (const item of bundleOrderItems) {
+        // Update stock for regular items
+        if (items.length > 0) {
+          for (const item of items) {
+            const itemStock = await tx.product.findUnique({
+              where: { id: item.productId },
+              select: { availableStock: true },
+            });
 
-          const itemStock = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { availableStock: true },
-          });
-
-          if (!itemStock) {
-            throw new Error(`Product with ID ${item.productId} not found during stock update`);
-          }
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              availableStock: { decrement: item.quantity },
-              inventoryUpdateReason: "NEW_ORDER",
-              inventoryLogs: {
-                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
+            if (!itemStock) {
+              throw new Error(`Product with ID ${item.productId} not found during stock update`);
+            }
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                availableStock: { decrement: item.quantity },
+                inventoryUpdateReason: "NEW_ORDER",
+                inventoryLogs: {
+                  push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
+                },
               },
-            },
-          });
+            });
+          }
+        }
+
+        // Update stock for bundle items
+        if (bundleOrderItems.length > 0) {
+          for (const item of bundleOrderItems) {
+            const itemStock = await tx.product.findUnique({
+              where: { id: item.productId },
+              select: { availableStock: true },
+            });
+
+            if (!itemStock) {
+              throw new Error(`Product with ID ${item.productId} not found during stock update`);
+            }
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                availableStock: { decrement: item.quantity },
+                inventoryUpdateReason: "NEW_ORDER",
+                inventoryLogs: {
+                  push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
+                },
+              },
+            });
+          }
         }
 
         const updatedProducts = await prisma.product.findMany({
           where: {
-            id: { in: itemsId || bundleOrderItemsId },
+            id: { in: [...itemsId, ...bundleOrderItemsId] },
           },
           select: {
             name: true,
@@ -403,11 +422,11 @@ export async function POST(req: NextRequest) {
                 cc: ownerEmail,
                 subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
                 html: `<p>Dear Admin,</p>
-            <p>The stock for product <strong>${productData.name}</strong> has fallen below the minimum threshold.</p>
-            <ul>
-              <li>Current Stock: ${productData.availableStock}</li>
-              <li>Minimum Threshold: ${productData.minStockThreshold}</li>
-            </ul>`,
+<p>The stock for product <strong>${productData.name}</strong> has fallen below the minimum threshold.</p>
+<ul>
+  <li>Current Stock: ${productData.availableStock}</li>
+  <li>Minimum Threshold: ${productData.minStockThreshold}</li>
+</ul>`,
               });
             }
           }
@@ -415,11 +434,18 @@ export async function POST(req: NextRequest) {
 
         return newOrder;
       });
-
       return NextResponse.json(order);
     } catch (error) {
       console.error("Error creating order:", error);
-      return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : undefined
+      });
+      return NextResponse.json({ 
+        error: "Failed to create order",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 500 });
     }
   }, "orders", "create");
 }

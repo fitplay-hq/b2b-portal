@@ -33,6 +33,7 @@ import {
   Mail,
   CheckCircle,
   ShoppingCart,
+  Package,
 } from "lucide-react";
 import { useProducts } from "@/data/product/admin.hooks";
 import { useClients } from "@/data/client/admin.hooks";
@@ -73,6 +74,12 @@ export default function CreateDispatchOrderPage() {
   const [selectedProducts, setSelectedProducts] = React.useState<
     SelectedProduct[]
   >([]);
+
+  // Bundle-related state
+  const [showBundleDialog, setShowBundleDialog] = React.useState(false);
+  const [bundleProducts, setBundleProducts] = React.useState<SelectedProduct[]>([]);
+  const [numberOfBundles, setNumberOfBundles] = React.useState(1);
+  const [bundleSearchTerm, setBundleSearchTerm] = React.useState("");
 
   const { products, isLoading: isProductsLoading } = useProducts();
   const { clients, isLoading: isClientsLoading } = useClients();
@@ -154,6 +161,71 @@ export default function CreateDispatchOrderPage() {
     setSelectedProducts((prev) => prev.filter((p) => p.id !== productId));
   };
 
+  // Bundle handling functions
+  const bundleSearchResults = React.useMemo(() => {
+    if (!products) return [] as Product[];
+    const term = bundleSearchTerm.trim().toLowerCase();
+    if (!term) return [];
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        (p.sku ? p.sku.toLowerCase().includes(term) : false)
+    );
+  }, [products, bundleSearchTerm]);
+
+  const handleBundleProductToggle = (product: Product, selected: boolean) => {
+    if (selected) {
+      const exists = bundleProducts.some((p) => p.id === product.id);
+      if (!exists) {
+        setBundleProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+      }
+    } else {
+      setBundleProducts((prev) => prev.filter((p) => p.id !== product.id));
+    }
+  };
+
+  const handleUpdateBundleProduct = (productId: string, quantity: number) => {
+    setBundleProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, quantity } : p))
+    );
+  };
+
+  const handleRemoveBundleProduct = (productId: string) => {
+    setBundleProducts((prev) => prev.filter((p) => p.id !== productId));
+  };
+
+  const handleAddBundle = () => {
+    if (bundleProducts.length === 0) {
+      toast.error("Select at least one product for the bundle");
+      return;
+    }
+    if (bundleProducts.some((p) => !p.quantity || p.quantity <= 0)) {
+      toast.error("Invalid quantities in bundle");
+      return;
+    }
+    if (numberOfBundles <= 0) {
+      toast.error("Number of bundles must be greater than 0");
+      return;
+    }
+
+    // Add bundle items to selected products with total quantity
+    const bundleItems = bundleProducts.map((product) => ({
+      ...product,
+      quantity: product.quantity * numberOfBundles, // Total quantity needed
+      bundleProductQuantity: product.quantity, // Quantity per bundle
+      isBundleItem: true,
+    }));
+
+    setSelectedProducts((prev) => [...prev, ...bundleItems]);
+    toast.success(`Added bundle with ${bundleProducts.length} products × ${numberOfBundles} bundles`);
+
+    // Reset bundle state
+    setBundleProducts([]);
+    setNumberOfBundles(1);
+    setBundleSearchTerm("");
+    setShowBundleDialog(false);
+  };
+
   const handleCreate = async () => {
     if (!selectedClientEmail) return toast.error("Select a client");
     if (!consigneeName || !consigneePhone)
@@ -167,14 +239,35 @@ export default function CreateDispatchOrderPage() {
       return toast.error("Invalid quantities");
 
     try {
+      // Separate regular items from bundle items
+      const regularItems = selectedProducts.filter(p => !p.isBundleItem);
+      const bundleItems = selectedProducts.filter(p => p.isBundleItem);
+
+      console.log('Order creation data:', {
+        selectedProducts,
+        regularItems,
+        bundleItems,
+        numberOfBundles: bundleItems.length > 0 ? bundleItems[0].quantity / bundleItems[0].bundleProductQuantity : 0
+      });
+
+      // Calculate number of bundles from bundle items
+      const numberOfBundles = bundleItems.length > 0 ? bundleItems[0].quantity / bundleItems[0].bundleProductQuantity : 0;
+
       const order = await createOrder({
         clientEmail: selectedClientEmail,
         deliveryAddress,
-        items: selectedProducts.map((p) => ({
+        items: regularItems.map((p) => ({
           productId: p.id,
           quantity: p.quantity,
           price: p.price ?? 0,
         })),
+        bundleOrderItems: bundleItems.map((p) => ({
+          productId: p.id,
+          quantity: p.quantity,
+          price: p.price ?? 0,
+          bundleProductQuantity: p.bundleProductQuantity,
+        })),
+        numberOfBundles,
         consigneeName,
         consigneePhone,
         consigneeEmail,
@@ -260,7 +353,7 @@ export default function CreateDispatchOrderPage() {
                         value={c.email}
                         className="capitalize"
                       >
-                        {c.companyName || c.name} ({c.email})
+                        {c.companyName || c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -385,6 +478,7 @@ export default function CreateDispatchOrderPage() {
                   <SelectContent>
                     <SelectItem value="SURFACE">Surface</SelectItem>
                     <SelectItem value="AIR">Air</SelectItem>
+                    <SelectItem value="HAND_DELIVERY">Hand Delivery</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -422,7 +516,18 @@ export default function CreateDispatchOrderPage() {
         <div className="lg:col-span-2 space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Products</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Products</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBundleDialog(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Package className="h-4 w-4" />
+                  Create Bundle
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
@@ -626,8 +731,10 @@ export default function CreateDispatchOrderPage() {
                     <div>
                       {selectedProducts.map((product, index) => (
                         <div
-                          key={product.id}
-                          className="border-b last:border-b-0 p-4"
+                          key={`${product.id}-${index}`}
+                          className={`border-b last:border-b-0 p-4 ${
+                            product.isBundleItem ? "bg-purple-50 border-purple-200" : ""
+                          }`}
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
@@ -635,12 +742,24 @@ export default function CreateDispatchOrderPage() {
                                 #{index + 1}
                               </span>
                               <div>
-                                <p className="text-sm font-medium">
-                                  {product.name}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium">
+                                    {product.name}
+                                  </p>
+                                  {product.isBundleItem && (
+                                    <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
+                                      Bundle Item
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-xs text-muted-foreground">
                                   Available: {product.availableStock} units
                                 </p>
+                                {product.isBundleItem && (
+                                  <p className="text-xs text-purple-600 font-medium">
+                                    {product.bundleProductQuantity} per bundle × {product.quantity / product.bundleProductQuantity} bundles = {product.quantity} total
+                                  </p>
+                                )}
                               </div>
                             </div>
                             <Button
@@ -755,13 +874,139 @@ export default function CreateDispatchOrderPage() {
         </div>
       </div>
 
+      {/* Bundle Creation Dialog */}
+      <Dialog open={showBundleDialog} onOpenChange={setShowBundleDialog}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create Product Bundle</DialogTitle>
+            <DialogDescription>
+              Create a bundle of products that will be packaged together. Example: 2 notebooks + 1 pen per package.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Bundle Products Search */}
+            <div>
+              <Label>Search Products for Bundle</Label>
+              <div className="relative mt-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by product name or SKU..."
+                  value={bundleSearchTerm}
+                  onChange={(e) => setBundleSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            {/* Bundle Products List */}
+            {bundleSearchTerm && (
+              <div className="border rounded-md max-h-48 overflow-y-auto">
+                {bundleSearchResults.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No products found matching "{bundleSearchTerm}"
+                  </p>
+                ) : (
+                  <div className="divide-y">
+                    {bundleSearchResults.map((product) => {
+                      const isSelected = bundleProducts.some((p) => p.id === product.id);
+                      return (
+                        <div
+                          key={product.id}
+                          className={`flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer ${
+                            isSelected ? "bg-blue-50" : ""
+                          }`}
+                          onClick={() => handleBundleProductToggle(product, !isSelected)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Checkbox checked={isSelected} onChange={() => {}} />
+                            <div>
+                              <p className="text-sm font-medium">{product.name}</p>
+                              <p className="text-xs text-muted-foreground">SKU: {product.sku || "N/A"}</p>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <Badge variant="secondary" className="text-xs">
+                              Selected
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Selected Bundle Products */}
+            {bundleProducts.length > 0 && (
+              <div>
+                <Label className="text-sm font-medium">Bundle Contents ({bundleProducts.length} products)</Label>
+                <div className="border rounded-md mt-2 max-h-32 overflow-y-auto">
+                  {bundleProducts.map((product) => (
+                    <div key={product.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium">{product.name}</span>
+                        <div className="flex items-center gap-1">
+                          <Label className="text-xs">Qty per bundle:</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={product.quantity}
+                            onChange={(e) => handleUpdateBundleProduct(product.id, parseInt(e.target.value) || 1)}
+                            className="w-16 h-6 text-xs"
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveBundleProduct(product.id)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Number of Bundles */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Label>Number of Bundles</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={numberOfBundles}
+                  onChange={(e) => setNumberOfBundles(parseInt(e.target.value) || 1)}
+                  className="mt-1"
+                />
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Total items needed: {bundleProducts.reduce((sum, p) => sum + (p.quantity * numberOfBundles), 0)}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowBundleDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddBundle} disabled={bundleProducts.length === 0}>
+              Add Bundle to Order
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Order Created Successfully</DialogTitle>
             <DialogDescription>
-              Order {createdOrder?.id} has been created. Would you like to send
-              an email notification to the client?
+              The order has been created. Would you like to send an email notification to the client?
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">

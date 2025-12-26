@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(auth);
-    if (!session || session.user?.role !== "ADMIN")
+    if (!session || (session.user?.role !== "ADMIN" && session.user?.role !== "SYSTEM_USER"))
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { companyId, productIds } = await req.json();
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(auth);
-    if (!session || session.user?.role !== "ADMIN")
+    if (!session || (session.user?.role !== "ADMIN" && session.user?.role !== "SYSTEM_USER"))
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     // Check if this is a removeAll request (JSON body) or specific product removal (query params)
@@ -175,7 +175,7 @@ export async function DELETE(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(auth);
-    if (!session || session.user?.role !== "ADMIN")
+    if (!session || (session.user?.role !== "ADMIN" && session.user?.role !== "SYSTEM_USER"))
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const companyId = req.nextUrl.searchParams.get("companyId");

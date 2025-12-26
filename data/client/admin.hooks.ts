@@ -29,7 +29,8 @@ export function useCreateClient() {
     (url, { arg }: { arg: Prisma.ClientCreateInput }) => createClient(url, arg),
     {
       onSuccess: () => {
-        globalMutate('/api/admin/clients')
+        globalMutate('/api/admin/clients');
+        globalMutate('/api/admin/companies');
       }
     }
   );

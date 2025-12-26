@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       where: { id: orderId },
       include: {
         orderItems: { include: { product: true } },
+        bundleOrderItems: { include: { product: true } },
       },
     });
 
@@ -46,6 +47,16 @@ export async function POST(req: NextRequest) {
               (item) => `
             <tr>
               <td>${item.product.name}</td>
+              <td align="center">${item.quantity}</td>
+            </tr>
+          `
+            )
+            .join("")}
+          ${order.bundleOrderItems
+            .map(
+              (item) => `
+            <tr>
+              <td>${item.product.name} (Bundle)</td>
               <td align="center">${item.quantity}</td>
             </tr>
           `

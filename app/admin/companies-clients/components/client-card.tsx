@@ -25,7 +25,7 @@ interface ClientCardProps {
 }
 
 export function ClientCard({ client, onDelete }: ClientCardProps) {
-  const { actions } = usePermissions();
+  const { actions, isAdmin, session } = usePermissions();
 
   const initials = client.name
     .split(" ")

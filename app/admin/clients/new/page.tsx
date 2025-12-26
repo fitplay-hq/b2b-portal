@@ -116,23 +116,23 @@ function NewClientForm() {
       // First create the client
       const clientResponse = await createClient(formData);
 
-      // If products are selected and we have a company ID, assign products to the company
-      if (selectedProducts.length > 0 && clientResponse?.companyID) {
-        const productResponse = await fetch("/api/admin/companies/products", {
+      // If products are selected, assign products directly to the client
+      if (selectedProducts.length > 0 && clientResponse.id) {
+        const clientProductResponse = await fetch(`/api/admin/clients/${clientResponse.id}/products`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            companyId: clientResponse.companyID,
             productIds: selectedProducts,
+            action: "assign",
           }),
         });
 
-        if (!productResponse.ok) {
-          const errorData = await productResponse.json();
-          console.error("Failed to assign products to company:", errorData);
+        if (!clientProductResponse.ok) {
+          const errorData = await clientProductResponse.json();
+          console.error("Failed to assign products to client:", errorData);
           throw new Error(
-            `Failed to assign products to company: ${
+            `Failed to assign products to client: ${
               errorData.error || "Unknown error"
             }`
           );

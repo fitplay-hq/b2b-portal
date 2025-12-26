@@ -15,10 +15,14 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { SetStateAction } from "react";
 import { AdminOrder } from "@/data/order/admin.actions";
 import { $Enums, Order } from "@/lib/generated/prisma";
 import { formatStatus } from "@/lib/utils";
+import { Mail, Clock } from "lucide-react";
 
 const ORDER_STATUSES: Order["status"][] = Object.values($Enums.Status);
 
@@ -30,6 +34,7 @@ interface UpdateStatusDialogProps {
     newStatus: string;
     consignmentNumber: string;
     deliveryService: string;
+    sendEmail: boolean;
   };
   setDialogState: React.Dispatch<SetStateAction<any>>;
   closeStatusDialog: () => void;
@@ -115,6 +120,46 @@ export function UpdateStatusDialog({
               </div>
             </>
           )}
+
+          <Separator className="my-4" />
+
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="sendEmail"
+                checked={dialogState.sendEmail}
+                onCheckedChange={(checked) =>
+                  setDialogState((prev: any) => ({ ...prev, sendEmail: checked }))
+                }
+              />
+              <Label htmlFor="sendEmail" className="text-sm font-medium">
+                Send email notification to client
+              </Label>
+            </div>
+
+            {dialogState.order && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email History
+                </Label>
+                <div className="border rounded-md p-3 bg-gray-50">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Last email sent:</span>
+                    <Badge variant={dialogState.order.isMailSent ? "default" : "secondary"}>
+                      {dialogState.order.isMailSent ? "Sent" : "Not sent"}
+                    </Badge>
+                  </div>
+                  {dialogState.order.isMailSent && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Email was sent when order was created
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={closeStatusDialog}>
               Cancel
