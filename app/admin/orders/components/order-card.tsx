@@ -422,16 +422,127 @@ const OrderDetails = ({
             </div>
           )}
           <div className="md:col-span-2">
-            <h4 className="font-medium mb-2">Order Timeline</h4>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p>
-                <strong>Created:</strong>{" "}
-                {new Date(order.createdAt).toLocaleString()}
-              </p>
-              <p>
-                <strong>Last Updated:</strong>{" "}
-                {new Date(order.updatedAt).toLocaleString()}
-              </p>
+            <h4 className="font-medium mb-3">Order Timeline</h4>
+            <div className="space-y-3">
+              {/* Order Created Event */}
+              <div className="flex items-start gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="w-0.5 h-6 bg-gray-200 mt-1"></div>
+                </div>
+                <div className="flex-1 pb-2">
+                  <p className="text-sm font-medium">Order Created</p>
+                  <p className="text-xs text-muted-foreground">
+                    Order placed by client • {new Date(order.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Initial Email Sent Event */}
+              {order.isMailSent && (
+                <div className="flex items-start gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Mail className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div className="w-0.5 h-6 bg-gray-200 mt-1"></div>
+                  </div>
+                  <div className="flex-1 pb-2">
+                    <p className="text-sm font-medium">Initial Email Sent</p>
+                    <p className="text-xs text-muted-foreground">
+                      Order confirmation email sent to client • {new Date(order.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Change Events */}
+              {order.status !== 'PENDING' && (
+                <div className="flex items-start gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      order.status === 'APPROVED' ? 'bg-blue-100' :
+                      order.status === 'READY_FOR_DISPATCH' ? 'bg-purple-100' :
+                      order.status === 'DISPATCHED' ? 'bg-orange-100' :
+                      order.status === 'AT_DESTINATION' ? 'bg-yellow-100' :
+                      order.status === 'DELIVERED' ? 'bg-green-100' :
+                      order.status === 'CANCELLED' ? 'bg-red-100' : 'bg-gray-100'
+                    }`}>
+                      {order.status === 'APPROVED' && <CheckCircle className="h-4 w-4 text-blue-600" />}
+                      {order.status === 'READY_FOR_DISPATCH' && <Package className="h-4 w-4 text-purple-600" />}
+                      {order.status === 'DISPATCHED' && <Package className="h-4 w-4 text-orange-600" />}
+                      {order.status === 'AT_DESTINATION' && <Building2 className="h-4 w-4 text-yellow-600" />}
+                      {order.status === 'DELIVERED' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                      {order.status === 'CANCELLED' && <XCircle className="h-4 w-4 text-red-600" />}
+                    </div>
+                    {(order.emails && order.emails.length > 0) && <div className="w-0.5 h-6 bg-gray-200 mt-1"></div>}
+                  </div>
+                  <div className="flex-1 pb-2">
+                    <p className="text-sm font-medium">Order {formatStatus(order.status)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Status updated to {formatStatus(order.status).toLowerCase()}
+                      {order.consignmentNumber && ` • Consignment: ${order.consignmentNumber}`}
+                      {order.deliveryService && ` • Service: ${order.deliveryService}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(order.updatedAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Email History Events */}
+              {order.emails && order.emails.length > 0 && (
+                <>
+                  {order.emails
+                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                    .map((email, index) => (
+                      <div key={email.id} className="flex items-start gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            email.isSent ? 'bg-green-100' : 'bg-gray-100'
+                          }`}>
+                            {email.isSent ? (
+                              <CheckCircle className={`h-4 w-4 ${email.isSent ? 'text-green-600' : 'text-gray-600'}`} />
+                            ) : (
+                              <Clock className="h-4 w-4 text-gray-600" />
+                            )}
+                          </div>
+                          {index < order.emails!.length - 1 && <div className="w-0.5 h-6 bg-gray-200 mt-1"></div>}
+                        </div>
+                        <div className="flex-1 pb-2">
+                          <p className="text-sm font-medium">
+                            {formatStatus(email.purpose)} Email {email.isSent ? 'Sent' : 'Failed'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {email.sentAt ? (
+                              new Date(email.sentAt).toLocaleString()
+                            ) : (
+                              new Date(email.createdAt).toLocaleString()
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                </>
+              )}
+
+              {/* No events yet */}
+              {!order.isMailSent && (!order.emails || order.emails.length === 0) && order.status === 'PENDING' && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                    <Clock className="h-4 w-4 text-gray-600" />
+                  </div>
+                  <div className="flex-1 pb-2">
+                    <p className="text-sm font-medium text-muted-foreground">No events yet</p>
+                    <p className="text-xs text-muted-foreground">
+                      Order is waiting for approval • {new Date(order.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

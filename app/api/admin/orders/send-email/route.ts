@@ -103,6 +103,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (mail) {
+      // Create email history record
+      await prisma.orderEmail.create({
+        data: {
+          orderId: order.id,
+          purpose: "PENDING", // Initial email sent when order is created
+          isSent: true,
+          sentAt: new Date(),
+        },
+      });
+
       await prisma.order.update({
         where: { id: orderId },
         data: { isMailSent: true },

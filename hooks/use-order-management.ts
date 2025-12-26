@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { useUpdateOrderStatus, useSendOrderEmail } from "@/data/order/admin.hooks";
+import { useUpdateOrderStatus, useSendOrderEmail, useSendStatusEmail } from "@/data/order/admin.hooks";
 import { KeyedMutator } from "swr";
 import { AdminOrder } from "@/data/order/admin.actions";
 
@@ -16,6 +16,7 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
   });
   const { updateOrderStatus } = useUpdateOrderStatus()
   const { sendOrderEmail } = useSendOrderEmail()
+  const { sendStatusEmail } = useSendStatusEmail()
 
   const toggleOrderExpansion = (orderId: string) => {
     const newExpanded = new Set(expandedOrders);
@@ -74,9 +75,9 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
       // Send email if requested
       if (dialogState.sendEmail) {
         try {
-          await sendOrderEmail({
+          await sendStatusEmail({
             orderId: dialogState.order.id,
-            clientEmail: dialogState.order.client.email,
+            status: dialogState.newStatus as AdminOrder['status'],
           });
           toast.success("Order status updated and email sent.");
         } catch (emailError) {

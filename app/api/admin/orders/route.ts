@@ -29,6 +29,18 @@ export async function GET(req: NextRequest) {
                     clientId: true,
                     createdAt: true,
                     updatedAt: true,
+                    emails: {
+                        select: {
+                            id: true,
+                            purpose: true,
+                            isSent: true,
+                            sentAt: true,
+                            createdAt: true,
+                        },
+                        orderBy: {
+                            createdAt: 'desc',
+                        },
+                    },
                     orderItems: {
                         select: {
                             id: true,

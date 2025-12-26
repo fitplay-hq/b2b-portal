@@ -22,7 +22,7 @@ import { SetStateAction } from "react";
 import { AdminOrder } from "@/data/order/admin.actions";
 import { $Enums, Order } from "@/lib/generated/prisma";
 import { formatStatus } from "@/lib/utils";
-import { Mail, Clock } from "lucide-react";
+import { Mail, Clock, CheckCircle } from "lucide-react";
 
 const ORDER_STATUSES: Order["status"][] = Object.values($Enums.Status);
 
@@ -143,18 +143,80 @@ export function UpdateStatusDialog({
                   <Mail className="h-4 w-4" />
                   Email History
                 </Label>
-                <div className="border rounded-md p-3 bg-gray-50">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Last email sent:</span>
-                    <Badge variant={dialogState.order.isMailSent ? "default" : "secondary"}>
-                      {dialogState.order.isMailSent ? "Sent" : "Not sent"}
-                    </Badge>
+                <div className="border rounded-md p-3 bg-gray-50 max-h-40 overflow-y-auto">
+                  <div className="space-y-3">
+                    {/* Order Created */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <CheckCircle className="h-3 w-3 text-green-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">Order Created</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(dialogState.order.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Initial Email Sent */}
+                    {dialogState.order.isMailSent && (
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Mail className="h-3 w-3 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">Initial Email Sent</p>
+                          <p className="text-xs text-muted-foreground">
+                            Order confirmation email sent to client
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status Update Emails */}
+                    {dialogState.order.emails && dialogState.order.emails.length > 0 && (
+                      <>
+                        {dialogState.order.emails
+                          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                          .map((email) => (
+                            <div key={email.id} className="flex items-start gap-3">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                email.isSent ? 'bg-green-100' : 'bg-gray-100'
+                              }`}>
+                                {email.isSent ? (
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <Clock className="h-3 w-3 text-gray-600" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium">
+                                  {formatStatus(email.purpose)} Email {email.isSent ? 'Sent' : 'Failed'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {email.sentAt ? new Date(email.sentAt).toLocaleString() : new Date(email.createdAt).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                      </>
+                    )}
+
+                    {/* No emails at all */}
+                    {!dialogState.order.isMailSent && (!dialogState.order.emails || dialogState.order.emails.length === 0) && (
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Clock className="h-3 w-3 text-gray-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-muted-foreground">No emails sent yet</p>
+                          <p className="text-xs text-muted-foreground">
+                            Email notifications will be sent when status is updated
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {dialogState.order.isMailSent && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Email was sent when order was created
-                    </p>
-                  )}
                 </div>
               </div>
             )}
