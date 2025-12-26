@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       subject: "New Order Awaiting Approval",
       html: `
           <h2>New Dispatch Order</h2>
-          <p>A new order <b>${order.id}</b> has been created by ${session?.user?.name || "Unknown User"}.</p>
+          <p>A new order has been created by ${session?.user?.name || "Unknown User"}.</p>
           
           <h3>Consignee Details</h3>
           <p><b>Name:</b> ${order.consigneeName}</p>

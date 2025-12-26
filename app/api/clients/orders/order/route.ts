@@ -401,13 +401,25 @@ export async function POST(req: NextRequest) {
       cc: [ownerEmail],
       subject: "New Order Awaiting Approval",
       html: `
-        <h2>New Dispatch Order</h2>
-        <p>A new order <b>${order.id}</b> has been created by ${session.user?.name || "Unknown Client"
-        }.</p>
-        <h3>Order Summary</h3>
-        ${orderTable}
-        <p>${footerMessage}</p>
-      `,
+                <h2>New Dispatch Order</h2>
+                <p>A new order has been created by ${session?.user?.name || "Unknown User"}.</p>
+                
+                <h3>Consignee Details</h3>
+                <p><b>Name:</b> ${order.consigneeName}</p>
+                <p><b>Phone:</b> ${order.consigneePhone}</p>
+                <p><b>Email:</b> ${order.consigneeEmail}</p>
+                <p><b>Mode of Delivery:</b> ${order.modeOfDelivery}</p>
+                <p><b>Required By:</b> ${new Date(order.requiredByDate).toLocaleDateString()}</p>
+      
+                <h3>Delivery Address</h3>
+                <p>${order.deliveryAddress}, ${order.city}, ${order.state}, ${order.pincode}</p>
+      
+                <h3>Order Summary</h3>
+                ${orderTable}
+      
+                <p>${footerMessage}</p>
+                <p style="display: none;">&#8203;</p>
+              `,
     });
 
     if (mail) {
