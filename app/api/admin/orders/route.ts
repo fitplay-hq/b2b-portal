@@ -47,6 +47,36 @@ export async function GET(req: NextRequest) {
                         },
                     },
                 },
+                bundleOrderItems: {
+                    select: {
+                        id: true,
+                        quantity: true,
+                        price: true,
+                        bundleId: true,
+                        orderId: true,
+                        bundle: {
+                            select: {
+                                id: true,
+                                price: true,
+                                items: {
+                                    select: {
+                                        id: true,
+                                        quantity: true,
+                                        product: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                                images: true,
+                                                sku: true,
+                                                price: true
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                        },
+                    },
+                },
                 client: {
                     select: {
                         id: true,

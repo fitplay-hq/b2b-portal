@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { withPermissions } from "@/lib/auth-middleware";
 import { Resend } from "resend";
+import { Princess_Sofia } from "next/font/google";
+import { updateOrder } from "@/data/order/admin.actions";
 const resendApiKey = process.env.RESEND_API_KEY;
 
 if (!resendApiKey) {
@@ -14,68 +16,103 @@ export async function GET(req: NextRequest) {
   return withPermissions(req, async () => {
     try {
 
-        const orderId = req.nextUrl.searchParams.get("id");
+      const orderId = req.nextUrl.searchParams.get("id");
 
-        if (!orderId) {
-            return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
-        }
+      if (!orderId) {
+        return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
+      }
 
-        const order = await prisma.order.findUnique({
-            where: { id: orderId },
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: {
+          id: true,
+          totalAmount: true,
+          consigneeName: true,
+          consigneePhone: true,
+          consigneeEmail: true,
+          deliveryAddress: true,
+          city: true,
+          state: true,
+          pincode: true,
+          modeOfDelivery: true,
+          deliveryReference: true,
+          packagingInstructions: true,
+          note: true,
+          shippingLabelUrl: true,
+          status: true,
+          consignmentNumber: true,
+          deliveryService: true,
+          isMailSent: true,
+          clientId: true,
+          createdAt: true,
+          updatedAt: true,
+          orderItems: {
             select: {
-                id: true,
-                totalAmount: true,
-                consigneeName: true,
-                consigneePhone: true,
-                consigneeEmail: true,
-                deliveryAddress: true,
-                city: true,
-                state: true,
-                pincode: true,
-                modeOfDelivery: true,
-                deliveryReference: true,
-                packagingInstructions: true,
-                note: true,
-                shippingLabelUrl: true,
-                status: true,
-                consignmentNumber: true,
-                deliveryService: true,
-                isMailSent: true,
-                clientId: true,
-                createdAt: true,
-                updatedAt: true,
-                orderItems: {
-                    select: {
-                        id: true,
-                        quantity: true,
-                        price: true,
-                        productId: true,
-                        orderId: true,
-                        product: {
-                            select: {
-                                id: true,
-                                name: true,
-                                images: true,
-                                sku: true,
-                                price: true
-                            },
-                        },
-                    },
+              id: true,
+              quantity: true,
+              price: true,
+              productId: true,
+              orderId: true,
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  images: true,
+                  sku: true,
+                  price: true
                 },
+              },
+            },
+          },
+          bundleOrderItems: {
+            select: {
+              id: true,
+              quantity: true,
+              price: true,
+              bundleId: true,
+              orderId: true,
+              bundle: {
+                select: {
+                  id: true,
+                  price: true,
+                  items: {
+                    select: {
+                      id: true,
+                      productId: true,
+                      bundleProductQuantity: true,
+                      price: true
+                    }
+                  }
+                }
+              }
             }
-        });
-
-        if (!order) {
-            return NextResponse.json({ error: "Order not found" }, { status: 404 });
+          },
         }
+      });
+
+      if (!order) {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      }
 
       return NextResponse.json(order);
     } catch (error) {
-        console.error("Error fetching order:", error);
-        return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 });
+      console.error("Error fetching order:", error);
+      return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 });
     }
   }, "orders", "view");
 }
+
+// Send bundleOrderItems as part of the request body from frontend in the following format:
+// bundleOrderItems: [
+//   {
+//     productId: string;
+//     quantity: number;
+//     price: number;
+//    bundleProductQuantity: number;
+//   }
+// ]
+
+// items are simple order items and bundleOrderItems are items inside a bundle
 
 export async function POST(req: NextRequest) {
   return withPermissions(req, async () => {
@@ -85,6 +122,8 @@ export async function POST(req: NextRequest) {
         clientEmail,
         deliveryAddress,
         items,
+        bundleOrderItems,
+        numberOfBundles,
         consigneeName,
         consigneePhone,
         consigneeEmail,
@@ -143,14 +182,39 @@ export async function POST(req: NextRequest) {
       }
 
       const itemsId = items.map((item: any) => item.productId);
+      const bundleOrderItemsId = bundleOrderItems.map((item: any) => item.productId);
 
+      // fetch individual items price and stock
       const itemsPrice = await prisma.product.findMany({
         where: { id: { in: itemsId } },
         select: { id: true, price: true, availableStock: true },
       });
 
+      // get bundle items price and stock
+      const bundleOrderItemsPrice = await prisma.product.findMany({
+        where: { id: { in: bundleOrderItemsId } },
+        select: { id: true, price: true, availableStock: true },
+      });
+
+      // individual items validation
       for (const item of items) {
         const product = itemsPrice.find((p) => p.id === item.productId);
+
+        if (!product) {
+          return NextResponse.json({ error: `Product with ID ${item.productId} not found` }, { status: 404 });
+        }
+        if (product.availableStock < item.quantity) {
+          return NextResponse.json({ error: `Insufficient stock for product ID ${item.productId}` }, { status: 400 });
+        }
+
+        if (!item.price || item.price === 0) {
+          item.price = product.price ?? 0;
+        }
+      }
+
+      // bundle items validation
+      for (const item of bundleOrderItems) {
+        const product = bundleOrderItemsPrice.find((p) => p.id === item.productId);
 
         if (!product) {
           return NextResponse.json({ error: `Product with ID ${item.productId} not found` }, { status: 404 });
@@ -168,15 +232,33 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "At least one order item is required" }, { status: 400 });
       }
 
-      const totalAmount = items.reduce((sum: number, item: any) => {
+      if (bundleOrderItems.length === 0) {
+        return NextResponse.json({ error: "At least one bundle item is required" }, { status: 400 });
+      }
+
+      const totalItemsAmount = items.reduce((sum: number, item: any) => {
         const product = itemsPrice.find((p) => p.id === item.productId);
         const price = item.price || product?.price || 0;
         return sum + item.quantity * price;
       }, 0);
 
+      const totalBundleItemsAmount = bundleOrderItems.reduce((sum: number, item: any) => {
+        const product = bundleOrderItemsPrice.find((p) => p.id === item.productId);
+        const price = item.price || product?.price || 0;
+        return sum + item.quantity * price;
+      }, 0);
+
+      const totalAmount = totalItemsAmount + totalBundleItemsAmount;
+
       if (totalAmount < 0) {
         return NextResponse.json({ error: "Total amount cannot be negative" }, { status: 400 });
       }
+
+      // create a bundle before an order
+      let bundle = await prisma.bundle.create({
+        data: {
+        },
+      });
 
       let orderId = "";
       while (true) {
@@ -216,8 +298,40 @@ export async function POST(req: NextRequest) {
                 price: item.price ?? 0,
               })),
             },
+            numberOfBundles: numberOfBundles,
+            bundleOrderItems: {
+              create: bundleOrderItems.map((item: any) => ({
+                bundleId: bundle.id,
+                orderId: orderId,
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price ?? 0,
+                bundleItems: {
+                  create: {
+                    bundleId: bundle.id,
+                    productId: item.productId,
+                    bundleProductQuantity: item.bundleProductQuantity,
+                    price: item.price ?? 0,
+                  }
+                }
+              })),
+            }
           },
-          include: { orderItems: true },
+          include: {
+            orderItems: true,
+            bundleOrderItems: true
+          },
+        });
+
+        const eachBundlePrice = bundleOrderItems.reduce((sum: number, item: any) => {
+          return sum + item.bundleProductQuantity * item.price;
+        }, 0);
+        bundle = await tx.bundle.update({
+          where: { id: bundle.id },
+          data: {
+            orderId: newOrder.id,
+            price: eachBundlePrice,
+          },
         });
 
         // Update stock
@@ -243,38 +357,61 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        const updatedProducts = await prisma.product.findMany({
-        where: {
-          id: { in: itemsId }
-        },
-        select: {
-          name: true,
-          availableStock: true,
-          minStockThreshold: true,
-        },
-      });
+        // Update stock for bundle items
+        for (const item of bundleOrderItems) {
 
-      // Send stock alert emails if below threshold
-      const adminEmail = process.env.ADMIN_EMAIL || "";
-      const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
-      updatedProducts.forEach(async (productData) => {
-        if (productData && productData.minStockThreshold) {
-          if (productData.availableStock < productData.minStockThreshold) {
-            const mail = await resend.emails.send({
-              from: "no-reply@fitplaysolutions.com",
-              to: [adminEmail],
-              cc: ownerEmail,
-              subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
-              html: `<p>Dear Admin,</p>
+          const itemStock = await tx.product.findUnique({
+            where: { id: item.productId },
+            select: { availableStock: true },
+          });
+
+          if (!itemStock) {
+            throw new Error(`Product with ID ${item.productId} not found during stock update`);
+          }
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              availableStock: { decrement: item.quantity },
+              inventoryUpdateReason: "NEW_ORDER",
+              inventoryLogs: {
+                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
+              },
+            },
+          });
+        }
+
+        const updatedProducts = await prisma.product.findMany({
+          where: {
+            id: { in: itemsId || bundleOrderItemsId },
+          },
+          select: {
+            name: true,
+            availableStock: true,
+            minStockThreshold: true,
+          },
+        });
+
+        // Send stock alert emails if below threshold
+        const adminEmail = process.env.ADMIN_EMAIL || "";
+        const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
+        updatedProducts.forEach(async (productData) => {
+          if (productData && productData.minStockThreshold) {
+            if (productData.availableStock < productData.minStockThreshold) {
+              const mail = await resend.emails.send({
+                from: "no-reply@fitplaysolutions.com",
+                to: [adminEmail],
+                cc: ownerEmail,
+                subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
+                html: `<p>Dear Admin,</p>
             <p>The stock for product <strong>${productData.name}</strong> has fallen below the minimum threshold.</p>
             <ul>
               <li>Current Stock: ${productData.availableStock}</li>
               <li>Minimum Threshold: ${productData.minStockThreshold}</li>
             </ul>`,
-            });
+              });
+            }
           }
-        }
-      });
+        });
 
         return newOrder;
       });

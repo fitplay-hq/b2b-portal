@@ -30,6 +30,11 @@ export async function GET(req: NextRequest) {
                             }
                         }
                     }
+                },
+                bundleOrderItems: {
+                    include: {
+                        bundle: true
+                    }
                 }
             }
         });

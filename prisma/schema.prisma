@@ -15,7 +15,7 @@ generator zod {
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 model Admin {
@@ -57,81 +57,137 @@ model Client {
 }
 
 model ProductCategory {
-  id            String    @id @default(uuid())
-  name          String    @unique @db.VarChar(50)
-  displayName   String    @db.VarChar(100)
-  description   String?   @db.VarChar(255)
-  shortCode     String    @unique @db.VarChar(10) // For SKU generation
-  isActive      Boolean   @default(true)
-  sortOrder     Int       @default(0) // For custom ordering
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id            String        @id @default(uuid())
+  name          String        @unique @db.VarChar(50)
+  displayName   String        @db.VarChar(100)
+  description   String?       @db.VarChar(255)
+  shortCode     String        @unique @db.VarChar(10) // For SKU generation
+  isActive      Boolean       @default(true)
+  sortOrder     Int           @default(0) // For custom ordering
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   products      Product[] // One-to-many relation
   subCategories SubCategory[]
 }
 
 model Product {
-  id                    String           @id @default(uuid())
-  name                  String           @db.VarChar(50)
+  id                    String            @id @default(uuid())
+  name                  String            @db.VarChar(50)
   images                String[]
   price                 Int?
-  sku                   String           @unique @db.VarChar(100)
+  sku                   String            @unique @db.VarChar(100)
   availableStock        Int
   minStockThreshold     Int?
   inventoryUpdateReason Reason?
   inventoryLogs         String[]
   description           String
-  categories            Category?        // Keep enum for backward compatibility, now optional
-  categoryId            String?          // New relation to ProductCategory table
-  category              ProductCategory? @relation(fields: [categoryId], references: [id])
-  subCategory           SubCategory?     @relation(fields: [subCategoryId], references: [id])
+  categories            Category? // Keep enum for backward compatibility, now optional
+  categoryId            String? // New relation to ProductCategory table
+  category              ProductCategory?  @relation(fields: [categoryId], references: [id])
+  subCategory           SubCategory?      @relation(fields: [subCategoryId], references: [id])
   subCategoryId         String?
   avgRating             Float?
   noOfReviews           Int?
-  brand                 String?          @db.VarChar(30)
+  brand                 String?           @db.VarChar(30)
   companies             Company[]
-  clients               ClientProduct[]  // Client-specific product access
+  clients               ClientProduct[] // Client-specific product access
   orderItems            OrderItem[]
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
+  bundleOrderItems      BundleOrderItem[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  bundleItems           BundleItem[]
 }
 
 model SubCategory {
-  id         String    @id @default(uuid())
+  id         String          @id @default(uuid())
   name       String
   categoryId String
-  shortCode  String    @unique @db.VarChar(10) // For SKU generation
-  category   ProductCategory  @relation(fields: [categoryId], references: [id])
+  shortCode  String          @unique @db.VarChar(10) // For SKU generation
+  category   ProductCategory @relation(fields: [categoryId], references: [id])
   products   Product[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 }
 
 model Order {
-  id                    String      @id @default(uuid())
+  id                    String            @id @default(uuid())
   totalAmount           Float
-  consigneeName         String      @default("Name")
-  consigneePhone        String      @default("0000000000")
-  consigneeEmail        String      @default("email@example.com")
+  consigneeName         String            @default("Name")
+  consigneePhone        String            @default("0000000000")
+  consigneeEmail        String            @default("email@example.com")
   consignmentNumber     String?
   deliveryService       String?
-  deliveryAddress       String      @default("Address")
-  city                  String      @default("City")
-  state                 String      @default("State")
-  pincode               String      @default("000000")
-  modeOfDelivery        Modes       @default(SURFACE)
+  deliveryAddress       String            @default("Address")
+  city                  String            @default("City")
+  state                 String            @default("State")
+  pincode               String            @default("000000")
+  modeOfDelivery        Modes             @default(SURFACE)
   requiredByDate        DateTime
   deliveryReference     String?
   packagingInstructions String?
   note                  String?
   shippingLabelUrl      String?
-  isMailSent            Boolean     @default(false)
-  status                Status      @default(PENDING)
-  client                Client?     @relation(fields: [clientId], references: [id])
+  isMailSent            Boolean           @default(false)
+  status                Status            @default(PENDING)
+  client                Client?           @relation(fields: [clientId], references: [id])
   clientId              String?
   orderItems            OrderItem[]
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  emails                OrderEmail[]
+  bundleOrderItems      BundleOrderItem[]
+  bundles               Bundle[]
+  numberOfBundles       Int?
+}
+
+model OrderEmail {
+  id        String    @id @default(uuid())
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  purpose   Status // APPROVED, DISPATCHED, etc.
+  isSent    Boolean   @default(false)
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([orderId, purpose])
+}
+
+model BundleOrderItem {
+  id          String       @id @default(uuid())
+  bundleId    String
+  bundle      Bundle       @relation(fields: [bundleId], references: [id])
+  order       Order        @relation(fields: [orderId], references: [id])
+  orderId     String
+  product     Product      @relation(fields: [productId], references: [id])
+  productId   String
+  quantity    Int          @default(1)
+  price       Float // snapshot of product price at purchase time
+  bundleItems BundleItem[]
+}
+
+model BundleItem {
+  id                    String            @id @default(uuid())
+  bundleId              String
+  bundle                Bundle            @relation(fields: [bundleId], references: [id])
+  product               Product           @relation(fields: [productId], references: [id])
+  productId             String
+  bundleProductQuantity Int               @default(1)
+  price                 Float // snapshot of product price at purchase time
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  bundleOrderItems      BundleOrderItem[]
+}
+
+model Bundle {
+  id               String            @id @default(uuid())
+  orderId          String?
+  order            Order?            @relation(fields: [orderId], references: [id])
+  price            Float?
+  items            BundleItem[]
+  bundleOrderItems BundleOrderItem[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 }
 
 model OrderItem {
@@ -146,7 +202,7 @@ model OrderItem {
 
 model ResetToken {
   id         String   @id @default(uuid())
-  identifier String   
+  identifier String
   password   String
   token      String   @unique
   userId     String?
@@ -156,14 +212,14 @@ model ResetToken {
 }
 
 model LoginToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
+  id         String   @id @default(uuid())
+  token      String   @unique
   identifier String
-  password  String
-  userId    String?
-  userType  Role?
-  createdAt DateTime @default(now())
-  expires   DateTime
+  password   String
+  userId     String?
+  userType   Role?
+  createdAt  DateTime @default(now())
+  expires    DateTime
 }
 
 // Client-specific product access relationship
@@ -205,6 +261,7 @@ enum Status {
 enum Modes {
   AIR
   SURFACE
+  HAND_DELIVERY
 }
 
 enum Reason {
