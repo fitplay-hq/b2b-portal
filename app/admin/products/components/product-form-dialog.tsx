@@ -54,11 +54,12 @@ export function ProductFormDialog({
               : "Fill in the details to add a new product. Fields marked with * are required. After creation, stock changes must be done through inventory management."}
           </DialogDescription>
         </DialogHeader>
+        
         <div 
-          className="flex-1 overflow-y-auto overflow-x-hidden px-1"
+          className="flex-1 overflow-y-auto overflow-x-hidden px-1 min-h-0"
           style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
+            scrollbarWidth: 'thin',
+            msOverflowStyle: 'auto'
           }}
         >
           <style jsx>{`
@@ -112,8 +113,8 @@ export function ProductFormDialog({
               
               handleSubmit(e);
             }} 
-            className="space-y-4 pt-2 pb-4 min-w-0"
-          >
+          className="space-y-4 pt-2 pb-4"
+        >
           <div className="space-y-2">
             <Label htmlFor="name">Product Name <span className="text-red-500">*</span></Label>
             <Input
@@ -126,19 +127,7 @@ export function ProductFormDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="brand">Brand</Label>
-            <Input
-              id="brand"
-              value={formData.brand}
-              onChange={(e) =>
-                setFormData({ ...formData, brand: e.target.value })
-              }
-              placeholder="Enter brand name"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price">Price <span className="text-red-500">*</span></Label>
               <Input
@@ -154,6 +143,38 @@ export function ProductFormDialog({
                 step="0.01"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="brand">Brand</Label>
+              <Input
+                id="brand"
+                value={formData.brand}
+                onChange={(e) =>
+                  setFormData({ ...formData, brand: e.target.value })
+                }
+                placeholder="Enter brand name"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="minThreshold">Minimum Stock Threshold</Label>
+              <Input
+                id="minThreshold"
+                type="number"
+                min="0"
+                value={formData.minStockThreshold}
+                onChange={(e) =>
+                  setFormData({ ...formData, minStockThreshold: e.target.value })
+                }
+                placeholder="Enter threshold"
+                title="When stock falls below this number, email alerts will be sent"
+              />
+            </div>
+            <div></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="company">Company <span className="text-red-500">*</span></Label>
               <Select
@@ -197,9 +218,6 @@ export function ProductFormDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="subcategory">Subcategory <span className="text-red-500">*</span></Label>
               <Select
@@ -258,14 +276,13 @@ export function ProductFormDialog({
                   onChange={(e) =>
                     setFormData({ ...formData, skuSuffix: e.target.value })
                   }
-                  className="w-20 font-mono text-centerfocus:bg-white"
+                  className="w-20 font-mono text-center focus:bg-white"
                   placeholder="001"
                   title="Auto-generated sequentially, but can be manually edited"
                   required
                 />
               </div>
             </div>
-            {/* Stock field only for new products */}
             {!editingProduct && (
               <div className="space-y-2">
                 <Label htmlFor="stock">Stock <span className="text-red-500">*</span></Label>
@@ -281,22 +298,6 @@ export function ProductFormDialog({
                 />
               </div>
             )}
-            
-            {/* Minimum Stock Threshold field for all products */}
-            <div className="space-y-2">
-              <Label htmlFor="minThreshold">Minimum Stock Threshold</Label>
-              <Input
-                id="minThreshold"
-                type="number"
-                min="0"
-                value={formData.minStockThreshold}
-                onChange={(e) =>
-                  setFormData({ ...formData, minStockThreshold: e.target.value })
-                }
-                placeholder="Enter minimum stock alert threshold (leave empty to disable alerts)"
-                title="When stock falls below this number, email alerts will be sent"
-              />
-            </div>
           </div>
 
           <div className="space-y-2">
@@ -312,7 +313,7 @@ export function ProductFormDialog({
             />
           </div>
 
-            <div className="space-y-4">
+          <div className="space-y-4">
             <Label>Product Image (Optional)</Label>
             <div className="space-y-4">
               {/* Show upload dropzone only if no image is uploaded */}
@@ -343,7 +344,7 @@ export function ProductFormDialog({
                       }
                       toast.error(errorMessage);
                     }}
-                    className="w-full ut-button:bg-primary ut-button:text-primary-foreground ut-button:hover:bg-primary/90 ut-button:ut-readying:bg-muted py-6!"
+                    className="w-full ut-button:bg-primary ut-button:text-primary-foreground ut-button:hover:bg-primary/90 ut-button:ut-readying:bg-muted"
                     appearance={{
                       uploadIcon: "hidden",
                     }}
@@ -422,25 +423,33 @@ export function ProductFormDialog({
               )}
             </div>
           </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? "Saving..."
-                : editingProduct
-                ? "Update Product"
-                : "Add Product"}
-            </Button>
-          </div>
           </form>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-4 border-t flex-shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsDialogOpen(false)}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            onClick={(e) => {
+              e.preventDefault();
+              const formElement = document.querySelector('form');
+              formElement?.dispatchEvent(new Event('submit', { bubbles: true }));
+            }}
+          >
+            {isSubmitting
+              ? "Saving..."
+              : editingProduct
+              ? "Update Product"
+              : "Add Product"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

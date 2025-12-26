@@ -241,7 +241,7 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
         onClose();
       }
     }}>
-      <DialogContent className="w-[90vw] h-[75vh] max-w-none p-6 gap-0 overflow-hidden flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+      <DialogContent className="w-[70vw] h-[75vh] max-w-none p-6 gap-0 overflow-hidden flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader className="pb-4 border-b shrink-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
@@ -412,8 +412,8 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
 
                       return (
                         <div key={category.id}>
-                          <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 gap-4">
-                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 gap-3">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
                               {hasSubcategories && (
                                 <button
                                   onClick={() => toggleCategoryExpanded(category.id)}
@@ -429,20 +429,25 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
                               {!hasSubcategories && <div className="w-6 shrink-0" />}
                               <Folder className="h-5 w-5 text-muted-foreground shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-base">{category.displayName}</div>
+                                <div className="font-semibold text-base">
+                                  {category.displayName}
+                                  <span className="text-xs font-normal text-muted-foreground ml-2 bg-muted px-2 py-0.5 rounded">
+                                    {category.shortCode}
+                                  </span>
+                                </div>
                                 <div className="text-sm text-muted-foreground">
                                   {category._count.products} products
                                   {hasSubcategories && ` • ${categorySubcategories.length} subcategories`}
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1 shrink-0">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleEdit(category)}
                                 disabled={isDeleting}
-                                className="text-blue-600 hover:text-blue-700"
+                                className="text-blue-600 hover:text-blue-700 px-2"
                               >
                                 <Edit className="h-4 w-4 mr-1" />
                                 Edit
@@ -452,7 +457,7 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
                                 size="sm"
                                 onClick={() => handleDelete(category.id, category.displayName)}
                                 disabled={isDeleting || category._count.products > 0}
-                                className="text-red-600 hover:text-red-700"
+                                className="text-red-600 hover:text-red-700 px-2"
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
                                 Delete
