@@ -377,7 +377,7 @@ export async function POST(req: NextRequest) {
     if (!adminEmail) throw new Error("Missing admin email");
 
     const mail = await resend.emails.send({
-      from: "no-reply@fitplaysolutions.com",
+      from: "orders@fitplaysolutions.com",
       to: [clientEmail, adminEmail],
       cc: [ownerEmail],
       subject: "New Order Awaiting Approval",

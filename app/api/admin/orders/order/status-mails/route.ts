@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
 
             // Send email
             await resend.emails.send({
-                from: "no-reply@fitplaysolutions.com",
+                from: "orders@fitplaysolutions.com",
                 to: recipients,
                 cc: ccEmails,
                 subject,
