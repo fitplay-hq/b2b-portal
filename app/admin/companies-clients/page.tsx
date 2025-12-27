@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Layout from "@/components/layout";
 import { PageGuard } from "@/components/page-guard";
@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export default function CompaniesClientsPage() {
+function CompaniesClientsContent() {
   const searchParams = useSearchParams();
   const { companies, isLoading: companiesLoading, error: companiesError } = useCompanies();
   const { clients, isLoading: clientsLoading, error: clientsError, mutate: mutateClients } = useClients();
@@ -411,6 +411,20 @@ export default function CompaniesClientsPage() {
         </DialogContent>
       </Dialog>
     </PageGuard>
+  );
+}
+
+export default function CompaniesClientsPage() {
+  return (
+    <Suspense fallback={
+      <Layout isClient={false}>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    }>
+      <CompaniesClientsContent />
+    </Suspense>
   );
 }
 
