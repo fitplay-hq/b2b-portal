@@ -372,12 +372,12 @@ export async function POST(req: NextRequest) {
 
     const adminEmail = process.env.ADMIN_EMAIL;
     const clientEmail = session?.user?.email;
-    const ownerEmail = "vaibhav@fitplaysolutions.com";
+    const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
 
     if (!adminEmail) throw new Error("Missing admin email");
 
     const mail = await resend.emails.send({
-      from: "orders@fitplaysolutions.com",
+      from: process.env.ENVIRONMENT === "development" ? process.env.FROM_EMAIL! : "orders@fitplaysolutions.com",
       to: [clientEmail, adminEmail],
       cc: [ownerEmail],
       subject: "New Order Awaiting Approval",

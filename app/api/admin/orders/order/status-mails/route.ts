@@ -89,11 +89,11 @@ export async function POST(req: NextRequest) {
 
             // ------------------ BUILD EMAIL ------------------
 
-        const clientEmail = order.client?.email;
-        const adminEmail = process.env.ADMIN_EMAIL!;
-        const warehouseEmail = "ops@fitplaysolutions.com";
-        const ownerEmail = "vaibhav@fitplaysolutions.com";
-        const ccEmails = [ownerEmail]
+            const clientEmail = order.client?.email;
+            const adminEmail = process.env.ADMIN_EMAIL!;
+            const warehouseEmail = process.env.ENVIRONMENT === "development" ? process.env.WAREHOUSE_EMAIL! : "ops@fitplaysolutions.com";
+            const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
+            const ccEmails = [ownerEmail];
 
             let recipients: string[] = [];
             let subject = "";
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
 
             // Send email
             await resend.emails.send({
-                from: "orders@fitplaysolutions.com",
+                from: process.env.ENVIRONMENT === "development" ? process.env.FROM_EMAIL! : "orders@fitplaysolutions.com",
                 to: recipients,
                 cc: ccEmails,
                 subject,
