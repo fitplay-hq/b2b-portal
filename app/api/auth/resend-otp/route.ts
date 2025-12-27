@@ -98,9 +98,6 @@ export async function PATCH(req: NextRequest) {
                             <p style="font-size: 14px; color: #6B7280; margin: 0 0 10px 0;">
                                 If it wasn't you who requested this, please keep your mail safe and ignore this email.
                             </p>
-                            <p style="font-size: 12px; color: #9CA3AF; margin: 0;">
-                                © 2024 FitPlay.life - Transforming Health & Wellness Together 🌟
-                            </p>
                             <p style="font-size: 10px; color: #D1D5DB; margin: 10px 0 0 0;">
                                 This email was sent to ${email}
                             </p>
