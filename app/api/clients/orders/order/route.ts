@@ -233,8 +233,8 @@ export async function POST(req: NextRequest) {
           },
         },
         include: {
-          orderItems: true,
-          bundleOrderItems: true
+          orderItems: { include: { product: true } },
+          bundleOrderItems: { include: { product: true } },
         },
       });
 
@@ -254,28 +254,6 @@ export async function POST(req: NextRequest) {
           where: { id: item.productId },
           select: { availableStock: true },
         });
-
-        for (const item of bundleOrderItems) {
-
-          const itemStock = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { availableStock: true },
-          });
-
-          if (!itemStock) {
-            throw new Error(`Product with ID ${item.productId} not found during stock update`);
-          }
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              availableStock: { decrement: item.quantity },
-              inventoryUpdateReason: "NEW_ORDER",
-              inventoryLogs: {
-                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
-              },
-            },
-          });
-        }
 
         if (!itemStock) {
           throw new Error(
@@ -319,7 +297,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const updatedProducts = await prisma.product.findMany({
+      const updatedProducts = await tx.product.findMany({
         where: {
           id: { in: itemsId },
         },
@@ -354,37 +332,37 @@ export async function POST(req: NextRequest) {
       return newOrder;
     });
 
-    const products = await prisma.product.findMany({
-      where: {
-        id: {
-          in: order.orderItems.map((item) => item.productId),
-        },
-      },
-    });
-
     const orderTable = `
-      <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 16px;">
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 16px;">
         <thead>
-          <tr>
+            <tr>
             <th align="left">Product</th>
             <th align="center">Quantity</th>
-          </tr>
+            </tr>
         </thead>
         <tbody>
-          ${products
+        ${order.orderItems
         .map(
           (item) => `
-              <tr>
-                <td>${item.name}</td>
-                <td align="center">${order.orderItems.find((i) => i.productId === item.id)
-              ?.quantity
-            }</td>
-              </tr>
-            `
+            <tr>
+                <td>${item.product.name}</td>
+                <td align="center">${item.quantity}</td>
+            </tr>
+        `
+        )
+        .join("")}
+            ${order.bundleOrderItems
+        .map(
+          (item) => `
+            <tr>
+            <td>${item.product.name} (Bundle)</td>
+            <td align="center">${item.quantity}</td>
+            </tr>
+        `
         )
         .join("")}
         </tbody>
-      </table>
+    </table>
     `;
 
     const footerMessage = toggleTracker
@@ -394,13 +372,12 @@ export async function POST(req: NextRequest) {
 
     const adminEmail = process.env.ADMIN_EMAIL;
     const clientEmail = session?.user?.email;
-    const ccEmail = process.env.CC_EMAIL_1;
     const ownerEmail = "vaibhav@fitplaysolutions.com";
 
     if (!adminEmail) throw new Error("Missing admin email");
 
     const mail = await resend.emails.send({
-      from: "orders@fitplaysolutions.com",
+      from: "no-reply@fitplaysolutions.com",
       to: [clientEmail, adminEmail],
       cc: [ownerEmail],
       subject: "New Order Awaiting Approval",
