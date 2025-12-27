@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Layout from "@/components/layout";
 import { PageGuard } from "@/components/page-guard";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 
 export default function CompaniesClientsPage() {
+  const searchParams = useSearchParams();
   const { companies, isLoading: companiesLoading, error: companiesError } = useCompanies();
   const { clients, isLoading: clientsLoading, error: clientsError, mutate: mutateClients } = useClients();
   const { actions } = usePermissions();
@@ -36,6 +38,15 @@ export default function CompaniesClientsPage() {
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+
+  // Handle refresh parameter to force data reload
+  useEffect(() => {
+    if (searchParams.get('refresh') === 'true') {
+      mutateClients();
+      // Clean up the URL parameter
+      window.history.replaceState({}, '', '/admin/companies-clients');
+    }
+  }, [searchParams, mutateClients]);
 
   const isLoading = companiesLoading || clientsLoading;
   const error = companiesError || clientsError;

@@ -52,17 +52,28 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         );
       }
 
-      // Format response with assigned products and available products from company
+      // Get all available products (not just company products)
+      const allAvailableProducts = await prisma.product.findMany({
+        include: {
+          category: true
+        }
+      });
+
+      // Format response with assigned products and available products
       const assignedProducts = clientProducts.map(cp => cp.product);
-      const availableProducts = client.company.products;
+      const companyProducts = client.company.products;
       const assignedProductIds = new Set(assignedProducts.map(p => p.id));
 
       return NextResponse.json({
-        assignedProducts,
-        availableProducts,
+        assignedProducts, // Client-specific products only
+        companyProducts, // Products assigned to the company level
+        availableProducts: allAvailableProducts, // All products that can be assigned
         assignedProductIds: Array.from(assignedProductIds),
         totalAssigned: assignedProducts.length,
-        totalAvailable: availableProducts.length
+        totalCompanyProducts: companyProducts.length,
+        totalAvailable: allAvailableProducts.length,
+        // Clear separation: assignedProducts are ONLY for this client
+        // companyProducts are shared across all clients in the company
       });
 
     } catch (error) {
@@ -126,6 +137,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
 
       if (action === "assign") {
+        console.log(`[ClientProducts] Assigning products to client ${clientId}:`, productIds);
+        
         // Get client's company
         const clientWithCompany = await prisma.client.findUnique({
           where: { id: clientId },
@@ -139,17 +152,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           );
         }
 
-        // Ensure products are assigned to the company first
-        await prisma.company.update({
-          where: { id: clientWithCompany.company.id },
-          data: {
-            products: {
-              connect: productIds.map(id => ({ id }))
-            }
-          }
-        });
+        console.log(`[ClientProducts] Client found with company: ${clientWithCompany.company.name}`);
 
-        // Then assign products to client
+        // FIXED: Only assign products to client, NOT to company
+        // Client-specific products should remain client-specific
         const clientAssignments = productIds.map(productId => ({
           clientId,
           productId,
@@ -157,15 +163,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           updatedAt: new Date()
         }));
 
+        console.log(`[ClientProducts] Creating assignments:`, clientAssignments);
+
         // Use createMany with skipDuplicates to handle existing relationships
-        await prisma.clientProduct.createMany({
+        const createResult = await prisma.clientProduct.createMany({
           data: clientAssignments,
           skipDuplicates: true
         });
 
+        console.log(`[ClientProducts] Assignment result:`, createResult);
+
         return NextResponse.json({
-          message: `Successfully assigned ${productIds.length} products to client and company`,
-          assignedCount: productIds.length
+          message: `Successfully assigned ${productIds.length} products to client only`,
+          assignedCount: productIds.length,
+          actuallyCreated: createResult.count
         });
 
       } else if (action === "unassign") {

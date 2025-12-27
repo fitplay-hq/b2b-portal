@@ -10,6 +10,8 @@ export async function getClients(url: string) {
 }
 
 export async function createClient(url: string, clientData: Prisma.ClientCreateInput & { isNewCompany?: boolean; companyAddress?: string; isShowPrice?: boolean }) {
+  console.log("[createClient] Creating client with data:", clientData);
+  
   const apiData = {
     name: clientData.name,
     email: clientData.email,
@@ -22,19 +24,25 @@ export async function createClient(url: string, clientData: Prisma.ClientCreateI
     isShowPrice: clientData.isShowPrice || false,
   };
 
+  console.log("[createClient] Sending API data:", apiData);
+
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(apiData),
   });
 
+  console.log("[createClient] Response status:", response.status);
+
   if (!response.ok) {
     const errorResult = await response.json();
+    console.error("[createClient] Error response:", errorResult);
     throw new Error(errorResult.error || "Failed to create client");
   }
 
   const result = await response.json()
-  return result as Client;
+  console.log("[createClient] Success response:", result);
+  return result.data as Client; // Extract the data property
 }
 
 export async function updateClient(url: string, clientData: Prisma.ClientUpdateInput) {

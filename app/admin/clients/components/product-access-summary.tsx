@@ -28,8 +28,8 @@ interface ProductAccessSummaryProps {
 export function ProductAccessSummary({
   selectedProducts,
   products,
-  title = "Product Access Summary",
-  description = "Current product access overview",
+  title = "Client-Specific Product Access Summary",
+  description = "Products exclusively assigned to this client",
 }: ProductAccessSummaryProps) {
   const selectedProductCount = selectedProducts.length;
   const totalProducts = products.length;

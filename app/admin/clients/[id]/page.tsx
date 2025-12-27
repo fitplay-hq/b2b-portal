@@ -80,6 +80,16 @@ export default function EditClientPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    
+    // Special validation for phone number - only allow digits and max 10 characters
+    if (name === 'phone') {
+      const phoneValue = value.replace(/\D/g, ''); // Remove non-digits
+      if (phoneValue.length <= 10) {
+        setFormData((prev) => ({ ...prev, [name]: phoneValue }));
+      }
+      return;
+    }
+    
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 

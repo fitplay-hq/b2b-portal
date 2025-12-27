@@ -201,10 +201,14 @@ export const ClientForm = memo(function ClientForm({
             <Input
               id="phone"
               name="phone"
+              type="tel"
               value={formData.phone}
               onChange={handleInputChange}
               required
-              placeholder="Enter phone number"
+              maxLength={10}
+              placeholder="Enter phone number (max 10 digits)"
+              pattern="[0-9]{10}"
+              title="Please enter exactly 10 digits"
             />
           </div>
         </div>

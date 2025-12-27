@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        // Fetch the created client with relationships
+        // Fetch the created client with relationships and product count
         const createdClient = await prisma.client.findUnique({
             where: { id: client.id },
             include: {
@@ -67,6 +67,11 @@ export async function POST(req: NextRequest) {
                 products: {
                     include: {
                         product: true
+                    }
+                },
+                _count: {
+                    select: {
+                        products: true
                     }
                 }
             }
