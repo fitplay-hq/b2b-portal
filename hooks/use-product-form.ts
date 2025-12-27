@@ -236,14 +236,18 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
     // Get the first company associated with the product (if any)
     const associatedCompany = product.companies?.[0]?.id || "";
 
+    // Get category and subcategory names from the relationships
+    const categoryName = (product as any).category?.name || product.categories || "";
+    const subcategoryName = (product as any).subCategory?.name || "";
+
     setFormData({
       name: product.name,
       brand: product.brand || "",
       company: associatedCompany,
       companyShort,
-      categories: product.categories || "",
+      categories: categoryName,
       categoryShort,
-      subcategories: "", // TODO: fetch subcategory name from product.subCategoryId
+      subcategories: subcategoryName,
       subcategoryShort,
       skuSuffix,
       price: product.price?.toString() || "",

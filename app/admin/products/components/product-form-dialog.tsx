@@ -84,13 +84,16 @@ export function ProductFormDialog({
                 toast.error("Company selection is required");
                 return;
               }
-              if (!formData.categories) {
-                toast.error("Category selection is required");
-                return;
-              }
-              if (!formData.subcategories) {
-                toast.error("Subcategory selection is required");
-                return;
+              // Category and subcategory are only required for new products, not edits
+              if (!editingProduct) {
+                if (!formData.categories) {
+                  toast.error("Category selection is required");
+                  return;
+                }
+                if (!formData.subcategories) {
+                  toast.error("Subcategory selection is required");
+                  return;
+                }
               }
               if (!formData.skuSuffix.trim()) {
                 toast.error("SKU is required");
@@ -197,13 +200,13 @@ export function ProductFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
+              <Label htmlFor="category">Category {!editingProduct && <span className="text-red-500">*</span>}</Label>
               <Select
                 value={formData.categories}
                 onValueChange={(value) =>
                   setFormData({ ...formData, categories: value })
                 }
-                required
+                required={!editingProduct}
                 disabled={categoriesLoading}
               >
                 <SelectTrigger>
@@ -219,13 +222,13 @@ export function ProductFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="subcategory">Subcategory <span className="text-red-500">*</span></Label>
+              <Label htmlFor="subcategory">Subcategory {!editingProduct && <span className="text-red-500">*</span>}</Label>
               <Select
                 value={formData.subcategories}
                 onValueChange={(value) =>
                   setFormData({ ...formData, subcategories: value })
                 }
-                required
+                required={!editingProduct}
                 disabled={!formData.categories || !availableSubcategories || availableSubcategories.length === 0}
               >
                 <SelectTrigger>
