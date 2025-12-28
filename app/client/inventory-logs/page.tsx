@@ -172,37 +172,36 @@ export default function ClientInventoryLogsPage() {
 
   return (
     <Layout isClient={true}>
-        <div className="flex flex-col h-full">
-          <div className="mb-6">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                  <Package2 className="h-8 w-8" />
+        <div className="flex flex-col h-full px-2 sm:px-0">
+          <div className="mb-4 sm:mb-6">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 sm:mb-6">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+                  <Package2 className="h-6 w-6 sm:h-8 sm:w-8" />
                   My Inventory Logs
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Track changes to your assigned product inventory
                 </p>
               </div>
               
-              <div className="flex items-center gap-2">
-                <DropdownMenu>
+              <div className="flex items-center gap-2 w-full sm:w-auto">\n                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="outline" 
                       disabled={exportLoading !== null}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-full sm:w-auto text-xs sm:text-sm"
                     >
                       {exportLoading ? (
                         <>
-                          <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                          <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                           Exporting...
                         </>
                       ) : (
                         <>
-                          <Download className="h-4 w-4" />
+                          <Download className="h-3 w-3 sm:h-4 sm:w-4" />
                           Export
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
                         </>
                       )}
                     </Button>

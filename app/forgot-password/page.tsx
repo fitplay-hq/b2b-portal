@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FitplayLogo } from "@/components/fitplay-logo";
 import Link from "next/link";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -102,7 +103,14 @@ export default function ForgotPasswordPage() {
               className="w-full" 
               disabled={isLoading}
             >
-              {isLoading ? "Sending..." : "Send Reset Link"}
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Sending...
+                </div>
+              ) : (
+                "Send Reset Link"
+              )}
             </Button>
             <div className="text-center">
               <Link 

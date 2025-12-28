@@ -107,31 +107,39 @@ export default function AdminProductsPage() {
   return (
     <PageGuard resource={RESOURCES.PRODUCTS} action="view">
       <Layout isClient={false}>
-        <div className="flex flex-col gap-6">
-          <div className="shrink-0 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold">Product Management</h1>
-                <p className="text-muted-foreground">
+        <div className="w-full min-w-0 max-w-full overflow-x-hidden">
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <div className="shrink-0 space-y-4 sm:space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 overflow-hidden">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl font-bold">Product Management</h1>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Manage your product catalog and inventory
                 </p>
               </div>
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
                 <Button
                   variant="outline"
                   onClick={() => setCategoryDialogOpen(true)}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-center gap-2 text-sm h-9"
+                  size="sm"
                 >
                   <Settings className="h-4 w-4" />
-                  Manage Categories
+                  <span>Manage Categories</span>
                 </Button>
-                {actions.products.create && (
-                  <Button onClick={formControls.openNewDialog}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Product
-                  </Button>
-                )}
-                {actions.products.create && <BulkActionsDropdown />}
+                <div className="flex gap-2 w-full sm:w-auto">
+                  {actions.products.create && (
+                    <Button onClick={formControls.openNewDialog} className="flex-1 sm:flex-none text-sm h-9" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Product
+                    </Button>
+                  )}
+                  {actions.products.create && (
+                    <div className="flex-shrink-0">
+                      <BulkActionsDropdown />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -149,6 +157,7 @@ export default function AdminProductsPage() {
             hasProductsInitially={(products?.length ?? 0) > 0}
           />
         </div>
+      </div>
       </div>
 
       <ProductFormDialog {...formControls} />

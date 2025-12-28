@@ -117,20 +117,20 @@ export default function AdminClientsPage() {
     <PageGuard resource={RESOURCES.CLIENTS} action="view">
       <Layout isClient={false}>
         <div className="bg-gray-50 -m-6">
-          <div className="p-8">
-            <div className="space-y-8">
+          <div className="p-4 sm:p-6 lg:p-8">
+            <div className="space-y-6 sm:space-y-8">
             {/* Enhanced Header */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-semibold text-gray-900 mb-2">Client Management</h1>
-                  <p className="text-gray-600 text-base">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 lg:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">Client Management</h1>
+                  <p className="text-gray-600 text-sm sm:text-base">
                     Manage client accounts and permissions efficiently
                   </p>
                 </div>
                 {actions.clients.create && (
-                <Link href="/admin/clients/new">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
+                <Link href="/admin/clients/new" className="flex-shrink-0">
+                  <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Client
                   </Button>
@@ -142,10 +142,10 @@ export default function AdminClientsPage() {
             <ClientStatsGrid {...stats} />
             
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="p-8 border-b border-gray-200 bg-gray-50">
+              <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-200 bg-gray-50">
                 <ClientFilters {...filterProps} />
               </div>
-              <div className="p-8">
+              <div className="p-4 sm:p-6 lg:p-8">
                 <ClientList
                   clients={filteredClients}
                   getClientStats={getClientStats}

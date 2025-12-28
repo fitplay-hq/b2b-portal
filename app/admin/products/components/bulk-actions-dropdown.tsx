@@ -50,12 +50,13 @@ export function BulkActionsDropdown() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" disabled={isLoading}>
+          <Button variant="outline" disabled={isLoading} className="text-sm h-9 w-full sm:w-auto min-w-[100px]" size="sm">
             {isLoading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <>
-                Bulk Actions
+                <span className="hidden md:inline">Bulk Actions</span>
+                <span className="md:hidden">Bulk</span>
                 <ChevronDown className="h-4 w-4 ml-2" />
               </>
             )}

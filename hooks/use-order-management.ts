@@ -14,7 +14,7 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
     deliveryService: "",
     sendEmail: false,
   });
-  const { updateOrderStatus } = useUpdateOrderStatus()
+  const { updateOrderStatus, isUpdating } = useUpdateOrderStatus()
   const { sendOrderEmail } = useSendOrderEmail()
   const { sendStatusEmail } = useSendStatusEmail()
 
@@ -113,6 +113,7 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
     openStatusDialog,
     closeStatusDialog,
     handleStatusUpdate,
+    isUpdating,
     metrics,
   };
 }

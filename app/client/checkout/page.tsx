@@ -251,20 +251,21 @@ export default function ClientCheckout() {
 
   return (
     <Layout title="Checkout" isClient>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-4 lg:px-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.push("/client/cart")}
+            className="self-start"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Cart
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Create Dispatch Order</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold">Create Dispatch Order</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Review your order and provide delivery details
             </p>
           </div>
@@ -272,30 +273,30 @@ export default function ClientCheckout() {
 
         <form
           onSubmit={handleSubmit}
-          className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
         >
           {/* Order Details Form */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* PO Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Dispatch Order Information</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Dispatch Order Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4">
                 {cartItems.map((item) => (
                   <div
                     key={item.product.id}
-                    className="flex gap-4 p-4 border rounded-lg"
+                    className="flex gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg"
                   >
-                    <div className="w-20 h-20 flex-shrink-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0">
                       <ImageWithFallback
                         src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
                         alt={item.product.name}
-                        className="w-16 h-16 object-cover rounded"
+                        className="w-full h-full object-cover rounded"
                       />
                     </div>
 
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1 space-y-1 sm:space-y-2 min-w-0">
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2">
@@ -602,8 +603,17 @@ export default function ClientCheckout() {
                   size="lg"
                   disabled={isCreating}
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  {isCreating ? "Creating DO..." : "Create Dispatch Order"}
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating DO...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Create Dispatch Order
+                    </>
+                  )}
                 </Button>
 
                 <div className="mt-4 text-xs text-muted-foreground text-center space-y-1">

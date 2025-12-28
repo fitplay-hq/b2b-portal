@@ -352,35 +352,35 @@ export default function ClientCart() {
 
   return (
     <Layout title="Shopping Cart" isClient>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-0">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" asChild className="text-xs sm:text-sm">
                 <Link href="/client/products">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                   Continue Shopping
                 </Link>
               </Button>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowBundleDialog(true)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 w-full sm:w-auto text-xs sm:text-sm"
               >
-                <Package className="h-4 w-4" />
+                <Package className="h-3 w-3 sm:h-4 sm:w-4" />
                 Create Bundle
               </Button>
-              <Button variant="outline" size="sm" onClick={clearCart}>
-                <Trash2 className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={clearCart} className="w-full sm:w-auto text-xs sm:text-sm">
+                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 Clear Cart
               </Button>
             </div>
           </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             <Card>

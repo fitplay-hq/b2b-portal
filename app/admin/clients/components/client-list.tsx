@@ -27,9 +27,9 @@ export function ClientList({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Clients ({clients.length})</CardTitle>
+        <CardTitle className="text-base sm:text-lg">Clients ({clients.length})</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
         {clients.map((client) => (
           <ClientCard
             key={client.id}

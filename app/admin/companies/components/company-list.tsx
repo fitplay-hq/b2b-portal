@@ -97,15 +97,15 @@ export function CompanyList({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Companies ({companies.length})</CardTitle>
-          <div className="relative w-72">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <CardTitle className="text-base sm:text-lg">Companies ({companies.length})</CardTitle>
+          <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search companies..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10"
+              className="pl-10 text-sm"
             />
           </div>
         </div>
@@ -132,31 +132,31 @@ export function CompanyList({
             )}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {companies.map((company) => (
               <div
                 key={company.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center gap-4 p-3 sm:p-4 border rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <Building2 className="h-5 w-5" />
-                    <h3 className="font-semibold">{company.name}</h3>
+                    <Building2 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                    <h3 className="font-semibold text-sm sm:text-base truncate">{company.name}</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2">
                     {company.address}
                   </p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                     <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      <span className="text-sm text-muted-foreground">
+                      <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                         {company._count.clients} client
                         {company._count.clients !== 1 ? "s" : ""}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Package className="h-4 w-4" />
-                      <span className="text-sm text-muted-foreground">
+                      <Package className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                         {company._count.products} product
                         {company._count.products !== 1 ? "s" : ""}
                       </span>
@@ -167,12 +167,12 @@ export function CompanyList({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   {actions.companies.edit && (
-                    <Link href={`/admin/companies/${company.id}`}>
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
+                    <Link href={`/admin/companies/${company.id}`} className="flex-1 sm:flex-initial">
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                        <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                        <span className="text-xs sm:text-sm">Edit</span>
                       </Button>
                     </Link>
                   )}
@@ -183,9 +183,10 @@ export function CompanyList({
                       size="sm"
                       onClick={() => handleDelete(company.id, company.name)}
                       disabled={isDeleting || company._count.clients > 0}
+                      className="flex-1 sm:flex-initial"
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="text-xs sm:text-sm">Delete</span>
                     </Button>
                   )}
                 </div>

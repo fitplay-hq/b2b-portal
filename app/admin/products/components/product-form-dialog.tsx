@@ -20,6 +20,7 @@ import { UploadDropzone } from "@/components/uploadthing";
 import { toast } from "sonner";
 import { useCategories } from "@/hooks/use-category-management";
 import { useSubcategoryManagement } from "@/hooks/use-subcategory-management";
+import { Loader2 } from "lucide-react";
 
 import { useProductForm } from "@/hooks/use-product-form";
 type ProductFormProps = ReturnType<typeof useProductForm>;
@@ -177,7 +178,7 @@ export function ProductFormDialog({
             <div></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="company">Company <span className="text-red-500">*</span></Label>
               <Select
@@ -221,32 +222,33 @@ export function ProductFormDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="subcategory">Subcategory {!editingProduct && <span className="text-red-500">*</span>}</Label>
-              <Select
-                value={formData.subcategories}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, subcategories: value })
-                }
-                required={!editingProduct}
-                disabled={!formData.categories || !availableSubcategories || availableSubcategories.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={
-                    !formData.categories ? "Select category first" :
-                    !availableSubcategories || availableSubcategories.length === 0 ? "No subcategories available" :
-                    "Select subcategory"
-                  } />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableSubcategories && availableSubcategories.map((subcategory) => (
-                    <SelectItem key={subcategory.id} value={subcategory.name}>
-                      {subcategory.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="subcategory">Subcategory {!editingProduct && <span className="text-red-500">*</span>}</Label>
+            <Select
+              value={formData.subcategories}
+              onValueChange={(value) =>
+                setFormData({ ...formData, subcategories: value })
+              }
+              required={!editingProduct}
+              disabled={!formData.categories || !availableSubcategories || availableSubcategories.length === 0}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={
+                  !formData.categories ? "Select category first" :
+                  !availableSubcategories || availableSubcategories.length === 0 ? "No subcategories available" :
+                  "Select subcategory"
+                } />
+              </SelectTrigger>
+              <SelectContent className="max-w-full">
+                {availableSubcategories && availableSubcategories.map((subcategory) => (
+                  <SelectItem key={subcategory.id} value={subcategory.name}>
+                    {subcategory.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -447,11 +449,14 @@ export function ProductFormDialog({
               formElement?.dispatchEvent(new Event('submit', { bubbles: true }));
             }}
           >
-            {isSubmitting
-              ? "Saving..."
-              : editingProduct
-              ? "Update Product"
-              : "Add Product"}
+            {isSubmitting ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </div>
+            ) : (
+              editingProduct ? "Update Product" : "Add Product"
+            )}
           </Button>
         </div>
       </DialogContent>

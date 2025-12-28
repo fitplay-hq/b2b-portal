@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useClientForm } from "@/hooks/use-client-form";
+import { Loader2 } from "lucide-react";
 
 // Use the return type of the hook for clean and strongly-typed props
 type ClientFormDialogProps = ReturnType<typeof useClientForm>;
@@ -112,11 +113,14 @@ export function ClientFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? "Saving..."
-                : isEditDialog
-                ? "Update Client"
-                : "Add Client"}
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </div>
+              ) : (
+                isEditDialog ? "Update Client" : "Add Client"
+              )}
             </Button>
           </div>
         </form>
