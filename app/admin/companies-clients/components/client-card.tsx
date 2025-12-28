@@ -25,7 +25,7 @@ interface ClientCardProps {
 }
 
 export function ClientCard({ client, onDelete }: ClientCardProps) {
-  const { actions } = usePermissions();
+  const { actions, isAdmin, session } = usePermissions();
 
   const initials = client.name
     .split(" ")
@@ -57,7 +57,7 @@ export function ClientCard({ client, onDelete }: ClientCardProps) {
             {client._count?.products !== undefined && (
               <Badge variant="outline" className="text-xs">
                 <Package className="h-3 w-3 mr-1" />
-                {client._count.products} products
+                {client._count.products} client products
               </Badge>
             )}
           </div>

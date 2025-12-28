@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Layout from "@/components/layout";
 import { PageGuard } from "@/components/page-guard";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export default function CompaniesClientsPage() {
+function CompaniesClientsContent() {
+  const searchParams = useSearchParams();
   const { companies, isLoading: companiesLoading, error: companiesError } = useCompanies();
   const { clients, isLoading: clientsLoading, error: clientsError, mutate: mutateClients } = useClients();
   const { actions } = usePermissions();
@@ -36,6 +38,15 @@ export default function CompaniesClientsPage() {
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+
+  // Handle refresh parameter to force data reload
+  useEffect(() => {
+    if (searchParams.get('refresh') === 'true') {
+      mutateClients();
+      // Clean up the URL parameter
+      window.history.replaceState({}, '', '/admin/companies-clients');
+    }
+  }, [searchParams, mutateClients]);
 
   const isLoading = companiesLoading || clientsLoading;
   const error = companiesError || clientsError;
@@ -400,6 +411,20 @@ export default function CompaniesClientsPage() {
         </DialogContent>
       </Dialog>
     </PageGuard>
+  );
+}
+
+export default function CompaniesClientsPage() {
+  return (
+    <Suspense fallback={
+      <Layout isClient={false}>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    }>
+      <CompaniesClientsContent />
+    </Suspense>
   );
 }
 

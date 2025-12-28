@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       where: { id: orderId },
       include: {
         orderItems: { include: { product: true } },
+        bundleOrderItems: { include: { product: true } },
       },
     });
 
@@ -51,6 +52,16 @@ export async function POST(req: NextRequest) {
           `
             )
             .join("")}
+          ${order.bundleOrderItems
+            .map(
+              (item) => `
+            <tr>
+              <td>${item.product.name} (Bundle)</td>
+              <td align="center">${item.quantity}</td>
+            </tr>
+          `
+            )
+            .join("")}
         </tbody>
       </table>
     `;
@@ -62,16 +73,17 @@ export async function POST(req: NextRequest) {
     toggleTracker = !toggleTracker;
 
     const adminEmail = process.env.ADMIN_EMAIL!;
-    const ownerEmail = "vaibhav@fitplaysolutions.com";
+    const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
+    const fromEmail = process.env.ENVIRONMENT === "development" ? process.env.FROM_EMAIL! : "orders@fitplaysolutions.com";
 
     const mail =await resend.emails.send({
-      from: "orders@fitplaysolutions.com",
+      from: fromEmail,
       to: clientEmail,
       cc: [adminEmail, ownerEmail],
       subject: "New Order Awaiting Approval",
       html: `
           <h2>New Dispatch Order</h2>
-          <p>A new order <b>${order.id}</b> has been created by ${session?.user?.name || "Unknown User"}.</p>
+          <p>A new order has been created by ${session?.user?.name || "Unknown User"}.</p>
           
           <h3>Consignee Details</h3>
           <p><b>Name:</b> ${order.consigneeName}</p>
@@ -92,6 +104,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (mail) {
+      // Create email history record
+      await prisma.orderEmail.create({
+        data: {
+          orderId: order.id,
+          purpose: "PENDING", // Initial email sent when order is created
+          isSent: true,
+          sentAt: new Date(),
+        },
+      });
+
       await prisma.order.update({
         where: { id: orderId },
         data: { isMailSent: true },

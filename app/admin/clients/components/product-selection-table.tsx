@@ -35,8 +35,8 @@ export function ProductSelectionTable({
   onProductToggle,
   onClearAll,
   onSelectAll,
-  title = "Product Access Selection",
-  description = "Modify the products this client should have access to",
+  title = "Client-Specific Product Access",
+  description = "Select products that this specific client should have access to (separate from company-wide products)",
 }: ProductSelectionTableProps) {
   const selectedProductCount = selectedProducts.length;
   const totalProducts = products.length;

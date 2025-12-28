@@ -47,6 +47,13 @@ export interface AdminOrder {
     clientId: string;
     createdAt: Date;
     updatedAt: Date;
+    emails: {
+        id: string;
+        purpose: $Enums.Status;
+        isSent: boolean;
+        sentAt: Date | null;
+        createdAt: Date;
+    }[];
 }
 
 export async function getOrders(url: string) {
@@ -120,6 +127,18 @@ export async function sendOrderEmail(url: string, data: { orderId: string; clien
   });
   if (!response.ok) {
     throw new Error("Failed to send email");
+  }
+  return await response.json();
+}
+
+export async function sendStatusEmail(url: string, data: { orderId: string; status: $Enums.Status }) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to send status email");
   }
   return await response.json();
 }

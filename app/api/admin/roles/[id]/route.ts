@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { isAuthorizedAdmin } from '@/lib/utils';
 
 // GET /api/admin/roles/[id] - Get a specific role
 export async function GET(
@@ -14,7 +15,7 @@ export async function GET(
 
     const session = await getServerSession(auth);
     
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!isAuthorizedAdmin(session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -79,7 +80,7 @@ export async function PUT(
 
     const session = await getServerSession(auth);
     
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!isAuthorizedAdmin(session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -197,7 +198,7 @@ export async function DELETE(
 
     const session = await getServerSession(auth);
     
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!isAuthorizedAdmin(session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

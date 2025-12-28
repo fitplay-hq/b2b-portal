@@ -6,7 +6,7 @@ import { auth } from '@/app/api/auth/[...nextauth]/route';
 // PUT - Update category
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(auth);
@@ -26,7 +26,7 @@ export async function PUT(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { name, displayName, description, shortCode, isActive, sortOrder } = body;
 
@@ -87,7 +87,7 @@ export async function PUT(
       },
       include: {
         _count: {
-          select: { products: true },
+          select: { products: true, subCategories: true },
         },
       },
     });
@@ -109,7 +109,7 @@ export async function PUT(
 // DELETE - Delete category
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(auth);
@@ -129,14 +129,14 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Check if category exists
     const existingCategory = await prisma.productCategory.findUnique({
       where: { id },
       include: {
         _count: {
-          select: { products: true },
+          select: { products: true, subCategories: true },
         },
       },
     });
@@ -145,6 +145,17 @@ export async function DELETE(
       return NextResponse.json(
         { success: false, error: 'Category not found' },
         { status: 404 }
+      );
+    }
+
+    // Check if category has subcategories
+    if (existingCategory._count.subCategories > 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Cannot delete category. It has ${existingCategory._count.subCategories} subcategory(ies). Please delete the subcategories first.` 
+        },
+        { status: 400 }
       );
     }
 

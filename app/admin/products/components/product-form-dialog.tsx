@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UploadDropzone } from "@/components/uploadthing";
 import { toast } from "sonner";
 import { useCategories } from "@/hooks/use-category-management";
+import { useSubcategoryManagement } from "@/hooks/use-subcategory-management";
 
 import { useProductForm } from "@/hooks/use-product-form";
 type ProductFormProps = ReturnType<typeof useProductForm>;
@@ -34,6 +35,11 @@ export function ProductFormDialog({
   companies,
 }: ProductFormProps) {
   const { categories, isLoading: categoriesLoading } = useCategories();
+  const { getSubcategoriesByCategory } = useSubcategoryManagement();
+  
+  // Get subcategories for the selected category
+  const selectedCategory = categories.find(cat => cat.name === formData.categories);
+  const availableSubcategories = selectedCategory ? getSubcategoriesByCategory(selectedCategory.id) : [];
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -48,11 +54,12 @@ export function ProductFormDialog({
               : "Fill in the details to add a new product. Fields marked with * are required. After creation, stock changes must be done through inventory management."}
           </DialogDescription>
         </DialogHeader>
+        
         <div 
-          className="flex-1 overflow-y-auto overflow-x-hidden px-1"
+          className="flex-1 overflow-y-auto overflow-x-hidden px-1 min-h-0"
           style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
+            scrollbarWidth: 'thin',
+            msOverflowStyle: 'auto'
           }}
         >
           <style jsx>{`
@@ -77,9 +84,16 @@ export function ProductFormDialog({
                 toast.error("Company selection is required");
                 return;
               }
-              if (!formData.categories) {
-                toast.error("Category selection is required");
-                return;
+              // Category and subcategory are only required for new products, not edits
+              if (!editingProduct) {
+                if (!formData.categories) {
+                  toast.error("Category selection is required");
+                  return;
+                }
+                if (!formData.subcategories) {
+                  toast.error("Subcategory selection is required");
+                  return;
+                }
               }
               if (!formData.skuSuffix.trim()) {
                 toast.error("SKU is required");
@@ -102,8 +116,8 @@ export function ProductFormDialog({
               
               handleSubmit(e);
             }} 
-            className="space-y-4 pt-2 pb-4 min-w-0"
-          >
+          className="space-y-4 pt-2 pb-4"
+        >
           <div className="space-y-2">
             <Label htmlFor="name">Product Name <span className="text-red-500">*</span></Label>
             <Input
@@ -116,7 +130,7 @@ export function ProductFormDialog({
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price">Price <span className="text-red-500">*</span></Label>
               <Input
@@ -132,6 +146,38 @@ export function ProductFormDialog({
                 step="0.01"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="brand">Brand</Label>
+              <Input
+                id="brand"
+                value={formData.brand}
+                onChange={(e) =>
+                  setFormData({ ...formData, brand: e.target.value })
+                }
+                placeholder="Enter brand name"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="minThreshold">Minimum Stock Threshold</Label>
+              <Input
+                id="minThreshold"
+                type="number"
+                min="0"
+                value={formData.minStockThreshold}
+                onChange={(e) =>
+                  setFormData({ ...formData, minStockThreshold: e.target.value })
+                }
+                placeholder="Enter threshold"
+                title="When stock falls below this number, email alerts will be sent"
+              />
+            </div>
+            <div></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="company">Company <span className="text-red-500">*</span></Label>
               <Select
@@ -154,13 +200,13 @@ export function ProductFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
+              <Label htmlFor="category">Category {!editingProduct && <span className="text-red-500">*</span>}</Label>
               <Select
                 value={formData.categories}
                 onValueChange={(value) =>
                   setFormData({ ...formData, categories: value })
                 }
-                required
+                required={!editingProduct}
                 disabled={categoriesLoading}
               >
                 <SelectTrigger>
@@ -175,6 +221,32 @@ export function ProductFormDialog({
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="subcategory">Subcategory {!editingProduct && <span className="text-red-500">*</span>}</Label>
+              <Select
+                value={formData.subcategories}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, subcategories: value })
+                }
+                required={!editingProduct}
+                disabled={!formData.categories || !availableSubcategories || availableSubcategories.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    !formData.categories ? "Select category first" :
+                    !availableSubcategories || availableSubcategories.length === 0 ? "No subcategories available" :
+                    "Select subcategory"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSubcategories && availableSubcategories.map((subcategory) => (
+                    <SelectItem key={subcategory.id} value={subcategory.name}>
+                      {subcategory.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -184,15 +256,22 @@ export function ProductFormDialog({
                 <Input
                   value={formData.companyShort}
                   readOnly
-                  className="w-16 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
+                  className="w-14 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
                   placeholder="CO"
                 />
                 <span className="font-mono text-gray-400">-</span>
                 <Input
                   value={formData.categoryShort}
                   readOnly
-                  className="w-16 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
+                  className="w-14 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
                   placeholder="CAT"
+                />
+                <span className="font-mono text-gray-400">-</span>
+                <Input
+                  value={formData.subcategoryShort}
+                  readOnly
+                  className="w-14 border-0 bg-gray-50 px-2 text-center font-mono text-sm"
+                  placeholder="SUB"
                 />
                 <span className="font-mono text-gray-400">-</span>
                 <Input
@@ -200,14 +279,13 @@ export function ProductFormDialog({
                   onChange={(e) =>
                     setFormData({ ...formData, skuSuffix: e.target.value })
                   }
-                  className="w-20 font-mono text-centerfocus:bg-white"
+                  className="w-20 font-mono text-center focus:bg-white"
                   placeholder="001"
                   title="Auto-generated sequentially, but can be manually edited"
                   required
                 />
               </div>
             </div>
-            {/* Stock field only for new products */}
             {!editingProduct && (
               <div className="space-y-2">
                 <Label htmlFor="stock">Stock <span className="text-red-500">*</span></Label>
@@ -223,22 +301,6 @@ export function ProductFormDialog({
                 />
               </div>
             )}
-            
-            {/* Minimum Stock Threshold field for all products */}
-            <div className="space-y-2">
-              <Label htmlFor="minThreshold">Minimum Stock Threshold</Label>
-              <Input
-                id="minThreshold"
-                type="number"
-                min="0"
-                value={formData.minStockThreshold}
-                onChange={(e) =>
-                  setFormData({ ...formData, minStockThreshold: e.target.value })
-                }
-                placeholder="Enter minimum stock alert threshold (leave empty to disable alerts)"
-                title="When stock falls below this number, email alerts will be sent"
-              />
-            </div>
           </div>
 
           <div className="space-y-2">
@@ -254,7 +316,7 @@ export function ProductFormDialog({
             />
           </div>
 
-            <div className="space-y-4">
+          <div className="space-y-4">
             <Label>Product Image (Optional)</Label>
             <div className="space-y-4">
               {/* Show upload dropzone only if no image is uploaded */}
@@ -285,7 +347,7 @@ export function ProductFormDialog({
                       }
                       toast.error(errorMessage);
                     }}
-                    className="w-full ut-button:bg-primary ut-button:text-primary-foreground ut-button:hover:bg-primary/90 ut-button:ut-readying:bg-muted py-6!"
+                    className="w-full ut-button:bg-primary ut-button:text-primary-foreground ut-button:hover:bg-primary/90 ut-button:ut-readying:bg-muted"
                     appearance={{
                       uploadIcon: "hidden",
                     }}
@@ -364,25 +426,33 @@ export function ProductFormDialog({
               )}
             </div>
           </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? "Saving..."
-                : editingProduct
-                ? "Update Product"
-                : "Add Product"}
-            </Button>
-          </div>
           </form>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-4 border-t flex-shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsDialogOpen(false)}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            onClick={(e) => {
+              e.preventDefault();
+              const formElement = document.querySelector('form');
+              formElement?.dispatchEvent(new Event('submit', { bubbles: true }));
+            }}
+          >
+            {isSubmitting
+              ? "Saving..."
+              : editingProduct
+              ? "Update Product"
+              : "Add Product"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

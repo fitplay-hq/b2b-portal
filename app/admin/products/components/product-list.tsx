@@ -7,6 +7,7 @@ import { SortOption } from "@/hooks/use-product-filters";
 // Extended Product type that includes the category relationship
 type ProductWithRelations = Product & {
   category?: ProductCategory | null;
+  subCategory?: { name: string; shortCode: string } | null;
   companies?: Company[];
 };
 

@@ -6,6 +6,29 @@ import { min } from "date-fns";
 // Removed auto-generated schemas as we're handling validation manually
 // to properly support category relationships
 
+async function validateCategoryMapping(
+  categoryId?: string,
+  subCategoryId?: string
+) {
+  if (!categoryId && !subCategoryId) return;
+
+  if (!categoryId || !subCategoryId) {
+    throw new Error("Both categoryId and subCategoryId are required together");
+  }
+
+  const valid = await prisma.subCategory.findFirst({
+    where: {
+      id: subCategoryId,
+      categoryId: categoryId,
+    },
+  });
+
+  if (!valid) {
+    throw new Error("Invalid category / subcategory mapping");
+  }
+}
+
+
 export async function GET(req: NextRequest) {
   return withPermissions(req, async () => {
     try {
@@ -18,6 +41,11 @@ export async function GET(req: NextRequest) {
       }
       const product = await prisma.product.findUnique({
         where: { id: id },
+        include: {
+          companies: true,
+          category: true,
+          subCategory: true,
+        },
       });
       if (!product) {
         return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -36,97 +64,57 @@ export async function POST(req: NextRequest) {
   return withPermissions(req, async () => {
     try {
       const body = await req.json();
-      
-      // Manual validation instead of relying on auto-generated schema
-      // which might not handle the complex category relationships properly
+
       if (!body.name || !body.sku || body.availableStock === undefined) {
         return NextResponse.json(
-          { error: "Missing required fields: name, sku, or availableStock" },
-          { status: 400 },
+          { error: "Missing required fields" },
+          { status: 400 }
         );
       }
 
-      // Create initial inventory log entry for the starting stock
+      await validateCategoryMapping(body.categoryId, body.subCategoryId);
+
       const initialStock = body.availableStock || 0;
-      const initialLogEntry = initialStock > 0 
+      const initialLogEntry = initialStock > 0
         ? `${new Date().toISOString()} | Added ${initialStock} units | Reason: NEW_PURCHASE | Updated stock: ${initialStock} | Remarks: `
         : null;
 
-      // Handle category relationships properly
-      const categoryData: any = {};
-      
-      // If categoryId is provided, use the new category relationship
-      if (body.categoryId) {
-        categoryData.category = { connect: { id: body.categoryId } };
-      }
-      
-      // If categories (enum) is provided and it's a legacy category, set both
-      if (body.categories) {
-        const legacyCategories = ['stationery', 'accessories', 'funAndStickers', 'drinkware', 'apparel', 'travelAndTech', 'books', 'welcomeKit'];
-        if (legacyCategories.includes(body.categories)) {
-          categoryData.categories = body.categories;
-        }
-        
-        // Try to find matching ProductCategory by name for backward compatibility
-        if (!body.categoryId) {
-          try {
-            const existingCategory = await prisma.productCategory.findFirst({
-              where: { name: body.categories }
-            });
-            if (existingCategory) {
-              categoryData.category = { connect: { id: existingCategory.id } };
-            }
-          } catch {
-            // Continue without category relationship if not found
-            console.warn("Could not find category:", body.categories);
-          }
-        }
-      }
-
-      const productData = {
-        name: body.name,
-        sku: body.sku,
-        description: body.description || "",
-        price: body.price ? parseInt(body.price.toString()) : null,
-        availableStock: body.availableStock,
-        minStockThreshold: body.minStockThreshold || 0,
-        images: body.images || [],
-        inventoryLogs: initialLogEntry ? [initialLogEntry] : [],
-        brand: body.brand,
-        avgRating: body.avgRating,
-        noOfReviews: body.noOfReviews,
-        inventoryUpdateReason: body.inventoryUpdateReason,
-        ...categoryData,
-        // Handle company relationships
-        ...(body.companies && Array.isArray(body.companies) 
-          ? { companies: { connect: body.companies.map((c: any) => ({ id: c.id || c })) } }
-          : body.companies && body.companies.connect 
-          ? { companies: body.companies }
-          : {}
-        ),
-      };
-
-      console.log("Creating product with data:", JSON.stringify(productData, null, 2));
-
       const product = await prisma.product.create({
-        data: productData,
+        data: {
+          name: body.name,
+          sku: body.sku,
+          description: body.description || "",
+          price: body.price ? parseInt(body.price.toString()) : null,
+          availableStock: body.availableStock,
+          minStockThreshold: body.minStockThreshold,
+          images: body.images || [],
+          inventoryLogs: initialLogEntry ? [initialLogEntry] : [],
+          inventoryUpdateReason: body.inventoryUpdateReason,
+          brand: body.brand,
+          avgRating: body.avgRating,
+          noOfReviews: body.noOfReviews,
+
+          category: { connect: { id: body.categoryId } },
+          subCategory: { connect: { id: body.subCategoryId } },
+
+          ...(Array.isArray(body.companies)
+            ? { companies: { connect: body.companies.map((c: any) => ({ id: c.id || c })) } }
+            : {}),
+        },
         include: {
           companies: true,
           category: true,
-        }
+          subCategory: true,
+        },
       });
 
       return NextResponse.json(product, { status: 201 });
-    } catch (error: unknown) {
-      console.error("Product creation error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Something went wrong";
-      return NextResponse.json(
-        { error: errorMessage },
-        { status: 500 },
-      );
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 });
     }
   }, "products", "create");
 }
+
 
 export async function PATCH(req: NextRequest) {
   return withPermissions(req, async () => {
@@ -135,91 +123,54 @@ export async function PATCH(req: NextRequest) {
 
       if (!body.id) {
         return NextResponse.json(
-          { error: "product ID not supplied" },
+          { error: "Product ID required" },
           { status: 400 }
-        )
+        );
       }
 
-      // Handle category relationships properly for updates
-      const categoryData: Record<string, any> = {};
-      
-      // If categoryId is provided, use the new category relationship
-      if (body.categoryId) {
-        categoryData.category = { connect: { id: body.categoryId } };
-      } else if (body.categoryId === null) {
-        categoryData.category = { disconnect: true };
-      }
-      
-      // If categories (enum) is provided and it's a legacy category, set it
-      if (body.categories) {
-        const legacyCategories = ['stationery', 'accessories', 'funAndStickers', 'drinkware', 'apparel', 'travelAndTech', 'books', 'welcomeKit'];
-        if (legacyCategories.includes(body.categories)) {
-          categoryData.categories = body.categories;
-        }
-        
-        // Try to find matching ProductCategory by name for backward compatibility
-        if (!body.categoryId) {
-          try {
-            const existingCategory = await prisma.productCategory.findFirst({
-              where: { name: body.categories }
-            });
-            if (existingCategory) {
-              categoryData.category = { connect: { id: existingCategory.id } };
-            }
-          } catch (e) {
-            // Continue without category relationship if not found
-            console.warn("Could not find category:", body.categories);
-          }
-        }
-      } else if (body.categories === null) {
-        categoryData.categories = null;
-      }
+      await validateCategoryMapping(body.categoryId, body.subCategoryId);
 
-      const updateData = {
+      const updateData: any = {
         ...(body.name && { name: body.name }),
         ...(body.sku && { sku: body.sku }),
-        ...(body.categories && { categories: body.categories }),
         ...(body.description !== undefined && { description: body.description }),
-        ...(body.price !== undefined && { price: body.price ? parseInt(body.price.toString()) : null }),
+        ...(body.price !== undefined && { price: body.price ? parseInt(body.price) : null }),
         ...(body.minStockThreshold !== undefined && { minStockThreshold: body.minStockThreshold }),
-        // Remove availableStock from updates - use inventory management instead
-        // ...(body.availableStock !== undefined && { availableStock: body.availableStock }),
         ...(body.images && { images: body.images }),
         ...(body.brand !== undefined && { brand: body.brand }),
         ...(body.avgRating !== undefined && { avgRating: body.avgRating }),
         ...(body.noOfReviews !== undefined && { noOfReviews: body.noOfReviews }),
         ...(body.inventoryUpdateReason && { inventoryUpdateReason: body.inventoryUpdateReason }),
-        ...categoryData,
-        // Handle company relationships - only update if companies is explicitly provided
-        ...(body.companies !== undefined && Array.isArray(body.companies) 
-          ? { companies: { set: body.companies.map((c: any) => ({ id: c.id || c })) } }
-          : body.companies && typeof body.companies === 'object' && body.companies.set 
-          ? { companies: body.companies }
-          : {} // Don't modify company relationships if not provided
-        ),
       };
 
+      if (body.categoryId && body.subCategoryId) {
+        updateData.category = { connect: { id: body.categoryId } };
+        updateData.subCategory = { connect: { id: body.subCategoryId } };
+      }
+
+      if (Array.isArray(body.companies)) {
+        updateData.companies = {
+          set: body.companies.map((c: any) => ({ id: c.id || c })),
+        };
+      }
 
       const product = await prisma.product.update({
-        where: { id: body.id.toString() },
+        where: { id: body.id },
         data: updateData,
         include: {
           companies: true,
           category: true,
-        }
+          subCategory: true,
+        },
       });
 
       return NextResponse.json(product);
-    } catch (error: unknown) {
-      console.error("Product update error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Something went wrong";
-      return NextResponse.json(
-        { error: errorMessage },
-        { status: 500 },
-      );
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 });
     }
   }, "products", "edit");
 }
+
 
 export async function DELETE(req: NextRequest) {
   return withPermissions(req, async () => {
@@ -232,12 +183,41 @@ export async function DELETE(req: NextRequest) {
         );
       }
 
+      // Check if product exists first
+      const product = await prisma.product.findUnique({
+        where: { id: id },
+        include: {
+          _count: {
+            select: { orderItems: true },
+          },
+        },
+      });
+
+      if (!product) {
+        return NextResponse.json(
+          { error: "Product not found" },
+          { status: 404 },
+        );
+      }
+
+      // Check if product is referenced in any orders
+      if (product._count.orderItems > 0) {
+        return NextResponse.json(
+          { error: `Cannot delete product. It is referenced in ${product._count.orderItems} order(s). Please remove it from orders first.` },
+          { status: 400 },
+        );
+      }
+
       await prisma.product.delete({
         where: { id: id },
       });
 
-      return NextResponse.json({ message: "Product deleted successfully" });
+      return NextResponse.json({ 
+        success: true,
+        message: "Product deleted successfully" 
+      });
     } catch (error: unknown) {
+      console.error('Error deleting product:', error);
       return NextResponse.json(
         { error: (error as Error).message || "Something went wrong" },
         { status: 500 },

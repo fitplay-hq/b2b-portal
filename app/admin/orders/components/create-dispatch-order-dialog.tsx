@@ -214,6 +214,7 @@ export function CreateDispatchOrderDialog({ isOpen, onClose }: CreateDispatchOrd
                       <SelectContent>
                         <SelectItem value="AIR">Air</SelectItem>
                         <SelectItem value="SURFACE">Surface</SelectItem>
+                        <SelectItem value="HAND_DELIVERY">Hand Delivery</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

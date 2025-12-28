@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useCreateProduct, useUpdateProduct, useProducts } from "@/data/product/admin.hooks";
 import { useCompanies } from "@/data/company/admin.hooks";
 import { useCategories } from "./use-category-management";
+import { useSubcategoryManagement } from "./use-subcategory-management";
 
 type ProductWithCompanies = Product & {
   companies: Company[];
@@ -21,6 +22,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
   const { companies } = useCompanies();
   const { products } = useProducts();
   const { categories } = useCategories();
+  const { getSubcategoriesByCategory } = useSubcategoryManagement();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,13 +34,17 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
   // Refs to track previous values and prevent infinite loops
   const prevCompanyRef = useRef<string>('');
   const prevCategoriesRef = useRef<string>('');
+  const prevSubcategoriesRef = useRef<string>('');
 
   const [formData, setFormData] = useState({
     name: "",
+    brand: "",
     company: "",
     companyShort: "",
     categories: "",
     categoryShort: "",
+    subcategories: "",
+    subcategoryShort: "",
     skuSuffix: "",
     price: "",
     availableStock: "",
@@ -96,20 +102,51 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           short = formData.categories.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
         }
         console.log('Generated category short:', short);
-        setFormData(prev => ({ ...prev, categoryShort: short }));
+        setFormData(prev => ({ ...prev, categoryShort: short, subcategories: '', subcategoryShort: '' }));
       } else {
-        setFormData(prev => ({ ...prev, categoryShort: '' }));
+        setFormData(prev => ({ ...prev, categoryShort: '', subcategories: '', subcategoryShort: '' }));
       }
     }
   }, [formData.categories, categories]);
 
-  // Auto-generate SKU suffix when both companyShort and categoryShort are available
+  // Auto-set subcategoryShort when subcategories change
   useEffect(() => {
-    // Only generate for new products (not editing) and when we have both company and category
-    if (formData.companyShort && formData.categoryShort && !editingProduct) {
+    if (formData.subcategories !== prevSubcategoriesRef.current) {
+      prevSubcategoriesRef.current = formData.subcategories;
+      if (formData.subcategories && formData.categories) {
+        console.log('Selected subcategory:', formData.subcategories);
+        
+        const subcategories = getSubcategoriesByCategory(
+          categories.find(cat => cat.name === formData.categories)?.id || ''
+        );
+        
+        const subcategoryShortMap = (subcategories || []).reduce((acc, subcategory) => {
+          acc[subcategory.name] = subcategory.shortCode;
+          return acc;
+        }, {} as Record<string, string>);
+        
+        // Try exact match first, then fallback to auto-generation
+        let short = subcategoryShortMap[formData.subcategories];
+        if (!short) {
+          // Auto-generate from subcategory name: take first 3 characters, remove spaces
+          short = formData.subcategories.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+        }
+        console.log('Generated subcategory short:', short);
+        setFormData(prev => ({ ...prev, subcategoryShort: short }));
+      } else {
+        setFormData(prev => ({ ...prev, subcategoryShort: '' }));
+      }
+    }
+  }, [formData.subcategories, formData.categories, categories, getSubcategoriesByCategory]);
+
+  // Auto-generate SKU suffix when company, category, and subcategory are available
+  useEffect(() => {
+    // Only generate for new products (not editing) and when we have company, category, and subcategory
+    if (formData.companyShort && formData.categoryShort && formData.subcategoryShort && !editingProduct) {
       console.log('🔧 SKU Generation triggered');
       console.log('Company Short:', formData.companyShort);
       console.log('Category Short:', formData.categoryShort);
+      console.log('Subcategory Short:', formData.subcategoryShort);
       console.log('Products loaded:', !!products);
       console.log('Products count:', products?.length || 0);
       
@@ -118,8 +155,8 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
         return;
       }
 
-      // Find existing products with same company-category prefix
-      const skuPrefix = `${formData.companyShort}-${formData.categoryShort}`;
+      // Find existing products with same company-category-subcategory prefix
+      const skuPrefix = `${formData.companyShort}-${formData.categoryShort}-${formData.subcategoryShort}`;
       console.log('🎯 SKU Prefix:', skuPrefix);
       
       // Filter products that match our prefix and extract numeric suffixes
@@ -132,9 +169,9 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       const existingSKUs = matchingProducts
         .map(product => {
           const parts = product.sku.split('-');
-          // Make sure we have exactly 3 parts and the third part is numeric
-          if (parts.length === 3) {
-            const suffix = parts[2];
+          // Make sure we have exactly 4 parts and the fourth part is numeric
+          if (parts.length === 4) {
+            const suffix = parts[3];
             const num = parseInt(suffix, 10);
             return !isNaN(num) ? num : 0;
           }
@@ -152,27 +189,30 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       console.log('✨ Generated suffix:', paddedNumber, `(next after ${existingSKUs.length} existing products)`);
       setFormData(prev => ({ ...prev, skuSuffix: paddedNumber }));
     }
-  }, [formData.companyShort, formData.categoryShort, products, editingProduct]);
+  }, [formData.companyShort, formData.categoryShort, formData.subcategoryShort, products, editingProduct]);
 
-  // Force regenerate SKU suffix when company or category changes (even if suffix already exists)
+  // Force regenerate SKU suffix when company, category, or subcategory changes
   useEffect(() => {
-    if (formData.companyShort && formData.categoryShort && !editingProduct && products && 
-        (prevCompanyRef.current !== formData.company || prevCategoriesRef.current !== formData.categories)) {
+    if (formData.companyShort && formData.categoryShort && formData.subcategoryShort && !editingProduct && products && 
+        (prevCompanyRef.current !== formData.company || prevCategoriesRef.current !== formData.categories || prevSubcategoriesRef.current !== formData.subcategories)) {
       // Clear the suffix first to trigger regeneration
       setFormData(prev => ({ ...prev, skuSuffix: '' }));
     }
-  }, [formData.company, formData.categories, formData.companyShort, formData.categoryShort, products, editingProduct]);
+  }, [formData.company, formData.categories, formData.subcategories, formData.companyShort, formData.categoryShort, formData.subcategoryShort, products, editingProduct]);
 
-  const sku = formData.companyShort && formData.categoryShort && formData.skuSuffix ? `${formData.companyShort}-${formData.categoryShort}-${formData.skuSuffix}` : "";
+  const sku = formData.companyShort && formData.categoryShort && formData.subcategoryShort && formData.skuSuffix ? `${formData.companyShort}-${formData.categoryShort}-${formData.subcategoryShort}-${formData.skuSuffix}` : "";
 
   const openNewDialog = () => {
     setEditingProduct(null);
     setFormData({
       name: "",
+      brand: "",
       company: "",
       companyShort: "",
       categories: "",
       categoryShort: "",
+      subcategories: "",
+      subcategoryShort: "",
       skuSuffix: "",
       price: "",
       availableStock: "",
@@ -186,21 +226,29 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
   const openEditDialog = (product: ProductWithCompanies) => {
     setEditingProduct(product);
 
-    // Parse SKU into parts
+    // Parse SKU into parts (now 4 parts: COMPANY-CATEGORY-SUBCATEGORY-SUFFIX)
     const skuParts = product.sku.split('-');
     const companyShort = skuParts[0] || '';
     const categoryShort = skuParts[1] || '';
-    const skuSuffix = skuParts[2] || '';
+    const subcategoryShort = skuParts[2] || '';
+    const skuSuffix = skuParts[3] || '';
 
     // Get the first company associated with the product (if any)
     const associatedCompany = product.companies?.[0]?.id || "";
 
+    // Get category and subcategory names from the relationships
+    const categoryName = (product as any).category?.name || product.categories || "";
+    const subcategoryName = (product as any).subCategory?.name || "";
+
     setFormData({
       name: product.name,
+      brand: product.brand || "",
       company: associatedCompany,
       companyShort,
-      categories: product.categories || "",
+      categories: categoryName,
       categoryShort,
+      subcategories: subcategoryName,
+      subcategoryShort,
       skuSuffix,
       price: product.price?.toString() || "",
       availableStock: product.availableStock.toString(),
@@ -241,6 +289,10 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       // Find the selected category from the database categories
       const selectedCategory = categories.find(cat => cat.name === formData.categories);
       
+      // Find the selected subcategory
+      const selectedSubcategories = getSubcategoriesByCategory(selectedCategory?.id || '');
+      const selectedSubcategory = selectedSubcategories?.find(sub => sub.name === formData.subcategories);
+      
       // Check if it's a legacy category (exists in enum)
       const isLegacyCategory = ['stationery', 'accessories', 'funAndStickers', 'drinkware', 'apparel', 'travelAndTech', 'books', 'welcomeKit'].includes(formData.categories);
 
@@ -252,10 +304,12 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           sku,
           price,
           minStockThreshold,
+          brand: formData.brand || null,
           // Don't send availableStock for updates - use inventory management instead
           // Only set categories enum field if it's a legacy category
           ...(isLegacyCategory && { categories: formData.categories as Category }),
           categoryId: selectedCategory?.id, // Send categoryId directly
+          subCategoryId: selectedSubcategory?.id || null, // Send subCategoryId
           categories: formData.categories, // Send category name for API lookup
           description: formData.description,
           images: [
@@ -273,9 +327,11 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           price,
           availableStock,
           minStockThreshold,
+          brand: formData.brand || null,
           // Only set categories enum field if it's a legacy category
           ...(isLegacyCategory && { categories: formData.categories as Category }),
           categoryId: selectedCategory?.id, // Send categoryId directly
+          subCategoryId: selectedSubcategory?.id || null, // Send subCategoryId
           categories: formData.categories, // Send category name for API lookup
           description: formData.description,
           images: [

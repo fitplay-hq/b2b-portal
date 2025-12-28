@@ -3,6 +3,9 @@ import { Product } from "./generated/prisma";
 export interface CartItem {
   product: Product;
   quantity: number;
+  isBundleItem?: boolean;
+  bundleQuantity?: number; // quantity per bundle
+  bundleCount?: number; // number of bundles
 }
 
 export interface PurchaseOrder {

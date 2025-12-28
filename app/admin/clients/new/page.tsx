@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { mutate } from "swr";
 import Layout from "@/components/layout";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,16 @@ function NewClientForm() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    
+    // Special validation for phone number - only allow digits and max 10 characters
+    if (name === 'phone') {
+      const phoneValue = value.replace(/\D/g, ''); // Remove non-digits
+      if (phoneValue.length <= 10) {
+        setFormData((prev) => ({ ...prev, [name]: phoneValue }));
+      }
+      return;
+    }
+    
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -113,33 +124,52 @@ function NewClientForm() {
     e.preventDefault();
 
     try {
+      console.log("Creating client with formData:", formData);
+      console.log("Selected products:", selectedProducts);
+      
       // First create the client
       const clientResponse = await createClient(formData);
+      console.log("Client created successfully:", clientResponse);
 
-      // If products are selected and we have a company ID, assign products to the company
-      if (selectedProducts.length > 0 && clientResponse?.companyID) {
-        const productResponse = await fetch("/api/admin/companies/products", {
+      // If products are selected, assign products directly to the client
+      if (selectedProducts.length > 0 && clientResponse.id) {
+        console.log(`Assigning ${selectedProducts.length} products to client ${clientResponse.id}`);
+        
+        const clientProductResponse = await fetch(`/api/admin/clients/${clientResponse.id}/products`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            companyId: clientResponse.companyID,
             productIds: selectedProducts,
+            action: "assign",
           }),
         });
 
-        if (!productResponse.ok) {
-          const errorData = await productResponse.json();
-          console.error("Failed to assign products to company:", errorData);
+        const productAssignmentResult = await clientProductResponse.json();
+        console.log("Product assignment response:", productAssignmentResult);
+
+        if (!clientProductResponse.ok) {
+          console.error("Failed to assign products to client:", productAssignmentResult);
           throw new Error(
-            `Failed to assign products to company: ${
-              errorData.error || "Unknown error"
+            `Failed to assign products to client: ${
+              productAssignmentResult.error || "Unknown error"
             }`
           );
+        } else {
+          console.log("Products assigned successfully!");
         }
+
+        // Force refresh client data after product assignment
+        await mutate('/api/admin/clients');
+        // Also refresh companies-clients data
+        await mutate('/api/admin/companies');
+        
+        // Small delay to ensure data is propagated
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      router.push("/admin/companies-clients");
+      // Redirect to companies-clients page with a refresh parameter
+      router.push("/admin/companies-clients?refresh=true");
     } catch (error) {
       console.error("Failed to create client:", error);
       // Handle error - could show toast notification

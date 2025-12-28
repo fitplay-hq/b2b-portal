@@ -12,7 +12,7 @@ export async function GET() {
       },
       include: {
         _count: {
-          select: { products: true },
+          select: { products: true, subCategories: true },
         },
       },
     });
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       },
       include: {
         _count: {
-          select: { products: true },
+          select: { products: true, subCategories: true },
         },
       },
     });

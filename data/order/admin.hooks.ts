@@ -1,6 +1,6 @@
 import useSWR, { mutate as globalMutate } from "swr";
 import useSWRMutation from "swr/mutation";
-import { updateOrderStatus, createOrder, deleteOrder, getOrder, getOrders, updateOrder, sendOrderEmail } from "./admin.actions";
+import { updateOrderStatus, createOrder, deleteOrder, getOrder, getOrders, updateOrder, sendOrderEmail, sendStatusEmail } from "./admin.actions";
 import { $Enums, Prisma } from "@/lib/generated/prisma";
 
 /**
@@ -131,6 +131,24 @@ export function useSendOrderEmail() {
 
   return {
     sendOrderEmail: trigger,
+    isSending: isMutating,
+    sendError: error,
+  };
+}
+
+export function useSendStatusEmail() {
+  const { trigger, isMutating, error } = useSWRMutation(
+    "/api/admin/orders/order/status-mails",
+    (url, { arg }: { arg: { orderId: string; status: $Enums.Status } }) => sendStatusEmail(url, arg),
+    {
+      onSuccess: () => {
+        globalMutate('/api/admin/orders')
+      }
+    }
+  );
+
+  return {
+    sendStatusEmail: trigger,
     isSending: isMutating,
     sendError: error,
   };

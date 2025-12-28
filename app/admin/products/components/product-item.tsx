@@ -9,6 +9,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 // Extended Product type that includes the category relationship
 type ProductWithRelations = Product & {
   category?: ProductCategory | null;
+  subCategory?: { name: string; shortCode: string } | null;
   companies?: Company[];
 };
 
@@ -39,12 +40,22 @@ export function ProductItem({
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-medium">{product.name}</h3>
+            {product.brand && (
+              <Badge variant="outline">
+                {product.brand}
+              </Badge>
+            )}
             <Badge variant="secondary">
               {product.category?.displayName || 
                (product.category?.name ? getHumanFriendlyCategoryName(product.category.name) : null) ||
                (product.categories ? getHumanFriendlyCategoryName(product.categories) : null) ||
                "Uncategorized"}
             </Badge>
+            {product.subCategory && (
+              <Badge variant="secondary" className="text-xs">
+                {product.subCategory.name}
+              </Badge>
+            )}
             {product.availableStock === 0 && (
               <Badge variant="destructive">Out of Stock</Badge>
             )}
