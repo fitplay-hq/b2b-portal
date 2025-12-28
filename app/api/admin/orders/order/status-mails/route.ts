@@ -175,6 +175,15 @@ export async function POST(req: NextRequest) {
             html = `
         <h2>Order Status Update: ${status.replace(/_/g, " ")}</h2>
         <p>Your order has been updated to <b>${status.replace(/_/g, " ")}</b> status.</p>
+        <h3>Consignee Details</h3>
+          <p><b>Name:</b> ${order.consigneeName}</p>
+          <p><b>Phone:</b> ${order.consigneePhone}</p>
+          <p><b>Email:</b> ${order.consigneeEmail}</p>
+          <p><b>Mode of Delivery:</b> ${order.modeOfDelivery}</p>
+          <p><b>Required By:</b> ${new Date(order.requiredByDate).toLocaleDateString()}</p>
+
+          <h3>Delivery Address</h3>
+          <p>${order.deliveryAddress}, ${order.city}, ${order.state}, ${order.pincode}</p>
         <h3>Order Details</h3>
       ${orderTable}
     `;
