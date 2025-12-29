@@ -55,7 +55,7 @@ export function ProductCard({
   const isInStock = product.availableStock > 0;
 
   return (
-    <Card className="flex flex-col h-full overflow-hidden">
+    <Card className="flex flex-col h-full overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
       <CardHeader className="p-0">
         <div className="aspect-square relative">
           <ImageWithFallback
@@ -73,16 +73,16 @@ export function ProductCard({
       <CardContent className="p-3 flex-grow flex flex-col">
         <div className="flex flex-col gap-2 flex-grow">
           <div className="min-h-0">
-            <CardTitle className="text-sm sm:text-base leading-tight mb-1 overflow-hidden">
-              <span className="block truncate">{product.name}</span>
+            <CardTitle className="text-sm leading-tight mb-1 overflow-hidden">
+              <span className="block truncate" title={product.name}>{product.name}</span>
             </CardTitle>
-            <Badge variant="secondary" className="text-xs w-fit">
+            <Badge variant="secondary" className="text-xs w-fit mb-1">
               {getHumanFriendlyCategoryName(product.categories && product.categories[0]
                 ? product.categories[0]
                 : "Uncategorized")}
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+          <p className="text-xs text-muted-foreground truncate">SKU: {product.sku}</p>
           <div className="flex flex-col gap-1 mt-auto">
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
@@ -95,7 +95,7 @@ export function ProductCard({
               )}
             </div>
             {product.price && (
-              <p className="text-sm font-medium">₹{product.price}</p>
+              <p className="text-sm font-medium text-primary">₹{product.price}</p>
             )}
           </div>
         </div>
@@ -104,10 +104,10 @@ export function ProductCard({
         <Button
           onClick={() => onAddToCartClick(product)}
           disabled={!isInStock}
-          className="w-full text-sm h-8 sm:h-9"
+          className="w-full text-sm h-8"
           size="sm"
         >
-          <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+          <ShoppingCart className="h-3 w-3 mr-2" />
           {isInStock ? "Add to Cart" : "Out of Stock"}
         </Button>
       </CardFooter>
