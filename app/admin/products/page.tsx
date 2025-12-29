@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import Layout from "@/components/layout";
 import PageGuard from "@/components/page-guard";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Settings } from "lucide-react";
+import { Plus, Loader2, Settings, Grid3X3, List } from "lucide-react";
 import { useProductFilters } from "@/hooks/use-product-filters";
 import { useProductForm } from "@/hooks/use-product-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -14,6 +14,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { StatsGrid } from "./components/stats-grid";
 import { ProductFilters } from "./components/product-filters";
 import { ProductList } from "./components/product-list";
+import { AdminProductGrid } from "./components/product-grid";
 import { ProductFormDialog } from "./components/product-form-dialog";
 import { UpdateInventoryDialog } from "./components/update-inventory-dialog";
 import { CategoryManagementDialog } from "@/components/category-management-dialog";
@@ -31,6 +32,9 @@ export default function AdminProductsPage() {
   const { deleteProduct } = useDeleteProduct();
   const { createProducts } = useCreateProducts();
   const { actions, RESOURCES } = usePermissions();
+
+  // View toggle state
+  const [viewMode, setViewMode] = useState<"list" | "cards">("list");
 
   // Inventory dialog state
   const [inventoryDialog, setInventoryDialog] = useState<{
@@ -144,18 +148,49 @@ export default function AdminProductsPage() {
             </div>
 
           <StatsGrid products={products || []} />
-          <ProductFilters {...filterProps} />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <ProductFilters {...filterProps} />
+            <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="h-8 px-3"
+              >
+                <List className="h-4 w-4 mr-2" />
+                List
+              </Button>
+              <Button
+                variant={viewMode === "cards" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("cards")}
+                className="h-8 px-3"
+              >
+                <Grid3X3 className="h-4 w-4 mr-2" />
+                Cards
+              </Button>
+            </div>
+          </div>
         </div>
         <div className="flex-1">
-          <ProductList
-            products={filteredProducts}
-            allProducts={products ?? []}
-            selectedSort={filterProps.sortBy}
-            onEdit={formControls.openEditDialog}
-            onDelete={handleDelete}
-            onManageInventory={handleOpenInventoryDialog}
-            hasProductsInitially={(products?.length ?? 0) > 0}
-          />
+          {viewMode === "list" ? (
+            <ProductList
+              products={filteredProducts}
+              allProducts={products ?? []}
+              selectedSort={filterProps.sortBy}
+              onEdit={formControls.openEditDialog}
+              onDelete={handleDelete}
+              onManageInventory={handleOpenInventoryDialog}
+              hasProductsInitially={(products?.length ?? 0) > 0}
+            />
+          ) : (
+            <AdminProductGrid
+              products={filteredProducts}
+              onEdit={formControls.openEditDialog}
+              onDelete={handleDelete}
+              onManageInventory={handleOpenInventoryDialog}
+            />
+          )}
         </div>
       </div>
       </div>

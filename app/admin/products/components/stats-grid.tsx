@@ -25,19 +25,15 @@ export function StatsGrid({ products }: StatsGridProps) {
   }, [products]);
 
   return (
-    <div className="w-full overflow-x-hidden space-y-3 sm:space-y-4">
-      {/* First row - Total Products full width */}
-      <div className="grid grid-cols-1">
+    <div className="w-full overflow-x-hidden">
+      {/* Three cards in a row on desktop, stacked on mobile */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
         <StatCard
           title="Total Products"
           value={stats.total}
           icon={Package}
           description="In catalog"
         />
-      </div>
-      
-      {/* Second row - Low Stock and Out of Stock side by side */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
         <StatCard
           title="Low Stock"
           value={stats.lowStock}

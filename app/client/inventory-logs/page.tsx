@@ -185,7 +185,8 @@ export default function ClientInventoryLogsPage() {
                 </p>
               </div>
               
-              <div className="flex items-center gap-2 w-full sm:w-auto">\n                <DropdownMenu>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="outline" 
