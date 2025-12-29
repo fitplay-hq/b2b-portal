@@ -46,7 +46,7 @@ export default function AdminDashboardPage() {
       <div className="space-y-4 px-2 sm:px-0">
         <WelcomeHeader />
         <MetricsGrid {...metrics} />
-        <OverviewSection {...metrics} /> {/* Pass all required metrics */}
+        <OverviewSection {...metrics} allOrders={metrics.allOrders} /> {/* Pass allOrders for chart */}
         <QuickActions />
         <RecentOrders orders={metrics.recentOrders} />
       </div>
