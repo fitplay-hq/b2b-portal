@@ -24,6 +24,7 @@ export function useClientAnalytics() {
     const approvedOrders = orders?.filter((o) => o.status === 'APPROVED').length || 0;
     const deliveredOrders = orders?.filter((o) => o.status === 'DELIVERED').length || 0;
     const dispatchedOrders = orders?.filter((o) => o.status === 'DISPATCHED').length || 0;
+    const cancelledOrders = orders?.filter((o) => o.status === 'CANCELLED' || o.status === 'REJECTED').length || 0;
 
     // Product Analytics
     const totalProducts = products?.length || 0;
@@ -41,6 +42,7 @@ export function useClientAnalytics() {
       { name: 'Approved', value: approvedOrders, color: '#3b82f6' },
       { name: 'Dispatched', value: dispatchedOrders, color: '#8b5cf6' },
       { name: 'Delivered', value: deliveredOrders, color: '#10b981' },
+      { name: 'Cancelled', value: cancelledOrders, color: '#ef4444' },
     ].filter(item => item.value > 0);
 
     // Monthly Order Trends (last 6 months)
