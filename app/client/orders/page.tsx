@@ -5,6 +5,7 @@ import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -24,18 +25,22 @@ import {
   ChevronUp,
   Calendar,
   Package,
+  Grid3x3,
+  Table,
 } from "lucide-react";
 import { useOrders } from "@/data/order/client.hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { $Enums, Order } from "@/lib/generated/prisma";
 import { formatStatus } from "@/lib/utils";
 import type { OrderWithItems } from "@/data/order/client.actions";
+import { ClientOrdersTable } from "./components/orders-table";
 
 export default function ClientOrderHistory() {
   const { orders, isLoading } = useOrders();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [viewType, setViewType] = useState<"card" | "table">("card");
 
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
@@ -203,6 +208,31 @@ export default function ClientOrderHistory() {
           </CardHeader>
         </Card>
 
+        {/* View Toggle */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Showing {filteredOrders.length} of {orders?.length || 0} orders</span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={viewType === "card" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewType("card")}
+            >
+              <Grid3x3 className="h-4 w-4 mr-2" />
+              Card View
+            </Button>
+            <Button
+              variant={viewType === "table" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewType("table")}
+            >
+              <Table className="h-4 w-4 mr-2" />
+              Table View
+            </Button>
+          </div>
+        </div>
+
         {/* Orders List */}
         <div className="space-y-4">
           {filteredOrders.length === 0 ? (
@@ -219,6 +249,12 @@ export default function ClientOrderHistory() {
                 </div>
               </CardContent>
             </Card>
+          ) : viewType === "table" ? (
+            <ClientOrdersTable 
+              orders={filteredOrders}
+              expandedOrders={expandedOrders}
+              onToggleOrder={toggleOrderExpansion}
+            />
           ) : (
             filteredOrders.map((order) => {
               const isExpanded = expandedOrders.has(order.id);
