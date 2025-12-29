@@ -42,6 +42,12 @@ export default function ClientDashboard() {
   const pendingOrders = orders?.filter(
     (order) => order.status === "PENDING"
   ).length;
+  const approvedOrders = orders?.filter(
+    (order) => order.status === "APPROVED" || order.status === "IN_PROGRESS" || order.status === "COMPLETED" || order.status === "DELIVERED"
+  ).length;
+  const cancelledOrders = orders?.filter(
+    (order) => order.status === "CANCELLED" || order.status === "REJECTED"
+  ).length;
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const recentOrders = orders
@@ -156,23 +162,44 @@ export default function ClientDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {totalOrders - pendingOrders}
+                {approvedOrders}
               </div>
-              <p className="text-xs text-muted-foreground">Completed orders</p>
+              <p className="text-xs text-muted-foreground">In progress/completed</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Cancelled Orders</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{cancelledOrders}</div>
+              <p className="text-xs text-muted-foreground">Cancelled/rejected</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Cart Items - Moved to separate row if needed */}
+        {cartItemCount > 0 && (
+          <Card className="w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Cart Items</CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{cartItemCount}</div>
-              <p className="text-xs text-muted-foreground">Ready to order</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold">{cartItemCount}</div>
+                  <p className="text-xs text-muted-foreground">Ready to order</p>
+                </div>
+                <Button asChild>
+                  <Link href="/client/cart">View Cart</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        </div>
+        )}
 
         {/* Charts Section - NEW */}
         {analytics && (
