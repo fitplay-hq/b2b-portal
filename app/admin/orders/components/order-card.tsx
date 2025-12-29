@@ -86,38 +86,38 @@ const OrderSummary = ({ order }: { order: AdminOrder }) => {
   const statusText = formatStatus(order.status);
 
   return (
-    <div className="flex w-full items-start justify-between gap-4">
-      <div className="space-y-1">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <CardTitle className="text-lg">{order.id}</CardTitle>
-          <Badge className={color}>
-            <Icon className="mr-1.5 h-4 w-4" />
+    <div className="flex w-full items-start justify-between gap-2 sm:gap-4">
+      <div className="space-y-2 min-w-0 flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <CardTitle className="text-base sm:text-lg truncate">{order.id}</CardTitle>
+          <Badge className={`${color} text-xs w-fit`}>
+            <Icon className="mr-1 h-3 w-3 sm:mr-1.5 sm:h-4 sm:w-4" />
             {statusText}
           </Badge>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <Building2 className="h-3 w-3" />
-            {order.client?.company?.name || "Unknown Company"}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-start gap-x-2 gap-y-1 sm:gap-x-4 text-xs sm:text-sm text-muted-foreground">
+          <span className="flex items-center gap-1 sm:gap-1.5 truncate">
+            <Building2 className="h-3 w-3 shrink-0" />
+            <span className="truncate">{order.client?.company?.name || "Unknown Company"}</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <Calendar className="h-3 w-3" />
+          <span className="flex items-center gap-1 sm:gap-1.5">
+            <Calendar className="h-3 w-3 shrink-0" />
             {new Date(order.createdAt).toLocaleDateString()}
           </span>
           {order.createdAt && (
-            <span className="flex items-center gap-1.5">
-              <CalendarDays className="h-3 w-3" />
+            <span className="flex items-center gap-1 sm:gap-1.5">
+              <CalendarDays className="h-3 w-3 shrink-0" />
               Updated: {new Date(order.updatedAt).toLocaleDateString()}
             </span>
           )}
-          <span className="flex items-center gap-1.5">
-            <Package className="h-3 w-3" />
+          <span className="flex items-center gap-1 sm:gap-1.5">
+            <Package className="h-3 w-3 shrink-0" />
             {order.orderItems.length} items
           </span>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-2 text-muted-foreground">
-        <span>Details</span>
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+        <span className="hidden sm:inline">Details</span>
         <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
       </div>
     </div>
@@ -229,17 +229,17 @@ const OrderDetails = ({
   return (
     <CardContent className="pt-0">
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center gap-2 border-b pb-4">
+        <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 border-b pb-4">
           {actions.orders.view && (
             <Link href={`/admin/orders/${order.id}`}>
-              <Button size="sm" variant="secondary">
-                <ExternalLink className="mr-2 h-4 w-4" />
+              <Button size="sm" variant="secondary" className="text-xs sm:text-sm h-8 sm:h-9">
+                <ExternalLink className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 View Details
               </Button>
             </Link>
           )}
           {actions.orders.edit && (
-            <Button size="sm" onClick={onOpenStatusDialog}>
+            <Button size="sm" onClick={onOpenStatusDialog} className="text-xs sm:text-sm h-8 sm:h-9">
               Update Status
             </Button>
           )}
@@ -254,8 +254,9 @@ const OrderDetails = ({
                     size="sm" 
                     variant="outline"
                     onClick={() => handleDownloadLabel(order.shippingLabelUrl!)}
+                    className="text-xs sm:text-sm h-8 sm:h-9"
                   >
-                    <Download className="mr-2 h-4 w-4" />
+                    <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Download Label
                   </Button>
                   <Button
@@ -263,15 +264,16 @@ const OrderDetails = ({
                     variant="outline"
                     onClick={() => handleGenerateLabel(order.id)}
                     disabled={isGeneratingLabel}
+                    className="text-xs sm:text-sm h-8 sm:h-9"
                   >
                     {isGeneratingLabel ? (
                       <>
-                        <div className="mr-2 h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                        <div className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                         Generating...
                       </>
                     ) : (
                       <>
-                        <FileText className="mr-2 h-4 w-4" />
+                        <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                         Regenerate Label
                       </>
                     )}
@@ -283,15 +285,16 @@ const OrderDetails = ({
                   variant="outline"
                   onClick={() => handleGenerateLabel(order.id)}
                   disabled={isGeneratingLabel}
+                  className="text-xs sm:text-sm h-8 sm:h-9"
                 >
                   {isGeneratingLabel ? (
                     <>
-                      <div className="mr-2 h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      <div className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                       Generating...
                     </>
                   ) : (
                     <>
-                      <FileText className="mr-2 h-4 w-4" />
+                      <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       Generate Label
                     </>
                   )}
@@ -305,8 +308,9 @@ const OrderDetails = ({
               variant="outline"
               onClick={handleSendEmail}
               disabled={isSending || order.isMailSent}
+              className="text-xs sm:text-sm h-8 sm:h-9"
             >
-              <Mail className="mr-2 h-4 w-4" />
+              <Mail className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               {order.isMailSent
                 ? "Mail Sent"
                 : isSending
@@ -316,41 +320,43 @@ const OrderDetails = ({
           )}
           {actions.orders.edit && order.status === "PENDING" && (
             <Link href={`/admin/orders/${order.id}/approve`}>
-              <Button size="sm" variant="default">
-                <CheckCircle className="mr-2 h-4 w-4" />
+              <Button size="sm" variant="default" className="text-xs sm:text-sm h-8 sm:h-9">
+                <CheckCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 Approve Order
               </Button>
             </Link>
           )}
         </div>
         <div>
-          <h4 className="mb-3 font-medium">Order Items</h4>
+          <h4 className="mb-3 font-medium text-sm sm:text-base">Order Items</h4>
           <div className="space-y-3">
             {order.orderItems.map((item) => (
               <div
                 key={item.product.id}
-                className="flex gap-3 rounded-lg bg-muted/40 p-3"
+                className="flex gap-2 sm:gap-3 rounded-lg bg-muted/40 p-2 sm:p-3"
               >
                 <ImageWithFallback
                   src={item.product.images[0]}
                   alt={item.product.name}
-                  className="h-16 w-16 rounded object-cover"
+                  className="h-12 w-12 sm:h-16 sm:w-16 rounded object-cover shrink-0"
                 />
-                <div>
-                  <p className="font-medium">{item.product.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm sm:text-base truncate">{item.product.name}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     SKU: {item.product.sku}
                   </p>
-                  <p className="text-sm">Quantity: {item.quantity}</p>
-                  <p className="text-sm">Price: ₹{item.price.toFixed(2)}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm">
+                    <p>Quantity: {item.quantity}</p>
+                    <p>Price: ₹{item.price.toFixed(2)}</p>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
           <div className="mt-4 pt-4 border-t">
             <div className="flex justify-between items-center">
-              <span className="font-medium">Total Amount:</span>
-              <span className="font-bold text-lg">
+              <span className="font-medium text-sm sm:text-base">Total Amount:</span>
+              <span className="font-bold text-base sm:text-lg">
                 ₹{order.totalAmount.toFixed(2)}
               </span>
             </div>

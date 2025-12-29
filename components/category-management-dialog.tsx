@@ -241,18 +241,18 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
         onClose();
       }
     }}>
-      <DialogContent className="w-[70vw] h-[75vh] max-w-none p-6 gap-0 overflow-hidden flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-        <DialogHeader className="pb-4 border-b shrink-0">
-          <div className="flex items-center justify-between gap-4">
+      <DialogContent className="w-[95vw] h-[90vh] sm:w-[85vw] sm:h-[80vh] lg:w-[70vw] lg:h-[75vh] max-w-6xl mx-2 sm:mx-4 p-3 sm:p-6 gap-0 overflow-hidden flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogHeader className="pb-3 sm:pb-4 border-b shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex-1">
-              <DialogTitle className="text-2xl font-semibold">
+              <DialogTitle className="text-lg sm:text-xl lg:text-2xl font-semibold leading-tight">
                 Manage Product Categories & Subcategories
               </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Add, edit, or delete product categories and subcategories.
               </p>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
               <Button
                 onClick={() => {
                   setFormMode('category');
@@ -260,11 +260,12 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
                   setCategoryFormData({ name: '', displayName: '', description: '', shortCode: '' });
                   setShowAddForm(true);
                 }}
-                className="bg-black hover:bg-gray-800 text-white whitespace-nowrap"
+                className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto text-xs sm:text-sm"
                 size="sm"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Category
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Add New Category</span>
+                <span className="sm:hidden">Category</span>
               </Button>
               <Button
                 onClick={() => {
@@ -273,11 +274,12 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
                   setSubcategoryFormData({ name: '', categoryId: '', shortCode: '' });
                   setShowAddForm(true);
                 }}
-                className="bg-gray-600 hover:bg-gray-700 text-white whitespace-nowrap"
+                className="bg-gray-600 hover:bg-gray-700 text-white w-full sm:w-auto text-xs sm:text-sm"
                 size="sm"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Subcategory
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Add Subcategory</span>
+                <span className="sm:hidden">Subcategory</span>
               </Button>
             </div>
           </div>
@@ -286,10 +288,10 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
         <div className="flex-1 overflow-y-auto">
           {/* Add/Edit Form */}
           {showAddForm && (
-            <div className="p-6 bg-muted/30 border-b shrink-0">
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="p-3 sm:p-6 bg-muted/30 border-b shrink-0">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 {formMode === 'category' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                     <div>
                       <Input
                         placeholder="Category name (e.g., CATALOGUE PRODUCTS)"
@@ -329,7 +331,7 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                     <div>
                       <Select
                         value={subcategoryFormData.categoryId}
@@ -391,10 +393,10 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
           )}
 
           {/* Content Display */}
-          <div className="p-6">
+          <div className="p-3 sm:p-6">
             {formMode === 'category' ? (
               <>
-                <h3 className="text-xl font-semibold mb-6">
+                <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">
                   Categories ({categories?.length || 0})
                 </h3>
 
@@ -404,7 +406,7 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
                     <span>Loading categories...</span>
                   </div>
                 ) : categories && categories.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 gap-2 sm:gap-3">
                     {categories.map((category) => {
                       const categorySubcategories = getSubcategoriesByCategory(category.id);
                       const isExpanded = expandedCategories.has(category.id);
@@ -412,7 +414,7 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
 
                       return (
                         <div key={category.id}>
-                          <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 gap-3">
+                          <div className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-muted/50 gap-2 sm:gap-3">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               {hasSubcategories && (
                                 <button
@@ -447,20 +449,20 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
                                 size="sm"
                                 onClick={() => handleEdit(category)}
                                 disabled={isDeleting}
-                                className="text-blue-600 hover:text-blue-700 px-2"
+                                className="text-blue-600 hover:text-blue-700 px-1 sm:px-2 text-xs sm:text-sm"
                               >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Edit
+                                <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                                <span className="hidden sm:inline">Edit</span>
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleDelete(category.id, category.displayName)}
                                 disabled={isDeleting || category._count.products > 0}
-                                className="text-red-600 hover:text-red-700 px-2"
+                                className="text-red-600 hover:text-red-700 px-1 sm:px-2 text-xs sm:text-sm"
                               >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
+                                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                                <span className="hidden sm:inline">Delete</span>
                               </Button>
                             </div>
                           </div>

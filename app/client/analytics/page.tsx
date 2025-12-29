@@ -125,6 +125,7 @@ export default function ClientAnalyticsPage() {
   });
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [isExporting, setIsExporting] = useState(false);
 
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -202,22 +203,22 @@ export default function ClientAnalyticsPage() {
 
   return (
     <Layout isClient={true}>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Analytics</h1>
-            <p className="text-gray-600">Track your orders, inventory, and performance metrics</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Analytics</h1>
+            <p className="text-sm sm:text-base text-gray-600">Track your orders, inventory, and performance metrics</p>
           </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={refreshData}
             disabled={isLoading}
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto text-xs sm:text-sm"
           >
-            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            <RefreshCw className={cn("h-3 w-3 sm:h-4 sm:w-4", isLoading && "animate-spin")} />
             Refresh
           </Button>
         </div>
@@ -225,27 +226,27 @@ export default function ClientAnalyticsPage() {
 
       {/* Filters */}
       <Card>
-        <CardContent className="p-6">
-          <div className="space-y-6">
+        <CardContent className="p-3 sm:p-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Filter className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold">Filters & Date Range</h3>
+                <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                <h3 className="text-base sm:text-lg font-semibold">Filters & Date Range</h3>
               </div>
               <Button 
                 onClick={resetAllFilters}
                 variant="outline"
                 size="sm"
-                className="border-gray-300"
+                className="border-gray-300 w-full sm:w-auto text-xs sm:text-sm"
               >
-                <RotateCcw className="h-4 w-4 mr-2" />
+                <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 Reset All
               </Button>
             </div>
             
             {/* Filters Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {/* Period Filter */}
               <div>
                 <Label className="text-sm font-medium text-gray-700 mb-2 block">Time Period</Label>
@@ -471,31 +472,61 @@ export default function ClientAnalyticsPage() {
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    console.log('Exporting orders as Excel...');
-                    const result = await exportData('orders', 'xlsx');
-                    if (!result.success) {
-                      console.error('Export failed:', result.error);
+                    setIsExporting(true);
+                    try {
+                      console.log('Exporting orders as Excel...');
+                      const result = await exportData('orders', 'xlsx');
+                      if (!result.success) {
+                        console.error('Export failed:', result.error);
+                      }
+                    } finally {
+                      setIsExporting(false);
                     }
                   }}
                   className="gap-2"
+                  disabled={isExporting}
                 >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Export Excel
+                  {isExporting ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <FileSpreadsheet className="h-4 w-4" />
+                      Export Excel
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    console.log('Exporting orders as PDF...');
-                    const result = await exportData('orders', 'pdf');
-                    if (!result.success) {
-                      console.error('Export failed:', result.error);
+                    setIsExporting(true);
+                    try {
+                      console.log('Exporting orders as PDF...');
+                      const result = await exportData('orders', 'pdf');
+                      if (!result.success) {
+                        console.error('Export failed:', result.error);
+                      }
+                    } finally {
+                      setIsExporting(false);
                     }
                   }}
                   className="gap-2"
+                  disabled={isExporting}
                 >
-                  <FileText className="h-4 w-4" />
-                  Export PDF
+                  {isExporting ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4" />
+                      Export PDF
+                    </>
+                  )}
                 </Button>
               </div>
               
@@ -557,24 +588,27 @@ export default function ClientAnalyticsPage() {
                   <CardContent>
                     {analytics?.topProducts?.length > 0 ? (
                       <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={analytics.topProducts.slice(0, 5)}>
+                        <BarChart data={analytics.topProducts.slice(0, 5)} margin={{ bottom: 60, left: 10, right: 10, top: 10 }}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis 
                             dataKey="name" 
-                            tick={{ fontSize: 12 }}
+                            tick={{ fontSize: 10 }}
                             interval={0}
-                            angle={-45}
+                            angle={-35}
                             textAnchor="end"
                             height={80}
+                            width={60}
                           />
-                          <YAxis />
+                          <YAxis tick={{ fontSize: 10 }} />
                           <Tooltip 
                             formatter={(value, name) => [
                               formatNumber(value as number), 
                               name === 'quantity' ? 'Quantity' : 'Revenue'
                             ]}
+                            labelStyle={{ fontSize: '12px' }}
+                            contentStyle={{ fontSize: '12px' }}
                           />
-                          <Legend />
+                          <Legend wrapperStyle={{ fontSize: '12px' }} />
                           <Bar dataKey="quantity" fill="#8884d8" name="Quantity" />
                           <Bar dataKey="revenue" fill="#82ca9d" name="Revenue ($)" />
                         </BarChart>
@@ -597,31 +631,61 @@ export default function ClientAnalyticsPage() {
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    console.log('Exporting products as Excel...');
-                    const result = await exportData('inventory', 'xlsx');
-                    if (!result.success) {
-                      console.error('Export failed:', result.error);
+                    setIsExporting(true);
+                    try {
+                      console.log('Exporting products as Excel...');
+                      const result = await exportData('inventory', 'xlsx');
+                      if (!result.success) {
+                        console.error('Export failed:', result.error);
+                      }
+                    } finally {
+                      setIsExporting(false);
                     }
                   }}
                   className="gap-2"
+                  disabled={isExporting}
                 >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Export Excel
+                  {isExporting ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <FileSpreadsheet className="h-4 w-4" />
+                      Export Excel
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    console.log('Exporting products as PDF...');
-                    const result = await exportData('inventory', 'pdf');
-                    if (!result.success) {
-                      console.error('Export failed:', result.error);
+                    setIsExporting(true);
+                    try {
+                      console.log('Exporting products as PDF...');
+                      const result = await exportData('inventory', 'pdf');
+                      if (!result.success) {
+                        console.error('Export failed:', result.error);
+                      }
+                    } finally {
+                      setIsExporting(false);
                     }
                   }}
                   className="gap-2"
+                  disabled={isExporting}
                 >
-                  <FileText className="h-4 w-4" />
-                  Export PDF
+                  {isExporting ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4" />
+                      Export PDF
+                    </>
+                  )}
                 </Button>
               </div>
               

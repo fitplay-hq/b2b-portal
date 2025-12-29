@@ -22,7 +22,7 @@ import { SetStateAction } from "react";
 import { AdminOrder } from "@/data/order/admin.actions";
 import { $Enums, Order } from "@/lib/generated/prisma";
 import { formatStatus } from "@/lib/utils";
-import { Mail, Clock, CheckCircle } from "lucide-react";
+import { Mail, Clock, CheckCircle, Loader2 } from "lucide-react";
 
 const ORDER_STATUSES: Order["status"][] = Object.values($Enums.Status);
 
@@ -39,6 +39,7 @@ interface UpdateStatusDialogProps {
   setDialogState: React.Dispatch<SetStateAction<any>>;
   closeStatusDialog: () => void;
   handleStatusUpdate: () => void;
+  isUpdating?: boolean;
 }
 
 export function UpdateStatusDialog({
@@ -46,6 +47,7 @@ export function UpdateStatusDialog({
   setDialogState,
   closeStatusDialog,
   handleStatusUpdate,
+  isUpdating = false,
 }: UpdateStatusDialogProps) {
   // Don't render anything if there's no order selected
   if (!dialogState.order) {
@@ -223,10 +225,19 @@ export function UpdateStatusDialog({
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={closeStatusDialog}>
+            <Button variant="outline" onClick={closeStatusDialog} disabled={isUpdating}>
               Cancel
             </Button>
-            <Button onClick={handleStatusUpdate}>Update Status</Button>
+            <Button onClick={handleStatusUpdate} disabled={isUpdating}>
+              {isUpdating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Status'
+              )}
+            </Button>
           </div>
         </div>
       </DialogContent>

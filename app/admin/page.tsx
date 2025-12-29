@@ -13,9 +13,9 @@ export default function AdminDashboardPage() {
   const { metrics, isLoading, error } = useDashboardMetrics();
 
   const WelcomeHeader = () => (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
-      <h1 className="text-2xl font-bold mb-2">Fitplay B2B Management</h1>
-      <p className="text-muted-foreground">
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 sm:p-6">
+      <h1 className="text-xl sm:text-2xl font-bold mb-2">Fitplay B2B Management</h1>
+      <p className="text-sm sm:text-base text-muted-foreground">
         Monitor orders, manage products, and oversee client relationships
       </p>
     </div>
@@ -43,10 +43,10 @@ export default function AdminDashboardPage() {
 
   return (
     <Layout isClient={false}>
-      <div className="space-y-4">
+      <div className="space-y-4 px-2 sm:px-0">
         <WelcomeHeader />
         <MetricsGrid {...metrics} />
-        <OverviewSection {...metrics} /> {/* Pass all required metrics */}
+        <OverviewSection {...metrics} allOrders={metrics.allOrders} /> {/* Pass allOrders for chart */}
         <QuickActions />
         <RecentOrders orders={metrics.recentOrders} />
       </div>

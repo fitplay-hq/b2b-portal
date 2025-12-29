@@ -274,8 +274,17 @@ function NewClientForm() {
                   disabled={isCreating}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200"
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isCreating ? "Creating..." : "Create Client"}
+                  {isCreating ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Save className="h-4 w-4" />
+                      Create Client
+                    </div>
+                  )}
                 </Button>
               </div>
             </form>

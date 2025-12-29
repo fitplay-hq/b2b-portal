@@ -25,7 +25,8 @@ export function StatsGrid({ products }: StatsGridProps) {
   }, [products]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
+    <div className="w-full overflow-x-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
       <StatCard
         title="Total Products"
         value={stats.total}
@@ -46,6 +47,7 @@ export function StatsGrid({ products }: StatsGridProps) {
         description="Need restocking"
         iconColor="text-red-600"
       />
+    </div>
     </div>
   );
 }

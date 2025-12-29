@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package, Minus, Plus, History, Settings } from "lucide-react";
+import { Package, Minus, Plus, History, Settings, Loader2 } from "lucide-react";
 import { useUpdateInventory } from "@/data/product/admin.hooks";
 import { toast } from "sonner";
 import { InventoryHistory } from "@/components/inventory-history";
@@ -247,7 +247,14 @@ export function UpdateInventoryDialog({
                   Cancel
                 </Button>
                 <Button onClick={handleSubmit} disabled={isUpdatingInventory}>
-                  {isUpdatingInventory ? "Updating..." : "Update Inventory"}
+                  {isUpdatingInventory ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Updating...
+                    </div>
+                  ) : (
+                    "Update Inventory"
+                  )}
                 </Button>
               </div>
             </div>

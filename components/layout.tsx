@@ -124,12 +124,12 @@ export default function Layout({ children, isClient }: LayoutProps) {
         {/* Main Content Area - Fixed Height with Internal Scrolling */}
         <div className="flex-1 flex flex-col h-screen bg-gray-50 overflow-hidden min-w-0 relative z-10">
           {/* Professional Navbar - Fixed at Top */}
-          <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm relative z-10 flex-shrink-0">
-            <div className="flex items-center">
+          <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm relative z-10 flex-shrink-0 min-w-0 overflow-x-hidden">
+            <div className="flex items-center min-w-0">
               {/* Sidebar Toggle Button */}
               <button
                 onClick={toggleSidebar}
-                className="p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm"
+                className="p-2 text-gray-400 hover:text-gray-700 transition-all duration-200 rounded-lg hover:bg-gray-50 hover:shadow-sm flex-shrink-0"
                 suppressHydrationWarning={true}
                 aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
               >
@@ -165,8 +165,8 @@ export default function Layout({ children, isClient }: LayoutProps) {
           </header>
 
           {/* Main Content - Scrollable Area */}
-          <main className="flex-1 bg-gray-50 overflow-y-auto">
-            <div className="p-6">
+          <main className="flex-1 bg-gray-50 overflow-y-auto overflow-x-hidden min-w-0">
+            <div className="p-3 sm:p-6 min-w-0 w-full max-w-full">
               {children}
             </div>
           </main>

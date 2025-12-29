@@ -44,6 +44,7 @@ export function useDashboardMetrics() {
         activeClients,
         recentOrders,
         completionRate,
+        allOrders: orders, // Add all orders for chart calculation
       },
       isLoading,
       error

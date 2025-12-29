@@ -9,7 +9,7 @@ import {
   Cell,
   Legend
 } from 'recharts';
-import { useAnalytics } from "@/hooks/use-analytics";
+import { AdminOrder } from "@/data/order/admin.actions";
 
 // Colors for pie chart - extended for all possible statuses
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d', '#ffc658', '#8dd1e1'];
@@ -22,24 +22,33 @@ interface OverviewSectionProps {
   lowStockProducts: number;
   activeClients: number;
   totalOrders: number;
+  recentOrders: AdminOrder[];
+  allOrders: AdminOrder[];
 }
 
 export function OverviewSection({
   pendingOrders,
   lowStockProducts,
   activeClients,
+  allOrders
 }: OverviewSectionProps) {
-  // Use analytics data to get real order status distribution  
-  const { data: analyticsData } = useAnalytics({ period: '90d' });
-  
-  // Define all possible order statuses to ensure they all show up
+  // Calculate order status distribution from ALL orders data
   const allStatuses = ['PENDING', 'APPROVED', 'CANCELLED', 'READY_FOR_DISPATCH', 'DISPATCHED', 'AT_DESTINATION', 'DELIVERED'];
   
-  // Create complete status data with all statuses (even if count is 0)
+  // Create status distribution from all available orders
   const ordersByStatus = allStatuses.reduce((acc, status) => {
-    acc[status] = analyticsData?.ordersByStatus?.[status] || 0;
+    acc[status] = allOrders.filter(order => order.status === status).length;
     return acc;
   }, {} as Record<string, number>);
+  
+  // Filter out statuses with 0 orders for cleaner chart display
+  const chartData = Object.entries(ordersByStatus)
+    .filter(([status, count]) => count > 0)
+    .map(([status, count]) => ({
+      name: status.replace(/_/g, ' '),
+      value: count,
+      status: status
+    }));
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Card className="overflow-hidden">
@@ -50,11 +59,7 @@ export function OverviewSection({
           <ResponsiveContainer width="100%" height={350}>
             <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <Pie
-                data={Object.entries(ordersByStatus).map(([status, count]) => ({
-                  name: status.replace(/_/g, ' '),
-                  value: count,
-                  status: status
-                }))}
+                data={chartData}
                 cx="50%"
                 cy="45%"
                 outerRadius={100}
@@ -62,7 +67,7 @@ export function OverviewSection({
                 fill="#8884d8"
                 dataKey="value"
               >
-                {Object.entries(ordersByStatus).map((entry, index) => (
+                {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

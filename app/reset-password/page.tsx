@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FitplayLogo } from "@/components/fitplay-logo";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -170,7 +170,14 @@ function ResetPasswordForm() {
               className="w-full" 
               disabled={isLoading}
             >
-              {isLoading ? "Resetting..." : "Reset Password"}
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Resetting...
+                </div>
+              ) : (
+                "Reset Password"
+              )}
             </Button>
 
             <div className="text-center">

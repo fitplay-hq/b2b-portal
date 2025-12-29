@@ -118,17 +118,17 @@ export default function ClientOrderHistory() {
   if (isLoading) {
     return (
       <Layout title="Order History" isClient>
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
+        <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+            <Skeleton className="h-20 sm:h-24" />
+            <Skeleton className="h-20 sm:h-24" />
+            <Skeleton className="h-20 sm:h-24" />
           </div>
-          <Skeleton className="h-20" />
-          <div className="space-y-4">
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
+          <Skeleton className="h-16 sm:h-20" />
+          <div className="space-y-3 sm:space-y-4">
+            <Skeleton className="h-24 sm:h-32" />
+            <Skeleton className="h-24 sm:h-32" />
+            <Skeleton className="h-24 sm:h-32" />
           </div>
         </div>
       </Layout>
@@ -137,18 +137,18 @@ export default function ClientOrderHistory() {
 
   return (
     <Layout title="Order History" isClient>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Total Orders
               </CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <Package className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalOrders}</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.totalOrders}</div>
               <p className="text-xs text-muted-foreground">
                 All purchase orders
               </p>
@@ -157,13 +157,13 @@ export default function ClientOrderHistory() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Pending Orders
               </CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingOrders}</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.pendingOrders}</div>
               <p className="text-xs text-muted-foreground">Awaiting approval</p>
             </CardContent>
           </Card>
@@ -171,8 +171,8 @@ export default function ClientOrderHistory() {
 
         {/* Filters */}
         <Card>
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row gap-4">
+          <CardHeader className="p-3 sm:p-6">
+            <div className="flex flex-col gap-3 sm:gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -180,11 +180,11 @@ export default function ClientOrderHistory() {
                     placeholder="Search by product name, or SKU..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 text-sm"
                   />
                 </div>
               </div>
-              <div className="sm:w-48">
+              <div className="w-full sm:w-48">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger>
                     <SelectValue />

@@ -55,7 +55,7 @@ export function ProductCard({
   const isInStock = product.availableStock > 0;
 
   return (
-    <Card className="flex flex-col p-0">
+    <Card className="flex flex-col h-full overflow-hidden">
       <CardHeader className="p-0">
         <div className="aspect-square relative">
           <ImageWithFallback
@@ -65,46 +65,49 @@ export function ProductCard({
           />
           {!isInStock && (
             <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-              <Badge variant="destructive">Out of Stock</Badge>
+              <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
             </div>
           )}
         </div>
       </CardHeader>
-      <CardContent className="px-4 flex-grow">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base leading-tight">
-            {product.name}
-          </CardTitle>
-          <Badge variant="secondary" className="text-xs shrink-0">
-            {getHumanFriendlyCategoryName(product.categories && product.categories[0]
-              ? product.categories[0]
-              : "Uncategorized")}
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground mt-2">SKU: {product.sku}</p>
-        <div className="flex items-end justify-between mt-4">
-          <div className="flex flex-col gap-1">
-            <p className="text-sm text-muted-foreground">
-              Stock: {product.availableStock}
-            </p>
+      <CardContent className="p-3 flex-grow flex flex-col">
+        <div className="flex flex-col gap-2 flex-grow">
+          <div className="min-h-0">
+            <CardTitle className="text-sm sm:text-base leading-tight mb-1 overflow-hidden">
+              <span className="block truncate">{product.name}</span>
+            </CardTitle>
+            <Badge variant="secondary" className="text-xs w-fit">
+              {getHumanFriendlyCategoryName(product.categories && product.categories[0]
+                ? product.categories[0]
+                : "Uncategorized")}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+          <div className="flex flex-col gap-1 mt-auto">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Stock: {product.availableStock}
+              </p>
+              {cartQuantity > 0 && (
+                <p className="text-xs font-semibold text-blue-600">
+                  {cartQuantity} in cart
+                </p>
+              )}
+            </div>
             {product.price && (
-              <p className="text-sm font-medium">Price: ₹{product.price}</p>
+              <p className="text-sm font-medium">₹{product.price}</p>
             )}
           </div>
-          {cartQuantity > 0 && (
-            <p className="text-xs font-semibold text-blue-600">
-              {cartQuantity} in cart
-            </p>
-          )}
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-3 pt-0">
         <Button
           onClick={() => onAddToCartClick(product)}
           disabled={!isInStock}
-          className="w-full"
+          className="w-full text-sm h-8 sm:h-9"
+          size="sm"
         >
-          <ShoppingCart className="h-4 w-4 mr-2" />
+          <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           {isInStock ? "Add to Cart" : "Out of Stock"}
         </Button>
       </CardFooter>

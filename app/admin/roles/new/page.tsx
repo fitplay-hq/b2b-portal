@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Shield, ArrowLeft, Save } from "lucide-react";
+import { Shield, ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { PageGuard } from "@/components/page-guard";
@@ -33,6 +33,7 @@ export default function NewRolePage() {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can create roles)
   const isAdmin = session?.user?.role === "ADMIN";
@@ -143,6 +144,7 @@ export default function NewRolePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsCreating(true);
     
     try {
       const response = await fetch("/api/admin/roles", {
@@ -178,6 +180,8 @@ export default function NewRolePage() {
     } catch (error) {
       console.error("Network error:", error);
       toast.error("Network error. Please try again.");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -453,10 +457,19 @@ export default function NewRolePage() {
           <Button 
             type="submit" 
             className="bg-purple-600 hover:bg-purple-700"
-            disabled={!roleName.trim() || selectedPermissions.length === 0}
+            disabled={!roleName.trim() || selectedPermissions.length === 0 || isCreating}
           >
-            <Save className="h-4 w-4 mr-2" />
-            Create Role
+            {isCreating ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Creating...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Save className="h-4 w-4" />
+                Create Role
+              </div>
+            )}
           </Button>
         </div>
       </form>
