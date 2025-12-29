@@ -226,14 +226,24 @@ function CompaniesClientsContent() {
                       Manage companies, client users (POCs), assigned products, and analytics scope
                     </p>
                   </div>
-                  {actions.companies.create && (
-                    <Link href="/admin/companies/new" className="flex-shrink-0">
-                      <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Company
-                      </Button>
-                    </Link>
-                  )}
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-shrink-0">
+                    {actions.clients.create && (
+                      <Link href="/admin/clients/new" className="flex-shrink-0">
+                        <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
+                          <Users className="h-4 w-4 mr-2" />
+                          Add Client
+                        </Button>
+                      </Link>
+                    )}
+                    {actions.companies.create && (
+                      <Link href="/admin/companies/new" className="flex-shrink-0">
+                        <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Company
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
 
