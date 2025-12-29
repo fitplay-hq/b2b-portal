@@ -6,7 +6,7 @@ export type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "lowes
 export function useProductFilters(products: Product[] = []) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
-  const [sortBy, setSortBy] = useState<SortOption>('category');
+  const [sortBy, setSortBy] = useState<SortOption>('name-asc');
 
   const filteredProducts = useMemo(() => {
     let filtered = products;
@@ -62,6 +62,16 @@ export function useProductFilters(products: Product[] = []) {
         sortedProducts = sortedProducts.sort((a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         );
+        break;
+      case "category":
+        sortedProducts = sortedProducts.sort((a, b) => {
+          const categoryA = a.categories || "";
+          const categoryB = b.categories || "";
+          if (categoryA === categoryB) {
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+          }
+          return categoryA.localeCompare(categoryB);
+        });
         break;
     }
 

@@ -55,14 +55,14 @@ export function OverviewSection({
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Order Status Overview</CardTitle>
         </CardHeader>
-        <CardContent className="p-3">
-          <ResponsiveContainer width="100%" height={350}>
-            <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+        <CardContent className="p-1">
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart margin={{ top: -20, right: -10, left: -10, bottom: -20 }}>
               <Pie
                 data={chartData}
                 cx="50%"
                 cy="45%"
-                outerRadius={100}
+                outerRadius={75}
                 innerRadius={0}
                 fill="#8884d8"
                 dataKey="value"
@@ -82,25 +82,25 @@ export function OverviewSection({
               />
               <Legend 
                 verticalAlign="bottom" 
-                height={60}
+                height={35}
                 wrapperStyle={{
-                  paddingTop: '10px',
-                  fontSize: '11px',
-                  lineHeight: '1.2'
+                  paddingTop: '2px',
+                  fontSize: '9px',
+                  lineHeight: '1.0'
                 }}
                 formatter={(value: string) => (
-                  <span style={{ color: '#374151', fontSize: '10px' }}>{value}</span>
+                  <span style={{ color: '#374151', fontSize: '8px' }}>{value}</span>
                 )}
               />
             </PieChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-2">
+      <Card className="overflow-hidden h-fit">
+        <CardHeader className="pb-1">
           <CardTitle className="text-lg">System Alerts</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 p-3">
+        <CardContent className="space-y-2 p-2 pb-2">
           <AlertItem
             Icon={AlertCircle}
             title="Low Stock Items"
@@ -119,6 +119,39 @@ export function OverviewSection({
             description={`${activeClients} clients actively ordering`}
             color="green"
           />
+          
+          {/* Quick Stats Section */}
+          <div className="mt-4 pt-3 border-t border-gray-100">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-blue-50 rounded-lg p-2.5 text-center">
+                <div className="text-lg font-semibold text-blue-700">{allOrders.filter(o => {
+                  const today = new Date();
+                  const orderDate = new Date(o.createdAt);
+                  return orderDate.toDateString() === today.toDateString();
+                }).length}</div>
+                <div className="text-xs text-blue-600">Today's Orders</div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-2.5 text-center">
+                <div className="text-lg font-semibold text-green-700">{allOrders.filter(o => o.status === 'DELIVERED').length}</div>
+                <div className="text-xs text-green-600">Total Delivered</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="bg-purple-50 rounded-lg p-2.5 text-center">
+                <div className="text-lg font-semibold text-purple-700">{allOrders.filter(o => {
+                  const weekAgo = new Date();
+                  weekAgo.setDate(weekAgo.getDate() - 7);
+                  const orderDate = new Date(o.createdAt);
+                  return orderDate >= weekAgo;
+                }).length}</div>
+                <div className="text-xs text-purple-600">This Week</div>
+              </div>
+              <div className="bg-orange-50 rounded-lg p-2.5 text-center">
+                <div className="text-lg font-semibold text-orange-700">{Math.round(allOrders.reduce((sum, o) => sum + o.totalAmount, 0) / Math.max(allOrders.length, 1))}</div>
+                <div className="text-xs text-orange-600">Avg Order ₹</div>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

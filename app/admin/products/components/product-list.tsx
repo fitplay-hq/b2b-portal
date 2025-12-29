@@ -86,8 +86,14 @@ export function ProductList({
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {Object.entries(groupedProducts).map(
-            ([category, categoryProducts]) => (
+          {Object.entries(groupedProducts)
+            .sort(([a], [b]) => {
+              // Same sorting logic as cards view: Uncategorized goes last
+              if (a === 'Uncategorized') return 1;
+              if (b === 'Uncategorized') return -1;
+              return a.localeCompare(b);
+            })
+            .map(([category, categoryProducts]) => (
               <div key={category} className="space-y-4">
                 <div className="border-b pb-2 mb-4">
                   <h3 className="text-lg font-semibold">

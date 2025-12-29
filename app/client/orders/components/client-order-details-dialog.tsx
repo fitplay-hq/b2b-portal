@@ -257,15 +257,13 @@ export function ClientOrderDetailsDialog({
               Order Timeline
             </h4>
             <div className="space-y-3">
-              {orderTimeline.map((item, index) => {
-                const isCompleted = index <= currentStatusIndex;
+              {orderTimeline.slice(0, currentStatusIndex + 1).map((item, index) => {
+                const isCompleted = index < currentStatusIndex + 1;
                 const isCurrent = index === currentStatusIndex;
                 const { Icon: TimelineIcon } = getStatusVisuals(item.status);
                 
                 return (
-                  <div key={item.status} className={`flex items-start gap-3 ${
-                    isCompleted ? 'opacity-100' : 'opacity-40'
-                  }`}>
+                  <div key={item.status} className="flex items-start gap-3">
                     <div className={`h-8 w-8 rounded-full flex items-center justify-center mt-1 ${
                       isCurrent ? 'bg-primary text-primary-foreground' : 
                       isCompleted ? 'bg-green-100 text-green-600' : 'bg-muted'
@@ -279,11 +277,9 @@ export function ClientOrderDetailsDialog({
                       <p className="text-sm text-muted-foreground">
                         {item.description}
                       </p>
-                      {isCompleted && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(item.timestamp).toLocaleDateString()}
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(item.timestamp).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
                 );
