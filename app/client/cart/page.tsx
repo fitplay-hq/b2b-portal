@@ -46,6 +46,11 @@ export default function ClientCart() {
   const [bundleProducts, setBundleProducts] = useState<{product: any, quantity: number}[]>([]);
   const [numberOfBundles, setNumberOfBundles] = useState(1);
   const [bundleSearchTerm, setBundleSearchTerm] = useState("");
+  
+  // New inline bundle state
+  const [selectedForBundle, setSelectedForBundle] = useState<Set<string>>(new Set());
+  const [bundleQuantities, setBundleQuantities] = useState<{[productId: string]: number}>({});
+  const [inlineBundleCount, setInlineBundleCount] = useState(1);
 
   const { products, isLoading: isProductsLoading } = useProducts();
 
@@ -56,6 +61,33 @@ export default function ClientCart() {
     );
     setCartItems(cart);
   }, [session?.user?.id]);
+  
+  // Clean up bundle selections when cart changes
+  useEffect(() => {
+    const individualProductIds = cartItems
+      .filter(item => !item.isBundleItem)
+      .map(item => item.product.id);
+    
+    // Remove any selected items that are no longer individual items
+    const newSelected = new Set(Array.from(selectedForBundle).filter(id => 
+      individualProductIds.includes(id)
+    ));
+    
+    if (newSelected.size !== selectedForBundle.size) {
+      setSelectedForBundle(newSelected);
+      // Also clean up bundle quantities for removed items
+      setBundleQuantities(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(key => {
+          if (!individualProductIds.includes(key)) {
+            delete updated[key];
+          }
+        });
+        return updated;
+      });
+    }
+  }, [cartItems, selectedForBundle]);
+  
   console.log({ cartItems });
 
   const updateCart = (updatedCart: CartItem[]) => {
@@ -96,7 +128,7 @@ export default function ClientCart() {
 
   // Bundle handling functions
   const bundleSearchResults = products?.filter(
-    (p) => {
+    (p: any) => {
       if (!bundleSearchTerm.trim()) return true; // Show all products when no search term
       return p.name.toLowerCase().includes(bundleSearchTerm.trim().toLowerCase()) ||
              (p.sku ? p.sku.toLowerCase().includes(bundleSearchTerm.trim().toLowerCase()) : false);
@@ -168,6 +200,102 @@ export default function ClientCart() {
 
     toast.success(`Added ${numberOfBundles} bundle(s) to cart`);
   };
+  
+  // Inline bundle functions
+  const handleBundleSelection = (productId: string, selected: boolean) => {
+    // Only allow selection of individual (non-bundle) items
+    const cartItem = cartItems.find(item => item.product.id === productId);
+    if (cartItem && cartItem.isBundleItem) {
+      return; // Don't allow bundle items to be selected for bundling
+    }
+    
+    const newSelected = new Set(selectedForBundle);
+    if (selected) {
+      newSelected.add(productId);
+      // Set default bundle quantity to current cart quantity
+      if (cartItem) {
+        setBundleQuantities(prev => ({ ...prev, [productId]: cartItem.quantity }));
+      }
+    } else {
+      newSelected.delete(productId);
+      setBundleQuantities(prev => {
+        const updated = { ...prev };
+        delete updated[productId];
+        return updated;
+      });
+    }
+    setSelectedForBundle(newSelected);
+  };
+  
+  const handleBundleQuantityChange = (productId: string, quantity: number) => {
+    setBundleQuantities(prev => ({ ...prev, [productId]: Math.max(1, quantity) }));
+  };
+  
+  const addInlineBundle = () => {
+    if (selectedForBundle.size === 0) {
+      toast.error("Select at least one product for the bundle");
+      return;
+    }
+    
+    const selectedItems = cartItems.filter(item => selectedForBundle.has(item.product.id));
+    const updatedCart = [...cartItems];
+    
+    // Reduce quantities from individual items and add bundle
+    selectedItems.forEach(item => {
+      const bundleQty = bundleQuantities[item.product.id] || 1;
+      const totalBundleItems = bundleQty * inlineBundleCount;
+      
+      // Find the item in cart and reduce its quantity
+      const cartIndex = updatedCart.findIndex(cartItem => cartItem.product.id === item.product.id);
+      if (cartIndex >= 0) {
+        if (updatedCart[cartIndex].quantity >= totalBundleItems) {
+          updatedCart[cartIndex].quantity -= totalBundleItems;
+          
+          // If quantity becomes 0, remove the item
+          if (updatedCart[cartIndex].quantity === 0) {
+            updatedCart.splice(cartIndex, 1);
+          }
+        } else {
+          toast.error(`Not enough ${item.product.name} in cart for bundle`);
+          return;
+        }
+      }
+    });
+    
+    // Add bundle items
+    selectedItems.forEach(item => {
+      const bundleQty = bundleQuantities[item.product.id] || 1;
+      const totalBundleItems = bundleQty * inlineBundleCount;
+      
+      const bundleItem: CartItem = {
+        product: item.product,
+        quantity: totalBundleItems,
+        isBundleItem: true,
+        bundleQuantity: bundleQty,
+        bundleCount: inlineBundleCount,
+      };
+      
+      // Check if bundle item already exists
+      const existingBundleIndex = updatedCart.findIndex(
+        (cartItem) => cartItem.product.id === item.product.id && cartItem.isBundleItem
+      );
+      
+      if (existingBundleIndex >= 0) {
+        updatedCart[existingBundleIndex].quantity += totalBundleItems;
+      } else {
+        updatedCart.push(bundleItem);
+      }
+    });
+    
+    updateCart(updatedCart);
+    
+    // Reset inline bundle state
+    setSelectedForBundle(new Set());
+    setBundleQuantities({});
+    setInlineBundleCount(1);
+    
+    toast.success(`Added ${inlineBundleCount} bundle(s) to cart`);
+  };
 
   // Handle authentication
   if (status === "loading") {
@@ -207,14 +335,6 @@ export default function ClientCart() {
                 <div className="flex gap-2 justify-center">
                   <Button asChild>
                     <Link href="/client/products">Browse Products</Link>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowBundleDialog(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Package className="h-4 w-4" />
-                    Create Bundle
                   </Button>
                 </div>
               </div>
@@ -364,15 +484,6 @@ export default function ClientCart() {
               </Button>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowBundleDialog(true)}
-                className="flex items-center gap-2 w-full sm:w-auto text-xs sm:text-sm"
-              >
-                <Package className="h-3 w-3 sm:h-4 sm:w-4" />
-                Create Bundle
-              </Button>
               <Button variant="outline" size="sm" onClick={clearCart} className="w-full sm:w-auto text-xs sm:text-sm">
                 <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 Clear Cart
@@ -492,11 +603,119 @@ export default function ClientCart() {
                           </p>
                         </div>
                       </div>
+                      
+                      {/* Bundle Selection - Only for individual items */}
+                      {!item.isBundleItem && (
+                        <div className="flex items-center gap-2 pt-2 border-t border-dashed">
+                          <Checkbox 
+                            id={`bundle-${item.product.id}`}
+                            checked={selectedForBundle.has(item.product.id)}
+                            onCheckedChange={(checked) => handleBundleSelection(item.product.id, checked as boolean)}
+                          />
+                          <Label htmlFor={`bundle-${item.product.id}`} className="text-sm text-muted-foreground cursor-pointer">
+                            Add to Bundle
+                          </Label>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </CardContent>
             </Card>
+            
+            {/* Inline Bundle Creation UI */}
+            {selectedForBundle.size > 0 && (
+              <Card className="border-2 border-dashed border-gray-200 bg-white shadow-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-5 w-5 text-gray-600" />
+                    <CardTitle className="text-lg text-gray-800">Create Bundle</CardTitle>
+                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-300">
+                      {selectedForBundle.size} items selected
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Selected Products */}
+                  <div className="space-y-2">
+                    {cartItems
+                      .filter(item => selectedForBundle.has(item.product.id) && !item.isBundleItem)
+                      .map(item => (
+                        <div key={item.product.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 flex-shrink-0">
+                              <ImageWithFallback
+                                src={item.product.images[0]}
+                                alt={item.product.name}
+                                className="w-full h-full object-cover rounded"
+                              />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{item.product.name}</p>
+                              <p className="text-xs text-muted-foreground">Available in cart: {item.quantity}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground">Qty per bundle:</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max={item.quantity}
+                              value={bundleQuantities[item.product.id] || 1}
+                              onChange={(e) => handleBundleQuantityChange(item.product.id, parseInt(e.target.value) || 1)}
+                              className="w-16 h-8 text-center"
+                            />
+                          </div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                  
+                  {/* Bundle Configuration */}
+                  <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-2">
+                      <Label className="font-medium text-gray-800">Number of Bundles:</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={inlineBundleCount}
+                        onChange={(e) => setInlineBundleCount(parseInt(e.target.value) || 1)}
+                        className="w-20 h-8 text-center"
+                      />
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      Total items needed: {Array.from(selectedForBundle).reduce((sum, productId) => {
+                        const qty = bundleQuantities[productId] || 1;
+                        const item = cartItems.find(item => item.product.id === productId && !item.isBundleItem);
+                        return item ? sum + (qty * inlineBundleCount) : sum;
+                      }, 0)}
+                    </div>
+                  </div>
+                  
+                  {/* Bundle Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      onClick={addInlineBundle}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Package className="h-4 w-4 mr-2" />
+                      Add Bundle to Cart
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setSelectedForBundle(new Set());
+                        setBundleQuantities({});
+                        setInlineBundleCount(1);
+                      }}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      Clear Selection
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Order Summary & Checkout Form */}

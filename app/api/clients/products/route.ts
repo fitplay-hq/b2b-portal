@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     // get client info
     const client = await prisma.client.findUnique({
       where: { email: session.user.email },
-      select: { companyID: true },
+      select: { id: true, companyID: true },
     });
 
     if (!client || !client.companyID) {
@@ -38,23 +38,51 @@ export async function GET(req: NextRequest) {
       select: { isShowPrice: true },
     });
 
-    const products = await prisma.product.findMany({
+    // Check if client has specific product assignments
+    const clientProducts = await prisma.clientProduct.findMany({
       where: {
-        companies: {
-          some: {
-            id: client.companyID,
+        clientId: client.id,
+      },
+      include: {
+        product: {
+          include: {
+            companies: true,
+            category: true,
+            subCategory: true,
           },
         },
       },
-      include: {
-        companies: true,
-        category: true,
-        subCategory: true,
-      },
       orderBy: {
-        [safeSortBy]: safeSortOrder,
+        product: {
+          [safeSortBy]: safeSortOrder,
+        },
       },
     });
+
+    let products;
+    if (clientProducts && clientProducts.length > 0) {
+      // Client has specific product assignments - use those
+      products = clientProducts.map(cp => cp.product);
+    } else {
+      // Fallback to company-level products if no specific assignments
+      products = await prisma.product.findMany({
+        where: {
+          companies: {
+            some: {
+              id: client.companyID,
+            },
+          },
+        },
+        include: {
+          companies: true,
+          category: true,
+          subCategory: true,
+        },
+        orderBy: {
+          [safeSortBy]: safeSortOrder,
+        },
+      });
+    }
 
     // Conditionally include price based on client's isShowPrice setting
     const productsWithConditionalPrice = products.map(product => {

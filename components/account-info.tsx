@@ -86,7 +86,7 @@ const AccountInfo = React.memo(({ isCollapsed = false }: AccountInfoProps) => {
             {!isCollapsed && "My Account"}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent align="end" className="w-72">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
@@ -142,7 +142,7 @@ const AccountInfo = React.memo(({ isCollapsed = false }: AccountInfoProps) => {
             )}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent align="end" className="w-72">
           <DropdownMenuLabel>Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
@@ -156,7 +156,9 @@ const AccountInfo = React.memo(({ isCollapsed = false }: AccountInfoProps) => {
               <div>
                 <p className="font-medium text-gray-900">{currentUser?.name}</p>
                 <p className="text-xs text-gray-500">{currentUser?.email}</p>
-                <p className="text-xs text-gray-400 mt-1">Fitplay Inc.</p>
+                {currentUser?.role === 'CLIENT' && (
+                  <p className="text-xs text-gray-400 mt-1">{currentUser?.companyName || 'No Company'}</p>
+                )}
               </div>
             </div>
           </div>

@@ -21,13 +21,13 @@ function StatCard({
 }: StatCardProps) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={`h-4 w-4 ${iconColor || "text-muted-foreground"}`} />
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-6">
+        <CardTitle className="text-xs sm:text-sm font-medium leading-tight">{title}</CardTitle>
+        <Icon className={`h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 ${iconColor || "text-muted-foreground"}`} />
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+      <CardContent className="p-3 sm:p-6 pt-0">
+        <div className="text-lg sm:text-2xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground leading-tight">{description}</p>
       </CardContent>
     </Card>
   );
@@ -48,7 +48,7 @@ export function OrderStatsGrid({
   totalRevenue,
 }: OrderStatsGridProps) {
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-4">
       <StatCard
         title="Total Orders"
         value={totalOrders}

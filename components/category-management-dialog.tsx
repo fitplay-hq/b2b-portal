@@ -241,7 +241,7 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
         onClose();
       }
     }}>
-      <DialogContent className="w-[95vw] h-[90vh] sm:w-[85vw] sm:h-[80vh] lg:w-[70vw] lg:h-[75vh] max-w-6xl mx-2 sm:mx-4 p-3 sm:p-6 gap-0 overflow-hidden flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+      <DialogContent className="w-[95vw] sm:w-[85vw] lg:w-[70vw] max-w-6xl mx-2 sm:mx-4 max-h-[90vh] p-3 sm:p-6 gap-0 overflow-hidden flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader className="pb-3 sm:pb-4 border-b shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex-1">
@@ -393,7 +393,8 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
           )}
 
           {/* Content Display */}
-          <div className="p-3 sm:p-6">
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="p-3 sm:p-6">
             {formMode === 'category' ? (
               <>
                 <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">
@@ -580,6 +581,7 @@ export function CategoryManagementDialog({ isOpen, onClose }: CategoryManagement
                 )}
               </>
             )}
+            </div>
           </div>
         </div>
       </DialogContent>

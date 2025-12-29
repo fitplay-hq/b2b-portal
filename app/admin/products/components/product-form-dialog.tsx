@@ -162,7 +162,7 @@ export function ProductFormDialog({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="minThreshold">Minimum Stock Threshold</Label>
+              <Label htmlFor="minThreshold">Restock level</Label>
               <Input
                 id="minThreshold"
                 type="number"
@@ -171,7 +171,7 @@ export function ProductFormDialog({
                 onChange={(e) =>
                   setFormData({ ...formData, minStockThreshold: e.target.value })
                 }
-                placeholder="Enter threshold"
+                placeholder="Enter restock level"
                 title="When stock falls below this number, email alerts will be sent"
               />
             </div>
