@@ -6,10 +6,12 @@ import { useOrders } from "@/data/order/admin.hooks";
 import { useOrderFilters } from "@/hooks/use-order-filters";
 import { useOrderManagement } from "@/hooks/use-order-management";
 import { usePermissions } from "@/hooks/use-permissions";
-import { Loader2 } from "lucide-react";
+import { Loader2, Grid3x3, Table } from "lucide-react";
+import { useState } from "react";
 import { OrderStatsGrid } from "./components/order-stats-grid";
 import { OrderFilters } from "./components/order-filters";
 import { OrderList } from "./components/order-list";
+import { OrdersTable } from "./components/orders-table";
 import { UpdateStatusDialog } from "./components/update-status-dialog";
 import { formatStatus } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,7 @@ export default function AdminOrdersPage() {
   // 2. LOGIC & STATE
   const { filteredOrders, ...filterProps } = useOrderFilters(orders);
   const { metrics, ...managementProps } = useOrderManagement(orders, mutate);
+  const [viewType, setViewType] = useState<"row" | "table">("row");
 
   // Handle order updates (for shipping label regeneration)
   const handleOrderUpdate = (updatedOrder: AdminOrder) => {
@@ -81,8 +84,45 @@ export default function AdminOrdersPage() {
 
         <OrderStatsGrid {...metrics} />
         <OrderFilters {...filterProps} />
+        
+        {/* View Toggle */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Showing {filteredOrders.length} of {orders?.length || 0} orders</span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={viewType === "row" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewType("row")}
+            >
+              <Grid3x3 className="h-4 w-4 mr-2" />
+              Card View
+            </Button>
+            <Button
+              variant={viewType === "table" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewType("table")}
+            >
+              <Table className="h-4 w-4 mr-2" />
+              Table View
+            </Button>
+          </div>
+        </div>
+
+        {/* Conditional View Rendering */}
+        {viewType === "row" ? (
           <OrderList orders={filteredOrders} onOrderUpdate={handleOrderUpdate} {...managementProps} />
-          <UpdateStatusDialog {...managementProps} />
+        ) : (
+          <OrdersTable 
+            orders={filteredOrders} 
+            onStatusUpdate={managementProps.openStatusDialog}
+            expandedOrders={managementProps.expandedOrders}
+            onToggleOrder={managementProps.toggleOrderExpansion}
+          />
+        )}
+        
+        <UpdateStatusDialog {...managementProps} />
         </div>
       </Layout>
     </PageGuard>

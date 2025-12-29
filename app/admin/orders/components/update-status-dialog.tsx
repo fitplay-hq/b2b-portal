@@ -147,77 +147,85 @@ export function UpdateStatusDialog({
                 </Label>
                 <div className="border rounded-md p-3 bg-gray-50 max-h-40 overflow-y-auto">
                   <div className="space-y-3">
-                    {/* Order Created */}
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <CheckCircle className="h-3 w-3 text-green-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">Order Created</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(dialogState.order.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
+                    {(() => {
+                      // Create a comprehensive timeline by combining all events
+                      const timelineEvents = [];
+                      
+                      // 1. Order Created Event
+                      timelineEvents.push({
+                        type: 'order_created',
+                        timestamp: new Date(dialogState.order.createdAt),
+                        title: 'Order Created',
+                        icon: 'check',
+                        color: 'green'
+                      });
 
-                    {/* Initial Email Sent */}
-                    {dialogState.order.isMailSent && (
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Mail className="h-3 w-3 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">Initial Email Sent</p>
-                          <p className="text-xs text-muted-foreground">
-                            Order confirmation email sent to client
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                      // 2. Initial Email Sent (if applicable)
+                      if (dialogState.order.isMailSent) {
+                        timelineEvents.push({
+                          type: 'initial_email',
+                          timestamp: new Date(dialogState.order.createdAt), // Use createdAt as approximation
+                          title: 'Initial Email Sent',
+                          description: 'Order confirmation email sent to client',
+                          icon: 'mail',
+                          color: 'blue'
+                        });
+                      }
 
-                    {/* Status Update Emails */}
-                    {dialogState.order.emails && dialogState.order.emails.length > 0 && (
-                      <>
-                        {dialogState.order.emails
-                          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-                          .map((email) => (
-                            <div key={email.id} className="flex items-start gap-3">
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                                email.isSent ? 'bg-green-100' : 'bg-gray-100'
-                              }`}>
-                                {email.isSent ? (
-                                  <CheckCircle className="h-3 w-3 text-green-600" />
-                                ) : (
-                                  <Clock className="h-3 w-3 text-gray-600" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium">
-                                  {formatStatus(email.purpose)} Email {email.isSent ? 'Sent' : 'Failed'}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {email.sentAt ? new Date(email.sentAt).toLocaleString() : new Date(email.createdAt).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                      </>
-                    )}
+                      // 3. Add email events with their actual timestamps
+                      if (dialogState.order.emails && dialogState.order.emails.length > 0) {
+                        dialogState.order.emails.forEach(email => {
+                          timelineEvents.push({
+                            type: 'email',
+                            timestamp: new Date(email.sentAt || email.createdAt),
+                            title: `${formatStatus(email.purpose)} Email ${email.isSent ? 'Sent' : 'Failed'}`,
+                            icon: email.isSent ? 'check' : 'clock',
+                            color: email.isSent ? 'green' : 'gray',
+                            email: email
+                          });
+                        });
+                      }
 
-                    {/* No emails at all */}
-                    {!dialogState.order.isMailSent && (!dialogState.order.emails || dialogState.order.emails.length === 0) && (
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Clock className="h-3 w-3 text-gray-600" />
+                      // Sort all events chronologically
+                      timelineEvents.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+                      // Render the sorted timeline
+                      return timelineEvents.length > 0 ? timelineEvents.map((event, index) => (
+                        <div key={`${event.type}-${index}`} className="flex items-start gap-3">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                            event.color === 'green' ? 'bg-green-100' :
+                            event.color === 'blue' ? 'bg-blue-100' : 'bg-gray-100'
+                          }`}>
+                            {event.icon === 'check' && <CheckCircle className={`h-3 w-3 ${
+                              event.color === 'green' ? 'text-green-600' : 'text-gray-600'
+                            }`} />}
+                            {event.icon === 'mail' && <Mail className="h-3 w-3 text-blue-600" />}
+                            {event.icon === 'clock' && <Clock className="h-3 w-3 text-gray-600" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{event.title}</p>
+                            {event.description && (
+                              <p className="text-xs text-muted-foreground">{event.description}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              {event.timestamp.toLocaleString()}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-muted-foreground">No emails sent yet</p>
-                          <p className="text-xs text-muted-foreground">
-                            Email notifications will be sent when status is updated
-                          </p>
+                      )) : (
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Clock className="h-3 w-3 text-gray-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-muted-foreground">No emails sent yet</p>
+                            <p className="text-xs text-muted-foreground">
+                              Email notifications will be sent when status is updated
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

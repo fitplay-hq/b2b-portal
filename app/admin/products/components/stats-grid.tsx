@@ -18,36 +18,41 @@ interface StatsGridProps {
 export function StatsGrid({ products }: StatsGridProps) {
   const stats = useMemo(() => {
     const lowStock = products.filter(
-      (p) => p.availableStock < 50 && p.availableStock > 0
+      (p) => p.minStockThreshold && p.availableStock <= p.minStockThreshold && p.availableStock > 0
     ).length;
     const outOfStock = products.filter((p) => p.availableStock === 0).length;
     return { lowStock, outOfStock, total: products.length };
   }, [products]);
 
   return (
-    <div className="w-full overflow-x-hidden">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-      <StatCard
-        title="Total Products"
-        value={stats.total}
-        icon={Package}
-        description="In catalog"
-      />
-      <StatCard
-        title="Low Stock"
-        value={stats.lowStock}
-        icon={AlertTriangle}
-        description="Below 50 units"
-        iconColor="text-yellow-600"
-      />
-      <StatCard
-        title="Out of Stock"
-        value={stats.outOfStock}
-        icon={AlertTriangle}
-        description="Need restocking"
-        iconColor="text-red-600"
-      />
-    </div>
+    <div className="w-full overflow-x-hidden space-y-3 sm:space-y-4">
+      {/* First row - Total Products full width */}
+      <div className="grid grid-cols-1">
+        <StatCard
+          title="Total Products"
+          value={stats.total}
+          icon={Package}
+          description="In catalog"
+        />
+      </div>
+      
+      {/* Second row - Low Stock and Out of Stock side by side */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+        <StatCard
+          title="Low Stock"
+          value={stats.lowStock}
+          icon={AlertTriangle}
+          description="Below restock level"
+          iconColor="text-yellow-600"
+        />
+        <StatCard
+          title="Out of Stock"
+          value={stats.outOfStock}
+          icon={AlertTriangle}
+          description="Need restocking"
+          iconColor="text-red-600"
+        />
+      </div>
     </div>
   );
 }

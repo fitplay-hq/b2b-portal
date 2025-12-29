@@ -430,110 +430,124 @@ const OrderDetails = ({
           <div className="md:col-span-2">
             <h4 className="font-medium mb-3">Order Timeline</h4>
             <div className="space-y-3">
-              {/* Order Created Event */}
-              <div className="flex items-start gap-3">
-                <div className="flex flex-col items-center">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div className="w-0.5 h-6 bg-gray-200 mt-1"></div>
-                </div>
-                <div className="flex-1 pb-2">
-                  <p className="text-sm font-medium">Order Created</p>
-                  <p className="text-xs text-muted-foreground">
-                    Order placed by client • {new Date(order.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
+              {(() => {
+                // Create a comprehensive timeline by combining all events
+                const timelineEvents = [];
+                
+                // 1. Order Created Event
+                timelineEvents.push({
+                  type: 'order_created',
+                  timestamp: new Date(order.createdAt),
+                  title: 'Order Created',
+                  description: 'Order placed by client',
+                  icon: 'check',
+                  color: 'green'
+                });
 
-              {/* Initial Email Sent Event */}
-              {order.isMailSent && (
-                <div className="flex items-start gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Mail className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div className="w-0.5 h-6 bg-gray-200 mt-1"></div>
-                  </div>
-                  <div className="flex-1 pb-2">
-                    <p className="text-sm font-medium">Initial Email Sent</p>
-                    <p className="text-xs text-muted-foreground">
-                      Order confirmation email sent to client • {new Date(order.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              )}
+                // 2. Initial Email Sent (if applicable)
+                if (order.isMailSent) {
+                  timelineEvents.push({
+                    type: 'initial_email',
+                    timestamp: new Date(order.createdAt), // Use createdAt as approximation
+                    title: 'Initial Email Sent',
+                    description: 'Order confirmation email sent to client',
+                    icon: 'mail',
+                    color: 'blue'
+                  });
+                }
 
-              {/* Status Change Events */}
-              {order.status !== 'PENDING' && (
-                <div className="flex items-start gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      order.status === 'APPROVED' ? 'bg-blue-100' :
-                      order.status === 'READY_FOR_DISPATCH' ? 'bg-purple-100' :
-                      order.status === 'DISPATCHED' ? 'bg-orange-100' :
-                      order.status === 'AT_DESTINATION' ? 'bg-yellow-100' :
-                      order.status === 'DELIVERED' ? 'bg-green-100' :
-                      order.status === 'CANCELLED' ? 'bg-red-100' : 'bg-gray-100'
-                    }`}>
-                      {order.status === 'APPROVED' && <CheckCircle className="h-4 w-4 text-blue-600" />}
-                      {order.status === 'READY_FOR_DISPATCH' && <Package className="h-4 w-4 text-purple-600" />}
-                      {order.status === 'DISPATCHED' && <Package className="h-4 w-4 text-orange-600" />}
-                      {order.status === 'AT_DESTINATION' && <Building2 className="h-4 w-4 text-yellow-600" />}
-                      {order.status === 'DELIVERED' && <CheckCircle className="h-4 w-4 text-green-600" />}
-                      {order.status === 'CANCELLED' && <XCircle className="h-4 w-4 text-red-600" />}
-                    </div>
-                    {(order.emails && order.emails.length > 0) && <div className="w-0.5 h-6 bg-gray-200 mt-1"></div>}
-                  </div>
-                  <div className="flex-1 pb-2">
-                    <p className="text-sm font-medium">Order {formatStatus(order.status)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Status updated to {formatStatus(order.status).toLowerCase()}
-                      {order.consignmentNumber && ` • Consignment: ${order.consignmentNumber}`}
-                      {order.deliveryService && ` • Service: ${order.deliveryService}`}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(order.updatedAt).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              )}
+                // 3. Add email events with their actual timestamps
+                if (order.emails && order.emails.length > 0) {
+                  order.emails.forEach(email => {
+                    timelineEvents.push({
+                      type: 'email',
+                      timestamp: new Date(email.sentAt || email.createdAt),
+                      title: `${formatStatus(email.purpose)} Email ${email.isSent ? 'Sent' : 'Failed'}`,
+                      description: email.isSent ? 'Email notification sent to client' : 'Email delivery failed',
+                      icon: email.isSent ? 'check' : 'clock',
+                      color: email.isSent ? 'green' : 'gray',
+                      email: email
+                    });
+                  });
+                }
 
-              {/* Email History Events */}
-              {order.emails && order.emails.length > 0 && (
-                <>
-                  {order.emails
-                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-                    .map((email, index) => (
-                      <div key={email.id} className="flex items-start gap-3">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            email.isSent ? 'bg-green-100' : 'bg-gray-100'
-                          }`}>
-                            {email.isSent ? (
-                              <CheckCircle className={`h-4 w-4 ${email.isSent ? 'text-green-600' : 'text-gray-600'}`} />
-                            ) : (
-                              <Clock className="h-4 w-4 text-gray-600" />
-                            )}
-                          </div>
-                          {index < order.emails!.length - 1 && <div className="w-0.5 h-6 bg-gray-200 mt-1"></div>}
-                        </div>
-                        <div className="flex-1 pb-2">
-                          <p className="text-sm font-medium">
-                            {formatStatus(email.purpose)} Email {email.isSent ? 'Sent' : 'Failed'}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {email.sentAt ? (
-                              new Date(email.sentAt).toLocaleString()
-                            ) : (
-                              new Date(email.createdAt).toLocaleString()
-                            )}
-                          </p>
-                        </div>
+                // 4. Current status event (only if not PENDING and no corresponding email exists)
+                if (order.status !== 'PENDING') {
+                  const hasStatusEmail = order.emails?.some(email => email.purpose === order.status);
+                  if (!hasStatusEmail) {
+                    timelineEvents.push({
+                      type: 'status_change',
+                      timestamp: new Date(order.updatedAt),
+                      title: `Order ${formatStatus(order.status)}`,
+                      description: `Status updated to ${formatStatus(order.status).toLowerCase()}${
+                        order.consignmentNumber ? ` • Consignment: ${order.consignmentNumber}` : ''
+                      }${order.deliveryService ? ` • Service: ${order.deliveryService}` : ''}`,
+                      icon: order.status === 'APPROVED' ? 'check' :
+                            order.status === 'READY_FOR_DISPATCH' ? 'package' :
+                            order.status === 'DISPATCHED' ? 'package' :
+                            order.status === 'AT_DESTINATION' ? 'building' :
+                            order.status === 'DELIVERED' ? 'check' :
+                            order.status === 'CANCELLED' ? 'x' : 'clock',
+                      color: order.status === 'APPROVED' ? 'blue' :
+                             order.status === 'READY_FOR_DISPATCH' ? 'purple' :
+                             order.status === 'DISPATCHED' ? 'orange' :
+                             order.status === 'AT_DESTINATION' ? 'yellow' :
+                             order.status === 'DELIVERED' ? 'green' :
+                             order.status === 'CANCELLED' ? 'red' : 'gray'
+                    });
+                  }
+                }
+
+                // Sort all events chronologically
+                timelineEvents.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+                // Render the sorted timeline
+                return timelineEvents.map((event, index) => (
+                  <div key={`${event.type}-${index}`} className="flex items-start gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        event.color === 'green' ? 'bg-green-100' :
+                        event.color === 'blue' ? 'bg-blue-100' :
+                        event.color === 'purple' ? 'bg-purple-100' :
+                        event.color === 'orange' ? 'bg-orange-100' :
+                        event.color === 'yellow' ? 'bg-yellow-100' :
+                        event.color === 'red' ? 'bg-red-100' : 'bg-gray-100'
+                      }`}>
+                        {event.icon === 'check' && <CheckCircle className={`h-4 w-4 ${
+                          event.color === 'green' ? 'text-green-600' :
+                          event.color === 'blue' ? 'text-blue-600' :
+                          event.color === 'purple' ? 'text-purple-600' :
+                          event.color === 'orange' ? 'text-orange-600' :
+                          event.color === 'yellow' ? 'text-yellow-600' :
+                          event.color === 'red' ? 'text-red-600' : 'text-gray-600'
+                        }`} />}
+                        {event.icon === 'mail' && <Mail className={`h-4 w-4 ${
+                          event.color === 'blue' ? 'text-blue-600' : 'text-gray-600'
+                        }`} />}
+                        {event.icon === 'package' && <Package className={`h-4 w-4 ${
+                          event.color === 'purple' ? 'text-purple-600' :
+                          event.color === 'orange' ? 'text-orange-600' : 'text-gray-600'
+                        }`} />}
+                        {event.icon === 'building' && <Building2 className={`h-4 w-4 ${
+                          event.color === 'yellow' ? 'text-yellow-600' : 'text-gray-600'
+                        }`} />}
+                        {event.icon === 'x' && <XCircle className={`h-4 w-4 ${
+                          event.color === 'red' ? 'text-red-600' : 'text-gray-600'
+                        }`} />}
+                        {event.icon === 'clock' && <Clock className="h-4 w-4 text-gray-600" />}
                       </div>
-                    ))}
-                </>
-              )}
+                      {index < timelineEvents.length - 1 && <div className="w-0.5 h-6 bg-gray-200 mt-1"></div>}
+                    </div>
+                    <div className="flex-1 pb-2">
+                      <p className="text-sm font-medium">{event.title}</p>
+                      <p className="text-xs text-muted-foreground">{event.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {event.timestamp.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ));
+              })()}
 
               {/* No events yet */}
               {!order.isMailSent && (!order.emails || order.emails.length === 0) && order.status === 'PENDING' && (
