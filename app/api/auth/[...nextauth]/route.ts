@@ -26,13 +26,18 @@ export const auth: AuthOptions = {
           console.log("🔓 Email verified login attempt for:", credentials.email);
           
           // Check which type of user this is
-          const client = await prisma.client.findUnique({ where: { email: credentials.email } });
+          const client = await prisma.client.findUnique({ 
+            where: { email: credentials.email },
+            include: { company: true }
+          });
           if (client) {
             return {
               id: client.id,
               name: client.name,
               email: client.email,
               role: "CLIENT",
+              companyId: client.companyID,
+              companyName: client.company?.name || client.companyName || 'No Company',
             };
           }
 
@@ -72,13 +77,18 @@ export const auth: AuthOptions = {
           console.log("🔓 OTP verified login attempt for:", credentials.email);
           
           // Check which type of user this is
-          const client = await prisma.client.findUnique({ where: { email: credentials.email } });
+          const client = await prisma.client.findUnique({ 
+            where: { email: credentials.email },
+            include: { company: true }
+          });
           if (client) {
             return {
               id: client.id,
               name: client.name,
               email: client.email,
               role: "CLIENT",
+              companyId: client.companyID,
+              companyName: client.company?.name || client.companyName || 'No Company',
             };
           }
 
@@ -128,7 +138,10 @@ export const auth: AuthOptions = {
         }
 
         // 2. Check Client
-        const client = await prisma.client.findUnique({ where: { email: credentials.email } });
+        const client = await prisma.client.findUnique({ 
+          where: { email: credentials.email },
+          include: { company: true }
+        });
         if (client) {
           const isValid = await compare(credentials.password, client.password);
           if (!isValid) throw new Error("Invalid password");
@@ -137,6 +150,8 @@ export const auth: AuthOptions = {
             name: client.name,
             email: client.email,
             role: "CLIENT",
+            companyId: client.companyID,
+            companyName: client.company?.name || client.companyName || 'No Company',
           };
         }
 
