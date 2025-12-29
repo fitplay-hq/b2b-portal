@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, Package, MapPin, Calendar, IndianRupee, ChevronDown, ChevronUp } from "lucide-react";
 import { formatStatus } from "@/lib/utils";
 import { ImageWithFallback } from "@/components/image";
+import { useState } from "react";
+import { ClientOrderDetailsDialog } from "./client-order-details-dialog";
 import type { OrderWithItems } from "@/data/order/client.actions";
 
 interface ClientOrdersTableProps {
@@ -69,10 +71,18 @@ const getStatusDescription = (status: string) => {
 };
 
 export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: ClientOrdersTableProps) {
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   const handleToggleOrder = (orderId: string) => {
     if (onToggleOrder) {
       onToggleOrder(orderId);
     }
+  };
+
+  const handleRowClick = (order: OrderWithItems) => {
+    setSelectedOrder(order);
+    setIsDialogOpen(true);
   };
 
   return (
@@ -80,18 +90,17 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Order Details</TableHead>
+            <TableHead>Order Created</TableHead>
+            <TableHead>Order ID</TableHead>
             <TableHead>Items</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Delivery</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>Order Status</TableHead>
+            <TableHead>Total Amount</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {orders.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                 No orders found
               </TableCell>
             </TableRow>
@@ -101,99 +110,129 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
                 const isExpanded = expandedOrders?.has(order.id) || false;
                 return (
                   <>
-                    <TableRow key={order.id} className="group">
+                    <TableRow 
+                      key={order.id} 
+                      className="group cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleRowClick(order)}
+                    >
+                      {/* Order Created Date */}
                       <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium text-sm">{order.id}</div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
                             {new Date(order.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(order.createdAt).toLocaleTimeString()}
+                        </div>
+                      </TableCell>
+
+                      {/* Order ID */}
+                      <TableCell>
+                        <div className="font-medium text-sm">{order.id}</div>
+                        {order.consignmentNumber && (
+                          <div className="text-xs text-blue-600 font-mono">
+                            AWB: {order.consignmentNumber}
                           </div>
-                          {order.consignmentNumber && (
-                            <div className="text-xs text-blue-600 font-mono">
-                              AWB: {order.consignmentNumber}
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          Required: {new Date(order.requiredByDate).toLocaleDateString()}
+                        </div>
+                      </TableCell>
+                      
+                      {/* Items */}
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">
+                            {order.orderItems.length} items
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {order.orderItems.slice(0, 2).map((item, idx) => (
+                            <div key={idx}>
+                              {item.product.name} x{item.quantity}
+                            </div>
+                          ))}
+                          {order.orderItems.length > 2 && (
+                            <div className="text-muted-foreground">
+                              +{order.orderItems.length - 2} more items
                             </div>
                           )}
-                          <div className="text-xs text-muted-foreground">
-                            Required: {new Date(order.requiredByDate).toLocaleDateString()}
-                          </div>
                         </div>
                       </TableCell>
                       
+                      {/* Order Status */}
                       <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-sm">
-                            <Package className="h-3 w-3" />
-                            {order.orderItems.length} item{order.orderItems.length !== 1 ? 's' : ''}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Total Qty: {order.orderItems.reduce((sum, item) => sum + item.quantity, 0)}
-                          </div>
+                        <Badge className={getStatusColor(order.status)} variant="outline">
+                          {formatStatus(order.status)}
+                        </Badge>
+                        <div className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+                          {getStatusDescription(order.status)}
                         </div>
                       </TableCell>
                       
+                      {/* Total Amount */}
                       <TableCell>
                         {order.totalAmount > 0 && (
-                          <div className="flex items-center gap-1 text-sm font-medium">
-                            <IndianRupee className="h-3 w-3" />
+                          <div className="flex items-center gap-1 font-medium">
+                            <IndianRupee className="h-4 w-4" />
                             {order.totalAmount.toFixed(2)}
                           </div>
                         )}
                       </TableCell>
-                      
-                      <TableCell>
-                        <div className="space-y-1 max-w-[200px]">
-                          <div className="flex items-center gap-1 text-xs">
-                            <MapPin className="h-3 w-3" />
-                            {order.city && order.state ? `${order.city}, ${order.state}` : 'Address on file'}
-                          </div>
-                          {order.modeOfDelivery && (
-                            <div className="text-xs text-muted-foreground">
-                              {order.modeOfDelivery}
-                            </div>
-                          )}
-                          {order.deliveryService && (
-                            <div className="text-xs text-blue-600">
-                              {order.deliveryService}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="space-y-1">
-                          <Badge className={getStatusColor(order.status)} variant="outline">
-                            {formatStatus(order.status)}
-                          </Badge>
-                          <div className="text-xs text-muted-foreground max-w-[150px]">
-                            {getStatusDescription(order.status)}
-                          </div>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleOrder(order.id)}
-                            className="h-8 w-8 p-0"
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
                     </TableRow>
                     
-                    {/* Expanded Row */}
+                    {/* Expanded Row with Timeline */}
                     {isExpanded && (
                       <TableRow>
-                        <TableCell colSpan={6} className="bg-muted/20 p-0">
+                        <TableCell colSpan={5} className="bg-muted/20 p-0">
                           <div className="p-4 space-y-4">
+                            {/* Order Timeline */}
+                            <div>
+                              <h4 className="font-medium mb-3">Order Timeline</h4>
+                              <div className="space-y-3 mb-4">
+                                {[
+                                  { status: "PENDING", label: "Order Placed", description: "Your order has been submitted" },
+                                  { status: "APPROVED", label: "Order Approved", description: "Your order has been approved" },
+                                  { status: "READY_FOR_DISPATCH", label: "Ready for Dispatch", description: "Your order is packed and ready" },
+                                  { status: "DISPATCHED", label: "Order Dispatched", description: "Your order has been dispatched" },
+                                  { status: "AT_DESTINATION", label: "At Destination", description: "Your order has reached destination" },
+                                  { status: "DELIVERED", label: "Delivered", description: "Your order has been delivered" },
+                                  { status: "COMPLETED", label: "Completed", description: "Your order is complete" },
+                                ].map((timelineItem, index) => {
+                                  const currentStatusIndex = [
+                                    "PENDING", "APPROVED", "READY_FOR_DISPATCH", 
+                                    "DISPATCHED", "AT_DESTINATION", "DELIVERED", "COMPLETED"
+                                  ].indexOf(order.status);
+                                  const isCompleted = index <= currentStatusIndex;
+                                  const isCurrent = index === currentStatusIndex;
+
+                                  return (
+                                    <div key={timelineItem.status} className={`flex items-center gap-3 ${
+                                      isCompleted ? 'opacity-100' : 'opacity-40'
+                                    }`}>
+                                      <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${
+                                        isCurrent ? 'bg-primary text-primary-foreground' : 
+                                        isCompleted ? 'bg-green-100 text-green-600' : 'bg-muted'
+                                      }`}>
+                                        {isCompleted ? '✓' : index + 1}
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className={`font-medium text-sm ${isCurrent ? 'text-primary' : ''}`}>
+                                          {timelineItem.label}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {timelineItem.description}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
                             {/* Order Items */}
                             <div>
                               <h4 className="font-medium mb-3">Order Items</h4>
@@ -275,6 +314,15 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
           )}
         </TableBody>
       </Table>
+
+      <ClientOrderDetailsDialog
+        order={selectedOrder}
+        isOpen={isDialogOpen}
+        onClose={() => {
+          setIsDialogOpen(false);
+          setSelectedOrder(null);
+        }}
+      />
     </div>
   );
 }

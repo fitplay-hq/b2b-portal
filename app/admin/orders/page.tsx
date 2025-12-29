@@ -119,6 +119,7 @@ export default function AdminOrdersPage() {
             onStatusUpdate={managementProps.openStatusDialog}
             expandedOrders={managementProps.expandedOrders}
             onToggleOrder={managementProps.toggleOrderExpansion}
+            onOrderUpdate={handleOrderUpdate}
           />
         )}
         

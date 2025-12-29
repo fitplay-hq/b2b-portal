@@ -1,4 +1,4 @@
-import { Product } from "@/lib/generated/prisma";
+import { Product, ProductCategory, Company } from "@/lib/generated/prisma";
 import {
   Card,
   CardContent,
@@ -8,12 +8,18 @@ import {
 import { ImageWithFallback } from "@/components/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { Edit, Trash2, Package } from "lucide-react";
 import { $Enums } from "@/lib/generated/prisma";
+
+// Extended Product type that includes the category relationship
+type ProductWithRelations = Product & {
+  category?: ProductCategory | null;
+  subCategory?: { name: string; shortCode: string } | null;
+  companies?: Company[];
+};
 
 // Function to convert enum values to human-friendly names
 const getHumanFriendlyCategoryName = (category: string): string => {
-  // Use the actual enum values from Prisma with friendly names
   const friendlyNames: Record<string, string> = {
     stationery: "Stationery",
     accessories: "Accessories",
@@ -25,33 +31,33 @@ const getHumanFriendlyCategoryName = (category: string): string => {
     welcomeKit: "Welcome Kit",
   };
 
-  // Check if we have a specific friendly name for this category
   if (friendlyNames[category]) {
     return friendlyNames[category];
   }
 
-  // Fallback: Handle unknown categories
-  // Convert camelCase to Title Case by splitting on capital letters
   return category
-    .replace(/([a-z])([A-Z])/g, "$1 $2") // Add space between lowercase and uppercase
-    .replace(/([A-Z])([A-Z][a-z])/g, "$1 $2") // Handle consecutive uppercase letters
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1 $2")
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 };
 
-interface ProductCardProps {
-  product: Product;
-  cartQuantity: number;
-  onAddToCartClick: (product: Product) => void;
+interface AdminProductCardProps {
+  product: ProductWithRelations;
+  onEdit: (product: ProductWithRelations) => void;
+  onDelete: (productId: string) => void;
+  onManageInventory: (product: ProductWithRelations) => void;
 }
 
-export function ProductCard({
+export function AdminProductCard({
   product,
-  cartQuantity,
-  onAddToCartClick,
-}: ProductCardProps) {
-  const isInStock = product.availableStock > 0;
+  onEdit,
+  onDelete,
+  onManageInventory,
+}: AdminProductCardProps) {
+  const isLowStock = product.minStockThreshold && product.availableStock <= product.minStockThreshold;
+  const isOutOfStock = product.availableStock === 0;
 
   return (
     <Card className="flex flex-col h-full overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 p-0">
@@ -61,9 +67,16 @@ export function ProductCard({
           alt={product.name}
           className="w-full h-full object-cover object-center rounded-t-lg"
         />
-        {!isInStock && (
+        {isOutOfStock && (
           <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
             <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
+          </div>
+        )}
+        {isLowStock && !isOutOfStock && (
+          <div className="absolute top-2 right-2">
+            <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
+              Low Stock
+            </Badge>
           </div>
         )}
       </div>
@@ -85,9 +98,9 @@ export function ProductCard({
               <p className="text-xs text-muted-foreground">
                 Stock: {product.availableStock}
               </p>
-              {cartQuantity > 0 && (
-                <p className="text-xs font-semibold text-blue-600">
-                  {cartQuantity} in cart
+              {product.minStockThreshold && (
+                <p className="text-xs text-muted-foreground">
+                  Min: {product.minStockThreshold}
                 </p>
               )}
             </div>
@@ -103,15 +116,32 @@ export function ProductCard({
         </div>
       </CardContent>
       <CardFooter className="p-3 pt-0">
-        <Button
-          onClick={() => onAddToCartClick(product)}
-          disabled={!isInStock}
-          className="w-full text-sm h-8"
-          size="sm"
-        >
-          <ShoppingCart className="h-3 w-3 mr-2" />
-          {isInStock ? "Add to Cart" : "Out of Stock"}
-        </Button>
+        <div className="flex gap-1 w-full">
+          <Button
+            onClick={() => onEdit(product)}
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs h-8"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={() => onManageInventory(product)}
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs h-8"
+          >
+            <Package className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={() => onDelete(product.id)}
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs h-8 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );
