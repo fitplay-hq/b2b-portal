@@ -67,8 +67,8 @@ export function ProductCard({
           </div>
         )}
       </div>
-      <CardContent className="p-3 flex-grow flex flex-col">
-        <div className="flex flex-col gap-2 flex-grow">
+      <CardContent className="px-3 pb-3 pt-0 flex-grow flex flex-col">
+        <div className="flex flex-col gap-1 flex-grow">
           <div className="min-h-0">
             <CardTitle className="text-sm leading-tight mb-1 overflow-hidden">
               <span className="block truncate" title={product.name}>{product.name}</span>
