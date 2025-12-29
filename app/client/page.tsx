@@ -13,10 +13,12 @@ import { ShoppingCart, Package, History, Loader2 } from "lucide-react";
 import { getStoredData, CartItem } from "@/lib/mockData";
 import Link from "next/link";
 import Layout from "@/components/layout";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useOrders } from "@/data/order/client.hooks";
 import { formatStatus } from "@/lib/utils";
+import { useClientAnalytics } from "@/hooks/use-client-analytics";
+import { ClientChartsSection } from "./components/client-charts-section";
 
 export default function ClientDashboard() {
   const { data: session, status } = useSession();
@@ -24,6 +26,9 @@ export default function ClientDashboard() {
 
   // Use the useOrders hook as requested
   const { orders, isLoading, error } = useOrders();
+  
+  // Add analytics for charts
+  const { data: analytics, isLoading: analyticsLoading } = useClientAnalytics();
 
   const user = session?.user;
 
@@ -59,7 +64,7 @@ export default function ClientDashboard() {
     }
   };
 
-  if (status === "loading" || isLoading) {
+  if (status === "loading" || isLoading || analyticsLoading) {
     return (
       <Layout title="Dashboard" isClient>
         <div className="flex justify-center items-center h-64">
@@ -86,12 +91,21 @@ export default function ClientDashboard() {
     return (
       <Layout title="Dashboard" isClient>
         <div className="text-center text-destructive">
-          Failed to load orders. Please try again later.
+          Failed to load dashboard data. Please try again later.
         </div>
       </Layout>
     );
   }
 
+  if (!analytics) {
+    return (
+      <Layout title="Dashboard" isClient>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
   return (
     <Layout title="Dashboard" isClient>
       <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
@@ -159,6 +173,15 @@ export default function ClientDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Charts Section - NEW */}
+        {analytics && (
+          <ClientChartsSection
+            orderStatusDistribution={analytics.orderStatusDistribution}
+            monthlyTrends={analytics.monthlyTrends}
+            orderValueTrends={analytics.orderValueTrends}
+          />
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
