@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
                     client: true,
                     orderItems: { include: { product: true } },
                     bundleOrderItems: { include: { bundle: true, product: true } },
+                    bundles: { include: { items: { include: { product: true } } } },
                     emails: true,
                 },
             });
@@ -98,6 +99,7 @@ export async function POST(req: NextRequest) {
             let recipients: string[] = [];
             let subject = "";
             let html = "";
+            let reqByDate = "";
 
             const orderTable = `
         <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 16px;">
@@ -144,6 +146,7 @@ export async function POST(req: NextRequest) {
                 case "APPROVED":
                     recipients = [clientEmail, warehouseEmail];
                     subject = `Order ${order.id} Approved`;
+                    reqByDate = order.requiredByDate ? new Date(order.requiredByDate).toLocaleDateString() : "N/A";
                     break;
 
                 case "READY_FOR_DISPATCH":
@@ -171,6 +174,7 @@ export async function POST(req: NextRequest) {
                     subject = `Order ${order.id} Cancelled`;
                     break;
             }
+            // Req by date -> Approval(order creation) and confirmation(approve)
 
             html = `
         <h2>Order Status Update: ${status.replace(/_/g, " ")}</h2>
@@ -180,13 +184,37 @@ export async function POST(req: NextRequest) {
           <p><b>Phone:</b> ${order.consigneePhone}</p>
           <p><b>Email:</b> ${order.consigneeEmail}</p>
           <p><b>Mode of Delivery:</b> ${order.modeOfDelivery}</p>
-          <p><b>Required By:</b> ${new Date(order.requiredByDate).toLocaleDateString()}</p>
-
+          <p><b>Delivery Reference:</b> ${order.deliveryReference}</p>
+          ${reqByDate ? `<p><b>Required By:</b> ${reqByDate}</p>` : ""}
+          
           <h3>Delivery Address</h3>
           <p>${order.deliveryAddress}, ${order.city}, ${order.state}, ${order.pincode}</p>
         <h3>Order Details</h3>
       ${orderTable}
-    `;
+      ${order.bundleOrderItems.length > 0 ? `
+      <h3>Bundle Breakdown:</h3>
+    ${order.bundles.map(bundle => `
+        <div style="margin-bottom:12px;">
+            <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;margin-top:8px;">
+                <thead>
+                    <tr>
+                        <th align="left">Product</th>
+                        <th align="center">Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${bundle.items.map(item => `
+                        <tr>
+                            <td>${item.product?.name || 'Unknown Product'}</td>
+                            <td align="center">${item.bundleProductQuantity ?? 0}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `).join('')}
+      <p><b> Number of Bundles:</b> ${order.numberOfBundles}</p>
+    `: ""}`
 
             // Send email
             await resend.emails.send({
