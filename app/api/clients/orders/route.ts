@@ -18,7 +18,24 @@ export async function GET(req: NextRequest) {
             where: {
                 clientId: session.user.id
             },
-            include: {
+            select: {
+                id: true,
+                totalAmount: true,
+                numberOfBundles: true,
+                consigneeName: true,
+                consigneePhone: true,
+                consigneeEmail: true,
+                deliveryAddress: true,
+                city: true,
+                state: true,
+                pincode: true,
+                modeOfDelivery: true,
+                deliveryReference: true,
+                packagingInstructions: true,
+                note: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
                 orderItems: {
                     include: {
                         product: {

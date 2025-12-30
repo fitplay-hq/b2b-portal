@@ -181,14 +181,11 @@ export function OrderDetailsDialog({
               <Package className="h-4 w-4" />
               Order Items ({(() => {
                 const regularItems = order.orderItems?.length || 0;
-                const bundleItems = order.bundleOrderItems?.length || 0;
                 const bundles = order.numberOfBundles || 0;
                 if (bundles > 0 && regularItems > 0) {
                   return `${regularItems} items + ${bundles} bundles`;
                 } else if (bundles > 0) {
                   return `${bundles} bundles`;
-                } else if (bundleItems > 0) {
-                  return `${bundleItems} bundle items`;
                 } else {
                   return `${regularItems} items`;
                 }
