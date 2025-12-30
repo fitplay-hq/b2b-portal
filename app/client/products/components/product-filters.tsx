@@ -7,8 +7,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SortOption } from "@/hooks/use-product-filters";
-import { $Enums } from "@/lib/generated/prisma";
 import { Search, Filter } from "lucide-react";
+import useSWR from 'swr';
+
+interface ProductCategory {
+  id: string;
+  name: string;
+  displayName: string;
+  description: string | null;
+  shortCode: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+  _count: {
+    products: number;
+    subCategories: number;
+  };
+}
 
 interface ProductFiltersProps {
   searchTerm: string;
@@ -21,7 +37,17 @@ interface ProductFiltersProps {
   totalCount: number;
 }
 
-// Function to convert enum values to human-friendly names
+// Fetcher for categories
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error('Failed to fetch categories');
+  }
+  const data = await res.json();
+  return data.success ? data.data : [];
+};
+
+// Function to convert enum values to human-friendly names - fallback for legacy enum values
 const getHumanFriendlyCategoryName = (category: string): string => {
   // Use the actual enum values from Prisma with friendly names
   const friendlyNames: Record<string, string> = {
@@ -33,6 +59,8 @@ const getHumanFriendlyCategoryName = (category: string): string => {
     travelAndTech: "Travel & Tech",
     books: "Books",
     welcomeKit: "Welcome Kit",
+    newcategory: "New Category",
+    consumables: "Consumables",
   };
 
   // Check if we have a specific friendly name for this category
@@ -60,6 +88,12 @@ export function ProductFilters({
   resultsCount,
   totalCount,
 }: ProductFiltersProps) {
+  // Fetch categories from database
+  const { data: categories } = useSWR<ProductCategory[]>('/api/admin/categories', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000,
+  });
+
   return (
     <div className="space-y-4 bg-card rounded-lg border p-4">
       <div className="flex items-center gap-2 text-sm font-medium">
@@ -103,9 +137,9 @@ export function ProductFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="All Categories">All Categories</SelectItem>
-            {Object.values($Enums.Category).map((category) => (
-              <SelectItem key={category} value={category}>
-                {getHumanFriendlyCategoryName(category)}
+            {categories?.filter(cat => cat.isActive).map((category) => (
+              <SelectItem key={category.id} value={category.name}>
+                {category.displayName}
               </SelectItem>
             ))}
           </SelectContent>

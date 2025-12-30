@@ -33,7 +33,23 @@ export async function GET(req: NextRequest) {
                 },
                 bundleOrderItems: {
                     include: {
-                        bundle: true
+                        bundle: {
+                            include: {
+                                items: {
+                                    include: {
+                                        product: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                                images: true,
+                                                sku: true,
+                                                price: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

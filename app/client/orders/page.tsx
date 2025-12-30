@@ -314,23 +314,21 @@ export default function ClientOrderHistory() {
                                 { status: "AT_DESTINATION", label: "At Destination", description: "Your order has reached destination" },
                                 { status: "DELIVERED", label: "Delivered", description: "Your order has been delivered" },
                                 { status: "COMPLETED", label: "Completed", description: "Your order is complete" },
-                              ].map((timelineItem, index) => {
+                              ].filter((timelineItem, index) => {
                                 const currentStatusIndex = [
                                   "PENDING", "APPROVED", "READY_FOR_DISPATCH", 
                                   "DISPATCHED", "AT_DESTINATION", "DELIVERED", "COMPLETED"
                                 ].indexOf(order.status);
-                                const isCompleted = index <= currentStatusIndex;
-                                const isCurrent = index === currentStatusIndex;
+                                return index <= currentStatusIndex;
+                              }).map((timelineItem, index, filteredArray) => {
+                                const isCurrent = index === filteredArray.length - 1;
 
                                 return (
-                                  <div key={timelineItem.status} className={`flex items-center gap-3 ${
-                                    isCompleted ? 'opacity-100' : 'opacity-40'
-                                  }`}>
+                                  <div key={timelineItem.status} className="flex items-center gap-3">
                                     <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${
-                                      isCurrent ? 'bg-primary text-primary-foreground' : 
-                                      isCompleted ? 'bg-green-100 text-green-600' : 'bg-muted'
+                                      isCurrent ? 'bg-primary text-primary-foreground' : 'bg-green-100 text-green-600'
                                     }`}>
-                                      {isCompleted ? '✓' : index + 1}
+                                      ✓
                                     </div>
                                     <div className="flex-1">
                                       <p className={`font-medium text-sm ${isCurrent ? 'text-primary' : ''}`}>
@@ -369,7 +367,7 @@ export default function ClientOrderHistory() {
                           <div>
                             <h4 className="font-medium mb-3">Order Items</h4>
                             <div className="space-y-3">
-                              {order.orderItems.map((item) => (
+                              {order.orderItems && order.orderItems.map((item) => (
                                 <div
                                   key={item.product.id}
                                   className="flex gap-3 rounded-lg bg-muted/40 p-3"
@@ -394,6 +392,47 @@ export default function ClientOrderHistory() {
                                   </div>
                                 </div>
                               ))}
+                              {order.bundleOrderItems && order.bundleOrderItems
+                                .filter(bundleItem => bundleItem.bundle?.items)
+                                .map((bundleItem) => 
+                                bundleItem.bundle!.items.map((item) => (
+                                  <div
+                                    key={`bundle-${bundleItem.id}-${item.id}`}
+                                    className="flex gap-3 rounded-lg border p-3"
+                                  >
+                                    <div className="h-16 w-16 rounded overflow-hidden">
+                                      <ImageWithFallback
+                                        src={item.product?.images?.[0] || ''}
+                                        alt={item.product?.name || 'Bundle Product'}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">
+                                        {item.product?.name || 'Bundle Product'}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        SKU: {item.product?.sku || 'N/A'}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        Bundle Qty: {bundleItem.quantity} × Item Qty: {item.bundleProductQuantity}
+                                      </p>
+                                      {item.product?.price && item.product.price > 0 && (
+                                        <p className="text-sm">
+                                          Price: ₹{item.product.price.toFixed(2)}
+                                        </p>
+                                      )}
+                                      <p className="text-xs text-blue-600 font-medium">Bundle</p>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                              {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                  <p>No items found in this order</p>
+                                </div>
+                              )}
                             </div>
                           </div>
 

@@ -86,38 +86,52 @@ const OrderSummary = ({ order }: { order: AdminOrder }) => {
   const statusText = formatStatus(order.status);
 
   return (
-    <div className="flex w-full items-start justify-between gap-2 sm:gap-4">
-      <div className="space-y-2 min-w-0 flex-1">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-          <CardTitle className="text-base sm:text-lg truncate">{order.id}</CardTitle>
-          <Badge className={`${color} text-xs w-fit`}>
-            <Icon className="mr-1 h-3 w-3 sm:mr-1.5 sm:h-4 sm:w-4" />
+    <div className="flex items-center justify-between gap-4">
+      <div className="space-y-1">
+        <div className="flex items-center gap-3">
+          <h3 className="font-semibold text-lg">{order.id}</h3>
+          <Badge className={`${color} text-xs`}>
+            <Icon className="mr-1 h-3 w-3" />
             {statusText}
           </Badge>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-start gap-x-2 gap-y-1 sm:gap-x-4 text-xs sm:text-sm text-muted-foreground">
-          <span className="flex items-center gap-1 sm:gap-1.5 truncate">
-            <Building2 className="h-3 w-3 shrink-0" />
-            <span className="truncate">{order.client?.company?.name || "Unknown Company"}</span>
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Building2 className="h-4 w-4" />
+            {order.client?.company?.name || "Unknown Company"}
           </span>
-          <span className="flex items-center gap-1 sm:gap-1.5">
-            <Calendar className="h-3 w-3 shrink-0" />
+          <span className="flex items-center gap-1">
+            <Calendar className="h-4 w-4" />
             {new Date(order.createdAt).toLocaleDateString()}
           </span>
-          {order.createdAt && (
-            <span className="flex items-center gap-1 sm:gap-1.5">
-              <CalendarDays className="h-3 w-3 shrink-0" />
-              Updated: {new Date(order.updatedAt).toLocaleDateString()}
-            </span>
-          )}
-          <span className="flex items-center gap-1 sm:gap-1.5">
-            <Package className="h-3 w-3 shrink-0" />
-            {order.orderItems.length} items
+          <span className="flex items-center gap-1">
+            <CalendarDays className="h-4 w-4" />
+            Updated: {new Date(order.updatedAt).toLocaleDateString()}
+          </span>
+          <span className="flex items-center gap-1">
+            <Package className="h-4 w-4" />
+            {(() => {
+              const regularItems = order.orderItems?.length || 0;
+              const bundles = order.numberOfBundles || 0;
+              const bundleItems = order.bundleOrderItems?.length || 0;
+              
+              if (bundles > 0 && regularItems > 0) {
+                return `${regularItems} items + ${bundles} bundles`;
+              } else if (bundles > 0) {
+                return `${bundles} bundles`;
+              } else if (bundleItems > 0) {
+                return `${bundleItems} bundle items`;
+              } else if (regularItems > 0) {
+                return `${regularItems} items`;
+              } else {
+                return '0 items';
+              }
+            })()} 
           </span>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-        <span className="hidden sm:inline">Details</span>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span>Details</span>
         <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
       </div>
     </div>
@@ -330,7 +344,7 @@ const OrderDetails = ({
         <div>
           <h4 className="mb-3 font-medium text-sm sm:text-base">Order Items</h4>
           <div className="space-y-3">
-            {order.orderItems.map((item) => (
+            {order.orderItems && order.orderItems.map((item) => (
               <div
                 key={item.product.id}
                 className="flex gap-2 sm:gap-3 rounded-lg bg-muted/40 p-2 sm:p-3"
@@ -352,6 +366,44 @@ const OrderDetails = ({
                 </div>
               </div>
             ))}
+            {order.bundleOrderItems && order.bundleOrderItems
+              .filter(bundleItem => bundleItem.bundle?.items)
+              .flatMap((bundleItem) => 
+                bundleItem.bundle!.items.map((item) => (
+                  <div
+                    key={`bundle-${bundleItem.id}-${item.id}`}
+                    className="flex gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3"
+                  >
+                  <div className="h-12 w-12 sm:h-16 sm:w-16 rounded overflow-hidden shrink-0">
+                    <ImageWithFallback
+                      src={item.product?.images?.[0] || ''}
+                      alt={item.product?.name || 'Bundle Product'}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm sm:text-base truncate">{item.product?.name || 'Bundle Product'}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      SKU: {item.product?.sku || 'N/A'}
+                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm">
+                      <p>Bundle Qty: {bundleItem.quantity}</p>
+                      <p>Item Qty: {item.bundleProductQuantity}</p>
+                      {item.product?.price && item.product.price > 0 && (
+                        <p>Price: ₹{item.product.price.toFixed(2)}</p>
+                      )}
+                      <p className="text-blue-600 font-medium">Bundle</p>
+                    </div>
+                  </div>
+                </div>
+                ))
+              )}
+            {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No items found in this order</p>
+              </div>
+            )}
           </div>
           <div className="mt-4 pt-4 border-t">
             <div className="flex justify-between items-center">

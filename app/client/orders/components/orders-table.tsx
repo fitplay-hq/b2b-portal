@@ -146,18 +146,41 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
                         <div className="flex items-center gap-1">
                           <Package className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm font-medium">
-                            {order.orderItems.length} items
+                            {(() => {
+                              const regularItems = order.orderItems?.length || 0;
+                              const bundles = order.numberOfBundles || 0;
+                              const bundleItems = order.bundleOrderItems?.length || 0;
+                              
+                              if (bundles > 0 && regularItems > 0) {
+                                return `${regularItems} items + ${bundles} bundles`;
+                              } else if (bundles > 0) {
+                                return `${bundles} bundles`;
+                              } else if (bundleItems > 0) {
+                                return `${bundleItems} bundle items`;
+                              } else {
+                                return `${regularItems} items`;
+                              }
+                            })()} 
                           </span>
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {order.orderItems.slice(0, 2).map((item, idx) => (
+                          {order.orderItems && order.orderItems.slice(0, 2).map((item, idx) => (
                             <div key={idx}>
-                              {item.product.name} x{item.quantity}
+                              {item.product?.name || 'Unknown Product'} x{item.quantity}
                             </div>
                           ))}
-                          {order.orderItems.length > 2 && (
+                          {order.bundleOrderItems && order.bundleOrderItems.slice(0, 2)
+                            .filter(bundleItem => bundleItem.bundle?.items)
+                            .map((bundleItem, idx) =>
+                            bundleItem.bundle!.items.slice(0, 1).map((item, itemIdx) => (
+                              <div key={`bundle-${idx}-${itemIdx}`}>
+                                {item.product?.name || 'Bundle Product'} (Bundle) x{bundleItem.quantity}
+                              </div>
+                            ))
+                          )}
+                          {(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) > 2 && (
                             <div className="text-muted-foreground">
-                              +{order.orderItems.length - 2} more items
+                              +{(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) - 2} more items
                             </div>
                           )}
                         </div>
@@ -201,23 +224,21 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
                                   { status: "AT_DESTINATION", label: "At Destination", description: "Your order has reached destination" },
                                   { status: "DELIVERED", label: "Delivered", description: "Your order has been delivered" },
                                   { status: "COMPLETED", label: "Completed", description: "Your order is complete" },
-                                ].map((timelineItem, index) => {
+                                ].filter((timelineItem, index) => {
                                   const currentStatusIndex = [
                                     "PENDING", "APPROVED", "READY_FOR_DISPATCH", 
                                     "DISPATCHED", "AT_DESTINATION", "DELIVERED", "COMPLETED"
                                   ].indexOf(order.status);
-                                  const isCompleted = index <= currentStatusIndex;
-                                  const isCurrent = index === currentStatusIndex;
+                                  return index <= currentStatusIndex;
+                                }).map((timelineItem, index, filteredArray) => {
+                                  const isCurrent = index === filteredArray.length - 1;
 
                                   return (
-                                    <div key={timelineItem.status} className={`flex items-center gap-3 ${
-                                      isCompleted ? 'opacity-100' : 'opacity-40'
-                                    }`}>
+                                    <div key={timelineItem.status} className="flex items-center gap-3">
                                       <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${
-                                        isCurrent ? 'bg-primary text-primary-foreground' : 
-                                        isCompleted ? 'bg-green-100 text-green-600' : 'bg-muted'
+                                        isCurrent ? 'bg-primary text-primary-foreground' : 'bg-green-100 text-green-600'
                                       }`}>
-                                        {isCompleted ? '✓' : index + 1}
+                                        ✓
                                       </div>
                                       <div className="flex-1">
                                         <p className={`font-medium text-sm ${isCurrent ? 'text-primary' : ''}`}>
@@ -237,7 +258,7 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
                             <div>
                               <h4 className="font-medium mb-3">Order Items</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {order.orderItems.map((item) => (
+                                {order.orderItems && order.orderItems.map((item) => (
                                   <div
                                     key={item.product.id}
                                     className="flex gap-3 rounded-lg bg-white p-3 border"
@@ -262,6 +283,47 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
                                     </div>
                                   </div>
                                 ))}
+                                {order.bundleOrderItems && order.bundleOrderItems
+                                  .filter(bundleItem => bundleItem.bundle?.items)
+                                  .map((bundleItem) =>
+                                  bundleItem.bundle!.items.map((item) => (
+                                    <div
+                                      key={`bundle-${bundleItem.id}-${item.id}`}
+                                      className="flex gap-3 rounded-lg border p-3"
+                                    >
+                                      <div className="h-12 w-12 rounded overflow-hidden shrink-0">
+                                        <ImageWithFallback
+                                          src={item.product?.images?.[0] || ''}
+                                          alt={item.product?.name || 'Bundle Product'}
+                                          className="h-full w-full object-cover"
+                                        />
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-sm truncate">
+                                          {item.product?.name || 'Bundle Product'}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          SKU: {item.product?.sku || 'N/A'}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          Bundle Qty: {bundleItem.quantity} × Item Qty: {item.bundleProductQuantity}
+                                        </p>
+                                        {item.product?.price && item.product.price > 0 && (
+                                          <p className="text-xs font-medium">
+                                            ₹{item.product.price.toFixed(2)}
+                                          </p>
+                                        )}
+                                        <p className="text-xs text-blue-600 font-medium">Bundle</p>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                                {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
+                                  <div className="col-span-full text-center py-8 text-muted-foreground">
+                                    <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                    <p>No items found in this order</p>
+                                  </div>
+                                )}
                               </div>
                             </div>
 
