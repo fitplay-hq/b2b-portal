@@ -352,12 +352,16 @@ export default function ClientCheckout() {
                 <CardTitle>Order Reference</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 py-1">
-                <Input
-                  id="deliveryReference"
-                  value={deliveryReference}
-                  onChange={(e) => setDeliveryReference(e.target.value)}
-                  placeholder="Any order reference for future use"
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryReference">Order Reference (Optional)</Label>
+                  <Input
+                    id="deliveryReference"
+                    name="deliveryReference"
+                    value={deliveryReference}
+                    onChange={(e) => setDeliveryReference(e.target.value)}
+                    placeholder="Any order reference for future use"
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -371,6 +375,7 @@ export default function ClientCheckout() {
                   <Label htmlFor="deliveryAddress">Delivery Address *</Label>
                   <Textarea
                     id="deliveryAddress"
+                    name="deliveryAddress"
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
                     placeholder="Enter complete delivery address"
@@ -384,6 +389,7 @@ export default function ClientCheckout() {
                     <Label htmlFor="city">City *</Label>
                     <Input
                       id="city"
+                      name="city"
                       type="text"
                       value={city}
                       onChange={(e) => {
@@ -399,6 +405,7 @@ export default function ClientCheckout() {
                     <Label htmlFor="state">State *</Label>
                     <Input
                       id="state"
+                      name="state"
                       type="text"
                       value={state}
                       onChange={(e) => {
@@ -415,6 +422,7 @@ export default function ClientCheckout() {
                     <div className="relative">
                       <Input
                         id="pincode"
+                        name="pincode"
                         type="text"
                         value={pincode}
                         maxLength={6}
@@ -437,6 +445,7 @@ export default function ClientCheckout() {
                   <Label htmlFor="requiredByDate">Required By Date *</Label>
                   <Input
                     id="requiredByDate"
+                    name="requiredByDate"
                     value={requiredByDate}
                     onChange={(e) => setRequiredByDate(e.target.value)}
                     placeholder="Select required delivery date"
@@ -460,7 +469,7 @@ export default function ClientCheckout() {
                       setModeOfDelivery(value)
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="modeOfDelivery" name="modeOfDelivery">
                       <SelectValue placeholder="Select delivery mode" />
                     </SelectTrigger>
                     <SelectContent>
@@ -475,6 +484,7 @@ export default function ClientCheckout() {
                   <Label htmlFor="note">Additional Notes (Optional)</Label>
                   <Textarea
                     id="note"
+                    name="note"
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Special delivery instructions, timeline requirements, etc."
@@ -494,6 +504,7 @@ export default function ClientCheckout() {
                   <Label htmlFor="consigneeName">Consignee Name * </Label>
                   <Input
                     id="consigneeName"
+                    name="consigneeName"
                     type="text"
                     value={consigneeName}
                     onChange={(e) => setConsigneeName(e.target.value)}
@@ -506,6 +517,7 @@ export default function ClientCheckout() {
                   <Label htmlFor="consigneePhone">Phone Number *</Label>
                   <Input
                     id="consigneePhone"
+                    name="consigneePhone"
                     type="tel"
                     value={consigneePhone}
                     onChange={(e) => {
@@ -522,6 +534,7 @@ export default function ClientCheckout() {
                   <Label htmlFor="consigneeEmail">Email Address *</Label>
                   <Input
                     id="consigneeEmail"
+                    name="consigneeEmail"
                     type="email"
                     value={consigneeEmail}
                     onChange={(e) => setConsigneeEmail(e.target.value)}
