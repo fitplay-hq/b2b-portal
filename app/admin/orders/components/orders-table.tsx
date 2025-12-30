@@ -174,14 +174,23 @@ export function OrdersTable({
                       </div>
                     ))}
                     {order.bundleOrderItems && order.bundleOrderItems.slice(0, 2)
-                      .filter(bundleItem => bundleItem.bundle?.items)
-                      .map((bundleItem, idx) =>
-                      bundleItem.bundle!.items.slice(0, 1).map((item, itemIdx) => (
-                        <div key={`bundle-${idx}-${itemIdx}`}>
-                          {item.product?.name || 'Bundle Product'} (Bundle) x{bundleItem.quantity}
-                        </div>
-                      ))
-                    )}
+                      .map((bundleItem, idx) => {
+                        // If bundle has detailed items, show them
+                        if (bundleItem.bundle?.items && bundleItem.bundle.items.length > 0) {
+                          return bundleItem.bundle.items.slice(0, 1).map((item, itemIdx) => (
+                            <div key={`bundle-${idx}-${itemIdx}`}>
+                              {item.product?.name || 'Bundle Product'} (Bundle) x{bundleItem.quantity}
+                            </div>
+                          ));
+                        } else {
+                          // Use the product info directly from bundleOrderItem
+                          return [
+                            <div key={`bundle-simple-${idx}`}>
+                              {bundleItem.product?.name || 'Bundle Item'} (Bundle) x{bundleItem.quantity}
+                            </div>
+                          ];
+                        }
+                      })}
                     {(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) > 2 && (
                       <div className="text-muted-foreground">
                         +{(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) - 2} more items

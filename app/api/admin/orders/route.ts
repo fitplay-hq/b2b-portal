@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
                 select: {
                     id: true,
                     totalAmount: true,
+                    numberOfBundles: true,
                     consigneeName: true,
                     consigneePhone: true,
                     consigneeEmail: true,
@@ -60,8 +61,28 @@ export async function GET(req: NextRequest) {
                         },
                     },
                     bundleOrderItems: {
-                        include: {
-                            bundle: true
+                        select: {
+                            id: true,
+                            quantity: true,
+                            price: true,
+                            productId: true,
+                            bundleId: true,
+                            orderId: true,
+                            product: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    images: true,
+                                    sku: true,
+                                    price: true
+                                },
+                            },
+                            bundle: {
+                                select: {
+                                    id: true,
+                                    price: true
+                                }
+                            }
                         }
                     },
                     client: {

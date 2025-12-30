@@ -245,15 +245,23 @@ export function OrderDetailsDialog({
                       </div>
                     ));
                   } else {
-                    // For bundle items without detailed structure, try to get the product info directly
+                    // Use the product info directly from bundleOrderItem
                     return (
                       <div key={`bundle-simple-${index}`} className="flex items-center gap-4 p-3 border rounded-lg">
                         <div className="h-12 w-12 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
-                          <Package className="h-6 w-6 text-gray-400" />
+                          {bundleItem.product?.images?.[0] ? (
+                            <ImageWithFallback
+                              src={bundleItem.product.images[0]}
+                              alt={bundleItem.product.name || 'Bundle Product'}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <Package className="h-6 w-6 text-gray-400" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">Bundle Item</p>
-                          <p className="text-sm text-muted-foreground">Bundle ID: {bundleItem.bundleId || 'N/A'}</p>
+                          <p className="font-medium truncate">{bundleItem.product?.name || 'Bundle Item'}</p>
+                          <p className="text-sm text-muted-foreground">SKU: {bundleItem.product?.sku || 'N/A'}</p>
                           <p className="text-xs text-muted-foreground">Bundle Order</p>
                         </div>
                         <div className="text-right">
