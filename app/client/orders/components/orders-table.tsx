@@ -201,23 +201,21 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
                                   { status: "AT_DESTINATION", label: "At Destination", description: "Your order has reached destination" },
                                   { status: "DELIVERED", label: "Delivered", description: "Your order has been delivered" },
                                   { status: "COMPLETED", label: "Completed", description: "Your order is complete" },
-                                ].map((timelineItem, index) => {
+                                ].filter((timelineItem, index) => {
                                   const currentStatusIndex = [
                                     "PENDING", "APPROVED", "READY_FOR_DISPATCH", 
                                     "DISPATCHED", "AT_DESTINATION", "DELIVERED", "COMPLETED"
                                   ].indexOf(order.status);
-                                  const isCompleted = index <= currentStatusIndex;
-                                  const isCurrent = index === currentStatusIndex;
+                                  return index <= currentStatusIndex;
+                                }).map((timelineItem, index, filteredArray) => {
+                                  const isCurrent = index === filteredArray.length - 1;
 
                                   return (
-                                    <div key={timelineItem.status} className={`flex items-center gap-3 ${
-                                      isCompleted ? 'opacity-100' : 'opacity-40'
-                                    }`}>
+                                    <div key={timelineItem.status} className="flex items-center gap-3">
                                       <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${
-                                        isCurrent ? 'bg-primary text-primary-foreground' : 
-                                        isCompleted ? 'bg-green-100 text-green-600' : 'bg-muted'
+                                        isCurrent ? 'bg-primary text-primary-foreground' : 'bg-green-100 text-green-600'
                                       }`}>
-                                        {isCompleted ? '✓' : index + 1}
+                                        ✓
                                       </div>
                                       <div className="flex-1">
                                         <p className={`font-medium text-sm ${isCurrent ? 'text-primary' : ''}`}>
