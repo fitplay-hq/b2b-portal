@@ -235,6 +235,8 @@ export async function POST(req: NextRequest) {
         include: {
           orderItems: { include: { product: true } },
           bundleOrderItems: { include: { product: true } },
+          bundles: { include: { items: { include: { product: true } } } },
+
         },
       });
 
@@ -382,25 +384,51 @@ export async function POST(req: NextRequest) {
       cc: [ownerEmail],
       subject: "New Order Awaiting Approval",
       html: `
-                <h2>New Dispatch Order</h2>
-                <p>A new order has been created by ${session?.user?.name || "Unknown User"}.</p>
-                
-                <h3>Consignee Details</h3>
-                <p><b>Name:</b> ${order.consigneeName}</p>
-                <p><b>Phone:</b> ${order.consigneePhone}</p>
-                <p><b>Email:</b> ${order.consigneeEmail}</p>
-                <p><b>Mode of Delivery:</b> ${order.modeOfDelivery}</p>
-                <p><b>Required By:</b> ${new Date(order.requiredByDate).toLocaleDateString()}</p>
-      
-                <h3>Delivery Address</h3>
-                <p>${order.deliveryAddress}, ${order.city}, ${order.state}, ${order.pincode}</p>
-      
-                <h3>Order Summary</h3>
-                ${orderTable}
-      
-                <p>${footerMessage}</p>
-                <p style="display: none;">&#8203;</p>
-              `,
+          <h2>New Dispatch Order</h2>
+          <p>A new order has been created by ${session?.user?.name || "Unknown User"}.</p>
+          
+          <h3>Consignee Details</h3>
+          <p><b>Name:</b> ${order.consigneeName}</p>
+          <p><b>Phone:</b> ${order.consigneePhone}</p>
+          <p><b>Email:</b> ${order.consigneeEmail}</p>
+          <p><b>Mode of Delivery:</b> ${order.modeOfDelivery}</p>
+          <p><b>Delivery Reference:</b> ${order.deliveryReference}</p>
+          <p><b>Required By:</b> ${new Date(order.requiredByDate).toLocaleDateString()}</p>
+
+          <h3>Delivery Address</h3>
+          <p>${order.deliveryAddress}, ${order.city}, ${order.state}, ${order.pincode}</p>
+
+          <h3>Order Summary</h3>
+          ${orderTable}
+
+          ${order.bundleOrderItems.length > 0 ? `
+      <h3>Bundle Breakdown:</h3>
+    ${order.bundles.map(bundle => `
+        <div style="margin-bottom:12px;">
+            <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;margin-top:8px;">
+                <thead>
+                    <tr>
+                        <th align="left">Product</th>
+                        <th align="center">Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${bundle.items.map(item => `
+                        <tr>
+                            <td>${item.product?.name || 'Unknown Product'}</td>
+                            <td align="center">${item.bundleProductQuantity ?? 0}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `).join('')}
+      <p><b> Number of Bundles:</b> ${order.numberOfBundles}</p>
+    `: ""}
+
+          <p>${footerMessage}</p>
+          <p style="display: none;">&#8203;</p>
+        `,
     });
 
     if (mail) {
