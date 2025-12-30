@@ -367,7 +367,7 @@ export default function ClientOrderHistory() {
                           <div>
                             <h4 className="font-medium mb-3">Order Items</h4>
                             <div className="space-y-3">
-                              {order.orderItems.map((item) => (
+                              {order.orderItems && order.orderItems.map((item) => (
                                 <div
                                   key={item.product.id}
                                   className="flex gap-3 rounded-lg bg-muted/40 p-3"
@@ -392,6 +392,47 @@ export default function ClientOrderHistory() {
                                   </div>
                                 </div>
                               ))}
+                              {order.bundleOrderItems && order.bundleOrderItems
+                                .filter(bundleItem => bundleItem.bundle?.items)
+                                .map((bundleItem) => 
+                                bundleItem.bundle!.items.map((item) => (
+                                  <div
+                                    key={`bundle-${bundleItem.id}-${item.id}`}
+                                    className="flex gap-3 rounded-lg border p-3"
+                                  >
+                                    <div className="h-16 w-16 rounded overflow-hidden">
+                                      <ImageWithFallback
+                                        src={item.product?.images?.[0] || ''}
+                                        alt={item.product?.name || 'Bundle Product'}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">
+                                        {item.product?.name || 'Bundle Product'}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        SKU: {item.product?.sku || 'N/A'}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        Bundle Qty: {bundleItem.quantity} × Item Qty: {item.bundleProductQuantity}
+                                      </p>
+                                      {item.product?.price && item.product.price > 0 && (
+                                        <p className="text-sm">
+                                          Price: ₹{item.product.price.toFixed(2)}
+                                        </p>
+                                      )}
+                                      <p className="text-xs text-blue-600 font-medium">Bundle</p>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                              {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                  <p>No items found in this order</p>
+                                </div>
+                              )}
                             </div>
                           </div>
 

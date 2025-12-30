@@ -7,8 +7,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { $Enums } from "@/lib/generated/prisma";
 import { Search } from "lucide-react";
+import useSWR from 'swr';
+
+interface ProductCategory {
+  id: string;
+  name: string;
+  displayName: string;
+  description: string | null;
+  shortCode: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+  _count: {
+    products: number;
+    subCategories: number;
+  };
+}
+
+// Fetcher for categories
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error('Failed to fetch categories');
+  }
+  const data = await res.json();
+  return data.success ? data.data : [];
+};
 
 // Function to convert enum values to human-friendly names
 export const getHumanFriendlyCategoryName = (category: string | null): string => {
@@ -27,6 +53,8 @@ export const getHumanFriendlyCategoryName = (category: string | null): string =>
     travelAndTech: "Travel & Tech",
     books: "Books",
     welcomeKit: "Welcome Kit",
+    newcategory: "New Category",
+    consumables: "Consumables",
   };
 
   // Check if we have a specific friendly name for this category
@@ -82,6 +110,12 @@ export function ProductFilters({
   sortBy,
   setSortBy,
 }: ProductFiltersProps) {
+  // Fetch categories from database
+  const { data: categories } = useSWR<ProductCategory[]>('/api/admin/categories', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000,
+  });
+
   return (
     <div className="w-full overflow-x-hidden">
       <div className="flex flex-col gap-3 sm:gap-4">
@@ -115,9 +149,9 @@ export function ProductFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="All Categories">All Categories</SelectItem>
-            {Object.values($Enums.Category).map((category) => (
-              <SelectItem key={category} value={category}>
-                {getHumanFriendlyCategoryName(category)}
+            {categories?.filter(cat => cat.isActive).map((category) => (
+              <SelectItem key={category.id} value={category.name}>
+                {category.displayName}
               </SelectItem>
             ))}
           </SelectContent>

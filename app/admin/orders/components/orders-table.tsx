@@ -150,18 +150,41 @@ export function OrdersTable({
                   <div className="flex items-center gap-1">
                     <Package className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">
-                      {order.orderItems.length} items
+                      {(() => {
+                        const regularItems = order.orderItems?.length || 0;
+                        const bundles = order.numberOfBundles || 0;
+                        const bundleItems = order.bundleOrderItems?.length || 0;
+                        
+                        if (bundles > 0 && regularItems > 0) {
+                          return `${regularItems} items + ${bundles} bundles`;
+                        } else if (bundles > 0) {
+                          return `${bundles} bundles`;
+                        } else if (bundleItems > 0) {
+                          return `${bundleItems} bundle items`;
+                        } else {
+                          return `${regularItems} items`;
+                        }
+                      })()} 
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {order.orderItems.slice(0, 2).map((item, idx) => (
+                    {order.orderItems && order.orderItems.slice(0, 2).map((item, idx) => (
                       <div key={idx}>
-                        {item.product.name} x{item.quantity}
+                        {item.product?.name || 'Unknown Product'} x{item.quantity}
                       </div>
                     ))}
-                    {order.orderItems.length > 2 && (
+                    {order.bundleOrderItems && order.bundleOrderItems.slice(0, 2)
+                      .filter(bundleItem => bundleItem.bundle?.items)
+                      .map((bundleItem, idx) =>
+                      bundleItem.bundle!.items.slice(0, 1).map((item, itemIdx) => (
+                        <div key={`bundle-${idx}-${itemIdx}`}>
+                          {item.product?.name || 'Bundle Product'} (Bundle) x{bundleItem.quantity}
+                        </div>
+                      ))
+                    )}
+                    {(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) > 2 && (
                       <div className="text-muted-foreground">
-                        +{order.orderItems.length - 2} more items
+                        +{(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) - 2} more items
                       </div>
                     )}
                   </div>

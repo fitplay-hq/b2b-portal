@@ -26,6 +26,31 @@ export interface AdminOrder {
       productId: string;
       orderId: string;
     }[]
+    bundleOrderItems?: {
+      id: string;
+      quantity: number;
+      price: number;
+      bundleId: string;
+      orderId: string;
+      bundle?: {
+        id: string;
+        price: number;
+        items: {
+          id: string;
+          productId: string;
+          bundleProductQuantity: number;
+          price: number;
+          product: {
+            id: string;
+            name: string;
+            images: string[];
+            sku: string;
+            price: number;
+          };
+        }[];
+      };
+    }[]
+    numberOfBundles?: number;
     id: string;
     totalAmount: number;
     consigneeName: string;
