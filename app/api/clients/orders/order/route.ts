@@ -414,9 +414,7 @@ export async function POST(req: NextRequest) {
       : "Please reply confirmation to this new dispatch order mail.";
     toggleTracker = !toggleTracker;
 
-    const adminEmail = process.env.ADMIN_EMAIL;
     const clientEmail = session?.user?.email;
-    const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
 
     if (!adminEmail) throw new Error("Missing admin email");
 
