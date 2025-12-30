@@ -252,48 +252,26 @@ export async function POST(req: NextRequest) {
       });
 
       for (const item of items) {
-        const itemStock = await tx.product.findUnique({
-          where: { id: item.productId },
-          select: { availableStock: true },
-        });
-
-        if (!itemStock) {
-          throw new Error(
-            `Product with ID ${item.productId} not found during stock update`
-          );
-        }
-
         await tx.product.update({
           where: { id: item.productId },
           data: {
             availableStock: { decrement: item.quantity },
             inventoryUpdateReason: "NEW_ORDER",
             inventoryLogs: {
-              push: `${new Date().toISOString()} | Removed ${item.quantity
-                } units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity
-                } | Remarks: `,
+              push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Order: ${orderId}`,
             },
           },
         });
       }
 
       for (const item of bundleOrderItems) {
-
-        const itemStock = await tx.product.findUnique({
-          where: { id: item.productId },
-          select: { availableStock: true },
-        });
-
-        if (!itemStock) {
-          throw new Error(`Product with ID ${item.productId} not found during stock update`);
-        }
         await tx.product.update({
           where: { id: item.productId },
           data: {
             availableStock: { decrement: item.quantity },
             inventoryUpdateReason: "NEW_ORDER",
             inventoryLogs: {
-              push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
+              push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Order: ${orderId}`,
             },
           },
         });
@@ -451,8 +429,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(order);
   } catch (error) {
     console.error("Error creating order:", error);
+    // Log more detailed error information
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     return NextResponse.json(
-      { error: "Failed to create order" },
+      { error: "Failed to create order", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }
