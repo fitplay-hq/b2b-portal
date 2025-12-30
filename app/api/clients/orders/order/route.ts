@@ -70,6 +70,15 @@ export async function POST(req: NextRequest) {
 
     const year = new Date().getFullYear();
     const startOrder = company.name.split(" ")[0].toUpperCase();
+    
+    // Validate startOrder
+    if (!startOrder || startOrder.length === 0) {
+      console.error("Invalid company name for order ID generation:", company.name);
+      return NextResponse.json(
+        { error: "Invalid company configuration for order creation" },
+        { status: 400 }
+      );
+    }
 
     const lastOrder = await prisma.order.findFirst({
       where: {
@@ -174,6 +183,7 @@ export async function POST(req: NextRequest) {
     });
 
     let orderId = "";
+    let attempts = 0;
     while (true) {
       orderId = `FP-${startOrder}${year}-${String(nextSequence).padStart(
         3,
@@ -184,155 +194,187 @@ export async function POST(req: NextRequest) {
       });
       if (!existingOrder) break;
       nextSequence++;
+      attempts++;
+      
+      // Prevent infinite loop
+      if (attempts > 1000) {
+        console.error("Failed to generate unique order ID after 1000 attempts");
+        return NextResponse.json(
+          { error: "Unable to generate unique order ID" },
+          { status: 500 }
+        );
+      }
+    }
+    
+    // Final validation
+    if (!orderId || orderId.length === 0) {
+      console.error("Order ID generation failed", { startOrder, year, nextSequence });
+      return NextResponse.json(
+        { error: "Order ID generation failed" },
+        { status: 500 }
+      );
+    }
+    
+    console.log("Generated order ID:", orderId);
+
+    // --------------------------
+    // 🔥 Create order without transaction to avoid serverless timeouts
+    // --------------------------
+    
+    // Create the main order first
+    const newOrder = await prisma.order.create({
+      data: {
+        id: orderId,
+        clientId: client.id,
+        consigneeName,
+        consigneePhone,
+        consigneeEmail,
+        city,
+        state,
+        pincode,
+        requiredByDate,
+        modeOfDelivery,
+        deliveryAddress,
+        deliveryReference,
+        packagingInstructions,
+        note,
+        totalAmount,
+        numberOfBundles: numberOfBundles,
+      },
+    });
+
+    // Create order items
+    if (items.length > 0) {
+      await prisma.orderItem.createMany({
+        data: items.map((item: any) => ({
+          orderId: newOrder.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price ?? 0,
+        })),
+      });
     }
 
-    // --------------------------
-    // 🔥 New logic: transaction (order + reduce stock)
-    // --------------------------
-    const order = await prisma.$transaction(async (tx) => {
-      const newOrder = await tx.order.create({
-        data: {
-          id: orderId,
-          clientId: client.id,
-          consigneeName,
-          consigneePhone,
-          consigneeEmail,
-          city,
-          state,
-          pincode,
-          requiredByDate,
-          modeOfDelivery,
-          deliveryAddress,
-          deliveryReference,
-          packagingInstructions,
-          note,
-          totalAmount,
-          orderItems: {
-            create: items.map((item: any) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price ?? 0,
-            })),
-          },
-          numberOfBundles: numberOfBundles,
-          bundleOrderItems: {
-            create: bundleOrderItems.map((item: any) => ({
-              bundleId: bundle.id,
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price ?? 0,
-              bundleItems: {
-                create: {
-                  bundleId: bundle.id,
-                  productId: item.productId,
-                  bundleProductQuantity: item.bundleProductQuantity,
-                  price: item.price ?? 0,
-                },
-              },
-            })),
-          },
-        },
-        include: {
-          orderItems: { include: { product: true } },
-          bundleOrderItems: { include: { product: true } },
-          bundles: { include: { items: { include: { product: true } } } },
-
-        },
+    // Create bundle order items
+    if (bundleOrderItems.length > 0) {
+      await prisma.bundleOrderItem.createMany({
+        data: bundleOrderItems.map((item: any) => ({
+          orderId: newOrder.id,
+          bundleId: bundle.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price ?? 0,
+        })),
       });
+    }
 
-      const eachBundlePrice = bundleOrderItems.reduce((sum: number, item: any) => {
-        return sum + item.bundleProductQuantity * item.price;
-      }, 0);
-      bundle = await tx.bundle.update({
+    // Calculate bundle price and update bundle
+    const eachBundlePrice = bundleOrderItems.reduce((sum: number, item: any) => {
+      return sum + item.bundleProductQuantity * item.price;
+    }, 0);
+    
+    if (bundle) {
+      bundle = await prisma.bundle.update({
         where: { id: bundle.id },
         data: {
           orderId: newOrder.id,
           price: eachBundlePrice,
         },
       });
-
-      for (const item of items) {
-        const itemStock = await tx.product.findUnique({
-          where: { id: item.productId },
-          select: { availableStock: true },
+    }
+    
+    // Create bundle items separately if bundle items exist
+    if (bundleOrderItems.length > 0 && bundle) {
+      try {
+        await prisma.bundleItem.createMany({
+          data: bundleOrderItems.map((item: any) => ({
+            bundleId: bundle.id,
+            productId: item.productId,
+            bundleProductQuantity: item.bundleProductQuantity,
+            price: item.price ?? 0,
+          })),
         });
-
-        if (!itemStock) {
-          throw new Error(
-            `Product with ID ${item.productId} not found during stock update`
-          );
-        }
-
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            availableStock: { decrement: item.quantity },
-            inventoryUpdateReason: "NEW_ORDER",
-            inventoryLogs: {
-              push: `${new Date().toISOString()} | Removed ${item.quantity
-                } units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity
-                } | Remarks: `,
-            },
-          },
-        });
+      } catch (bundleItemError) {
+        console.error("Error creating bundle items:", bundleItemError);
+        // Continue without bundle items if creation fails
       }
+    }
 
-      for (const item of bundleOrderItems) {
-
-        const itemStock = await tx.product.findUnique({
-          where: { id: item.productId },
-          select: { availableStock: true },
-        });
-
-        if (!itemStock) {
-          throw new Error(`Product with ID ${item.productId} not found during stock update`);
-        }
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            availableStock: { decrement: item.quantity },
-            inventoryUpdateReason: "NEW_ORDER",
-            inventoryLogs: {
-              push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
-            },
+    // Update stock for regular items
+    for (const item of items) {
+      await prisma.product.update({
+        where: { id: item.productId },
+        data: {
+          availableStock: { decrement: item.quantity },
+          inventoryUpdateReason: "NEW_ORDER",
+          inventoryLogs: {
+            push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Order: ${orderId}`,
           },
-        });
-      }
-
-      const updatedProducts = await tx.product.findMany({
-        where: {
-          id: { in: itemsId },
-        },
-        select: {
-          name: true,
-          availableStock: true,
-          minStockThreshold: true,
         },
       });
+    }
 
-      // Send stock alert emails if below threshold
-      const adminEmail = process.env.ADMIN_EMAIL || "";
-      const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
-      updatedProducts.forEach(async (productData) => {
-        if (productData && productData.minStockThreshold) {
-          if (productData.availableStock < productData.minStockThreshold) {
-            const mail = await resend.emails.send({
-              from: "no-reply@fitplaysolutions.com",
-              to: [adminEmail],
-              cc: ownerEmail,
-              subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
-              html: `<p>Dear Admin,</p>
+    // Update stock for bundle items
+    for (const item of bundleOrderItems) {
+      await prisma.product.update({
+        where: { id: item.productId },
+        data: {
+          availableStock: { decrement: item.quantity },
+          inventoryUpdateReason: "NEW_ORDER",
+          inventoryLogs: {
+            push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Order: ${orderId}`,
+          },
+        },
+      });
+    }
+
+    // Check updated products for stock alerts
+    const updatedProducts = await prisma.product.findMany({
+      where: {
+        id: { in: itemsId },
+      },
+      select: {
+        name: true,
+        availableStock: true,
+        minStockThreshold: true,
+      },
+    });
+
+    // Send stock alert emails if below threshold
+    const adminEmail = process.env.ADMIN_EMAIL || "";
+    const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
+    updatedProducts.forEach(async (productData) => {
+      if (productData && productData.minStockThreshold) {
+        if (productData.availableStock < productData.minStockThreshold) {
+          const mail = await resend.emails.send({
+            from: "no-reply@fitplaysolutions.com",
+            to: [adminEmail],
+            cc: ownerEmail,
+            subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
+            html: `<p>Dear Admin,</p>
             <p>The stock for product <strong>${productData.name}</strong> has fallen below the minimum threshold.</p>
             <ul>
               <li>Current Stock: ${productData.availableStock}</li>
               <li>Minimum Threshold: ${productData.minStockThreshold}</li>
             </ul>`,
-            });
-          }
+          });
         }
-      });
-      return newOrder;
+      }
     });
+
+    // Get the complete order with all relations for email
+    const order = await prisma.order.findUnique({
+      where: { id: newOrder.id },
+      include: {
+        orderItems: { include: { product: true } },
+        bundleOrderItems: { include: { product: true } },
+        bundles: { include: { items: { include: { product: true } } } },
+      },
+    });
+
+    if (!order) {
+      return NextResponse.json({ error: "Order created but could not be retrieved" }, { status: 500 });
+    }
 
     const orderTable = `
         <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 16px;">
@@ -372,9 +414,7 @@ export async function POST(req: NextRequest) {
       : "Please reply confirmation to this new dispatch order mail.";
     toggleTracker = !toggleTracker;
 
-    const adminEmail = process.env.ADMIN_EMAIL;
     const clientEmail = session?.user?.email;
-    const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
 
     if (!adminEmail) throw new Error("Missing admin email");
 
@@ -451,8 +491,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(order);
   } catch (error) {
     console.error("Error creating order:", error);
+    // Log more detailed error information
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     return NextResponse.json(
-      { error: "Failed to create order" },
+      { error: "Failed to create order", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }
