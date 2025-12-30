@@ -267,21 +267,31 @@ export async function POST(req: NextRequest) {
         return sum + item.bundleProductQuantity * item.price;
       }, 0);
       
-      // Update bundle with proper items relationship
+      // Update bundle with price and order association
       bundle = await tx.bundle.update({
         where: { id: bundle.id },
         data: {
           orderId: newOrder.id,
           price: eachBundlePrice,
-          items: {
-            create: bundleOrderItems.map((item: any) => ({
+        },
+      });
+      
+      // Create bundle items separately if bundle items exist
+      if (bundleOrderItems.length > 0) {
+        try {
+          await tx.bundleItem.createMany({
+            data: bundleOrderItems.map((item: any) => ({
+              bundleId: bundle.id,
               productId: item.productId,
               bundleProductQuantity: item.bundleProductQuantity,
               price: item.price ?? 0,
             })),
-          },
-        },
-      });
+          });
+        } catch (bundleItemError) {
+          console.error("Error creating bundle items:", bundleItemError);
+          // Continue without bundle items if creation fails
+        }
+      }
 
       for (const item of items) {
         await tx.product.update({

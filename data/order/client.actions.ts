@@ -48,7 +48,20 @@ export async function createOrder(url: string, data: CreateOrderData) {
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    throw new Error("Failed to create order");
+    let errorMessage = "Failed to create order";
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+      if (errorData.details) {
+        errorMessage += `: ${errorData.details}`;
+      }
+    } catch (e) {
+      // If we can't parse the error response, use default message
+      errorMessage = `Failed to create order (${response.status})`;
+    }
+    throw new Error(errorMessage);
   }
   return await response.json();
 }
