@@ -70,6 +70,15 @@ export async function POST(req: NextRequest) {
 
     const year = new Date().getFullYear();
     const startOrder = company.name.split(" ")[0].toUpperCase();
+    
+    // Validate startOrder
+    if (!startOrder || startOrder.length === 0) {
+      console.error("Invalid company name for order ID generation:", company.name);
+      return NextResponse.json(
+        { error: "Invalid company configuration for order creation" },
+        { status: 400 }
+      );
+    }
 
     const lastOrder = await prisma.order.findFirst({
       where: {
@@ -174,6 +183,7 @@ export async function POST(req: NextRequest) {
     });
 
     let orderId = "";
+    let attempts = 0;
     while (true) {
       orderId = `FP-${startOrder}${year}-${String(nextSequence).padStart(
         3,
@@ -184,7 +194,28 @@ export async function POST(req: NextRequest) {
       });
       if (!existingOrder) break;
       nextSequence++;
+      attempts++;
+      
+      // Prevent infinite loop
+      if (attempts > 1000) {
+        console.error("Failed to generate unique order ID after 1000 attempts");
+        return NextResponse.json(
+          { error: "Unable to generate unique order ID" },
+          { status: 500 }
+        );
+      }
     }
+    
+    // Final validation
+    if (!orderId || orderId.length === 0) {
+      console.error("Order ID generation failed", { startOrder, year, nextSequence });
+      return NextResponse.json(
+        { error: "Order ID generation failed" },
+        { status: 500 }
+      );
+    }
+    
+    console.log("Generated order ID:", orderId);
 
     // --------------------------
     // 🔥 New logic: transaction (order + reduce stock)
@@ -221,14 +252,6 @@ export async function POST(req: NextRequest) {
               productId: item.productId,
               quantity: item.quantity,
               price: item.price ?? 0,
-              bundleItems: {
-                create: {
-                  bundleId: bundle.id,
-                  productId: item.productId,
-                  bundleProductQuantity: item.bundleProductQuantity,
-                  price: item.price ?? 0,
-                },
-              },
             })),
           },
         },
@@ -243,11 +266,20 @@ export async function POST(req: NextRequest) {
       const eachBundlePrice = bundleOrderItems.reduce((sum: number, item: any) => {
         return sum + item.bundleProductQuantity * item.price;
       }, 0);
+      
+      // Update bundle with proper items relationship
       bundle = await tx.bundle.update({
         where: { id: bundle.id },
         data: {
           orderId: newOrder.id,
           price: eachBundlePrice,
+          items: {
+            create: bundleOrderItems.map((item: any) => ({
+              productId: item.productId,
+              bundleProductQuantity: item.bundleProductQuantity,
+              price: item.price ?? 0,
+            })),
+          },
         },
       });
 
