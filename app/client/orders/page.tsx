@@ -282,7 +282,29 @@ export default function ClientOrderHistory() {
                                 {new Date(order.createdAt).toLocaleDateString()}
                               </span>
                               <span>•</span>
-                              <span>Item</span>
+                              <span>
+                                {(() => {
+                                  const regularItems = order.orderItems?.length || 0;
+                                  const bundleItems = order.bundleOrderItems?.reduce((count, bundleItem) => {
+                                    return count + (bundleItem.bundle?.items?.length || 0);
+                                  }, 0) || 0;
+                                  const totalItems = regularItems + bundleItems;
+                                  
+                                  if (totalItems === 1) {
+                                    // Show single item name
+                                    if (order.orderItems?.[0]) {
+                                      return order.orderItems[0].product?.name || 'Item';
+                                    } else if (order.bundleOrderItems?.[0]?.bundle?.items?.[0]) {
+                                      return order.bundleOrderItems[0].bundle.items[0].product?.name || 'Bundle Item';
+                                    }
+                                    return 'Item';
+                                  } else {
+                                    // Show count for multiple items
+                                    return `${totalItems} items`;
+                                  }
+                                })()
+                              }
+                              </span>
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {getStatusDescription(order.status)}
@@ -415,7 +437,7 @@ export default function ClientOrderHistory() {
                                         SKU: {item.product?.sku || 'N/A'}
                                       </p>
                                       <p className="text-sm text-muted-foreground">
-                                        Bundle Qty: {bundleItem.quantity} × Item Qty: {item.bundleProductQuantity}
+                                          Bundle Qty: {Math.floor(bundleItem.quantity / item.bundleProductQuantity)} × Item Qty: {item.bundleProductQuantity}
                                       </p>
                                       {item.product?.price && item.product.price > 0 && (
                                         <p className="text-sm">

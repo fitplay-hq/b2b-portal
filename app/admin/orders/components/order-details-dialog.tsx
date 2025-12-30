@@ -216,24 +216,34 @@ export function OrderDetailsDialog({
                   </div>
                 </div>
               ))}
-              {order.bundleOrderItems && order.bundleOrderItems.map((item, index) => (
-                <div key={`bundle-${index}`} className="flex items-center gap-4 p-3 border rounded-lg bg-blue-50">
-                  <div className="h-12 w-12 rounded bg-blue-100 flex items-center justify-center">
-                    <Package className="h-6 w-6 text-blue-600" />
+              {order.bundleOrderItems && order.bundleOrderItems
+                .filter(bundleItem => bundleItem.bundle?.items)
+                .map((bundleItem, index) =>
+                bundleItem.bundle!.items.map((item, itemIndex) => (
+                  <div key={`bundle-${index}-${itemIndex}`} className="flex items-center gap-4 p-3 border rounded-lg">
+                    <div className="h-12 w-12 rounded overflow-hidden">
+                      <ImageWithFallback
+                        src={item.product?.images?.[0] || ''}
+                        alt={item.product?.name || 'Bundle Product'}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{item.product?.name || 'Bundle Product'}</p>
+                      <p className="text-sm text-muted-foreground">SKU: {item.product?.sku || 'N/A'}</p>
+                      <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">Qty: {Math.floor(bundleItem.quantity / item.bundleProductQuantity)} x {item.bundleProductQuantity}</p>
+                      {item.product?.price && item.product.price > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          ₹{item.product.price.toFixed(2)} each
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">Bundle Item</p>
-                    <p className="text-sm text-muted-foreground">Bundle ID: {item.bundleId || 'N/A'}</p>
-                    <p className="text-xs text-blue-600 font-medium">Bundle</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">Qty: {item.quantity}</p>
-                    <p className="text-sm text-muted-foreground">
-                      ₹{item.price.toFixed(2)} each
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
               {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />

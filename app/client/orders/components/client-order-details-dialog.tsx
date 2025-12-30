@@ -264,7 +264,7 @@ export function ClientOrderDetailsDialog({
                       <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">Qty: {bundleItem.quantity} x {item.bundleProductQuantity}</p>
+                      <p className="font-medium">Qty: {Math.floor(bundleItem.quantity / item.bundleProductQuantity)} x {item.bundleProductQuantity}</p>
                       {item.product?.price && item.product.price > 0 && (
                         <p className="text-sm text-muted-foreground">
                           ₹{item.product.price.toFixed(2)} each

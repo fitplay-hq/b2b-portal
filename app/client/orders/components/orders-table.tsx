@@ -306,7 +306,7 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
                                           SKU: {item.product?.sku || 'N/A'}
                                         </p>
                                         <p className="text-xs text-muted-foreground">
-                                          Bundle Qty: {bundleItem.quantity} × Item Qty: {item.bundleProductQuantity}
+                                        Bundle Qty: {Math.floor(bundleItem.quantity / item.bundleProductQuantity)} × Item Qty: {item.bundleProductQuantity}
                                         </p>
                                         {item.product?.price && item.product.price > 0 && (
                                           <p className="text-xs font-medium">
