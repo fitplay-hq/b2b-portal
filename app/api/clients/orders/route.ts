@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
                 packagingInstructions: true,
                 note: true,
                 status: true,
+                requiredByDate: true,
                 createdAt: true,
                 updatedAt: true,
                 orderItems: {

@@ -413,40 +413,70 @@ export default function ClientOrderHistory() {
                                 </div>
                               ))}
                               {order.bundleOrderItems && order.bundleOrderItems
-                                .filter(bundleItem => bundleItem.bundle?.items)
-                                .map((bundleItem) => 
-                                bundleItem.bundle!.items.map((item) => (
-                                  <div
-                                    key={`bundle-${bundleItem.id}-${item.id}`}
-                                    className="flex gap-3 rounded-lg border p-3"
-                                  >
-                                    <div className="h-16 w-16 rounded overflow-hidden">
-                                      <ImageWithFallback
-                                        src={item.product?.images?.[0] || ''}
-                                        alt={item.product?.name || 'Bundle Product'}
-                                        className="h-full w-full object-cover"
-                                      />
-                                    </div>
-                                    <div>
-                                      <p className="font-medium">
-                                        {item.product?.name || 'Bundle Product'}
-                                      </p>
-                                      <p className="text-sm text-muted-foreground">
-                                        SKU: {item.product?.sku || 'N/A'}
-                                      </p>
-                                      <p className="text-sm text-muted-foreground">
-                                          Bundle Qty: {Math.floor(bundleItem.quantity / item.bundleProductQuantity)} × Item Qty: {item.bundleProductQuantity}
-                                      </p>
-                                      {item.product?.price && item.product.price > 0 && (
-                                        <p className="text-sm">
-                                          Price: ₹{item.product.price.toFixed(2)}
-                                        </p>
-                                      )}
-                                      <p className="text-xs text-blue-600 font-medium">Bundle</p>
-                                    </div>
-                                  </div>
-                                ))
-                              )}
+                                .map((bundleItem) => {
+                                  // If bundle has detailed items, show them
+                                  if (bundleItem.bundle?.items && bundleItem.bundle.items.length > 0) {
+                                    return bundleItem.bundle.items.map((item) => (
+                                      <div
+                                        key={`bundle-${bundleItem.id}-${item.id}`}
+                                        className="flex gap-3 rounded-lg border p-3"
+                                      >
+                                        <div className="h-16 w-16 rounded overflow-hidden">
+                                          <ImageWithFallback
+                                            src={item.product?.images?.[0] || ''}
+                                            alt={item.product?.name || 'Bundle Product'}
+                                            className="h-full w-full object-cover"
+                                          />
+                                        </div>
+                                        <div>
+                                          <p className="font-medium">
+                                            {item.product?.name || 'Bundle Product'}
+                                          </p>
+                                          <p className="text-sm text-muted-foreground">
+                                            SKU: {item.product?.sku || 'N/A'}
+                                          </p>
+                                          <p className="text-sm text-muted-foreground">
+                                              Bundle Qty: {Math.floor(bundleItem.quantity / item.bundleProductQuantity)} × Item Qty: {item.bundleProductQuantity}
+                                          </p>
+                                          {item.product?.price && item.product.price > 0 && (
+                                            <p className="text-sm">
+                                              Price: ₹{item.product.price.toFixed(2)}
+                                            </p>
+                                          )}
+                                          <p className="text-xs text-blue-600 font-medium">Bundle</p>
+                                        </div>
+                                      </div>
+                                    ));
+                                  } else {
+                                    // Use the product info directly from bundleOrderItem
+                                    return [
+                                      <div
+                                        key={`bundle-simple-${bundleItem.id}`}
+                                        className="flex gap-3 rounded-lg border p-3"
+                                      >
+                                        <div className="h-16 w-16 rounded overflow-hidden">
+                                          <ImageWithFallback
+                                            src={bundleItem.product?.images?.[0] || ''}
+                                            alt={bundleItem.product?.name || 'Bundle Product'}
+                                            className="h-full w-full object-cover"
+                                          />
+                                        </div>
+                                        <div>
+                                          <p className="font-medium">
+                                            {bundleItem.product?.name || 'Bundle Item'}
+                                          </p>
+                                          <p className="text-sm text-muted-foreground">
+                                            SKU: {bundleItem.product?.sku || 'N/A'}
+                                          </p>
+                                          <p className="text-sm text-muted-foreground">
+                                            Qty: {bundleItem.quantity}
+                                          </p>
+                                          <p className="text-xs text-blue-600 font-medium">Bundle</p>
+                                        </div>
+                                      </div>
+                                    ];
+                                  }
+                                })}
                               {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
                                 <div className="text-center py-8 text-muted-foreground">
                                   <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
