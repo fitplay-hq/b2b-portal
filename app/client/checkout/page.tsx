@@ -210,7 +210,7 @@ export default function ClientCheckout() {
         note: note.trim() || null,
         items: _orderItems,
         bundleOrderItems: _bundleOrderItems,
-        numberOfBundles: _bundleOrderItems.length > 0 ? cartItems.find(item => item.isBundleItem)?.bundleQuantity || 1 : 0,
+        numberOfBundles: cartItems.find(item => item.isBundleItem)?.bundleCount || 0,
       };
 
       await createOrder(_order);

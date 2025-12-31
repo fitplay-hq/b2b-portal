@@ -112,13 +112,10 @@ const OrderSummary = ({ order }: { order: AdminOrder }) => {
             <Package className="h-4 w-4" />
             {(() => {
               const regularItems = order.orderItems?.length || 0;
-              const bundles = order.numberOfBundles || 0;
               const bundleItems = order.bundleOrderItems?.length || 0;
               
-              if (bundles > 0 && regularItems > 0) {
-                return `${regularItems} items + ${bundles} bundles`;
-              } else if (bundles > 0) {
-                return `${bundles} bundles`;
+              if (bundleItems > 0 && regularItems > 0) {
+                return `${regularItems} items + ${bundleItems} bundle items`;
               } else if (bundleItems > 0) {
                 return `${bundleItems} bundle items`;
               } else if (regularItems > 0) {
@@ -367,27 +364,28 @@ const OrderDetails = ({
               </div>
             ))}
             {order.bundleOrderItems && order.bundleOrderItems
-              .filter(bundleItem => bundleItem.bundle?.items)
-              .flatMap((bundleItem) => 
-                bundleItem.bundle!.items.map((item) => (
-                  <div
-                    key={`bundle-${bundleItem.id}-${item.id}`}
-                    className="flex gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3"
-                  >
-                  <div className="h-12 w-12 sm:h-16 sm:w-16 rounded overflow-hidden shrink-0">
-                    <ImageWithFallback
-                      src={item.product?.images?.[0] || ''}
-                      alt={item.product?.name || 'Bundle Product'}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm sm:text-base truncate">{item.product?.name || 'Bundle Product'}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      SKU: {item.product?.sku || 'N/A'}
-                    </p>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm">
-                      <p>Bundle Qty: {bundleItem.quantity}</p>
+              .flatMap((bundleItem) => {
+                // If bundle has detailed items, show them
+                if (bundleItem.bundle?.items && bundleItem.bundle.items.length > 0) {
+                  return bundleItem.bundle.items.map((item) => (
+                    <div
+                      key={`bundle-${bundleItem.id}-${item.id}`}
+                      className="flex gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3"
+                    >
+                    <div className="h-12 w-12 sm:h-16 sm:w-16 rounded overflow-hidden shrink-0">
+                      <ImageWithFallback
+                        src={item.product?.images?.[0] || ''}
+                        alt={item.product?.name || 'Bundle Product'}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm sm:text-base truncate">{item.product?.name || 'Bundle Product'}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        SKU: {item.product?.sku || 'N/A'}
+                      </p>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm">
+                        <p>Bundle Qty: {bundleItem.quantity}</p>
                       <p>Item Qty: {item.bundleProductQuantity}</p>
                       {item.product?.price && item.product.price > 0 && (
                         <p>Price: ₹{item.product.price.toFixed(2)}</p>
@@ -396,8 +394,35 @@ const OrderDetails = ({
                     </div>
                   </div>
                 </div>
-                ))
-              )}
+                  ));
+                } else {
+                  // Use the product info directly from bundleOrderItem
+                  return [
+                    <div
+                      key={`bundle-simple-${bundleItem.id}`}
+                      className="flex gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3"
+                    >
+                      <div className="h-12 w-12 sm:h-16 sm:w-16 rounded overflow-hidden shrink-0">
+                        <ImageWithFallback
+                          src={bundleItem.product?.images?.[0] || ''}
+                          alt={bundleItem.product?.name || 'Bundle Product'}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm sm:text-base truncate">{bundleItem.product?.name || 'Bundle Item'}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          SKU: {bundleItem.product?.sku || 'N/A'}
+                        </p>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm">
+                          <p>Qty: {bundleItem.quantity}</p>
+                          <p className="text-blue-600 font-medium">Bundle</p>
+                        </div>
+                      </div>
+                    </div>
+                  ];
+                }
+              })}
             {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
               <div className="text-center py-8 text-muted-foreground">
                 <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
