@@ -285,8 +285,8 @@ export default function ClientOrderHistory() {
                               <span>
                                 {(() => {
                                   const regularItems = order.orderItems?.length || 0;
-                                  const numberOfBundles = order.numberOfBundles || 0;
-                                  const totalItems = regularItems + numberOfBundles;
+                                  const bundleItems = order.bundleOrderItems?.length || 0;
+                                  const totalItems = regularItems + bundleItems;
                                   
                                   if (totalItems === 1) {
                                     // Show single item name
