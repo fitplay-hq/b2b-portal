@@ -43,7 +43,7 @@ export const MOCK_CLIENTS: Client[] = [
     email: 'shrutsn@github.com',
     company: 'Github',
     status: 'active',
-    createdAt: '2025-09-05'
+    createdAt: '2026-09-05'
   },
 ];
 
