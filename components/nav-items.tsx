@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
-import { usePersistentPermissions } from "@/contexts/permission-context";
+import { useFastPermissions } from "@/contexts/fast-permission-context";
 import {
   BarChart3,
   History,  
@@ -44,12 +44,13 @@ interface NavItemsProps {
 export default function NavItems({ isClient, isCollapsed = false }: NavItemsProps) {
   const pathname = usePathname();
   const { data: session } = useSession(); // Get session directly for instant admin detection
+  
+  // CRITICAL FIX: Use fast permissions instead of slow persistent permissions
   const { 
     pageAccess, 
     actions, 
-    isAdmin,
-    isLoading
-  } = usePersistentPermissions();
+    isAdmin
+  } = useFastPermissions();
   
   // INSTANT admin detection - never wait for permissions and never refresh
   const isAdminUser = session?.user?.role === 'ADMIN' || isAdmin;
@@ -169,10 +170,8 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
     // For admins, always show immediately (never changes)
     if (isAdminUser) return true;
     
-    // For non-admins: Only show if explicitly has permission AND not loading
-    // This prevents admin items from flashing during navigation
-    if (isLoading) return false; // Hide all permission-based items while loading
-    
+    // For non-admins: Only show if explicitly has permission
+    // Fast permissions provide instant results, no loading state needed
     return pageAccess[item.permission] === true;
   });
 
@@ -239,7 +238,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </h3>
           <nav className="space-y-1">
             {/* Clients Unified Collapsible */}
-            {((isAdminUser || (!isLoading && (pageAccess.companies || pageAccess.clients))) && (
+            {((isAdminUser || (pageAccess.companies || pageAccess.clients)) && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -308,7 +307,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             ))}
 
             {/* Role Management Collapsible - Check roles permission */}
-            {(isAdminUser || (!isLoading && pageAccess.roles)) && (
+            {(isAdminUser || pageAccess.roles) && (
             <Collapsible open={rolesOpen} onOpenChange={setRolesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -365,7 +364,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
 
             {/* User Management Collapsible - Check users permission */}
-            {(isAdminUser || (!isLoading && pageAccess.users)) && (
+            {(isAdminUser || pageAccess.users) && (
             <Collapsible open={usersOpen} onOpenChange={setUsersOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -431,7 +430,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
           
           {/* Clients Unified Dropdown */}
-          {((isAdminUser || (!isLoading && (pageAccess.companies || pageAccess.clients))) && (
+          {((isAdminUser || (pageAccess.companies || pageAccess.clients)) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -475,7 +474,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           ))}
 
           {/* Role Management Dropdown - Check roles permission */}
-          {(isAdminUser || (!isLoading && pageAccess.roles)) && (
+          {(isAdminUser || pageAccess.roles) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -513,7 +512,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* User Management Dropdown - Check users permission */}
-          {(isAdminUser || (!isLoading && pageAccess.users)) && (
+          {(isAdminUser || pageAccess.users) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button

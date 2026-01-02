@@ -199,29 +199,30 @@ export const auth: AuthOptions = {
         token.companyName = (user as { companyName?: string }).companyName;
         token.isDemo = (user as { isDemo?: boolean }).isDemo;
         
-        // Cache permissions in JWT token to avoid repeated database calls
+        // CRITICAL FIX: Only fetch permissions for SYSTEM_USER to avoid delays
+        // ADMIN users don't need permissions from DB (they have everything)
         if ((user as { role: UserRole }).role === "SYSTEM_USER" && (user as { systemRoleId?: string }).systemRoleId) {
           try {
+            // Fast permission fetch with minimal data
             const systemRole = await prisma.systemRole.findUnique({
               where: { id: (user as { systemRoleId: string }).systemRoleId },
-              include: {
+              select: {
                 permissions: {
                   select: {
                     id: true,
                     resource: true,
                     action: true,
-                    description: true,
                   }
                 }
               }
             });
             token.permissions = systemRole?.permissions || [];
           } catch (error) {
-            console.error("Error caching permissions in JWT:", error);
-            token.permissions = [];
+            console.error("Error caching permissions in JWT (using empty array):", error);
+            token.permissions = []; // Fail safe - system will still work
           }
         } else {
-          token.permissions = []; // ADMIN or other roles
+          token.permissions = []; // ADMIN or CLIENT - no permissions needed
         }
       }
       return token;
