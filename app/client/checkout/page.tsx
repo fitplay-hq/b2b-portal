@@ -210,7 +210,22 @@ export default function ClientCheckout() {
         note: note.trim() || null,
         items: _orderItems,
         bundleOrderItems: _bundleOrderItems,
-        numberOfBundles: cartItems.find(item => item.isBundleItem)?.bundleCount || 0,
+        numberOfBundles: (() => {
+          const bundleItems = cartItems.filter(item => item.isBundleItem);
+          if (bundleItems.length === 0) return 0;
+          
+          // Get the bundle count from any bundle item - they should all be the same
+          // This represents the actual number of bundle sets ordered
+          const bundleCount = bundleItems[0].bundleCount;
+          console.log('Bundle count from cart:', bundleCount, 'Bundle items:', bundleItems.map(item => ({
+            name: item.product.name,
+            bundleCount: item.bundleCount,
+            bundleQuantity: item.bundleQuantity,
+            totalQuantity: item.quantity
+          })));
+          
+          return bundleCount || 0;
+        })(),
       };
 
       await createOrder(_order);

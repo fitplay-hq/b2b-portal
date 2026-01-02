@@ -80,7 +80,24 @@ export async function GET(req: NextRequest) {
                             bundle: {
                                 select: {
                                     id: true,
-                                    price: true
+                                    price: true,
+                                    items: {
+                                        select: {
+                                            id: true,
+                                            productId: true,
+                                            bundleProductQuantity: true,
+                                            price: true,
+                                            product: {
+                                                select: {
+                                                    id: true,
+                                                    name: true,
+                                                    images: true,
+                                                    sku: true,
+                                                    price: true
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -166,15 +166,14 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
                               {item.product?.name || 'Unknown Product'} x{item.quantity}
                             </div>
                           ))}
-                          {order.bundleOrderItems && order.bundleOrderItems.slice(0, 2)
-                            .filter(bundleItem => bundleItem.bundle?.items)
-                            .map((bundleItem, idx) =>
-                            bundleItem.bundle!.items.slice(0, 1).map((item, itemIdx) => (
-                              <div key={`bundle-${idx}-${itemIdx}`}>
-                                {item.product?.name || 'Bundle Product'} (Bundle) x{bundleItem.quantity}
+                          {order.bundleOrderItems && order.bundleOrderItems.slice(0, 2).map((bundleItem, idx) => {
+                            // Group bundle items and show them properly
+                            return (
+                              <div key={`bundle-${idx}`} className="text-xs text-muted-foreground">
+                                🔹 {bundleItem.product?.name || 'Bundle Item'} x{bundleItem.quantity} (Bundle)
                               </div>
-                            ))
-                          )}
+                            );
+                          })}
                           {(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) > 2 && (
                             <div className="text-muted-foreground">
                               +{(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) - 2} more items

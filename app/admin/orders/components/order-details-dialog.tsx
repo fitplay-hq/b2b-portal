@@ -213,64 +213,57 @@ export function OrderDetailsDialog({
                   </div>
                 </div>
               ))}
-              {order.bundleOrderItems && order.bundleOrderItems
-                .map((bundleItem, index) => {
-                  // If bundle has detailed items, show them
-                  if (bundleItem.bundle?.items && bundleItem.bundle.items.length > 0) {
-                    return bundleItem.bundle.items.map((item, itemIndex) => (
-                      <div key={`bundle-${index}-${itemIndex}`} className="flex items-center gap-4 p-3 border rounded-lg">
+              {order.bundleOrderItems && order.bundleOrderItems.length > 0 && (() => {
+                // Group bundleOrderItems by bundle
+                const bundleGroups = order.bundleOrderItems.reduce((groups: any, bundleItem) => {
+                  const bundleId = bundleItem.bundleId;
+                  if (!groups[bundleId]) {
+                    groups[bundleId] = {
+                      bundle: bundleItem.bundle,
+                      items: []
+                    };
+                  }
+                  groups[bundleId].items.push(bundleItem);
+                  return groups;
+                }, {});
+
+                return Object.values(bundleGroups).map((group: any, groupIndex) => (
+                  <div key={`bundle-group-${groupIndex}`} className="space-y-3">
+                    {/* Bundle Header */}
+                    <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                      <Package className="h-4 w-4 text-blue-600" />
+                      <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
+                      <span className="text-xs text-blue-600 ml-auto">
+                        {group.items.length} items • Quantity: {order.numberOfBundles || 1} bundles • ₹{group.bundle?.price?.toFixed(2) || '0.00'}
+                      </span>
+                    </div>
+                    
+                    {/* Bundle Items */}
+                    {group.items.map((bundleItem: any, itemIndex: number) => (
+                      <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex items-center gap-4 p-3 border rounded-lg ml-4">
                         <div className="h-12 w-12 rounded overflow-hidden">
                           <ImageWithFallback
-                            src={item.product?.images?.[0] || ''}
-                            alt={item.product?.name || 'Bundle Product'}
+                            src={bundleItem.product?.images?.[0] || ''}
+                            alt={bundleItem.product?.name || 'Bundle Product'}
                             className="h-full w-full object-cover"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{item.product?.name || 'Bundle Product'}</p>
-                          <p className="text-sm text-muted-foreground">SKU: {item.product?.sku || 'N/A'}</p>
-                          <p className="text-xs text-muted-foreground">From Bundle</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">Qty: {Math.floor(bundleItem.quantity / item.bundleProductQuantity)} x {item.bundleProductQuantity}</p>
-                          {item.product?.price && item.product.price > 0 && (
-                            <p className="text-sm text-muted-foreground">
-                              ₹{item.product.price.toFixed(2)} each
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ));
-                  } else {
-                    // Use the product info directly from bundleOrderItem
-                    return (
-                      <div key={`bundle-simple-${index}`} className="flex items-center gap-4 p-3 border rounded-lg">
-                        <div className="h-12 w-12 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
-                          {bundleItem.product?.images?.[0] ? (
-                            <ImageWithFallback
-                              src={bundleItem.product.images[0]}
-                              alt={bundleItem.product.name || 'Bundle Product'}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <Package className="h-6 w-6 text-gray-400" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{bundleItem.product?.name || 'Bundle Item'}</p>
+                          <p className="font-medium truncate">{bundleItem.product?.name || 'Bundle Product'}</p>
                           <p className="text-sm text-muted-foreground">SKU: {bundleItem.product?.sku || 'N/A'}</p>
-                          <p className="text-xs text-muted-foreground">Bundle Order</p>
+                          <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium">Qty: {bundleItem.quantity}</p>
                           <p className="text-sm text-muted-foreground">
-                            ₹{bundleItem.price.toFixed(2)} each
+                            ₹{bundleItem.price?.toFixed(2) || '0.00'} each
                           </p>
                         </div>
                       </div>
-                    );
-                  }
-                })}
+                    ))}
+                  </div>
+                ));
+              })()}
               {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />

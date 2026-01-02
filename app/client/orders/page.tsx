@@ -412,48 +412,34 @@ export default function ClientOrderHistory() {
                                   </div>
                                 </div>
                               ))}
-                              {order.bundleOrderItems && order.bundleOrderItems
-                                .map((bundleItem) => {
-                                  // If bundle has detailed items, show them
-                                  if (bundleItem.bundle?.items && bundleItem.bundle.items.length > 0) {
-                                    return bundleItem.bundle.items.map((item) => (
-                                      <div
-                                        key={`bundle-${bundleItem.id}-${item.id}`}
-                                        className="flex gap-3 rounded-lg border p-3"
-                                      >
-                                        <div className="h-16 w-16 rounded overflow-hidden">
-                                          <ImageWithFallback
-                                            src={item.product?.images?.[0] || ''}
-                                            alt={item.product?.name || 'Bundle Product'}
-                                            className="h-full w-full object-cover"
-                                          />
-                                        </div>
-                                        <div>
-                                          <p className="font-medium">
-                                            {item.product?.name || 'Bundle Product'}
-                                          </p>
-                                          <p className="text-sm text-muted-foreground">
-                                            SKU: {item.product?.sku || 'N/A'}
-                                          </p>
-                                          <p className="text-sm text-muted-foreground">
-                                              Bundle Qty: {Math.floor(bundleItem.quantity / item.bundleProductQuantity)} × Item Qty: {item.bundleProductQuantity}
-                                          </p>
-                                          {item.product?.price && item.product.price > 0 && (
-                                            <p className="text-sm">
-                                              Price: ₹{item.product.price.toFixed(2)}
-                                            </p>
-                                          )}
-                                          <p className="text-xs text-blue-600 font-medium">Bundle</p>
-                                        </div>
-                                      </div>
-                                    ));
-                                  } else {
-                                    // Use the product info directly from bundleOrderItem
-                                    return [
-                                      <div
-                                        key={`bundle-simple-${bundleItem.id}`}
-                                        className="flex gap-3 rounded-lg border p-3"
-                                      >
+                              {order.bundleOrderItems && order.bundleOrderItems.length > 0 && (() => {
+                                // Group bundleOrderItems by bundle
+                                const bundleGroups = order.bundleOrderItems.reduce((groups: any, bundleItem) => {
+                                  const bundleId = bundleItem.bundleId;
+                                  if (!groups[bundleId]) {
+                                    groups[bundleId] = {
+                                      bundle: bundleItem.bundle,
+                                      items: []
+                                    };
+                                  }
+                                  groups[bundleId].items.push(bundleItem);
+                                  return groups;
+                                }, {});
+
+                                return Object.values(bundleGroups).map((group: any, groupIndex) => (
+                                  <div key={`bundle-group-${groupIndex}`} className="space-y-3">
+                                    {/* Bundle Header */}
+                                    <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                                      <Package className="h-4 w-4 text-blue-600" />
+                                      <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
+                                      <span className="text-xs text-blue-600 ml-auto">
+                                        {group.items.length} items
+                                      </span>
+                                    </div>
+                                    
+                                    {/* Bundle Items */}
+                                    {group.items.map((bundleItem: any, itemIndex: number) => (
+                                      <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex gap-3 rounded-lg border p-3 ml-4">
                                         <div className="h-16 w-16 rounded overflow-hidden">
                                           <ImageWithFallback
                                             src={bundleItem.product?.images?.[0] || ''}
@@ -463,7 +449,7 @@ export default function ClientOrderHistory() {
                                         </div>
                                         <div>
                                           <p className="font-medium">
-                                            {bundleItem.product?.name || 'Bundle Item'}
+                                            {bundleItem.product?.name || 'Bundle Product'}
                                           </p>
                                           <p className="text-sm text-muted-foreground">
                                             SKU: {bundleItem.product?.sku || 'N/A'}
@@ -471,12 +457,13 @@ export default function ClientOrderHistory() {
                                           <p className="text-sm text-muted-foreground">
                                             Qty: {bundleItem.quantity}
                                           </p>
-                                          <p className="text-xs text-blue-600 font-medium">Bundle</p>
+                                          <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                                         </div>
                                       </div>
-                                    ];
-                                  }
-                                })}
+                                    ))}
+                                  </div>
+                                ));
+                              })()}
                               {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
                                 <div className="text-center py-8 text-muted-foreground">
                                   <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
