@@ -79,23 +79,43 @@ export function FastPermissionProvider({ children }: { children: ReactNode }) {
   const [permissionState, setPermissionState] = useState<FastPermissionState>(() => {
     if (typeof window === 'undefined') return INSTANT_DEFAULTS;
     
+    console.log("🔍 CACHE CHECK: Initializing FastPermissionProvider, checking for cached permissions...");
+    
     try {
       // Try sessionStorage first (faster), then localStorage (more persistent)
       let cached = sessionStorage.getItem(CACHE_KEY);
       if (!cached) {
         cached = localStorage.getItem(CACHE_KEY);
+        console.log("📦 CACHE CHECK: sessionStorage empty, trying localStorage");
+      } else {
+        console.log("📦 CACHE CHECK: Found data in sessionStorage");
       }
       
       if (cached) {
         const parsed = JSON.parse(cached);
+        console.log("🔍 CACHE CHECK: Parsed cache data:", {
+          timestamp: parsed.timestamp,
+          age: Date.now() - parsed.timestamp,
+          maxAge: CACHE_DURATION,
+          isValid: parsed.timestamp && Date.now() - parsed.timestamp < CACHE_DURATION,
+          isAdmin: parsed.data?.isAdmin,
+          pageAccess: parsed.data?.pageAccess
+        });
+        
         if (parsed.timestamp && Date.now() - parsed.timestamp < CACHE_DURATION) {
+          console.log("✅ CACHE CHECK: Using cached permissions for instant load!");
           return { ...parsed.data, isLoading: false };
+        } else {
+          console.log("⚠️ CACHE CHECK: Cache expired, using defaults");
         }
+      } else {
+        console.log("❌ CACHE CHECK: No cache found in either storage");
       }
     } catch (e) {
-      // Ignore cache errors
+      console.error("❌ CACHE CHECK: Error reading cache:", e);
     }
     
+    console.log("🔒 CACHE CHECK: Using secure defaults - will need to wait for session");
     return INSTANT_DEFAULTS;
   });
 
