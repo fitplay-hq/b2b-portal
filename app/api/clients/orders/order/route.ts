@@ -177,10 +177,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // create a bundle before an order
-    let bundle = await prisma.bundle.create({
-      data: {},
-    });
+    // Create separate bundles for each bundle group
+    let bundles: any[] = [];
+    if (bundleOrderItems.length > 0) {
+      // Create multiple bundles based on numberOfBundles
+      // Each bundle will contain a subset of the items
+      const itemsPerBundle = Math.floor(bundleOrderItems.length / (numberOfBundles || 1));
+      let remainingItems = bundleOrderItems.length % (numberOfBundles || 1);
+      
+      let currentIndex = 0;
+      for (let i = 0; i < (numberOfBundles || 1); i++) {
+        const itemsInThisBundle = itemsPerBundle + (remainingItems > 0 ? 1 : 0);
+        if (remainingItems > 0) remainingItems--;
+        
+        const bundleItems = bundleOrderItems.slice(currentIndex, currentIndex + itemsInThisBundle);
+        currentIndex += itemsInThisBundle;
+        
+        if (bundleItems.length > 0) {
+          const newBundle = await prisma.bundle.create({
+            data: {},
+          });
+          bundles.push(newBundle);
+        }
+      }
+    }
 
     let orderId = "";
     let attempts = 0;
@@ -255,48 +275,92 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Create bundle order items
-    if (bundleOrderItems.length > 0) {
-      await prisma.bundleOrderItem.createMany({
-        data: bundleOrderItems.map((item: any) => ({
-          orderId: newOrder.id,
-          bundleId: bundle.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price ?? 0,
-        })),
-      });
+    // Create bundle order items for each bundle
+    if (bundleOrderItems.length > 0 && bundles.length > 0) {
+      // Distribute bundleOrderItems across the created bundles
+      const itemsPerBundle = Math.floor(bundleOrderItems.length / bundles.length);
+      let remainingItems = bundleOrderItems.length % bundles.length;
+      
+      let currentIndex = 0;
+      for (let bundleIdx = 0; bundleIdx < bundles.length; bundleIdx++) {
+        const bundle = bundles[bundleIdx];
+        const itemsInThisBundle = itemsPerBundle + (remainingItems > 0 ? 1 : 0);
+        if (remainingItems > 0) remainingItems--;
+        
+        const bundleItems = bundleOrderItems.slice(currentIndex, currentIndex + itemsInThisBundle);
+        currentIndex += itemsInThisBundle;
+        
+        if (bundleItems.length > 0) {
+          await prisma.bundleOrderItem.createMany({
+            data: bundleItems.map((item: any) => ({
+              orderId: newOrder.id,
+              bundleId: bundle.id,
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price ?? 0,
+            })),
+          });
+        }
+      }
     }
 
-    // Calculate bundle price and update bundle
-    const eachBundlePrice = bundleOrderItems.reduce((sum: number, item: any) => {
-      return sum + item.bundleProductQuantity * item.price;
-    }, 0);
-    
-    if (bundle) {
-      bundle = await prisma.bundle.update({
-        where: { id: bundle.id },
-        data: {
-          orderId: newOrder.id,
-          price: eachBundlePrice,
-        },
-      });
+    // Update each bundle with its price and orderId
+    if (bundles.length > 0) {
+      const itemsPerBundle = Math.floor(bundleOrderItems.length / bundles.length);
+      let remainingItems = bundleOrderItems.length % bundles.length;
+      
+      let currentIndex = 0;
+      for (let bundleIdx = 0; bundleIdx < bundles.length; bundleIdx++) {
+        const bundle = bundles[bundleIdx];
+        const itemsInThisBundle = itemsPerBundle + (remainingItems > 0 ? 1 : 0);
+        if (remainingItems > 0) remainingItems--;
+        
+        const bundleItems = bundleOrderItems.slice(currentIndex, currentIndex + itemsInThisBundle);
+        currentIndex += itemsInThisBundle;
+        
+        // Calculate price for this specific bundle
+        const thisBundlePrice = bundleItems.reduce((sum: number, item: any) => {
+          return sum + item.bundleProductQuantity * item.price;
+        }, 0);
+        
+        await prisma.bundle.update({
+          where: { id: bundle.id },
+          data: {
+            orderId: newOrder.id,
+            price: thisBundlePrice,
+          },
+        });
+      }
     }
     
-    // Create bundle items separately if bundle items exist
-    if (bundleOrderItems.length > 0 && bundle) {
-      try {
-        await prisma.bundleItem.createMany({
-          data: bundleOrderItems.map((item: any) => ({
-            bundleId: bundle.id,
-            productId: item.productId,
-            bundleProductQuantity: item.bundleProductQuantity,
-            price: item.price ?? 0,
-          })),
-        });
-      } catch (bundleItemError) {
-        console.error("Error creating bundle items:", bundleItemError);
-        // Continue without bundle items if creation fails
+    // Create bundle items separately for each bundle
+    if (bundleOrderItems.length > 0 && bundles.length > 0) {
+      const itemsPerBundle = Math.floor(bundleOrderItems.length / bundles.length);
+      let remainingItems = bundleOrderItems.length % bundles.length;
+      
+      let currentIndex = 0;
+      for (let bundleIdx = 0; bundleIdx < bundles.length; bundleIdx++) {
+        const bundle = bundles[bundleIdx];
+        const itemsInThisBundle = itemsPerBundle + (remainingItems > 0 ? 1 : 0);
+        if (remainingItems > 0) remainingItems--;
+        
+        const bundleItems = bundleOrderItems.slice(currentIndex, currentIndex + itemsInThisBundle);
+        currentIndex += itemsInThisBundle;
+        
+        if (bundleItems.length > 0) {
+          try {
+            await prisma.bundleItem.createMany({
+              data: bundleItems.map((item: any) => ({
+                bundleId: bundle.id,
+                productId: item.productId,
+                bundleProductQuantity: item.bundleProductQuantity,
+                price: item.price ?? 0,
+              })),
+            });
+          } catch (bundleItemError) {
+            console.error(`Error creating bundle items for bundle ${bundle.id}:`, bundleItemError);
+          }
+        }
       }
     }
 
