@@ -148,12 +148,18 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
                           <span className="text-sm font-medium">
                             {(() => {
                               const regularItems = order.orderItems?.length || 0;
-                              const bundleItems = order.bundleOrderItems?.length || 0;
+                              const bundleOrderItems = order.bundleOrderItems || [];
                               
-                              if (bundleItems > 0 && regularItems > 0) {
-                                return `${regularItems} items + ${bundleItems} bundle items`;
-                              } else if (bundleItems > 0) {
-                                return `${bundleItems} bundle items`;
+                              if (bundleOrderItems.length > 0) {
+                                // Group bundle items by bundle ID to count unique bundles
+                                const uniqueBundles = [...new Set(bundleOrderItems.map(item => item.bundleId))];
+                                const bundleCount = uniqueBundles.length;
+                                
+                                if (regularItems > 0) {
+                                  return `${regularItems} items + ${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
+                                } else {
+                                  return `${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
+                                }
                               } else {
                                 return `${regularItems} items`;
                               }

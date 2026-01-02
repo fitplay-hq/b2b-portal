@@ -465,16 +465,18 @@ export default function ClientOrderHistory() {
                                   return groups;
                                 }, {});
 
-                                return Object.values(bundleGroups).map((group: any, groupIndex) => (
-                                  <div key={`bundle-group-${groupIndex}`} className="space-y-3">
-                                    {/* Bundle Header */}
-                                    <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                                      <Package className="h-4 w-4 text-blue-600" />
-                                      <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
-                                      <span className="text-xs text-blue-600 ml-auto">
-                                        {group.items.length} items
-                                      </span>
-                                    </div>
+                                return Object.values(bundleGroups).map((group: any, groupIndex) => {
+                                  const totalBundles = Object.keys(bundleGroups).length;
+                                  return (
+                                    <div key={`bundle-group-${groupIndex}`} className="space-y-3">
+                                      {/* Bundle Header */}
+                                      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                                        <Package className="h-4 w-4 text-blue-600" />
+                                        <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
+                                        <span className="text-xs text-blue-600 ml-auto">
+                                          No of bundles: {totalBundles}
+                                        </span>
+                                      </div>
                                     
                                     {/* Bundle Items */}
                                     {group.items.map((bundleItem: any, itemIndex: number) => (
@@ -500,8 +502,9 @@ export default function ClientOrderHistory() {
                                         </div>
                                       </div>
                                     ))}
-                                  </div>
-                                ));
+                                    </div>
+                                );
+                              });
                               })()}
                               {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
                                 <div className="text-center py-8 text-muted-foreground">

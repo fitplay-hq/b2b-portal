@@ -210,17 +210,7 @@ export function ClientOrderDetailsDialog({
           <div className="space-y-4">
             <h4 className="font-medium flex items-center gap-2">
               <Package className="h-4 w-4" />
-              Order Items ({(() => {
-                const regularItems = order.orderItems?.length || 0;
-                const bundleItems = order.bundleOrderItems?.length || 0;
-                if (bundleItems > 0 && regularItems > 0) {
-                  return `${regularItems} items + ${bundleItems} bundle items`;
-                } else if (bundleItems > 0) {
-                  return `${bundleItems} bundle items`;
-                } else {
-                  return `${regularItems} items`;
-                }
-              })()})
+              Order Items
             </h4>
             <div className="space-y-3">
               {order.orderItems && order.orderItems.map((item, index) => (
@@ -260,16 +250,18 @@ export function ClientOrderDetailsDialog({
                   return groups;
                 }, {});
 
-                return Object.values(bundleGroups).map((group: any, groupIndex) => (
-                  <div key={`bundle-group-${groupIndex}`} className="space-y-3">
-                    {/* Bundle Header */}
-                    <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                      <Package className="h-4 w-4 text-blue-600" />
-                      <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
-                      <span className="text-xs text-blue-600">
-                        {group.items.length} items • Quantity: {order.numberOfBundles || 1} bundles
-                      </span>
-                    </div>
+                return Object.values(bundleGroups).map((group: any, groupIndex) => {
+                  const totalBundles = Object.keys(bundleGroups).length;
+                  return (
+                    <div key={`bundle-group-${groupIndex}`} className="space-y-3">
+                      {/* Bundle Header */}
+                      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                        <Package className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
+                        <span className="text-xs text-blue-600">
+                          No. of items: {group.items.length} | No. of bundles: {totalBundles}
+                        </span>
+                      </div>
                     
                     {/* Bundle Items */}
                     {group.items.map((bundleItem: any, itemIndex: number) => (
@@ -294,9 +286,10 @@ export function ClientOrderDetailsDialog({
                         </div>
                       </div>
                     ))}
-                  </div>
-                ));
-              })()}
+                    </div>
+                );
+              });
+            })()}
             </div>
             {order.totalAmount > 0 && (
               <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
