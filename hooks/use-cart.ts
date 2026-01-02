@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Product } from "@/lib/generated/prisma";
 import { getStoredData, setStoredData } from "@/lib/mockData";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export interface CartItem {
   product: Product;
@@ -11,6 +12,7 @@ export interface CartItem {
 export function useCart(userId: string | undefined) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const cartKey = useMemo(() => `fitplay_cart_${userId}`, [userId]);
+  const router = useRouter();
 
   useEffect(() => {
     if (userId) {
@@ -36,8 +38,14 @@ export function useCart(userId: string | undefined) {
 
     setCartItems(updatedCart);
     setStoredData(cartKey, updatedCart);
-    toast.success(`${quantity} x ${product.name} added to cart`);
-  }, [cartItems, userId, cartKey]);
+    toast.success(`${quantity} x ${product.name} added to cart`, {
+      action: {
+        label: "Go to Cart",
+        onClick: () => router.push('/client/cart')
+      },
+      duration: 4000
+    });
+  }, [cartItems, userId, cartKey, router]);
 
   const getCartQuantity = useCallback((productId: string) => {
     return cartItems.find(item => item.product.id === productId)?.quantity || 0;
