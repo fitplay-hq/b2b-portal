@@ -181,11 +181,19 @@ export function OrderDetailsDialog({
               <Package className="h-4 w-4" />
               Order Items ({(() => {
                 const regularItems = order.orderItems?.length || 0;
-                const bundleItems = order.bundleOrderItems?.length || 0;
-                if (bundleItems > 0 && regularItems > 0) {
-                  return `${regularItems} items + ${bundleItems} bundle items`;
-                } else if (bundleItems > 0) {
-                  return `${bundleItems} bundle items`;
+                const bundleOrderItems = order.bundleOrderItems || [];
+                
+                if (bundleOrderItems.length > 0) {
+                  // Group bundle items by bundle ID to count unique bundles
+                  const uniqueBundles = [...new Set(bundleOrderItems.map(item => item.bundleId))];
+                  const bundleCount = uniqueBundles.length;
+                  const numberOfBundles = order.numberOfBundles || 1;
+                  
+                  if (regularItems > 0) {
+                    return `${regularItems} items + ${bundleCount} bundle${bundleCount > 1 ? 's' : ''} (${numberOfBundles} set${numberOfBundles > 1 ? 's' : ''})`;
+                  } else {
+                    return `${bundleCount} bundle${bundleCount > 1 ? 's' : ''} (${numberOfBundles} set${numberOfBundles > 1 ? 's' : ''})`;
+                  }
                 } else {
                   return `${regularItems} items`;
                 }
@@ -227,16 +235,18 @@ export function OrderDetailsDialog({
                   return groups;
                 }, {});
 
-                return Object.values(bundleGroups).map((group: any, groupIndex) => (
-                  <div key={`bundle-group-${groupIndex}`} className="space-y-3">
-                    {/* Bundle Header */}
-                    <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                      <Package className="h-4 w-4 text-blue-600" />
-                      <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
-                      <span className="text-xs text-blue-600 ml-auto">
-                        {group.items.length} items • Quantity: {order.numberOfBundles || 1} bundles • ₹{group.bundle?.price?.toFixed(2) || '0.00'}
-                      </span>
-                    </div>
+                return Object.values(bundleGroups).map((group: any, groupIndex) => {
+                  const totalBundles = Object.keys(bundleGroups).length;
+                  return (
+                    <div key={`bundle-group-${groupIndex}`} className="space-y-3">
+                      {/* Bundle Header */}
+                      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                        <Package className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
+                        <span className="text-xs text-blue-600 ml-auto">
+                          No. of items: {group.items.length} | No. of bundles: {totalBundles} • ₹{group.bundle?.price?.toFixed(2) || '0.00'}
+                        </span>
+                      </div>
                     
                     {/* Bundle Items */}
                     {group.items.map((bundleItem: any, itemIndex: number) => (
@@ -261,9 +271,10 @@ export function OrderDetailsDialog({
                         </div>
                       </div>
                     ))}
-                  </div>
-                ));
-              })()}
+                    </div>
+                );
+              });
+            })()}
               {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />

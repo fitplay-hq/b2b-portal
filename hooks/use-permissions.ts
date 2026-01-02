@@ -17,7 +17,10 @@ export function usePermissions() {
   const { data: session, status } = useSession();
   const permissions = getUserPermissions(session as UserSession);
   
-  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SYSTEM_USER';
+  const isAdmin = session?.user?.role === 'ADMIN';
+  const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
+                       session?.user?.systemRole?.toLowerCase().includes('admin');
+  const hasAdminRights = isAdmin || isSystemAdmin;
   // Optimized loading state - faster for admins
   const isLoading = status === 'loading' || (status === 'authenticated' && !session?.user?.role);
   const isSystemUser = session?.user?.role === 'SYSTEM_USER';
@@ -26,8 +29,8 @@ export function usePermissions() {
    * Check if user has specific permission
    */
   const hasUserPermission = (resource: string, action: string): boolean => {
-    // ADMIN has all permissions (except handled separately for users/roles)
-    if (isAdmin) return true;
+    // Only true ADMIN and system admin have all permissions
+    if (hasAdminRights) return true;
     return hasPermission(permissions, resource, action);
   };
 
@@ -35,7 +38,7 @@ export function usePermissions() {
    * Check if user can access a page
    */
   const canUserAccessPage = (resource: string): boolean => {
-    if (isAdmin) return true;
+    if (hasAdminRights) return true;
     return canAccessPage(permissions, resource);
   };
 
@@ -43,7 +46,7 @@ export function usePermissions() {
    * Check if user can perform specific action
    */
   const canUserPerformAction = (resource: string, action: string): boolean => {
-    if (isAdmin) return true;
+    if (hasAdminRights) return true;
     return canPerformAction(permissions, resource, action);
   };
 
@@ -51,7 +54,7 @@ export function usePermissions() {
    * Check if user can access admin-only features (users/roles)
    */
   const canAccessAdminOnly = (): boolean => {
-    return isAdmin;
+    return hasAdminRights;
   };
 
   /**
@@ -71,8 +74,8 @@ export function usePermissions() {
     clients: canUserAccessPage(RESOURCES.CLIENTS),
     companies: canUserAccessPage(RESOURCES.COMPANIES),
     inventory: canUserAccessPage(RESOURCES.INVENTORY),
-    users: isAdmin, // Admin only
-    roles: isAdmin, // Admin only
+    users: hasAdminRights, // Admin only
+    roles: hasAdminRights, // Admin only
   };
 
   /**

@@ -69,9 +69,9 @@ export class SidebarPrefetcher {
         await this.storeInAllCaches(userId, roleId, adminSidebarData);
       }
 
-      console.log('[SidebarPrefetch] Sidebar data prefetched for user:', userId);
+      // Sidebar data prefetched successfully
     } catch (error) {
-      console.error('[SidebarPrefetch] Failed to prefetch sidebar data:', error);
+      // Failed to prefetch sidebar data
     }
   }
 
