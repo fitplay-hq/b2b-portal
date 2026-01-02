@@ -138,7 +138,9 @@ function VerifyOTPContent() {
       // PRELOAD PERMISSIONS: Use NextAuth session to get user data and permissions
       // This ensures smooth experience when user lands on the platform
       try {
-        console.log("🚀 Preloading user permissions using session...");
+        // Small delay to ensure session is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const sessionResponse = await fetch('/api/auth/session', {
           method: 'GET',
           headers: {
@@ -225,11 +227,9 @@ function VerifyOTPContent() {
             sessionStorage.setItem('fast_permissions_v3', JSON.stringify(cacheData));
             localStorage.setItem('fast_permissions_v3', JSON.stringify(cacheData));
             localStorage.setItem('account_user_cache', JSON.stringify(userInfo));
-            console.log("✅ Permissions and user data preloaded successfully");
           }
         }
       } catch (error) {
-        console.log("⚠️ Permission preload failed (non-critical):", error);
         // Don't block the flow if preload fails
       }
       

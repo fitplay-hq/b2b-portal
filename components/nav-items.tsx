@@ -43,17 +43,16 @@ interface NavItemsProps {
 
 export default function NavItems({ isClient, isCollapsed = false }: NavItemsProps) {
   const pathname = usePathname();
-  const { data: session } = useSession(); // Get session directly for instant admin detection
   
-  // CRITICAL FIX: Use fast permissions instead of slow persistent permissions
+  // ONLY use fast permissions - never wait for session
   const { 
     pageAccess, 
     actions, 
     isAdmin
   } = useFastPermissions();
   
-  // INSTANT admin detection - never wait for permissions and never refresh
-  const isAdminUser = session?.user?.role === 'ADMIN' || isAdmin;
+  // INSTANT admin detection - ONLY use cached fast permissions
+  const isAdminUser = isAdmin;
   
 
   
