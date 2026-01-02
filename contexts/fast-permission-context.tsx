@@ -57,6 +57,21 @@ const INSTANT_DEFAULTS: FastPermissionState = {
 const CACHE_KEY = 'fast_permissions_v3';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+// Helper to cache permissions to both session and local storage
+function cachePermissions(state: FastPermissionState) {
+  const cacheData = {
+    data: state,
+    timestamp: Date.now(),
+  };
+  
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+  } catch (e) {
+    // Ignore storage errors
+  }
+}
+
 export function FastPermissionProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   
@@ -65,7 +80,12 @@ export function FastPermissionProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') return INSTANT_DEFAULTS;
     
     try {
-      const cached = sessionStorage.getItem(CACHE_KEY);
+      // Try sessionStorage first (faster), then localStorage (more persistent)
+      let cached = sessionStorage.getItem(CACHE_KEY);
+      if (!cached) {
+        cached = localStorage.getItem(CACHE_KEY);
+      }
+      
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed.timestamp && Date.now() - parsed.timestamp < CACHE_DURATION) {
@@ -81,15 +101,23 @@ export function FastPermissionProvider({ children }: { children: ReactNode }) {
 
   // Immediate permission calculation - no delays
   useEffect(() => {
+    // CRITICAL FIX: Don't reset to guest state while session is loading
+    if (status === 'loading') {
+      // Session is still loading, keep current state (likely from cache)
+      return;
+    }
+    
     if (!session?.user) {
-      // Not logged in - keep safe defaults
-      const guestState: FastPermissionState = {
-        ...INSTANT_DEFAULTS,
-        userInfo: null,
-        pageAccess: { dashboard: true },
-        actions: {},
-      };
-      setPermissionState(guestState);
+      // Only reset to guest if session is actually unauthenticated (not loading)
+      if (status === 'unauthenticated') {
+        const guestState: FastPermissionState = {
+          ...INSTANT_DEFAULTS,
+          userInfo: null,
+          pageAccess: { dashboard: true },
+          actions: {},
+        };
+        setPermissionState(guestState);
+      }
       return;
     }
 
@@ -141,14 +169,7 @@ export function FastPermissionProvider({ children }: { children: ReactNode }) {
       setPermissionState(adminState);
       
       // Cache admin permissions
-      try {
-        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-          data: adminState,
-          timestamp: Date.now(),
-        }));
-      } catch (e) {
-        // Ignore storage errors
-      }
+      cachePermissions(adminState);
       return;
     }
 
@@ -213,20 +234,14 @@ export function FastPermissionProvider({ children }: { children: ReactNode }) {
     setPermissionState(systemUserState);
     
     // Cache system user permissions
-    try {
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-        data: systemUserState,
-        timestamp: Date.now(),
-      }));
-    } catch (e) {
-      // Ignore storage errors
-    }
-  }, [session]);
+    cachePermissions(systemUserState);
+  }, [session, status]);
 
   const refresh = useCallback(() => {
     // Clear cache and force refresh
     try {
       sessionStorage.removeItem(CACHE_KEY);
+      localStorage.removeItem(CACHE_KEY);
     } catch (e) {
       // Ignore storage errors
     }

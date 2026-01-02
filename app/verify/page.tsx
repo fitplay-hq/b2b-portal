@@ -13,6 +13,17 @@ import { FitplayLogo } from "@/components/fitplay-logo";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 
+// Helper function to check page access from permissions
+function hasPageAccess(permissions: unknown[], resource: string): boolean {
+  if (!Array.isArray(permissions)) return false;
+  
+  return permissions.some((p: unknown) => {
+    const permission = p as { resource?: string; action?: string };
+    return permission.resource?.toLowerCase() === resource.toLowerCase() && 
+      ['view', 'read', 'access'].includes(permission.action?.toLowerCase() || '');
+  });
+}
+
 function VerifyOTPContent() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
@@ -123,6 +134,105 @@ function VerifyOTPContent() {
 
       console.log("✅ User logged in successfully after OTP verification");
       setSuccess(true);
+      
+      // PRELOAD PERMISSIONS: Use NextAuth session to get user data and permissions
+      // This ensures smooth experience when user lands on the platform
+      try {
+        console.log("🚀 Preloading user permissions using session...");
+        const sessionResponse = await fetch('/api/auth/session', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (sessionResponse.ok) {
+          const session = await sessionResponse.json();
+          const user = session.user;
+          
+          if (user) {
+            // Build permissions based on user data (same logic as FastPermissionProvider)
+            const isAdmin = user.role === 'ADMIN';
+            const isSystemAdmin = user.role === 'SYSTEM_USER' && 
+                               user.systemRole?.toLowerCase().includes('admin');
+            
+            const userInfo = {
+              id: user.id || '',
+              name: user.name || '',
+              email: user.email || '',
+              role: user.role || '',
+              systemRole: user.systemRole,
+              companyId: user.companyId,
+              companyName: user.companyName,
+            };
+            
+            let pageAccess = { dashboard: true };
+            let actions = {};
+            
+            if (isAdmin || isSystemAdmin) {
+              // Admin gets everything
+              pageAccess = {
+                dashboard: true,
+                products: true,
+                orders: true,
+                clients: true,
+                companies: true,
+                inventory: true,
+                analytics: true,
+                users: true,
+                roles: true,
+              };
+              actions = {
+                products: { view: true, create: true, edit: true, delete: true },
+                orders: { view: true, create: true, edit: true, email: true },
+                clients: { view: true, create: true, edit: true, delete: true },
+                companies: { view: true, create: true, edit: true, delete: true },
+                inventory: { view: true, create: true, edit: true },
+                analytics: { read: true, export: true },
+                users: { view: true, create: true, edit: true, delete: true },
+                roles: { view: true, create: true, edit: true, delete: true },
+              };
+            } else if (user.permissions) {
+              // System user with specific permissions
+              const perms = user.permissions;
+              pageAccess = {
+                dashboard: true,
+                products: hasPageAccess(perms, 'products'),
+                orders: hasPageAccess(perms, 'orders'), 
+                clients: hasPageAccess(perms, 'clients'),
+                companies: hasPageAccess(perms, 'companies'),
+                inventory: hasPageAccess(perms, 'inventory'),
+                analytics: hasPageAccess(perms, 'analytics'),
+                users: hasPageAccess(perms, 'users'),
+                roles: hasPageAccess(perms, 'roles'),
+              };
+            }
+            
+            // Cache the permissions for instant access
+            const cacheData = {
+              data: {
+                isAdmin: isAdmin || isSystemAdmin,
+                isLoading: false,
+                pageAccess,
+                actions,
+                isInitialized: true,
+                userInfo,
+              },
+              timestamp: Date.now(),
+            };
+            
+            // Save to both storages for maximum reliability
+            sessionStorage.setItem('fast_permissions_v3', JSON.stringify(cacheData));
+            localStorage.setItem('fast_permissions_v3', JSON.stringify(cacheData));
+            localStorage.setItem('account_user_cache', JSON.stringify(userInfo));
+            console.log("✅ Permissions and user data preloaded successfully");
+          }
+        }
+      } catch (error) {
+        console.log("⚠️ Permission preload failed (non-critical):", error);
+        // Don't block the flow if preload fails
+      }
+      
       setLoading(false);
       
       // Redirect after showing success message
