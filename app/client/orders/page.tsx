@@ -46,7 +46,46 @@ export default function ClientOrderHistory() {
     if (!orders) return [];
 
     let filtered: OrderWithItems[] = orders as OrderWithItems[];
+    const lowercasedTerm = searchTerm.toLowerCase();
 
+    // Apply search filter
+    if (lowercasedTerm) {
+      filtered = filtered.filter(order => {
+        // Search by Order ID
+        if (order.id.toLowerCase().includes(lowercasedTerm)) return true;
+        
+        // Search by Order Status
+        if (order.status.toLowerCase().includes(lowercasedTerm)) return true;
+        
+        // Search by Total Amount
+        if (order.totalAmount.toString().includes(lowercasedTerm)) return true;
+        
+        // Search by Order notes
+        if (order.note?.toLowerCase().includes(lowercasedTerm)) return true;
+        
+        // Search by Product names in regular order items
+        if (order.orderItems?.some(item =>
+          item.product?.name?.toLowerCase().includes(lowercasedTerm)
+        )) return true;
+        
+        // Search by Product names in bundle order items
+        if (order.bundleOrderItems?.some(bundleItem => {
+          // Check bundle product name
+          if (bundleItem.product?.name?.toLowerCase().includes(lowercasedTerm)) return true;
+          
+          // Check individual items within the bundle
+          if (bundleItem.bundle?.items?.some(item =>
+            item.product?.name?.toLowerCase().includes(lowercasedTerm)
+          )) return true;
+          
+          return false;
+        })) return true;
+        
+        return false;
+      });
+    }
+
+    // Apply status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter((order) => order.status === statusFilter);
     }
@@ -182,7 +221,7 @@ export default function ClientOrderHistory() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search by product name, or SKU..."
+                    placeholder="Search by order ID, status, amount, or product name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 text-sm"
