@@ -1,6 +1,4 @@
 import { ReactNode, useState, useEffect } from "react";
-import { SessionProvider } from "next-auth/react";
-import { FastPermissionProvider } from "@/contexts/fast-permission-context";
 import NavItems from "./nav-items";
 import AccountInfo from "./account-info";
 import { FitplayLogo } from "./fitplay-logo";
@@ -66,10 +64,8 @@ export default function Layout({ children, isClient }: LayoutProps) {
   }, [sidebarOpen]);
 
   return (
-    <SessionProvider>
-      <FastPermissionProvider>
-        <div className="flex h-screen bg-gray-50 overflow-hidden">
-        {/* Sidebar Overlay for mobile - positioned to not interfere with content visibility */}
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    {/* Sidebar Overlay for mobile - positioned to not interfere with content visibility */}
         {sidebarOpen && isMobile && (
           <div 
             className="fixed inset-0 bg-transparent z-25"
@@ -174,7 +170,5 @@ export default function Layout({ children, isClient }: LayoutProps) {
           </main>
         </div>
       </div>
-      </FastPermissionProvider>
-    </SessionProvider>
   );
 }
