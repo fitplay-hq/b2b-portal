@@ -189,6 +189,8 @@ export const auth: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        console.log(`🔐 JWT BACKEND: Processing user login - Role: ${(user as { role: UserRole }).role}, Email: ${user.email}`);
+        
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
@@ -202,6 +204,7 @@ export const auth: AuthOptions = {
         // CRITICAL FIX: Only fetch permissions for SYSTEM_USER to avoid delays
         // ADMIN users don't need permissions from DB (they have everything)
         if ((user as { role: UserRole }).role === "SYSTEM_USER" && (user as { systemRoleId?: string }).systemRoleId) {
+          console.log(`⚙️ JWT BACKEND: SYSTEM_USER detected, fetching permissions for role ID: ${(user as { systemRoleId?: string }).systemRoleId}`);
           try {
             // Fast permission fetch with minimal data
             const systemRole = await prisma.systemRole.findUnique({
@@ -217,17 +220,20 @@ export const auth: AuthOptions = {
               }
             });
             token.permissions = systemRole?.permissions || [];
+            console.log(`✅ JWT BACKEND: Loaded ${token.permissions.length} permissions for SYSTEM_USER`);
           } catch (error) {
-            console.error("Error caching permissions in JWT (using empty array):", error);
+            console.error("❌ JWT BACKEND: Error caching permissions in JWT:", error);
             token.permissions = []; // Fail safe - system will still work
           }
         } else {
           token.permissions = []; // ADMIN or CLIENT - no permissions needed
+          console.log(`🔑 JWT BACKEND: ${(user as { role: UserRole }).role} user - no DB permissions needed`);
         }
       }
       return token;
     },
     async session({ session, token }) {
+      console.log(`📄 SESSION BACKEND: Building session for role: ${token.role}`);
       if (token) {
         session.user = {
           id: token.id as string,
@@ -241,6 +247,7 @@ export const auth: AuthOptions = {
           companyName: token.companyName as string,
           isDemo: token.isDemo as boolean,
         };
+        console.log(`✅ SESSION BACKEND: Session built with ${session.user.permissions?.length || 0} permissions`);
       }
       return session;
     },
