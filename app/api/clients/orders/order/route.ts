@@ -180,25 +180,22 @@ export async function POST(req: NextRequest) {
     // Create separate bundles for each bundle group
     let bundles: any[] = [];
     if (bundleOrderItems.length > 0) {
-      // Create multiple bundles based on numberOfBundles
-      // Each bundle will contain a subset of the items
-      const itemsPerBundle = Math.floor(bundleOrderItems.length / (numberOfBundles || 1));
-      let remainingItems = bundleOrderItems.length % (numberOfBundles || 1);
-      
-      let currentIndex = 0;
-      for (let i = 0; i < (numberOfBundles || 1); i++) {
-        const itemsInThisBundle = itemsPerBundle + (remainingItems > 0 ? 1 : 0);
-        if (remainingItems > 0) remainingItems--;
-        
-        const bundleItems = bundleOrderItems.slice(currentIndex, currentIndex + itemsInThisBundle);
-        currentIndex += itemsInThisBundle;
-        
-        if (bundleItems.length > 0) {
-          const newBundle = await prisma.bundle.create({
-            data: {},
-          });
-          bundles.push(newBundle);
+      // Group bundle items by bundleGroupId to create separate bundles
+      const bundleGroups = bundleOrderItems.reduce((groups: any, item: any) => {
+        const groupId = item.bundleGroupId || 'default-bundle';
+        if (!groups[groupId]) {
+          groups[groupId] = [];
         }
+        groups[groupId].push(item);
+        return groups;
+      }, {});
+      
+      // Create a bundle for each group
+      for (const [groupId, items] of Object.entries(bundleGroups)) {
+        const newBundle = await prisma.bundle.create({
+          data: {},
+        });
+        bundles.push({ bundle: newBundle, items: items as any[], groupId });
       }
     }
 
@@ -275,51 +272,30 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Create bundle order items for each bundle
+    // Create bundle order items for each bundle group
     if (bundleOrderItems.length > 0 && bundles.length > 0) {
-      // Distribute bundleOrderItems across the created bundles
-      const itemsPerBundle = Math.floor(bundleOrderItems.length / bundles.length);
-      let remainingItems = bundleOrderItems.length % bundles.length;
-      
-      let currentIndex = 0;
-      for (let bundleIdx = 0; bundleIdx < bundles.length; bundleIdx++) {
-        const bundle = bundles[bundleIdx];
-        const itemsInThisBundle = itemsPerBundle + (remainingItems > 0 ? 1 : 0);
-        if (remainingItems > 0) remainingItems--;
+      for (const bundleGroup of bundles) {
+        const { bundle, items } = bundleGroup;
         
-        const bundleItems = bundleOrderItems.slice(currentIndex, currentIndex + itemsInThisBundle);
-        currentIndex += itemsInThisBundle;
-        
-        if (bundleItems.length > 0) {
-          await prisma.bundleOrderItem.createMany({
-            data: bundleItems.map((item: any) => ({
-              orderId: newOrder.id,
-              bundleId: bundle.id,
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price ?? 0,
-            })),
-          });
-        }
+        await prisma.bundleOrderItem.createMany({
+          data: items.map((item: any) => ({
+            orderId: newOrder.id,
+            bundleId: bundle.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price ?? 0,
+          })),
+        });
       }
     }
 
     // Update each bundle with its price and orderId
     if (bundles.length > 0) {
-      const itemsPerBundle = Math.floor(bundleOrderItems.length / bundles.length);
-      let remainingItems = bundleOrderItems.length % bundles.length;
-      
-      let currentIndex = 0;
-      for (let bundleIdx = 0; bundleIdx < bundles.length; bundleIdx++) {
-        const bundle = bundles[bundleIdx];
-        const itemsInThisBundle = itemsPerBundle + (remainingItems > 0 ? 1 : 0);
-        if (remainingItems > 0) remainingItems--;
+      for (const bundleGroup of bundles) {
+        const { bundle, items } = bundleGroup;
         
-        const bundleItems = bundleOrderItems.slice(currentIndex, currentIndex + itemsInThisBundle);
-        currentIndex += itemsInThisBundle;
-        
-        // Calculate price for this specific bundle
-        const thisBundlePrice = bundleItems.reduce((sum: number, item: any) => {
+        // Calculate price for this specific bundle group
+        const thisBundlePrice = items.reduce((sum: number, item: any) => {
           return sum + item.bundleProductQuantity * item.price;
         }, 0);
         
@@ -333,24 +309,15 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // Create bundle items separately for each bundle
+    // Create bundle items separately for each bundle group
     if (bundleOrderItems.length > 0 && bundles.length > 0) {
-      const itemsPerBundle = Math.floor(bundleOrderItems.length / bundles.length);
-      let remainingItems = bundleOrderItems.length % bundles.length;
-      
-      let currentIndex = 0;
-      for (let bundleIdx = 0; bundleIdx < bundles.length; bundleIdx++) {
-        const bundle = bundles[bundleIdx];
-        const itemsInThisBundle = itemsPerBundle + (remainingItems > 0 ? 1 : 0);
-        if (remainingItems > 0) remainingItems--;
+      for (const bundleGroup of bundles) {
+        const { bundle, items } = bundleGroup;
         
-        const bundleItems = bundleOrderItems.slice(currentIndex, currentIndex + itemsInThisBundle);
-        currentIndex += itemsInThisBundle;
-        
-        if (bundleItems.length > 0) {
+        if (items.length > 0) {
           try {
             await prisma.bundleItem.createMany({
-              data: bundleItems.map((item: any) => ({
+              data: items.map((item: any) => ({
                 bundleId: bundle.id,
                 productId: item.productId,
                 bundleProductQuantity: item.bundleProductQuantity,

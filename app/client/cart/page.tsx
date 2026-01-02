@@ -162,6 +162,9 @@ export default function ClientCart() {
       return;
     }
 
+    // Generate unique bundle group ID for this bundle
+    const bundleGroupId = `bundle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     // Create bundle items with proper bundle metadata
     const bundleItems: CartItem[] = bundleProducts.map((bundleProduct) => ({
       product: bundleProduct.product,
@@ -169,25 +172,29 @@ export default function ClientCart() {
       isBundleItem: true,
       bundleQuantity: bundleProduct.quantity,
       bundleCount: numberOfBundles,
+      bundleGroupId: bundleGroupId,
     }));
 
     // Add bundle items to cart
     const updatedCart = [...cartItems];
     bundleItems.forEach((bundleItem) => {
       const existingIndex = updatedCart.findIndex(
-        (item) => item.product.id === bundleItem.product.id
+        (item) => item.product.id === bundleItem.product.id && item.bundleGroupId === bundleItem.bundleGroupId
       );
       if (existingIndex >= 0) {
-        // If item already exists, add to its quantity
+        // If item with same bundleGroupId already exists, add to its quantity
         updatedCart[existingIndex].quantity += bundleItem.quantity;
-        // If it wasn't a bundle item before, make it one now
-        if (!updatedCart[existingIndex].isBundleItem) {
-          updatedCart[existingIndex].isBundleItem = true;
-          updatedCart[existingIndex].bundleQuantity = bundleItem.bundleQuantity;
-          updatedCart[existingIndex].bundleCount = bundleItem.bundleCount;
-        }
       } else {
-        updatedCart.push(bundleItem);
+        // Check if this product exists as individual item or in another bundle
+        const existingProductIndex = updatedCart.findIndex(
+          (item) => item.product.id === bundleItem.product.id
+        );
+        if (existingProductIndex >= 0) {
+          // Add as separate bundle item (don't merge with existing)
+          updatedCart.push(bundleItem);
+        } else {
+          updatedCart.push(bundleItem);
+        }
       }
     });
     updateCart(updatedCart);
