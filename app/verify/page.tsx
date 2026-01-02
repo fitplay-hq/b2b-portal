@@ -138,6 +138,8 @@ function VerifyOTPContent() {
       // PRELOAD PERMISSIONS: Use NextAuth session to get user data and permissions
       // This ensures smooth experience when user lands on the platform
       try {
+        console.log("🚀 PRELOAD: Starting permission preload for production testing...");
+        
         // Small delay to ensure session is ready
         await new Promise(resolve => setTimeout(resolve, 100));
         
@@ -148,15 +150,22 @@ function VerifyOTPContent() {
           },
         });
         
+        console.log("📡 PRELOAD: Session API response status:", sessionResponse.status);
+        
         if (sessionResponse.ok) {
           const session = await sessionResponse.json();
+          console.log("🔍 PRELOAD: Session data received:", session);
           const user = session.user;
           
           if (user) {
+            console.log(`👤 PRELOAD: Processing user role: ${user.role}`);
+            
             // Build permissions based on user data (same logic as FastPermissionProvider)
             const isAdmin = user.role === 'ADMIN';
             const isSystemAdmin = user.role === 'SYSTEM_USER' && 
                                user.systemRole?.toLowerCase().includes('admin');
+            
+            console.log(`🔐 PRELOAD: Admin detection - isAdmin: ${isAdmin}, isSystemAdmin: ${isSystemAdmin}`);
             
             const userInfo = {
               id: user.id || '',
@@ -168,10 +177,13 @@ function VerifyOTPContent() {
               companyName: user.companyName,
             };
             
+            console.log(`👥 PRELOAD: User info built:`, userInfo);
+            
             let pageAccess = { dashboard: true };
             let actions = {};
             
             if (isAdmin || isSystemAdmin) {
+              console.log(`🔑 PRELOAD: Granting FULL ADMIN permissions`);
               // Admin gets everything
               pageAccess = {
                 dashboard: true,
@@ -195,6 +207,7 @@ function VerifyOTPContent() {
                 roles: { view: true, create: true, edit: true, delete: true },
               };
             } else if (user.permissions) {
+              console.log(`⚙️ PRELOAD: SYSTEM_USER with ${user.permissions.length} permissions:`, user.permissions);
               // System user with specific permissions
               const perms = user.permissions;
               pageAccess = {
@@ -208,6 +221,7 @@ function VerifyOTPContent() {
                 users: hasPageAccess(perms, 'users'),
                 roles: hasPageAccess(perms, 'roles'),
               };
+              console.log(`📄 PRELOAD: System user page access calculated:`, pageAccess);
             }
             
             // Cache the permissions for instant access
@@ -223,13 +237,28 @@ function VerifyOTPContent() {
               timestamp: Date.now(),
             };
             
+            console.log("💾 PRELOAD: About to cache permissions:", {
+              role: user.role,
+              isAdmin: isAdmin || isSystemAdmin,
+              pageAccess,
+              cacheKey: 'fast_permissions_v3'
+            });
+            
             // Save to both storages for maximum reliability
             sessionStorage.setItem('fast_permissions_v3', JSON.stringify(cacheData));
             localStorage.setItem('fast_permissions_v3', JSON.stringify(cacheData));
             localStorage.setItem('account_user_cache', JSON.stringify(userInfo));
+            
+            console.log("✅ PRELOAD: Successfully cached permissions to both storages!");
+            console.log("🚀 PRELOAD: Navigation should now be instant after redirect!");
+          } else {
+            console.log("⚠️ PRELOAD: No user data in session");
           }
+        } else {
+          console.log("❌ PRELOAD: Session API call failed");
         }
       } catch (error) {
+        console.log("⚠️ PRELOAD: Permission preload failed:", error);
         // Don't block the flow if preload fails
       }
       
