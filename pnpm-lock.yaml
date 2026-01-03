@@ -56,9 +56,6 @@ importers:
       '@react-email/render':
         specifier: ^2.0.1
         version: 2.0.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@sparticuz/chromium':
-        specifier: ^143.0.4
-        version: 143.0.4
       '@sparticuz/chromium-min':
         specifier: ^143.0.4
         version: 143.0.4
@@ -150,6 +147,9 @@ importers:
       '@eslint/eslintrc':
         specifier: ^3
         version: 3.3.3
+      '@sparticuz/chromium':
+        specifier: ^143.0.0
+        version: 143.0.0
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.18
@@ -1302,8 +1302,8 @@ packages:
     resolution: {integrity: sha512-vAV731SUEVH0FUmMc+404ZoRq0glq7DlhEGpAX0C7/rXupZ0HasOIJHbrjNNNE+VElenkdmwBm8MVTzwYcFPyQ==}
     engines: {node: '>=20.11.0'}
 
-  '@sparticuz/chromium@143.0.4':
-    resolution: {integrity: sha512-/6I7uQTRhRDD2/gGPQ1Gkf+Dqk0RYDACPJDZfSzz0OWk4JmUTonNHPXbrn6UIklOHlnDLf8xAAzkOZKB/cJpLA==}
+  '@sparticuz/chromium@143.0.0':
+    resolution: {integrity: sha512-/vvplFwu1yDNt/Q1uwXQUwxmfZutU9K+WtzSYwptLWV8IeSdSF6vwW9hW11fZA8Gl9+2mytAGUe6/otgd2VeXA==}
     engines: {node: '>=20.11.0'}
 
   '@stablelib/base64@1.0.1':
@@ -5288,7 +5288,7 @@ snapshots:
       - debug
       - react-native-b4a
 
-  '@sparticuz/chromium@143.0.4':
+  '@sparticuz/chromium@143.0.0':
     dependencies:
       follow-redirects: 1.15.11
       tar-fs: 3.1.1
