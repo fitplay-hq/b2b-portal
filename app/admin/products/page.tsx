@@ -122,7 +122,6 @@ export default function AdminProductsPage() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-                {actions.products.edit && (
                 <Button
                   variant="outline"
                   onClick={() => setCategoryDialogOpen(true)}
@@ -132,7 +131,6 @@ export default function AdminProductsPage() {
                   <Settings className="h-4 w-4" />
                   <span>Manage Categories</span>
                 </Button>
-                )}
                 <div className="flex gap-2 w-full sm:w-auto">
                   {actions.products.create && (
                     <Button onClick={formControls.openNewDialog} className="flex-1 sm:flex-none text-sm h-9" size="sm">

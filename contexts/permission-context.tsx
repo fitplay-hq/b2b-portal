@@ -52,77 +52,35 @@ export function PersistentPermissionProvider({ children }: { children: ReactNode
     // Small delay to prevent rapid state changes and flashing
     const timeoutId = setTimeout(() => {
       // Check if user has admin privileges (ADMIN role OR system admin role)
-      const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SYSTEM_USER';
+      const isAdmin = session?.user?.role === 'ADMIN';
       const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
                            session?.user?.systemRole?.toLowerCase().includes('admin');
       
-      // Get actual user permissions
-      const permissions = session?.user?.permissions || [];
-      
-      // For admin users, only give automatic access to users/roles management
-      // All other permissions should be based on their actual assigned permissions
+      // For admin users (either ADMIN or system admin), set permissions immediately and never show loading
       if (isAdmin || isSystemAdmin) {
         setPermissionState({
-          isAdmin: true,
+          isAdmin: true, // Set to true for both ADMIN and system admin users
           isLoading: false,
           pageAccess: {
             dashboard: true,
-            products: hasPageAccess(permissions, 'products'),
-            orders: hasPageAccess(permissions, 'orders'),
-            clients: hasPageAccess(permissions, 'clients'),
-            companies: hasPageAccess(permissions, 'companies'),
-            inventory: hasPageAccess(permissions, 'inventory'),
-            analytics: hasPageAccess(permissions, 'analytics'),
-            users: true, // Admin always has access to users
-            roles: true, // Admin always has access to roles
+            products: true,
+            orders: true,
+            clients: true,
+            companies: true,
+            inventory: true,
+            analytics: true,
+            users: true,
+            roles: true,
           },
           actions: {
-            products: { 
-              view: hasAction(permissions, 'products', 'view') || hasAction(permissions, 'products', 'read'),
-              create: hasAction(permissions, 'products', 'create'),
-              edit: hasAction(permissions, 'products', 'edit') || hasAction(permissions, 'products', 'update'),
-              delete: hasAction(permissions, 'products', 'delete')
-            },
-            orders: { 
-              view: hasAction(permissions, 'orders', 'view') || hasAction(permissions, 'orders', 'read'),
-              create: hasAction(permissions, 'orders', 'create'),
-              edit: hasAction(permissions, 'orders', 'edit') || hasAction(permissions, 'orders', 'update'),
-              export: hasAction(permissions, 'orders', 'export')
-            },
-            clients: { 
-              view: hasAction(permissions, 'clients', 'view') || hasAction(permissions, 'clients', 'read'),
-              create: hasAction(permissions, 'clients', 'create'),
-              edit: hasAction(permissions, 'clients', 'edit') || hasAction(permissions, 'clients', 'update'),
-              delete: hasAction(permissions, 'clients', 'delete')
-            },
-            companies: { 
-              view: hasAction(permissions, 'companies', 'view') || hasAction(permissions, 'companies', 'read'),
-              create: hasAction(permissions, 'companies', 'create'),
-              edit: hasAction(permissions, 'companies', 'edit') || hasAction(permissions, 'companies', 'update'),
-              delete: hasAction(permissions, 'companies', 'delete')
-            },
-            inventory: { 
-              view: hasAction(permissions, 'inventory', 'view') || hasAction(permissions, 'inventory', 'read'),
-              create: hasAction(permissions, 'inventory', 'create'),
-              edit: hasAction(permissions, 'inventory', 'edit') || hasAction(permissions, 'inventory', 'update'),
-              export: hasAction(permissions, 'inventory', 'export')
-            },
-            analytics: { 
-              read: hasAction(permissions, 'analytics', 'read') || hasAction(permissions, 'analytics', 'view'),
-              export: hasAction(permissions, 'analytics', 'export')
-            },
-            users: {
-              view: hasAction(permissions, 'users', 'view') || hasAction(permissions, 'users', 'read'),
-              create: hasAction(permissions, 'users', 'create'),
-              edit: hasAction(permissions, 'users', 'edit') || hasAction(permissions, 'users', 'update'),
-              delete: hasAction(permissions, 'users', 'delete'),
-            },
-            roles: {
-              view: hasAction(permissions, 'roles', 'view') || hasAction(permissions, 'roles', 'read'),
-              create: hasAction(permissions, 'roles', 'create'),
-              edit: hasAction(permissions, 'roles', 'edit') || hasAction(permissions, 'roles', 'update'),
-              delete: hasAction(permissions, 'roles', 'delete'),
-            },
+            products: { view: true, create: true, edit: true, delete: true },
+            orders: { view: true, create: true, edit: true },
+            clients: { view: true, create: true, edit: true, delete: true },
+            companies: { view: true, create: true, edit: true, delete: true },
+            inventory: { view: true, create: true, edit: true },
+            analytics: { read: true, export: true },
+            users: { view: true, create: true, edit: true, delete: true },
+            roles: { view: true, create: true, edit: true, delete: true },
           },
           isInitialized: true,
         });
@@ -144,8 +102,8 @@ export function PersistentPermissionProvider({ children }: { children: ReactNode
             companies: hasPageAccess(permissions, 'companies'),
             inventory: hasPageAccess(permissions, 'inventory'),
             analytics: hasPageAccess(permissions, 'analytics'),
-            users: hasPageAccess(permissions, 'users'),
-            roles: hasPageAccess(permissions, 'roles'),
+            users: false,
+            roles: false,
           },
           actions: {
             products: {
@@ -179,18 +137,6 @@ export function PersistentPermissionProvider({ children }: { children: ReactNode
             analytics: {
               read: hasAction(permissions, 'analytics', 'read'),
               export: hasAction(permissions, 'analytics', 'export'),
-            },
-            users: {
-              view: hasAction(permissions, 'users', 'view') || hasAction(permissions, 'users', 'read'),
-              create: hasAction(permissions, 'users', 'create'),
-              edit: hasAction(permissions, 'users', 'edit') || hasAction(permissions, 'users', 'update'),
-              delete: hasAction(permissions, 'users', 'delete'),
-            },
-            roles: {
-              view: hasAction(permissions, 'roles', 'view') || hasAction(permissions, 'roles', 'read'),
-              create: hasAction(permissions, 'roles', 'create'),
-              edit: hasAction(permissions, 'roles', 'edit') || hasAction(permissions, 'roles', 'update'),
-              delete: hasAction(permissions, 'roles', 'delete'),
             },
           },
           isInitialized: true,

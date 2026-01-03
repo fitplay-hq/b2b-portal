@@ -50,15 +50,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAnalytics, type AnalyticsFilters } from '@/hooks/use-analytics';
 import { format } from 'date-fns';
-import { cn, RESOURCES } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import Layout from '@/components/layout';
-import PageGuard from '@/components/page-guard';
-import { usePermissions } from '@/hooks/use-permissions';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
 export default function AnalyticsPage() {
-  const { hasUserPermission, isAdmin, actions } = usePermissions();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [filters, setFilters] = useState<AnalyticsFilters>({
     period: '30d'
   });
@@ -76,12 +75,63 @@ export default function AnalyticsPage() {
 
   const [exportLoading, setExportLoading] = useState<string | null>(null);
 
+  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can access analytics)
+  const isAdmin = session?.user?.role === "ADMIN";
+  const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
+                       session?.user?.systemRole && 
+                       session?.user?.systemRole.toLowerCase() === 'admin';
+  const hasAdminAccess = isAdmin || isSystemAdmin;
+  const isUnauthorized = session && !hasAdminAccess;
+
+  // Show loading while session is being loaded
+  if (status === 'loading') {
+    return (
+      <Layout isClient={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!session) {
+    router.push('/login');
+    return null;
+  }
+
+  // Check if user has permission to view analytics
+  if (isUnauthorized) {
+    return (
+      <Layout isClient={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex flex-col items-center text-center p-8">
+              <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+              <p className="text-gray-600 mb-4">
+                You do not have permission to view analytics. Please contact your administrator.
+              </p>
+
+              <Button variant="outline" onClick={() => window.history.back()}>
+                Go Back
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
   const handleFilterChange = (key: keyof AnalyticsFilters, value: string | undefined) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const handleExport = async (type: 'orders' | 'inventory', format: 'xlsx' | 'pdf') => {
-    if (!isAdmin) return;
+    if (!hasAdminAccess) return;
     
     setExportLoading(`${type}-${format}`);
     const result = await exportData(type, format);
@@ -121,8 +171,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <PageGuard resource={RESOURCES.ANALYTICS} action="view">
-      <Layout isClient={false}>
+    <Layout isClient={false}>
       <div className="space-y-4 p-6">
       {/* Header */}
       <Card className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-0 overflow-hidden relative">
@@ -170,7 +219,7 @@ export default function AnalyticsPage() {
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset
                   </Button>
-                  {actions.orders?.export && (
+                  {hasAdminAccess && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
@@ -592,7 +641,7 @@ export default function AnalyticsPage() {
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset
                   </Button>
-                  {actions.inventory?.export && (
+                  {hasAdminAccess && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
@@ -817,6 +866,5 @@ export default function AnalyticsPage() {
       </Tabs>
       </div>
     </Layout>
-    </PageGuard>
   );
 }

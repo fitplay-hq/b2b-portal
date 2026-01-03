@@ -95,11 +95,12 @@ export class NextJSPermissionPrefetcher {
       { path: '/admin/orders', permission: 'orders' },
       { path: '/admin/clients', permission: 'clients' },
       { path: '/admin/companies', permission: 'companies' },
-      { path: '/admin/users', permission: 'users' },
-      { path: '/admin/roles', permission: 'roles' },
+      { path: '/admin/users', permission: 'users', adminOnly: true },
+      { path: '/admin/roles', permission: 'roles', adminOnly: true },
     ];
 
     return allPages.filter(page => {
+      if (page.adminOnly && role !== 'ADMIN') return false;
       if (role === 'ADMIN') return true;
       return pageAccess[page.permission];
     });

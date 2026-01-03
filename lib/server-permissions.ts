@@ -84,8 +84,8 @@ function computePageAccess(permissions: any[]) {
     clients: canAccessPage(permissions, 'clients'),
     companies: canAccessPage(permissions, 'companies'),
     inventory: canAccessPage(permissions, 'inventory'),
-    users: canAccessPage(permissions, 'users'),
-    roles: canAccessPage(permissions, 'roles'),
+    users: false,
+    roles: false,
   };
 }
 
@@ -118,18 +118,6 @@ function computeActions(permissions: any[]) {
       view: canPerformAction(permissions, 'inventory', 'view'),
       create: canPerformAction(permissions, 'inventory', 'create'),
       edit: canPerformAction(permissions, 'inventory', 'edit'),
-    },
-    users: {
-      view: canPerformAction(permissions, 'users', 'view'),
-      create: canPerformAction(permissions, 'users', 'create'),
-      edit: canPerformAction(permissions, 'users', 'edit'),
-      delete: canPerformAction(permissions, 'users', 'delete'),
-    },
-    roles: {
-      view: canPerformAction(permissions, 'roles', 'view'),
-      create: canPerformAction(permissions, 'roles', 'create'),
-      edit: canPerformAction(permissions, 'roles', 'edit'),
-      delete: canPerformAction(permissions, 'roles', 'delete'),
     },
   };
 }

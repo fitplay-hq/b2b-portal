@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +13,6 @@ import { Separator } from "@/components/ui/separator";
 import { Shield, UserPlus, Search, Settings, Eye, Trash2, Edit } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { usePermissions } from "@/hooks/use-permissions";
 import { PageGuard } from "@/components/page-guard";
 import { RESOURCES } from "@/lib/utils";
 
@@ -32,12 +33,36 @@ interface Role {
 }
 
 export default function RolesPage() {
-  const { actions, isAdmin } = usePermissions();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterByPermissions, setFilterByPermissions] = useState("all");
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can access roles)
+  const isAdmin = session?.user?.role === "ADMIN";
+  const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
+                       session?.user?.systemRole && 
+                       session?.user?.systemRole.toLowerCase() === 'admin';
+  const hasAdminAccess = isAdmin || isSystemAdmin;
+  const isUnauthorized = session && !hasAdminAccess;
+
+  useEffect(() => {
+    if (status === "loading") return; // Still loading
+    
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+
+    // Don't redirect, just set loading to false so we can show error message
+    if (session.user?.role !== "ADMIN") {
+      setIsLoading(false);
+      return;
+    }
+  }, [session, status, router]);
 
   // Fetch roles from API
   useEffect(() => {
@@ -110,14 +135,12 @@ export default function RolesPage() {
           </div>
           <p className="text-gray-600">Manage system roles and permissions</p>
         </div>
-        {actions.roles?.create && (
         <Button asChild className="bg-purple-600 hover:bg-purple-700">
           <Link href="/admin/roles/new">
             <UserPlus className="h-4 w-4 mr-2" />
             Create Role
           </Link>
         </Button>
-        )}
       </div>
 
       {/* Filters Card */}
@@ -190,14 +213,12 @@ export default function RolesPage() {
             <p className="text-gray-600 mb-6">
               Get started by creating your first role with custom permissions.
             </p>
-            {actions.roles?.create && (
             <Button asChild className="bg-purple-600 hover:bg-purple-700">
               <Link href="/admin/roles/new">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Create Role
               </Link>
             </Button>
-            )}
           </CardContent>
         </Card>
       ) : (
@@ -224,7 +245,6 @@ export default function RolesPage() {
                   <span>Permissions: {role._count?.permissions || role.permissions?.length || 0}</span>
                 </div>
                 <div className="flex gap-2">
-                  {actions.roles?.edit && (
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -236,8 +256,6 @@ export default function RolesPage() {
                       Edit
                     </Link>
                   </Button>
-                  )}
-                  {actions.roles?.delete && (
                   <Button 
                     variant="destructive" 
                     size="sm" 
@@ -247,7 +265,6 @@ export default function RolesPage() {
                     <Trash2 className="h-4 w-4 mr-1" />
                     Delete
                   </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -298,7 +315,29 @@ export default function RolesPage() {
     </div>
   );
 
-  // PageGuard handles authorization, no need for manual checks
+  // Show unauthorized message if user doesn't have permission
+  if (isUnauthorized) {
+    return (
+      <Layout isClient={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex flex-col items-center text-center p-8">
+              <Shield className="h-16 w-16 text-red-500 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+              <p className="text-gray-600 mb-4">
+                You do not have permission to access this page. Role management is restricted to administrators only.
+              </p>
+              <Button asChild variant="outline">
+                <Link href="/admin">
+                  Return to Dashboard
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <PageGuard resource={RESOURCES.ROLES} action="view">

@@ -16,16 +16,14 @@ interface ClientChartsProps {
     month: string;
     value: number;
   }>;
-  totalOrders?: number;
 }
 
 export function ClientChartsSection({ 
   orderStatusDistribution, 
   monthlyTrends,
-  orderValueTrends,
-  totalOrders = 0
+  orderValueTrends 
 }: ClientChartsProps) {
-  const hasOrders = totalOrders > 0 || orderStatusDistribution.some(item => item.value > 0);
+  const hasOrders = orderStatusDistribution.length > 0;
   const hasValueData = orderValueTrends.some(trend => trend.value > 0);
   const hasTrendData = monthlyTrends.some(trend => trend.orders > 0);
 

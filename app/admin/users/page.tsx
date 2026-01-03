@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +13,6 @@ import { Separator } from "@/components/ui/separator";
 import { UserCog, UserPlus, Search, Users, Shield, Clock } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { usePermissions } from "@/hooks/use-permissions";
 import { ClientOnly } from "@/components/client-only";
 import { PageGuard } from "@/components/page-guard";
 import { RESOURCES } from "@/lib/utils";
@@ -31,7 +32,8 @@ interface User {
 }
 
 export default function UsersPage() {
-  const { actions, isAdmin } = usePermissions();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterByRole, setFilterByRole] = useState("all");
   const [filterByStatus, setFilterByStatus] = useState("all");
@@ -40,6 +42,30 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
+
+  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can access users)
+  const isAdmin = session?.user?.role === "ADMIN";
+  const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
+                       session?.user?.systemRole && 
+                       session?.user?.systemRole.toLowerCase() === 'admin';
+  const hasAdminAccess = isAdmin || isSystemAdmin;
+  const isUnauthorized = session && !hasAdminAccess;
+
+  useEffect(() => {
+    if (status === "loading") return; // Still loading
+    
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+
+    // Don't redirect, just set loading to false so we can show error message
+    if (session.user?.role !== "ADMIN") {
+      setIsLoadingUsers(false);
+      setIsLoadingRoles(false);
+      return;
+    }
+  }, [session, status, router]);
 
   // Fetch roles for filter dropdown
   useEffect(() => {
@@ -129,14 +155,12 @@ export default function UsersPage() {
           </div>
           <p className="text-gray-600">Manage system users and their roles</p>
         </div>
-        {actions.users?.create && (
         <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
           <Link href="/admin/users/new">
             <UserPlus className="h-4 w-4 mr-2" />
             Add User
           </Link>
         </Button>
-        )}
       </div>
 
       {/* Filters Card */}
@@ -230,14 +254,12 @@ export default function UsersPage() {
             <p className="text-gray-600 mb-6">
               Get started by adding your first user with role-based permissions.
             </p>
-            {actions.users?.create && (
             <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
               <Link href="/admin/users/new">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add User
               </Link>
             </Button>
-            )}
           </CardContent>
         </Card>
       ) : (
@@ -263,14 +285,10 @@ export default function UsersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {actions.users?.edit && (
                     <Button variant="outline" size="sm" onClick={() => window.location.href = `/admin/users/${u.id}`}>Edit</Button>
-                    )}
-                    {actions.users?.delete && (
                     <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(u.id, u.name)}>
                       Delete
                     </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -321,6 +339,30 @@ export default function UsersPage() {
       </div>
     </div>
   );
+
+  // Show unauthorized message if user doesn't have permission
+  if (isUnauthorized) {
+    return (
+      <Layout isClient={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex flex-col items-center text-center p-8">
+              <UserCog className="h-16 w-16 text-red-500 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+              <p className="text-gray-600 mb-4">
+                You do not have permission to access this page. User management is restricted to administrators only.
+              </p>
+              <Button asChild variant="outline">
+                <Link href="/admin">
+                  Return to Dashboard
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <PageGuard resource={RESOURCES.USERS} action="view">

@@ -10,7 +10,6 @@ interface OrderListProps {
   toggleOrderExpansion: (orderId: string) => void;
   openStatusDialog: (order: AdminOrder) => void;
   onOrderUpdate?: (updatedOrder: AdminOrder) => void;
-  canUserUpdateOrderStatus?: (order: AdminOrder) => boolean;
 }
 
 export function OrderList({ orders, onOrderUpdate, ...props }: OrderListProps) {

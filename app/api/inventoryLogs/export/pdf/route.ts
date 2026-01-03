@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
         // Permission check
         // Check permissions - ADMIN has full access, others need inventory view permission
         // Exception: CLIENTs can export their own inventory logs without special permissions
-        const isAdmin = session.user.role === "ADMIN" || session.user.role === "SYSTEM_USER";
+        const isAdmin = session.user.role === "ADMIN";
         const isSystemAdmin =
             session.user.role === "SYSTEM_USER" &&
             session.user.systemRole &&

@@ -139,7 +139,7 @@ export default function EditUserPage() {
 
   if (isLoading) {
     return (
-      <PageGuard resource={RESOURCES.USERS} action="edit">
+      <PageGuard resource={RESOURCES.USERS} action="update" adminOnly>
         <Layout isClient={false}>
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -151,7 +151,7 @@ export default function EditUserPage() {
 
   if (error || !user) {
     return (
-      <PageGuard resource={RESOURCES.USERS} action="edit">
+      <PageGuard resource={RESOURCES.USERS} action="update" adminOnly>
         <Layout isClient={false}>
           <div className="bg-gray-50 -m-6">
             <div className="p-8">
@@ -177,7 +177,7 @@ export default function EditUserPage() {
   }
 
   return (
-    <PageGuard resource={RESOURCES.USERS} action="edit">
+    <PageGuard resource={RESOURCES.USERS} action="update" adminOnly>
       <Layout isClient={false}>
         <div className="bg-gray-50 -m-6">
           <div className="p-8">

@@ -43,14 +43,8 @@ export function usePermissions() {
    * Check if user can perform specific action
    */
   const canUserPerformAction = (resource: string, action: string): boolean => {
-    // Admins have all permissions
-    if (isAdmin) {
-      console.log(`[DEBUG] Admin access granted for ${resource}.${action}`);
-      return true;
-    }
-    const hasPermission = canPerformAction(permissions, resource, action);
-    console.log(`[DEBUG] Non-admin permission check for ${resource}.${action}:`, hasPermission);
-    return hasPermission;
+    if (isAdmin) return true;
+    return canPerformAction(permissions, resource, action);
   };
 
   /**
@@ -77,8 +71,8 @@ export function usePermissions() {
     clients: canUserAccessPage(RESOURCES.CLIENTS),
     companies: canUserAccessPage(RESOURCES.COMPANIES),
     inventory: canUserAccessPage(RESOURCES.INVENTORY),
-    users: canUserAccessPage(RESOURCES.USERS) || isAdmin,
-    roles: canUserAccessPage(RESOURCES.ROLES) || isAdmin,
+    users: isAdmin, // Admin only
+    roles: isAdmin, // Admin only
   };
 
   /**
@@ -95,7 +89,6 @@ export function usePermissions() {
       view: canUserPerformAction(RESOURCES.ORDERS, PERMISSIONS.VIEW),
       create: canUserPerformAction(RESOURCES.ORDERS, PERMISSIONS.CREATE),
       edit: canUserPerformAction(RESOURCES.ORDERS, PERMISSIONS.EDIT),
-      export: canUserPerformAction(RESOURCES.ORDERS, PERMISSIONS.EXPORT),
       // Note: No delete for orders as per requirements
     },
     clients: {
@@ -114,20 +107,7 @@ export function usePermissions() {
       view: canUserPerformAction(RESOURCES.INVENTORY, PERMISSIONS.VIEW),
       create: canUserPerformAction(RESOURCES.INVENTORY, PERMISSIONS.CREATE),
       edit: canUserPerformAction(RESOURCES.INVENTORY, PERMISSIONS.EDIT),
-      export: canUserPerformAction(RESOURCES.INVENTORY, PERMISSIONS.EXPORT),
       // Note: No delete for inventory as per requirements
-    },
-    users: {
-      view: canUserPerformAction(RESOURCES.USERS, PERMISSIONS.VIEW),
-      create: canUserPerformAction(RESOURCES.USERS, PERMISSIONS.CREATE),
-      edit: canUserPerformAction(RESOURCES.USERS, PERMISSIONS.EDIT),
-      delete: canUserPerformAction(RESOURCES.USERS, PERMISSIONS.DELETE),
-    },
-    roles: {
-      view: canUserPerformAction(RESOURCES.ROLES, PERMISSIONS.VIEW),
-      create: canUserPerformAction(RESOURCES.ROLES, PERMISSIONS.CREATE),
-      edit: canUserPerformAction(RESOURCES.ROLES, PERMISSIONS.EDIT),
-      delete: canUserPerformAction(RESOURCES.ROLES, PERMISSIONS.DELETE),
     },
   };
 

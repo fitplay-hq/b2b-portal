@@ -81,13 +81,13 @@ export function ProductItem({
         </div>
       </div>
       <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
-        {actions.products?.edit && (
+        {actions.products.edit && (
           <Button variant="outline" size="sm" onClick={() => onEdit(product)} className="flex-1 sm:flex-initial text-xs sm:text-sm">
             <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
             <span className="hidden sm:inline">Edit</span>
           </Button>
         )}
-        {actions.products?.edit && (
+        {actions.inventory?.edit && (
           <Button
             variant="outline"
             size="sm"
@@ -98,7 +98,7 @@ export function ProductItem({
             <span className="hidden sm:inline">Inventory</span>
           </Button>
         )}
-        {actions.products?.delete && (
+        {actions.products.delete && (
           <Button
             variant="outline"
             size="sm"

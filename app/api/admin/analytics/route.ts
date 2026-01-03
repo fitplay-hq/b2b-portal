@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Check analytics read permission (ADMIN, CLIENT, and SYSTEM_USER with admin role have full access)
-    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'SYSTEM_USER';
+    const isAdmin = session.user.role === 'ADMIN';
     const isSystemAdmin = session.user.role === 'SYSTEM_USER' && 
                          session.user.systemRole && 
                          session.user.systemRole.toLowerCase() === 'admin';

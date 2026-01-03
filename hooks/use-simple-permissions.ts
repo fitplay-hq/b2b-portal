@@ -18,7 +18,7 @@ export function useSimplePermissions() {
   const { data: session } = useSession();
   const [isHydrated, setIsHydrated] = useState(false);
 
-  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SYSTEM_USER';
+  const isAdmin = session?.user?.role === 'ADMIN';
   const isSystemUser = session?.user?.role === 'SYSTEM_USER';
 
   // Never show loading - always instant

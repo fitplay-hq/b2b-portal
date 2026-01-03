@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 
 export default function InventoryLogsPage() {
-  const { RESOURCES, actions, isAdmin } = usePermissions();
+  const { RESOURCES } = usePermissions();
   const { exportData, exportLoading } = useInventoryExport();
   
   const [filters, setFilters] = useState<InventoryLogsFilters>({
@@ -236,7 +236,6 @@ export default function InventoryLogsPage() {
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Reset Filters
                 </Button>
-                {actions.inventory?.export && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
@@ -260,7 +259,6 @@ export default function InventoryLogsPage() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                )}
               </div>
             </div>
           </div>

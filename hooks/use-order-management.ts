@@ -3,11 +3,8 @@ import { toast } from "sonner";
 import { useUpdateOrderStatus, useSendOrderEmail, useSendStatusEmail } from "@/data/order/admin.hooks";
 import { KeyedMutator } from "swr";
 import { AdminOrder } from "@/data/order/admin.actions";
-import { useSession } from "next-auth/react";
 
 export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutator<AdminOrder[]>) {
-  const { data: session } = useSession();
-  const userRole = session?.user?.role;
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [dialogState, setDialogState] = useState({
     isOpen: false,
@@ -32,20 +29,12 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
   };
 
   const openStatusDialog = (order: AdminOrder) => {
-    // Business rule: Warehouse managers can only update orders that are APPROVED or later
-    if (userRole === 'WAREHOUSE_MANAGER' && 
-        !['APPROVED', 'DISPATCHED', 'DELIVERED'].includes(order.status)) {
-      toast.error("Warehouse managers can only update orders that have been approved or are in later stages.");
-      return;
-    }
-
     setDialogState({
       isOpen: true,
       order,
       newStatus: order.status,
       consignmentNumber: "",
       deliveryService: "",
-      sendEmail: false,
     });
   };
 
