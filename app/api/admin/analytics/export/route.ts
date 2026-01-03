@@ -487,7 +487,7 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
         if (!downloadPromise) {
           const chromium = (await import("@sparticuz/chromium-min")).default;
           downloadPromise = chromium
-            .executablePath(`https://${process.env.VERCEL_URL}/chromium-pack.tar`)
+            .executablePath(`https://mf4mefwxnbqrp4a6.public.blob.vercel-storage.com/chromium-pack.tar`)
             .then((path) => {
               cachedExecutablePath = path;
               executablePath = path;
