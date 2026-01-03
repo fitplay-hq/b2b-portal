@@ -71,8 +71,8 @@ export function usePermissions() {
     clients: canUserAccessPage(RESOURCES.CLIENTS),
     companies: canUserAccessPage(RESOURCES.COMPANIES),
     inventory: canUserAccessPage(RESOURCES.INVENTORY),
-    users: isAdmin, // Admin only
-    roles: isAdmin, // Admin only
+    users: canUserAccessPage(RESOURCES.USERS),
+    roles: canUserAccessPage(RESOURCES.ROLES),
   };
 
   /**
