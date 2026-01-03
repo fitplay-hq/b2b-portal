@@ -34,14 +34,6 @@ export default function NewUserPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
-  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can create users)
-  const isAdmin = session?.user?.role === "ADMIN";
-  const isSystemAdmin = session?.user?.role === "SYSTEM_USER" && 
-                        session?.user?.systemRole && 
-                        session?.user?.systemRole.toLowerCase() === "admin";
-  const hasAdminAccess = isAdmin || isSystemAdmin;
-  const isUnauthorized = session && !hasAdminAccess;
-
   useEffect(() => {
     if (status === "loading") return; // Still loading
     
@@ -49,17 +41,10 @@ export default function NewUserPage() {
       router.push('/login');
       return;
     }
-
-    // Don't redirect, just stop loading
-    if (!hasAdminAccess) {
-      setIsLoadingRoles(false);
-      return;
-    }
   }, [session, status, router]);
 
   // Fetch roles from API
   useEffect(() => {
-    if (!hasAdminAccess) return;
     
     const fetchRoles = async () => {
       try {
@@ -88,7 +73,7 @@ export default function NewUserPage() {
     };
 
     fetchRoles();
-  }, [hasAdminAccess]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
