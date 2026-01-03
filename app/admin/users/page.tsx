@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { UserCog, UserPlus, Search, Users, Shield, Clock } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/use-permissions";
 import { ClientOnly } from "@/components/client-only";
 import { PageGuard } from "@/components/page-guard";
 import { RESOURCES } from "@/lib/utils";
@@ -43,13 +44,10 @@ export default function UsersPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
 
-  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can access users)
-  const isAdmin = session?.user?.role === "ADMIN";
-  const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
-                       session?.user?.systemRole && 
-                       session?.user?.systemRole.toLowerCase() === 'admin';
-  const hasAdminAccess = isAdmin || isSystemAdmin;
-  const isUnauthorized = session && !hasAdminAccess;
+  // Check if user has users permission
+  const { hasPermission, isAdmin } = usePermissions();
+  const hasUsersAccess = isAdmin || hasPermission('users', 'view');
+  const isUnauthorized = session && !hasUsersAccess;
 
   useEffect(() => {
     if (status === "loading") return; // Still loading

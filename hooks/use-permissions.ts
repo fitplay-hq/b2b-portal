@@ -89,6 +89,7 @@ export function usePermissions() {
       view: canUserPerformAction(RESOURCES.ORDERS, PERMISSIONS.VIEW),
       create: canUserPerformAction(RESOURCES.ORDERS, PERMISSIONS.CREATE),
       edit: canUserPerformAction(RESOURCES.ORDERS, PERMISSIONS.EDIT),
+      export: canUserPerformAction(RESOURCES.ORDERS, PERMISSIONS.EXPORT),
       // Note: No delete for orders as per requirements
     },
     clients: {
@@ -107,7 +108,12 @@ export function usePermissions() {
       view: canUserPerformAction(RESOURCES.INVENTORY, PERMISSIONS.VIEW),
       create: canUserPerformAction(RESOURCES.INVENTORY, PERMISSIONS.CREATE),
       edit: canUserPerformAction(RESOURCES.INVENTORY, PERMISSIONS.EDIT),
+      export: canUserPerformAction(RESOURCES.INVENTORY, PERMISSIONS.EXPORT),
       // Note: No delete for inventory as per requirements
+    },
+    analytics: {
+      view: canUserPerformAction(RESOURCES.ANALYTICS, PERMISSIONS.VIEW),
+      export: canUserPerformAction(RESOURCES.ANALYTICS, PERMISSIONS.EXPORT),
     },
   };
 
