@@ -7,6 +7,44 @@ import { RESOURCES, PERMISSIONS } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import puppeteer from 'puppeteer-core';
+import os from 'os';
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
+function logError(step: string, error: unknown) {
+  console.error(`❌ [PDF EXPORT ERROR] Step: ${step}`);
+
+  if (error instanceof Error) {
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+
+
+
+function getLocalChromePath() {
+  const platform = os.platform();
+
+  if (platform === 'darwin') {
+    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  }
+
+  if (platform === 'win32') {
+    return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+  }
+
+  return '/usr/bin/google-chrome';
+}
+
+
+
+const isServerless =
+  process.env.VERCEL === '1' ||
+  !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
 
 /**
  * GET /api/admin/analytics/export
@@ -16,7 +54,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🚀 Export API called:', request.url);
     const session = await getServerSession(auth);
-    
+
     if (!session?.user) {
       console.log('❌ No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,11 +64,11 @@ export async function GET(request: NextRequest) {
 
     // Check analytics export permission (ADMIN and SYSTEM_USER with admin role have full access)
     const isAdmin = session.user.role === 'ADMIN';
-    const isSystemAdmin = session.user.role === 'SYSTEM_USER' && 
-                         session.user.systemRole && 
-                         session.user.systemRole.toLowerCase() === 'admin';
+    const isSystemAdmin = session.user.role === 'SYSTEM_USER' &&
+      session.user.systemRole &&
+      session.user.systemRole.toLowerCase() === 'admin';
     const hasAdminAccess = isAdmin || isSystemAdmin;
-    
+
     if (!hasAdminAccess) {
       const userPermissions = session.user.permissions || [];
       if (!hasPermission(userPermissions, RESOURCES.ANALYTICS, PERMISSIONS.EXPORT)) {
@@ -68,9 +106,16 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Analytics Export API Error:', error);
+    logError('EXPORT_API_ROOT', error);
+
     return NextResponse.json(
-      { error: 'Failed to export analytics data' }, 
+      {
+        error: 'Failed to export analytics data',
+        details:
+          error instanceof Error
+            ? error.message
+            : 'Unknown server error',
+      },
       { status: 500 }
     );
   }
@@ -80,15 +125,15 @@ export async function GET(request: NextRequest) {
  * Export orders data as CSV
  */
 async function exportOrdersData(
-  dateFrom: string | null, 
-  dateTo: string | null, 
-  clientId: string | null, 
-  companyId: string | null, 
+  dateFrom: string | null,
+  dateTo: string | null,
+  clientId: string | null,
+  companyId: string | null,
   status: string | null,
   format: string = 'xlsx'
 ) {
   console.log('📦 Starting orders export with filters:', { dateFrom, dateTo, clientId, companyId, status });
-  
+
   // Build date filter
   const dateFilter: any = {};
   if (dateFrom) {
@@ -97,7 +142,7 @@ async function exportOrdersData(
   if (dateTo) {
     dateFilter.lte = new Date(dateTo);
   }
-  
+
   console.log('📅 Date filter:', dateFilter);
 
   // Build order filters
@@ -146,7 +191,7 @@ async function exportOrdersData(
       order.state,
       order.pincode
     ].filter(part => part && part !== 'Address' && part !== 'City' && part !== 'State' && part !== '000000');
-    
+
     const fullShippingAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Address not provided';
 
     return {
@@ -168,7 +213,7 @@ async function exportOrdersData(
       'Delivery Service': order.deliveryService || '',
       'Mode of Delivery': order.modeOfDelivery || '',
       'Required By Date': order.requiredByDate ? new Date(order.requiredByDate).toLocaleDateString() : '',
-      'Items Details': order.orderItems?.map((item: any) => 
+      'Items Details': order.orderItems?.map((item: any) =>
         `${item.product?.name || 'Unknown'} (Qty: ${item.quantity}, Price: ₹${item.price})`
       ).join('; ') || ''
     };
@@ -206,19 +251,19 @@ async function exportOrdersData(
 
   if (format === 'pdf') {
     const doc = new jsPDF();
-    
+
     doc.setFontSize(20);
     doc.text('Orders Report', 20, 20);
-    
+
     const tableColumns = [
       'Order ID',
-      'Client Name', 
+      'Client Name',
       'Order Date',
       'Status',
       'Total Amount',
       'Items Count'
     ];
-    
+
     const tableRows = excelData.map((order: any) => [
       order['Order ID'],
       order['Client Name'],
@@ -238,7 +283,7 @@ async function exportOrdersData(
 
     const pdfBuffer = doc.output('arraybuffer');
     const filename = `orders_export_${new Date().toISOString().split('T')[0]}.pdf`;
-    
+
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
@@ -298,12 +343,12 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
   const excelData = products.map(product => {
     const stockQuantity = product.availableStock;
     const lowThreshold = 10;
-    const stockStatus = stockQuantity === 0 
-      ? 'Out of Stock' 
+    const stockStatus = stockQuantity === 0
+      ? 'Out of Stock'
       : stockQuantity <= lowThreshold
-      ? 'Low Stock'
-      : 'In Stock';
-    
+        ? 'Low Stock'
+        : 'In Stock';
+
     const stockValue = stockQuantity * (product.price || 0);
 
     // Get first image URL if images is an array or string
@@ -319,7 +364,7 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
     return {
       'Product ID': product.id,
       'Product Name': product.name,
-      'Product Image': imageUrl ? 'View Image' : 'No Image',
+      'Product Image': imageUrl ? imageUrl : 'No Image',
       'SKU': product.sku,
       'Category': product.categories || 'Uncategorized',
       'Companies': product.companies.map(c => c.name).join(', '),
@@ -382,49 +427,109 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
   // Add worksheet to workbook
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventory');
 
+  function generateInventoryHTML(products: any[]) {
+    return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <style>
+      body { font-family: Arial; font-size: 12px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #ccc; padding: 6px; }
+      th { background: #f3f4f6; }
+      img { width: 60px; height: 60px; object-fit: cover; }
+    </style>
+  </head>
+  <body>
+    <h2>Inventory Report</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Image</th>
+          <th>Name</th>
+          <th>SKU</th>
+          <th>Stock</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${products.map(p => `
+          <tr>
+            <td><img src="${Array.isArray(p.images) ? p.images[0] : ''}" /></td>
+            <td>${p.name}</td>
+            <td>${p.sku}</td>
+            <td>${p.availableStock}</td>
+            <td>₹${p.price}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </body>
+  </html>
+  `;
+  }
+
   if (format === 'pdf') {
-    const doc = new jsPDF();
-    
-    doc.setFontSize(20);
-    doc.text('Products Inventory Report', 20, 20);
-    
-    const tableColumns = [
-      'Product ID',
-      'Product Name', 
-      'SKU',
-      'Category',
-      'Stock Quantity',
-      'Stock Status',
-      'Unit Price'
-    ];
-    
-    const tableRows = excelData.map((product: any) => [
-      product['Product ID'],
-      product['Product Name'],
-      product['SKU'],
-      product['Category'],
-      product['Stock Quantity'].toString(),
-      product['Stock Status'],
-      `Rs.${product['Unit Price']}`
-    ]);
+    try {
+      console.log('🧪 PDF: Generating HTML');
+      const html = generateInventoryHTML(products);
 
-    autoTable(doc, {
-      head: [tableColumns],
-      body: tableRows,
-      startY: 30,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [66, 66, 66] }
-    });
+      console.log('🧪 PDF: Resolving executable path');
+      console.log('🧪 PDF: Launching browser');
 
-    const pdfBuffer = doc.output('arraybuffer');
-    const filename = `products_export_${new Date().toISOString().split('T')[0]}.pdf`;
-    
-    return new NextResponse(pdfBuffer, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`
-      }
-    });
+      const chromium = (await import('@sparticuz/chromium-min')).default;
+
+      const browser = await puppeteer.launch({
+        args: chromium.args,
+        executablePath: process.env.NODE_ENV === 'production'
+          ? await chromium.executablePath()
+          : getLocalChromePath(),
+        headless: true,
+      });
+
+      console.log('🧪 PDF: Creating page');
+      const page = await browser.newPage();
+
+      console.log('🧪 PDF: Setting HTML content');
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+
+      console.log('🧪 PDF: Generating PDF buffer');
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '20px',
+          bottom: '20px',
+          left: '20px',
+          right: '20px',
+        },
+      });
+
+      console.log('🧪 PDF: Closing browser');
+      await browser.close();
+
+      console.log('✅ PDF: Successfully generated');
+
+      return new NextResponse(Buffer.from(pdfBuffer), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename=inventory_${Date.now()}.pdf`,
+        },
+      });
+
+    } catch (error) {
+      logError('INVENTORY_PDF_FLOW', error);
+      return NextResponse.json(
+        {
+          error: 'Inventory PDF generation failed',
+          details:
+            error instanceof Error
+              ? error.message
+              : 'Unknown PDF error',
+        },
+        { status: 500 }
+      );
+    }
   }
 
   // Generate Excel buffer
