@@ -13,6 +13,18 @@ import os from 'os';
 
 export const maxDuration = 60;
 
+function logError(step: string, error: unknown) {
+  console.error(`❌ [PDF EXPORT ERROR] Step: ${step}`);
+
+  if (error instanceof Error) {
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+
+
 
 function getLocalChromePath() {
   const platform = os.platform();
@@ -94,12 +106,19 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Analytics Export API Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to export analytics data' },
-      { status: 500 }
-    );
-  }
+  logError('EXPORT_API_ROOT', error);
+
+  return NextResponse.json(
+    {
+      error: 'Failed to export analytics data',
+      details:
+        error instanceof Error
+          ? error.message
+          : 'Unknown server error',
+    },
+    { status: 500 }
+  );
+}
 }
 
 /**
@@ -408,8 +427,7 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
   // Add worksheet to workbook
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventory');
 
-  if (format === 'pdf') {
-    function generateInventoryHTML(products: any[]) {
+  function generateInventoryHTML(products: any[]) {
       return `
   <!DOCTYPE html>
   <html>
@@ -451,31 +469,44 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
   `;
     }
 
+  if (format === 'pdf') {
+  try {
+    console.log('🧪 PDF: Generating HTML');
     const html = generateInventoryHTML(products);
 
+    console.log('🧪 PDF: Resolving executable path');
+    const executablePath = isServerless
+      ? await chromium.executablePath()
+      : getLocalChromePath();
+
+    console.log('🧪 PDF: Executable path ->', executablePath);
+
+    console.log('🧪 PDF: Launching browser');
     const browser = await puppeteer.launch(
-  isServerless
-    ? {
-        args: [
-          ...chromium.args,
-          '--disable-dev-shm-usage',
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-        ],
-        executablePath: await chromium.executablePath(),
-        headless: true,
-      }
-    : {
-        executablePath: getLocalChromePath(),
-        headless: true,
-      }
-);
+      isServerless
+        ? {
+            args: [
+              ...chromium.args,
+              '--disable-dev-shm-usage',
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+            ],
+            executablePath,
+            headless: true,
+          }
+        : {
+            executablePath,
+            headless: true,
+          }
+    );
 
-
-
+    console.log('🧪 PDF: Creating page');
     const page = await browser.newPage();
+
+    console.log('🧪 PDF: Setting HTML content');
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
+    console.log('🧪 PDF: Generating PDF buffer');
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -487,7 +518,10 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
       },
     });
 
+    console.log('🧪 PDF: Closing browser');
     await browser.close();
+
+    console.log('✅ PDF: Successfully generated');
 
     return new NextResponse(Buffer.from(pdfBuffer), {
       headers: {
@@ -496,7 +530,20 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
       },
     });
 
+  } catch (error) {
+    logError('INVENTORY_PDF_FLOW', error);
+    return NextResponse.json(
+      {
+        error: 'Inventory PDF generation failed',
+        details:
+          error instanceof Error
+            ? error.message
+            : 'Unknown PDF error',
+      },
+      { status: 500 }
+    );
   }
+}
 
   // Generate Excel buffer
   const excelBuffer = XLSX.write(workbook, {
