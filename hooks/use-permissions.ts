@@ -115,6 +115,18 @@ export function usePermissions() {
       view: canUserPerformAction(RESOURCES.ANALYTICS, PERMISSIONS.VIEW),
       export: canUserPerformAction(RESOURCES.ANALYTICS, PERMISSIONS.EXPORT),
     },
+    users: {
+      view: canUserPerformAction(RESOURCES.USERS, PERMISSIONS.VIEW),
+      create: canUserPerformAction(RESOURCES.USERS, PERMISSIONS.CREATE),
+      edit: canUserPerformAction(RESOURCES.USERS, PERMISSIONS.EDIT),
+      delete: canUserPerformAction(RESOURCES.USERS, PERMISSIONS.DELETE),
+    },
+    roles: {
+      view: canUserPerformAction(RESOURCES.ROLES, PERMISSIONS.VIEW),
+      create: canUserPerformAction(RESOURCES.ROLES, PERMISSIONS.CREATE),
+      edit: canUserPerformAction(RESOURCES.ROLES, PERMISSIONS.EDIT),
+      delete: canUserPerformAction(RESOURCES.ROLES, PERMISSIONS.DELETE),
+    },
   };
 
   return {

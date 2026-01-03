@@ -15,6 +15,7 @@ import { Shield, ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { PageGuard } from "@/components/page-guard";
+import { RESOURCES } from "@/lib/utils";
 
 // Interface for permissions fetched from API
 
@@ -210,7 +211,7 @@ export default function NewRolePage() {
   }
 
   return (
-    <PageGuard adminOnly={true}>
+    <PageGuard resource={RESOURCES.ROLES} action="create">
       <Layout isClient={false}>
         <div className="bg-gray-50 -m-6">
           <div className="p-8">

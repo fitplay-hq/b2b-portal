@@ -13,6 +13,7 @@ import { UserCog, ArrowLeft, Save, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { PageGuard } from "@/components/page-guard";
+import { RESOURCES } from "@/lib/utils";
 
 interface Role {
   id: string;
@@ -163,7 +164,7 @@ export default function NewUserPage() {
   }
 
   return (
-    <PageGuard adminOnly={true}>
+    <PageGuard resource={RESOURCES.USERS} action="create">
       <Layout isClient={false}>
         <div className="bg-gray-50 -m-6">
           <div className="p-8">
