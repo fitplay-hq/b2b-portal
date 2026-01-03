@@ -504,7 +504,7 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
     const page = await browser.newPage();
 
     console.log('🧪 PDF: Setting HTML content');
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: 'domcontentloaded' });
 
     console.log('🧪 PDF: Generating PDF buffer');
     const pdfBuffer = await page.pdf({
