@@ -47,7 +47,7 @@ export function PageGuard({
   }
 
   const { user } = session;
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SYSTEM_USER';
   
   // Also check if SystemUser has admin-level role (like "Admin")
   const isSystemAdmin = user?.role === 'SYSTEM_USER' && 
