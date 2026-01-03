@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Package } from "lucide-react";
 import { $Enums } from "@/lib/generated/prisma";
+import { usePermissions } from "@/hooks/use-permissions";
 
 // Extended Product type that includes the category relationship
 type ProductWithRelations = Product & {
@@ -56,6 +57,7 @@ export function AdminProductCard({
   onDelete,
   onManageInventory,
 }: AdminProductCardProps) {
+  const { actions } = usePermissions();
   const isLowStock = product.minStockThreshold && product.availableStock <= product.minStockThreshold;
   const isOutOfStock = product.availableStock === 0;
 
@@ -117,30 +119,36 @@ export function AdminProductCard({
       </CardContent>
       <CardFooter className="p-3 pt-0">
         <div className="flex gap-1 w-full">
-          <Button
-            onClick={() => onEdit(product)}
-            variant="outline"
-            size="sm"
-            className="flex-1 text-xs h-8"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={() => onManageInventory(product)}
-            variant="outline"
-            size="sm"
-            className="flex-1 text-xs h-8"
-          >
-            <Package className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={() => onDelete(product.id)}
-            variant="outline"
-            size="sm"
-            className="flex-1 text-xs h-8 text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {actions.products.edit && (
+            <Button
+              onClick={() => onEdit(product)}
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs h-8"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {actions.inventory?.edit && (
+            <Button
+              onClick={() => onManageInventory(product)}
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs h-8"
+            >
+              <Package className="h-4 w-4" />
+            </Button>
+          )}
+          {actions.products.delete && (
+            <Button
+              onClick={() => onDelete(product.id)}
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs h-8 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </CardFooter>
     </Card>
