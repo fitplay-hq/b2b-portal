@@ -475,36 +475,18 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
     const html = generateInventoryHTML(products);
 
     console.log('🧪 PDF: Resolving executable path');
-    const executablePath = isServerless
-      ? await chromium.executablePath()
-      : getLocalChromePath();
-
-    console.log('🧪 PDF: Executable path ->', executablePath);
-
     console.log('🧪 PDF: Launching browser');
-    const browser = await puppeteer.launch(
-      isServerless
-        ? {
-            args: [
-              ...chromium.args,
-              '--disable-dev-shm-usage',
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-            ],
-            executablePath,
-            headless: true,
-          }
-        : {
-            executablePath,
-            headless: true,
-          }
-    );
+    const browser = await puppeteer.launch({
+  args: chromium.args,
+  executablePath: process.env.ENVIRONMENT === 'development' ? getLocalChromePath() : await chromium.executablePath(),
+  headless: true,
+});
 
     console.log('🧪 PDF: Creating page');
     const page = await browser.newPage();
 
     console.log('🧪 PDF: Setting HTML content');
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    await page.setContent(html, { waitUntil: 'networkidle0' });
 
     console.log('🧪 PDF: Generating PDF buffer');
     const pdfBuffer = await page.pdf({
