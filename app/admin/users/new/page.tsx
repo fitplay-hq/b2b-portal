@@ -124,30 +124,6 @@ export default function NewUserPage() {
     }
   };
 
-  // Show unauthorized message if user doesn't have permission
-  if (isUnauthorized) {
-    return (
-      <Layout isClient={false}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Card className="w-full max-w-md">
-            <CardContent className="flex flex-col items-center text-center p-8">
-              <UserCog className="h-16 w-16 text-red-500 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-              <p className="text-gray-600 mb-4">
-                You do not have permission to create users. User management is restricted to administrators only.
-              </p>
-              <Button asChild variant="outline">
-                <Link href="/admin">
-                  Return to Dashboard
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <PageGuard resource={RESOURCES.USERS} action="create">
       <Layout isClient={false}>
