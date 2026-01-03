@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import chromium from '@sparticuz/chromium-min';
 import os from 'os';
 
 export const runtime = 'nodejs';
