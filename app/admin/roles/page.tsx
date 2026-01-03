@@ -43,7 +43,7 @@ export default function RolesPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Check if user has roles permission
-  const { hasPermission, isAdmin } = usePermissions();
+  const { hasPermission, isAdmin, actions } = usePermissions();
   const hasRolesAccess = isAdmin || hasPermission('roles', 'view');
   const isUnauthorized = session && !hasRolesAccess;
 
@@ -133,12 +133,14 @@ export default function RolesPage() {
           </div>
           <p className="text-gray-600">Manage system roles and permissions</p>
         </div>
-        <Button asChild className="bg-purple-600 hover:bg-purple-700">
-          <Link href="/admin/roles/new">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Create Role
-          </Link>
-        </Button>
+        {actions.roles?.create && (
+          <Button asChild className="bg-purple-600 hover:bg-purple-700">
+            <Link href="/admin/roles/new">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Create Role
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Filters Card */}
@@ -211,12 +213,14 @@ export default function RolesPage() {
             <p className="text-gray-600 mb-6">
               Get started by creating your first role with custom permissions.
             </p>
-            <Button asChild className="bg-purple-600 hover:bg-purple-700">
-              <Link href="/admin/roles/new">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Create Role
-              </Link>
-            </Button>
+            {actions.roles?.create && (
+              <Button asChild className="bg-purple-600 hover:bg-purple-700">
+                <Link href="/admin/roles/new">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Create Role
+                </Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -243,26 +247,30 @@ export default function RolesPage() {
                   <span>Permissions: {role._count?.permissions || role.permissions?.length || 0}</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    asChild
-                  >
-                    <Link href={`/admin/roles/${role.id}`}>
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Link>
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleDeleteRole(role.id, role.name)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Delete
-                  </Button>
+                  {actions.roles?.edit && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      asChild
+                    >
+                      <Link href={`/admin/roles/${role.id}`}>
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Link>
+                    </Button>
+                  )}
+                  {actions.roles?.delete && (
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleDeleteRole(role.id, role.name)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
