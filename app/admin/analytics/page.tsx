@@ -52,12 +52,14 @@ import { useAnalytics, type AnalyticsFilters } from '@/hooks/use-analytics';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Layout from '@/components/layout';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { hasPermission, isAdmin, actions } = usePermissions();
   const [filters, setFilters] = useState<AnalyticsFilters>({
     period: '30d'
   });
@@ -75,13 +77,9 @@ export default function AnalyticsPage() {
 
   const [exportLoading, setExportLoading] = useState<string | null>(null);
 
-  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can access analytics)
-  const isAdmin = session?.user?.role === "ADMIN";
-  const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
-                       session?.user?.systemRole && 
-                       session?.user?.systemRole.toLowerCase() === 'admin';
-  const hasAdminAccess = isAdmin || isSystemAdmin;
-  const isUnauthorized = session && !hasAdminAccess;
+  // Check if user has analytics permission
+  const hasAnalyticsAccess = isAdmin || hasPermission('analytics', 'read');
+  const isUnauthorized = session && !hasAnalyticsAccess;
 
   // Show loading while session is being loaded
   if (status === 'loading') {
@@ -131,7 +129,7 @@ export default function AnalyticsPage() {
   };
 
   const handleExport = async (type: 'orders' | 'inventory', format: 'xlsx' | 'pdf') => {
-    if (!hasAdminAccess) return;
+    if (!hasAnalyticsAccess) return;
     
     setExportLoading(`${type}-${format}`);
     const result = await exportData(type, format);
@@ -219,7 +217,7 @@ export default function AnalyticsPage() {
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset
                   </Button>
-                  {hasAdminAccess && (
+                  {actions.analytics?.export && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
@@ -641,7 +639,7 @@ export default function AnalyticsPage() {
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset
                   </Button>
-                  {hasAdminAccess && (
+                  {actions.analytics?.export && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 

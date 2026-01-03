@@ -102,8 +102,8 @@ export function PersistentPermissionProvider({ children }: { children: ReactNode
             companies: hasPageAccess(permissions, 'companies'),
             inventory: hasPageAccess(permissions, 'inventory'),
             analytics: hasPageAccess(permissions, 'analytics'),
-            users: false,
-            roles: false,
+            users: hasPageAccess(permissions, 'users'),
+            roles: hasPageAccess(permissions, 'roles'),
           },
           actions: {
             products: {
@@ -137,6 +137,18 @@ export function PersistentPermissionProvider({ children }: { children: ReactNode
             analytics: {
               read: hasAction(permissions, 'analytics', 'read'),
               export: hasAction(permissions, 'analytics', 'export'),
+            },
+            users: {
+              view: hasAction(permissions, 'users', 'view'),
+              create: hasAction(permissions, 'users', 'create'),
+              edit: hasAction(permissions, 'users', 'edit'),
+              delete: hasAction(permissions, 'users', 'delete'),
+            },
+            roles: {
+              view: hasAction(permissions, 'roles', 'view'),
+              create: hasAction(permissions, 'roles', 'create'),
+              edit: hasAction(permissions, 'roles', 'edit'),
+              delete: hasAction(permissions, 'roles', 'delete'),
             },
           },
           isInitialized: true,
