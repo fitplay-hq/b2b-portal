@@ -43,7 +43,12 @@ export function useClientAnalytics() {
       { name: 'Dispatched', value: dispatchedOrders, color: '#8b5cf6' },
       { name: 'Delivered', value: deliveredOrders, color: '#10b981' },
       { name: 'Cancelled', value: cancelledOrders, color: '#ef4444' },
-    ].filter(item => item.value > 0);
+    ];
+    
+    // Only filter out zeros if there are actually orders
+    const filteredDistribution = totalOrders > 0 
+      ? orderStatusDistribution.filter(item => item.value > 0)
+      : [];
 
     // Monthly Order Trends (last 6 months)
     const monthlyTrends = [];
@@ -101,7 +106,7 @@ export function useClientAnalytics() {
         lowStockProducts,
         
         // Charts data
-        orderStatusDistribution,
+        orderStatusDistribution: filteredDistribution,
         monthlyTrends,
         orderValueTrends,
         

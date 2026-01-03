@@ -1,4 +1,5 @@
 import { Product, ProductCategory, Company } from "@/lib/generated/prisma";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   Card,
   CardContent,
@@ -56,6 +57,7 @@ export function AdminProductCard({
   onDelete,
   onManageInventory,
 }: AdminProductCardProps) {
+  const { actions } = usePermissions();
   const isLowStock = product.minStockThreshold && product.availableStock <= product.minStockThreshold;
   const isOutOfStock = product.availableStock === 0;
 
@@ -117,6 +119,7 @@ export function AdminProductCard({
       </CardContent>
       <CardFooter className="p-3 pt-0">
         <div className="flex gap-1 w-full">
+          {actions.products?.edit && (
           <Button
             onClick={() => onEdit(product)}
             variant="outline"
@@ -125,6 +128,8 @@ export function AdminProductCard({
           >
             <Edit className="h-4 w-4" />
           </Button>
+          )}
+          {actions.products?.edit && (
           <Button
             onClick={() => onManageInventory(product)}
             variant="outline"
@@ -133,6 +138,8 @@ export function AdminProductCard({
           >
             <Package className="h-4 w-4" />
           </Button>
+          )}
+          {actions.products?.delete && (
           <Button
             onClick={() => onDelete(product.id)}
             variant="outline"
@@ -141,6 +148,7 @@ export function AdminProductCard({
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+          )}
         </div>
       </CardFooter>
     </Card>

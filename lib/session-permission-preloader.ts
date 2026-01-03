@@ -98,7 +98,9 @@ export class SessionPermissionPreloader {
       ORDERS: 'orders', 
       CLIENTS: 'clients',
       COMPANIES: 'companies',
-      INVENTORY: 'inventory'
+      INVENTORY: 'inventory',
+      USERS: 'users',
+      ROLES: 'roles'
     };
 
     return {
@@ -108,8 +110,8 @@ export class SessionPermissionPreloader {
       clients: this.canAccessPage(permissions, RESOURCES.CLIENTS),
       companies: this.canAccessPage(permissions, RESOURCES.COMPANIES),
       inventory: this.canAccessPage(permissions, RESOURCES.INVENTORY),
-      users: false, // Admin only
-      roles: false, // Admin only
+      users: this.canAccessPage(permissions, RESOURCES.USERS),
+      roles: this.canAccessPage(permissions, RESOURCES.ROLES),
     };
   }
 
@@ -119,7 +121,9 @@ export class SessionPermissionPreloader {
       ORDERS: 'orders', 
       CLIENTS: 'clients',
       COMPANIES: 'companies',
-      INVENTORY: 'inventory'
+      INVENTORY: 'inventory',
+      USERS: 'users',
+      ROLES: 'roles'
     };
 
     const PERMISSIONS = {
@@ -157,6 +161,18 @@ export class SessionPermissionPreloader {
         view: this.canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.VIEW),
         create: this.canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.CREATE),
         edit: this.canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.EDIT),
+      },
+      users: {
+        view: this.canPerformAction(permissions, RESOURCES.USERS, PERMISSIONS.VIEW),
+        create: this.canPerformAction(permissions, RESOURCES.USERS, PERMISSIONS.CREATE),
+        edit: this.canPerformAction(permissions, RESOURCES.USERS, PERMISSIONS.EDIT),
+        delete: this.canPerformAction(permissions, RESOURCES.USERS, PERMISSIONS.DELETE),
+      },
+      roles: {
+        view: this.canPerformAction(permissions, RESOURCES.ROLES, PERMISSIONS.VIEW),
+        create: this.canPerformAction(permissions, RESOURCES.ROLES, PERMISSIONS.CREATE),
+        edit: this.canPerformAction(permissions, RESOURCES.ROLES, PERMISSIONS.EDIT),
+        delete: this.canPerformAction(permissions, RESOURCES.ROLES, PERMISSIONS.DELETE),
       },
     };
   }

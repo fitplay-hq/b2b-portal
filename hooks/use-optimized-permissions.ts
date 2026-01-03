@@ -22,7 +22,7 @@ export function useOptimizedPermissions() {
   const [cachedPermissions, setCachedPermissions] = useState<unknown>(null);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  const isAdmin = session?.user?.role === 'ADMIN';
+  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SYSTEM_USER';
   const isSystemUser = session?.user?.role === 'SYSTEM_USER';
   const userId = session?.user?.id;
   const roleId = session?.user?.systemRoleId;
@@ -101,7 +101,7 @@ export function useOptimizedPermissions() {
   // Memoized permission functions for admin (instant access)
   const adminPermissions = useMemo(() => {
     // Check both current session role and potential admin role during loading
-    const isAdminUser = session?.user?.role === 'ADMIN' || isAdmin;
+    const isAdminUser = session?.user?.role === 'ADMIN' || session?.user?.role === 'SYSTEM_USER' || isAdmin;
     
     if (!isAdminUser) return null;
     
@@ -119,10 +119,10 @@ export function useOptimizedPermissions() {
       },
       actions: {
         products: { view: true, create: true, edit: true, delete: true },
-        orders: { view: true, create: true, edit: true },
+        orders: { view: true, create: true, edit: true, export: true },
         clients: { view: true, create: true, edit: true, delete: true },
         companies: { view: true, create: true, edit: true, delete: true },
-        inventory: { view: true, create: true, edit: true },
+        inventory: { view: true, create: true, edit: true, export: true },
         users: { view: true, create: true, edit: true, delete: true },
         roles: { view: true, create: true, edit: true, delete: true },
       },
@@ -218,8 +218,8 @@ function computePageAccess(permissions: unknown[], isAdmin: boolean) {
     clients: canAccessPage(permissions, RESOURCES.CLIENTS),
     companies: canAccessPage(permissions, RESOURCES.COMPANIES),
     inventory: canAccessPage(permissions, RESOURCES.INVENTORY),
-    users: false, // Admin only
-    roles: false, // Admin only
+    users: canAccessPage(permissions, RESOURCES.USERS),
+    roles: canAccessPage(permissions, RESOURCES.ROLES),
   };
 }
 
@@ -230,10 +230,10 @@ function computeActions(permissions: unknown[], isAdmin: boolean) {
   if (isAdmin) {
     return {
       products: { view: true, create: true, edit: true, delete: true },
-      orders: { view: true, create: true, edit: true },
+      orders: { view: true, create: true, edit: true, export: true },
       clients: { view: true, create: true, edit: true, delete: true },
       companies: { view: true, create: true, edit: true, delete: true },
-      inventory: { view: true, create: true, edit: true },
+      inventory: { view: true, create: true, edit: true, export: true },
       users: { view: true, create: true, edit: true, delete: true },
       roles: { view: true, create: true, edit: true, delete: true },
     };
@@ -250,6 +250,7 @@ function computeActions(permissions: unknown[], isAdmin: boolean) {
       view: canPerformAction(permissions, RESOURCES.ORDERS, PERMISSIONS.VIEW),
       create: canPerformAction(permissions, RESOURCES.ORDERS, PERMISSIONS.CREATE),
       edit: canPerformAction(permissions, RESOURCES.ORDERS, PERMISSIONS.EDIT),
+      export: canPerformAction(permissions, RESOURCES.ORDERS, PERMISSIONS.EXPORT),
     },
     clients: {
       view: canPerformAction(permissions, RESOURCES.CLIENTS, PERMISSIONS.VIEW),
@@ -267,6 +268,19 @@ function computeActions(permissions: unknown[], isAdmin: boolean) {
       view: canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.VIEW),
       create: canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.CREATE),
       edit: canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.EDIT),
+      export: canPerformAction(permissions, RESOURCES.INVENTORY, PERMISSIONS.EXPORT),
+    },
+    users: {
+      view: canPerformAction(permissions, RESOURCES.USERS, PERMISSIONS.VIEW),
+      create: canPerformAction(permissions, RESOURCES.USERS, PERMISSIONS.CREATE),
+      edit: canPerformAction(permissions, RESOURCES.USERS, PERMISSIONS.EDIT),
+      delete: canPerformAction(permissions, RESOURCES.USERS, PERMISSIONS.DELETE),
+    },
+    roles: {
+      view: canPerformAction(permissions, RESOURCES.ROLES, PERMISSIONS.VIEW),
+      create: canPerformAction(permissions, RESOURCES.ROLES, PERMISSIONS.CREATE),
+      edit: canPerformAction(permissions, RESOURCES.ROLES, PERMISSIONS.EDIT),
+      delete: canPerformAction(permissions, RESOURCES.ROLES, PERMISSIONS.DELETE),
     },
   };
 }

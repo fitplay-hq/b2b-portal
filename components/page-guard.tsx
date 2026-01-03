@@ -47,7 +47,7 @@ export function PageGuard({
   }
 
   const { user } = session;
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SYSTEM_USER';
   
   // Also check if SystemUser has admin-level role (like "Admin")
   const isSystemAdmin = user?.role === 'SYSTEM_USER' && 
@@ -78,12 +78,17 @@ export function PageGuard({
     );
   }
 
-  // Permission-based check for SYSTEM_USER (skip if has admin access)
-  if (resource && !hasAdminAccess) {
+  // Permission-based check
+  if (resource) {
+    // Check actual permissions for all users (including admin users)
     const userPermissions = (session as UserSession)?.user?.permissions || [];
     const hasRequiredPermission = hasPermission(userPermissions, resource, action);
 
-    if (!hasRequiredPermission) {
+    // Admin users get automatic access to all actions on users/roles
+    const isAdminAutoAccess = hasAdminAccess && 
+                              (resource === 'users' || resource === 'roles');
+
+    if (!hasRequiredPermission && !isAdminAutoAccess) {
       return (
         <div className="flex items-center justify-center min-h-[60vh]">
           <Card className="w-full max-w-md">

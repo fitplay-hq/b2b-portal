@@ -108,10 +108,10 @@ export function hasPermission(
   if (!userPermissions) return false;
   
   return userPermissions.some(permission => 
-    permission.resource === resource && 
-    (permission.action === action || 
-     (permission.action === "read" && action === "view") ||
-     (permission.action === "update" && action === "edit"))
+    permission.resource?.toLowerCase() === resource.toLowerCase() && 
+    (permission.action?.toLowerCase() === action.toLowerCase() || 
+     (permission.action?.toLowerCase() === "read" && action.toLowerCase() === "view") ||
+     (permission.action?.toLowerCase() === "update" && action.toLowerCase() === "edit"))
   );
 }
 
@@ -204,14 +204,14 @@ export const NAVIGATION_ITEMS = [
     path: '/admin/users',
     label: 'Users',
     icon: 'UserCog',
-    adminOnly: true // Special case - ADMIN only
+    permission: { resource: RESOURCES.USERS, action: PERMISSIONS.VIEW }
   },
   {
     id: 'roles',
     path: '/admin/roles', 
     label: 'Roles',
     icon: 'Shield',
-    adminOnly: true // Special case - ADMIN only
+    permission: { resource: RESOURCES.ROLES, action: PERMISSIONS.VIEW }
   }
 ];
 
@@ -221,8 +221,8 @@ export function getAccessibleNavItems(session: UserSession | null): typeof NAVIG
 
   const { role } = session.user;
 
-  // ADMIN should see all navigation items (admin-only items included)
-  if (role === 'ADMIN') return NAVIGATION_ITEMS;
+  // ADMIN and SYSTEM_USER should see all navigation items
+  if (role === 'ADMIN' || role === 'SYSTEM_USER') return NAVIGATION_ITEMS;
 
   const permissions = getUserPermissions(session);
 
@@ -230,12 +230,14 @@ export function getAccessibleNavItems(session: UserSession | null): typeof NAVIG
     // Always show dashboard
     if (!item.permission && !item.adminOnly) return true;
 
-    // Admin-only items (users, roles) are not visible to non-admins
-    if (item.adminOnly) return false;
-
-    // Permission-based items
+    // Check permission-based items (including users/roles)
     if (item.permission) {
       return hasPermission(permissions, item.permission.resource, item.permission.action);
+    }
+
+    // For backward compatibility with adminOnly flag (though we're removing it)
+    if (item.adminOnly) {
+      return role === 'ADMIN' || role === 'SYSTEM_USER';
     }
 
     return false;

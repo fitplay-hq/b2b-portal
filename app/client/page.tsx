@@ -207,6 +207,7 @@ export default function ClientDashboard() {
             orderStatusDistribution={analytics.orderStatusDistribution}
             monthlyTrends={analytics.monthlyTrends}
             orderValueTrends={analytics.orderValueTrends}
+            totalOrders={analytics.totalOrders}
           />
         )}
 

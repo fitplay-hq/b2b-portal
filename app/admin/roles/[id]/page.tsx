@@ -197,8 +197,8 @@ export default function EditRolePage({ params }: EditRolePageProps) {
   }
 
   return (
-    <Layout>
-      <PageGuard adminOnly={true}>
+    <PageGuard resource="roles" action="edit">
+      <Layout isClient={false}>
         <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
@@ -369,8 +369,8 @@ export default function EditRolePage({ params }: EditRolePageProps) {
             )}
           </div>
         </div>
-      </div>
-      </PageGuard>
-    </Layout>
+        </div>
+      </Layout>
+    </PageGuard>
   );
 }

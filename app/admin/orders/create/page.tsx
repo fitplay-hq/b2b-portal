@@ -1,6 +1,9 @@
 "use client";
 
 import Layout from "@/components/layout";
+import PageGuard from "@/components/page-guard";
+import { usePermissions } from "@/hooks/use-permissions";
+import { RESOURCES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -56,6 +59,7 @@ interface CreatedOrder {
 }
 
 export default function CreateDispatchOrderPage() {
+  const { hasUserPermission } = usePermissions();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedClientEmail, setSelectedClientEmail] = React.useState("");
   const [requiredByDate, setRequiredByDate] = React.useState("");
@@ -309,7 +313,8 @@ export default function CreateDispatchOrderPage() {
   };
 
   return (
-    <Layout isClient={false}>
+    <PageGuard resource={RESOURCES.ORDERS} action="create">
+      <Layout isClient={false}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Create Dispatch Order</h1>
@@ -1039,5 +1044,6 @@ export default function CreateDispatchOrderPage() {
         </DialogContent>
       </Dialog>
     </Layout>
+    </PageGuard>
   );
 }

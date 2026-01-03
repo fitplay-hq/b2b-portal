@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ User authenticated:', session.user.email, 'Role:', session.user.role);
 
     // Check analytics export permission (ADMIN and SYSTEM_USER with admin role have full access)
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'SYSTEM_USER';
     const isSystemAdmin = session.user.role === 'SYSTEM_USER' && 
                          session.user.systemRole && 
                          session.user.systemRole.toLowerCase() === 'admin';

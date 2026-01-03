@@ -53,12 +53,27 @@ export const auth: AuthOptions = {
 
           const systemUser = await prisma.systemUser.findUnique({ 
             where: { email: credentials.email },
-            include: { role: true }
+            include: { 
+              role: {
+                include: {
+                  permissions: true
+                }
+              }
+            }
           });
           if (systemUser) {
             if (!systemUser.isActive) {
               throw new Error("Account is deactivated");
             }
+            
+            // Extract permissions from the role
+            const permissions = systemUser.role.permissions.map(permission => ({
+              id: permission.id,
+              resource: permission.resource,
+              action: permission.action,
+              description: permission.description
+            }));
+            
             return {
               id: systemUser.id,
               name: systemUser.name,
@@ -66,6 +81,7 @@ export const auth: AuthOptions = {
               role: "SYSTEM_USER",
               systemRole: systemUser.role.name,
               systemRoleId: systemUser.role.id,
+              permissions: permissions,
             };
           }
 
@@ -104,12 +120,27 @@ export const auth: AuthOptions = {
 
           const systemUser = await prisma.systemUser.findUnique({ 
             where: { email: credentials.email },
-            include: { role: true }
+            include: { 
+              role: {
+                include: {
+                  permissions: true
+                }
+              }
+            }
           });
           if (systemUser) {
             if (!systemUser.isActive) {
               throw new Error("Account is deactivated");
             }
+            
+            // Extract permissions from the role
+            const permissions = systemUser.role.permissions.map(permission => ({
+              id: permission.id,
+              resource: permission.resource,
+              action: permission.action,
+              description: permission.description
+            }));
+            
             return {
               id: systemUser.id,
               name: systemUser.name,
@@ -117,6 +148,7 @@ export const auth: AuthOptions = {
               role: "SYSTEM_USER",
               systemRole: systemUser.role.name,
               systemRoleId: systemUser.role.id,
+              permissions: permissions,
             };
           }
 
@@ -158,7 +190,13 @@ export const auth: AuthOptions = {
         // 3. Check SystemUser (Role-based management system)
         const systemUser = await prisma.systemUser.findUnique({ 
           where: { email: credentials.email },
-          include: { role: true }
+          include: { 
+            role: {
+              include: {
+                permissions: true
+              }
+            }
+          }
         });
         if (systemUser) {
           if (!systemUser.isActive) {
@@ -166,6 +204,15 @@ export const auth: AuthOptions = {
           }
           const isValid = await compare(credentials.password, systemUser.password);
           if (!isValid) throw new Error("Invalid password");
+          
+          // Extract permissions from the role
+          const permissions = systemUser.role.permissions.map(permission => ({
+            id: permission.id,
+            resource: permission.resource,
+            action: permission.action,
+            description: permission.description
+          }));
+          
           return {
             id: systemUser.id,
             name: systemUser.name,
@@ -173,6 +220,7 @@ export const auth: AuthOptions = {
             role: "SYSTEM_USER", // Use a new role type for system users
             systemRole: systemUser.role.name, // Include the actual role name
             systemRoleId: systemUser.role.id,
+            permissions: permissions, // Include the permissions in the user object
           };
         }
 
