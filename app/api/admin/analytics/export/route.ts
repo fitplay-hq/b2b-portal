@@ -11,6 +11,7 @@ import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium-min';
 import os from 'os';
 
+export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 function logError(step: string, error: unknown) {
