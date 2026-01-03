@@ -1,27 +1,28 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import withAuth from "next-auth/middleware";
 
-function middleware(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ✅ ABSOLUTELY REQUIRED: bypass auth for chromium binary
+  // 🔓 MUST be public for Chromium
   if (pathname === "/chromium-pack.tar") {
     return NextResponse.next();
+  }
+
+  // 🔒 Protect admin & client routes manually
+  if (pathname.startsWith("/admin") || pathname.startsWith("/client")) {
+    const hasSession =
+      req.cookies.get("next-auth.session-token") ||
+      req.cookies.get("__Secure-next-auth.session-token");
+
+    if (!hasSession) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
   }
 
   return NextResponse.next();
 }
 
-export default withAuth(middleware, {
-  pages: {
-    signIn: "/login",
-  },
-});
-
 export const config = {
-  matcher: [
-    "/admin/:path*",
-    "/client/:path*",
-  ],
+  matcher: ["/admin/:path*", "/client/:path*", "/chromium-pack.tar"],
 };
