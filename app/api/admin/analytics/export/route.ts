@@ -8,7 +8,6 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium-min';
 import os from 'os';
 
 export const runtime = 'nodejs';
@@ -478,19 +477,15 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
       console.log('🧪 PDF: Resolving executable path');
       console.log('🧪 PDF: Launching browser');
 
-      const executablePath = process.env.NODE_ENV === 'production' || isServerless
-        ? await chromium.executablePath()
-        : getLocalChromePath();
-      console.log("Chromium executablePath:", await chromium.executablePath());
+      const chromium = (await import('@sparticuz/chromium-min')).default;
 
       const browser = await puppeteer.launch({
         args: chromium.args,
-        executablePath,
+        executablePath: process.env.NODE_ENV === 'production'
+          ? await chromium.executablePath()
+          : getLocalChromePath(),
         headless: true,
       });
-
-
-
 
       console.log('🧪 PDF: Creating page');
       const page = await browser.newPage();
