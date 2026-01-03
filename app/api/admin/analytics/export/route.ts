@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import os from 'os';
 
 export const runtime = 'nodejs';
@@ -476,27 +477,15 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
 
       console.log('🧪 PDF: Resolving executable path');
       console.log('🧪 PDF: Launching browser');
-      let cachedExecutablePath: string | null = null;
-      let downloadPromise: Promise<string> | null = null;
-      const chromium = (await import("@sparticuz/chromium")).default;
-      downloadPromise = chromium
-      .executablePath(process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}/chromium-pack.tar`
-  : "https://github.com/gabenunez/puppeteer-on-vercel/raw/refs/heads/main/example/chromium-dont-use-in-prod.tar")
-      .then((path) => {
-        cachedExecutablePath = path;
-        console.log("Chromium path resolved:", path);
-        return path;
-      })
-      .catch((error) => {
-        console.error("Failed to get Chromium path:", error);
-        downloadPromise = null; // Reset on error to allow retry
-        throw error;
-      });
+
+      const executablePath = process.env.NODE_ENV === 'production' || isServerless
+        ? await chromium.executablePath()
+        : getLocalChromePath();
+      console.log("Chromium executablePath:", await chromium.executablePath());
 
       const browser = await puppeteer.launch({
         args: chromium.args,
-        executablePath: cachedExecutablePath || await downloadPromise!,
+        executablePath,
         headless: true,
       });
 
