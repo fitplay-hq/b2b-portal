@@ -26,23 +26,10 @@ function getLocalChromePath() {
 }
 
 
+
 const isServerless =
   !!process.env.AWS_LAMBDA_FUNCTION_VERSION ||
-  process.env.VERCEL === '1';
-
-
-async function loadImageAsBase64(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url);
-    const buffer = await res.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString('base64');
-    const mime = res.headers.get('content-type') || 'image/jpeg';
-    return `data:${mime};base64,${base64}`;
-  } catch (e) {
-    console.error('Image load failed:', url);
-    return null;
-  }
-}
+  !!process.env.VERCEL_URL;
 
 /**
  * GET /api/admin/analytics/export
@@ -464,17 +451,17 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
     const html = generateInventoryHTML(products);
 
     const browser = await puppeteer.launch(
-  isServerless
-    ? {
-        args: chromium.args,
-        executablePath: await chromium.executablePath(),
-        headless: true,
-      }
-    : {
-        executablePath: getLocalChromePath(),
-        headless: true,
-      }
-);
+      isServerless
+        ? {
+          args: chromium.args,
+          executablePath: await chromium.executablePath(),
+          headless: true,
+        }
+        : {
+          executablePath: getLocalChromePath(),
+          headless: true,
+        }
+    );
 
 
     const page = await browser.newPage();
