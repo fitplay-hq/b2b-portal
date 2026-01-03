@@ -478,7 +478,7 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
     console.log('🧪 PDF: Launching browser');
     const browser = await puppeteer.launch({
   args: chromium.args,
-  executablePath: process.env.ENVIRONMENT === 'development' ? getLocalChromePath() : await chromium.executablePath(),
+  executablePath: await chromium.executablePath(),
   headless: true,
 });
 
