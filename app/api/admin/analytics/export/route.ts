@@ -11,6 +11,9 @@ import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import os from 'os';
 
+export const maxDuration = 60;
+
+
 function getLocalChromePath() {
   const platform = os.platform();
 
@@ -28,8 +31,8 @@ function getLocalChromePath() {
 
 
 const isServerless =
-  !!process.env.AWS_LAMBDA_FUNCTION_VERSION ||
-  !!process.env.VERCEL_URL;
+  process.env.VERCEL === '1' ||
+  !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
 
 /**
  * GET /api/admin/analytics/export
@@ -451,17 +454,23 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
     const html = generateInventoryHTML(products);
 
     const browser = await puppeteer.launch(
-      isServerless
-        ? {
-          args: chromium.args,
-          executablePath: await chromium.executablePath(),
-          headless: true,
-        }
-        : {
-          executablePath: getLocalChromePath(),
-          headless: true,
-        }
-    );
+  isServerless
+    ? {
+        args: [
+          ...chromium.args,
+          '--disable-dev-shm-usage',
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+        ],
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      }
+    : {
+        executablePath: getLocalChromePath(),
+        headless: true,
+      }
+);
+
 
 
     const page = await browser.newPage();
