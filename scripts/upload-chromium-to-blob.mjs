@@ -33,6 +33,7 @@ async function main() {
 
   const blob = await put("chromium-pack.tar", buffer, {
     access: "public",
+    allowOverwrite: true,
     contentType: "application/x-tar",
   });
 
