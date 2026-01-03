@@ -1,7 +1,0 @@
-{
-    "functions": {
-        "app/api/**/route.ts": {
-            "includeFiles": "node_modules/{@sparticuz/chromium,.pnpm/@sparticuz+chromium@*/node_modules/@sparticuz/chromium}/bin/**"
-        }
-    }
-}
