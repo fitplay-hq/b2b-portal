@@ -12,6 +12,13 @@ const publicDir = join(projectRoot, "public");
 const tarPath = join(publicDir, "chromium-pack.tar");
 
 async function main() {
+  // Skip if BLOB_READ_WRITE_TOKEN is not configured
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.log("⏭️  Skipping Chromium upload (BLOB_READ_WRITE_TOKEN not configured)");
+    console.log("   This is fine for local development or if Chromium is already uploaded.");
+    return;
+  }
+
   console.log("📦 Building Chromium pack…");
 
   const chromiumResolved = import.meta.resolve("@sparticuz/chromium");
@@ -42,6 +49,11 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error("❌ Error:", err.message);
+  // Don't exit with error code if BLOB_READ_WRITE_TOKEN is not configured
+  if (err.message && err.message.includes("No token found")) {
+    console.log("⏭️  Skipping Chromium upload - token not configured");
+    process.exit(0);
+  }
   process.exit(1);
 });
