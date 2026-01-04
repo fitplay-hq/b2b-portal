@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ArrowLeft, ExternalLink } from "lucide-react";
+import { Loader2, ArrowLeft, ExternalLink, Package } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { $Enums } from "@/lib/generated/prisma";
