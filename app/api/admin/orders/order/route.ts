@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
     try {
       const body = await req.json();
       console.log('Order creation request body:', JSON.stringify(body, null, 2));
-      
+
       const {
         clientEmail,
         deliveryAddress,
@@ -289,12 +289,41 @@ export async function POST(req: NextRequest) {
       }
 
       // create a bundle only if there are bundle items
-      let bundle = null;
+      let bundles: any[] = [];
+
       if (bundleOrderItems.length > 0) {
-        bundle = await prisma.bundle.create({
-          data: {},
-        });
+        const bundleGroups = bundleOrderItems.reduce((groups: any, item: any) => {
+          const groupId = item.bundleGroupId || "default-bundle";
+
+          if (!groups[groupId]) {
+            groups[groupId] = {
+              items: [],
+              numberOfBundles: item.numberOfBundles ?? 1,
+            };
+          }
+
+          groups[groupId].items.push(item);
+          return groups;
+        }, {});
+
+        for (const [groupId, groupData] of Object.entries(bundleGroups)) {
+          const { items, numberOfBundles } = groupData as any;
+
+          const newBundle = await prisma.bundle.create({
+            data: {
+              numberOfBundles,
+            },
+          });
+
+          bundles.push({
+            bundle: newBundle,
+            items,
+            numberOfBundles,
+            groupId,
+          });
+        }
       }
+
 
       let orderId = "";
       while (true) {
@@ -305,7 +334,7 @@ export async function POST(req: NextRequest) {
       }
 
       // --------------------------
-// 🔥 MAIN CHANGE: Use a transaction to create order + update inventory
+      // 🔥 MAIN CHANGE: Use a transaction to create order + update inventory
       // --------------------------
       const order = await prisma.$transaction(async (tx) => {
 
@@ -334,23 +363,7 @@ export async function POST(req: NextRequest) {
                 price: item.price ?? 0,
               })),
             } : undefined,
-            numberOfBundles: bundleOrderItems.length > 0 ? numberOfBundles : 0,
-            bundleOrderItems: bundleOrderItems.length > 0 ? {
-              create: bundleOrderItems.map((item: any) => ({
-                bundleId: bundle!.id,
-                productId: item.productId,
-                quantity: item.quantity,
-                price: item.price ?? 0,
-                bundleItems: {
-                  create: {
-                    bundleId: bundle!.id,
-                    productId: item.productId,
-                    bundleProductQuantity: item.bundleProductQuantity,
-                    price: item.price ?? 0,
-                  }
-                }
-              })),
-            } : undefined
+            numberOfBundles,
           },
           include: {
             orderItems: true,
@@ -358,18 +371,56 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        const eachBundlePrice = bundleOrderItems.reduce((sum: number, item: any) => {
-          return sum + item.bundleProductQuantity * item.price;
-        }, 0);
-        if (bundle) {
-          bundle = await tx.bundle.update({
+        if (bundles.length > 0) {
+          for (const bundleGroup of bundles) {
+            const { bundle, items } = bundleGroup;
+
+            await tx.bundleOrderItem.createMany({
+              data: items.map((item: any) => ({
+                orderId: orderId,
+                bundleId: bundle.id,
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price ?? 0,
+              })),
+            });
+          }
+        }
+
+        if (bundles.length > 0) {
+          for (const bundleGroup of bundles) {
+            const { bundle, items } = bundleGroup;
+
+            await tx.bundleItem.createMany({
+              data: items.map((item: any) => ({
+                bundleId: bundle.id,
+                productId: item.productId,
+                bundleProductQuantity: item.bundleProductQuantity,
+                price: item.price ?? 0,
+              })),
+            });
+          }
+        }
+
+
+        for (const bundleGroup of bundles) {
+          const { bundle, items, numberOfBundles } = bundleGroup;
+
+          const bundlePrice =
+            items.reduce((sum: number, item: any) => {
+              return sum + item.bundleProductQuantity * item.price;
+            }, 0) * numberOfBundles;
+
+          await tx.bundle.update({
             where: { id: bundle.id },
             data: {
               orderId: newOrder.id,
-              price: eachBundlePrice,
+              price: bundlePrice,
+              numberOfBundles,
             },
           });
         }
+
 
         // Update stock for regular items
         if (items.length > 0) {
@@ -397,26 +448,34 @@ export async function POST(req: NextRequest) {
 
         // Update stock for bundle items
         if (bundleOrderItems.length > 0) {
-          for (const item of bundleOrderItems) {
-            const itemStock = await tx.product.findUnique({
-              where: { id: item.productId },
-              select: { availableStock: true },
-            });
+          for (const bundleGroup of bundles) {
+            const multiplier = bundleGroup.numberOfBundles ?? 1;
 
-            if (!itemStock) {
-              throw new Error(`Product with ID ${item.productId} not found during stock update`);
-            }
-            await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                availableStock: { decrement: item.quantity },
-                inventoryUpdateReason: "NEW_ORDER",
-                inventoryLogs: {
-                  push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
+            for (const item of bundleGroup.items) {
+              const itemStock = await tx.product.findUnique({
+                where: { id: item.productId },
+                select: { availableStock: true },
+              });
+
+              if (!itemStock) {
+                throw new Error(`Product with ID ${item.productId} not found during stock update`);
+              }
+
+              await tx.product.update({
+                where: { id: item.productId },
+                data: {
+                  availableStock: { decrement: item.quantity * multiplier },
+                  inventoryUpdateReason: "NEW_ORDER",
+                  inventoryLogs: {
+                    push: `${new Date().toISOString()} | Removed ${item.quantity * multiplier
+                      } units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity * multiplier
+                      } | Remarks: `,
+                  },
                 },
-              },
-            });
+              });
+            }
           }
+
         }
 
         const updatedProducts = await prisma.product.findMany({
@@ -462,7 +521,7 @@ export async function POST(req: NextRequest) {
         stack: error instanceof Error ? error.stack : undefined,
         name: error instanceof Error ? error.name : undefined
       });
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: "Failed to create order",
         details: error instanceof Error ? error.message : 'Unknown error'
       }, { status: 500 });
