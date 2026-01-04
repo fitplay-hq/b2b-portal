@@ -83,6 +83,11 @@ export default function CreateDispatchOrderPage() {
   const [bundleProducts, setBundleProducts] = React.useState<SelectedProduct[]>([]);
   const [numberOfBundles, setNumberOfBundles] = React.useState(1);
   const [bundleSearchTerm, setBundleSearchTerm] = React.useState("");
+  
+  // Inline bundle selection state
+  const [selectedForBundle, setSelectedForBundle] = React.useState<Set<string>>(new Set());
+  const [bundleQuantities, setBundleQuantities] = React.useState<{ [key: string]: number }>({});
+  const [inlineBundleCount, setInlineBundleCount] = React.useState(1);
 
   const { products, isLoading: isProductsLoading } = useProducts();
   const { clients, isLoading: isClientsLoading } = useClients();
@@ -231,6 +236,65 @@ export default function CreateDispatchOrderPage() {
     setNumberOfBundles(1);
     setBundleSearchTerm("");
     setShowBundleDialog(false);
+  };
+
+  // Inline bundle handlers
+  const handleBundleSelection = (productId: string, checked: boolean) => {
+    const newSelected = new Set(selectedForBundle);
+    if (checked) {
+      newSelected.add(productId);
+      // Initialize quantity to 1 if not set
+      if (!bundleQuantities[productId]) {
+        setBundleQuantities(prev => ({ ...prev, [productId]: 1 }));
+      }
+    } else {
+      newSelected.delete(productId);
+    }
+    setSelectedForBundle(newSelected);
+  };
+
+  const handleBundleQuantityChange = (productId: string, quantity: number) => {
+    setBundleQuantities(prev => ({ ...prev, [productId]: Math.max(1, quantity) }));
+  };
+
+  const addInlineBundle = () => {
+    if (selectedForBundle.size === 0) {
+      toast.error("Select at least one product for the bundle");
+      return;
+    }
+
+    // Generate unique bundle group ID
+    const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Get selected products
+    const selectedItems = selectedProducts.filter(p => selectedForBundle.has(p.id) && !p.isBundleItem);
+    
+    // Create bundle items
+    const bundleItems = selectedItems.map(item => {
+      const bundleQty = bundleQuantities[item.id] || 1;
+      const totalBundleItems = bundleQty * inlineBundleCount;
+      
+      return {
+        ...item,
+        quantity: totalBundleItems,
+        bundleProductQuantity: bundleQty,
+        isBundleItem: true,
+        bundleGroupId: bundleGroupId,
+      };
+    });
+
+    // Remove selected items from selectedProducts and add bundle items
+    setSelectedProducts(prev => {
+      const remainingItems = prev.filter(p => !selectedForBundle.has(p.id) || p.isBundleItem);
+      return [...remainingItems, ...bundleItems];
+    });
+
+    toast.success(`Added bundle with ${selectedItems.length} products × ${inlineBundleCount} bundles`);
+
+    // Reset
+    setSelectedForBundle(new Set());
+    setBundleQuantities({});
+    setInlineBundleCount(1);
   };
 
   const handleCreate = async () => {
@@ -526,18 +590,7 @@ export default function CreateDispatchOrderPage() {
         <div className="lg:col-span-2 space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Products</CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowBundleDialog(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Package className="h-4 w-4" />
-                  Create Bundle
-                </Button>
-              </div>
+              <CardTitle>Products</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
@@ -737,122 +790,244 @@ export default function CreateDispatchOrderPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="border rounded-md overflow-hidden max-h-96 overflow-y-auto">
-                    <div>
-                      {selectedProducts.map((product, index) => (
-                        <div
-                          key={`${product.id}-${index}`}
-                          className={`border-b last:border-b-0 p-4 ${
-                            product.isBundleItem ? "bg-purple-50 border-purple-200" : ""
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                #{index + 1}
-                              </span>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium">
-                                    {product.name}
-                                  </p>
-                                  {product.isBundleItem && (
-                                    <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
-                                      Bundle Item
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  Available: {product.availableStock} units
-                                </p>
-                                {product.isBundleItem && (
-                                  <p className="text-xs text-purple-600 font-medium">
-                                    {product.bundleProductQuantity} per bundle × {product.quantity / product.bundleProductQuantity} bundles = {product.quantity} total
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveProduct(product.id)}
-                              className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
+                  <div className="space-y-4">
+                    {(() => {
+                      // Separate individual items and bundle items
+                      const individualItems = selectedProducts.filter(item => !item.isBundleItem);
+                      const bundleItems = selectedProducts.filter(item => item.isBundleItem);
+                      
+                      // Group bundle items by bundleGroupId
+                      const bundleGroups = bundleItems.reduce((groups: { [key: string]: SelectedProduct[] }, item) => {
+                        const groupId = item.bundleGroupId || 'default';
+                        if (!groups[groupId]) groups[groupId] = [];
+                        groups[groupId].push(item);
+                        return groups;
+                      }, {});
 
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <div className="flex items-center gap-2">
-                              <Label className="text-xs text-muted-foreground">
-                                Qty:
-                              </Label>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
-                                  onClick={() => {
-                                    const newQty = Math.max(1, product.quantity - 1);
-                                    handleUpdateProduct(product.id, newQty);
-                                  }}
-                                >
-                                  -
-                                </Button>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  max={product.availableStock}
-                                  value={product.quantity}
-                                  onChange={(e) =>
-                                    handleUpdateProduct(
-                                      product.id,
-                                      Math.min(product.availableStock, parseInt(e.target.value) || 0)
-                                    )
-                                  }
-                                  className="w-20 h-8 text-xs text-center"
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
-                                  onClick={() => {
-                                    const newQty = Math.min(product.availableStock, product.quantity + 1);
-                                    handleUpdateProduct(product.id, newQty);
-                                  }}
-                                >
-                                  +
-                                </Button>
-                              </div>
+                      return (
+                        <>
+                          {/* Individual Items */}
+                          {individualItems.length > 0 && (
+                            <div className="border rounded-md overflow-hidden">
+                              {individualItems.map((product, index) => (
+                                <div key={product.id} className="border-b last:border-b-0 p-4">
+                                  <div className="flex items-start gap-3 mb-3">
+                                    <div className="w-16 h-16 flex-shrink-0 border rounded overflow-hidden">
+                                      <img
+                                        src={product.images[0] || '/placeholder.png'}
+                                        alt={product.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex items-start justify-between">
+                                        <div>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-xs font-medium text-muted-foreground">#{index + 1}</span>
+                                            <p className="text-sm font-medium">{product.name}</p>
+                                          </div>
+                                          <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+                                          <p className="text-xs text-muted-foreground">Available: {product.availableStock} units</p>
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleRemoveProduct(product.id)}
+                                          className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                      <Label className="text-xs text-muted-foreground">Qty:</Label>
+                                      <div className="flex items-center gap-1">
+                                        <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
+                                          onClick={() => handleUpdateProduct(product.id, Math.max(1, product.quantity - 1))}>-</Button>
+                                        <Input type="number" min="1" max={product.availableStock} value={product.quantity}
+                                          onChange={(e) => handleUpdateProduct(product.id, Math.min(product.availableStock, parseInt(e.target.value) || 0))}
+                                          className="w-20 h-8 text-xs text-center" />
+                                        <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
+                                          onClick={() => handleUpdateProduct(product.id, Math.min(product.availableStock, product.quantity + 1))}>+</Button>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-auto">
+                                      <div className="flex gap-1">
+                                        {[1, 5, 10].map(qty => (
+                                          <Button key={qty} type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs"
+                                            onClick={() => handleUpdateProduct(product.id, Math.min(product.availableStock, qty))}
+                                            disabled={qty > product.availableStock}>{qty}</Button>
+                                        ))}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        Will dispatch: <span className="font-medium">{product.quantity}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Bundle Selection Checkbox */}
+                                  <div className="flex items-center gap-2 pt-3 mt-3 border-t border-dashed">
+                                    <Checkbox 
+                                      id={`bundle-${product.id}`}
+                                      checked={selectedForBundle.has(product.id)}
+                                      onCheckedChange={(checked) => handleBundleSelection(product.id, checked as boolean)}
+                                    />
+                                    <Label htmlFor={`bundle-${product.id}`} className="text-sm text-muted-foreground cursor-pointer">
+                                      Add to Bundle
+                                    </Label>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                            <div className="flex items-center gap-2 ml-auto">
-                              <div className="flex gap-1">
-                                {[1, 5, 10].map(qty => (
-                                  <Button
-                                    key={qty}
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() => handleUpdateProduct(product.id, Math.min(product.availableStock, qty))}
-                                    disabled={qty > product.availableStock}
-                                  >
-                                    {qty}
-                                  </Button>
-                                ))}
+                          )}
+
+                          {/* Bundle Groups */}
+                          {Object.entries(bundleGroups).map(([groupId, items], bundleIndex) => {
+                            const bundleCount = items[0]?.bundleProductQuantity && items[0]?.quantity 
+                              ? items[0].quantity / items[0].bundleProductQuantity 
+                              : 1;
+                            return (
+                              <div key={groupId} className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50/30">
+                                {/* Bundle Header */}
+                                <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-blue-300">
+                                  <div className="flex items-center gap-2">
+                                    <Package className="h-5 w-5 text-blue-600" />
+                                    <h4 className="font-semibold text-blue-900">Bundle {bundleIndex + 1}</h4>
+                                    <Badge className="bg-blue-600 text-white">
+                                      {items.length} items • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}
+                                    </Badge>
+                                  </div>
+                                </div>
+
+                                {/* Bundle Items */}
+                                <div className="space-y-3">
+                                  {items.map((product, itemIndex) => (
+                                    <div key={`${product.id}-${itemIndex}`} className="flex gap-3 p-3 border border-blue-200 bg-white rounded-lg">
+                                      <div className="w-16 h-16 flex-shrink-0 border rounded overflow-hidden">
+                                        <img
+                                          src={product.images[0] || '/placeholder.png'}
+                                          alt={product.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                      <div className="flex-1">
+                                        <div className="flex items-start justify-between">
+                                          <div>
+                                            <div className="flex items-center gap-2">
+                                              <p className="text-sm font-medium">{product.name}</p>
+                                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">Bundle Item</Badge>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+                                            <p className="text-xs text-blue-700 font-medium">
+                                              {product.bundleProductQuantity} per bundle × {product.quantity / product.bundleProductQuantity} bundles = {product.quantity} total
+                                            </p>
+                                          </div>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleRemoveProduct(product.id)}
+                                            className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2">
+                                          <Label className="text-xs text-muted-foreground">Qty:</Label>
+                                          <div className="flex items-center gap-1">
+                                            <Button type="button" variant="outline" size="sm" className="h-7 w-7 p-0"
+                                              onClick={() => handleUpdateProduct(product.id, Math.max(1, product.quantity - 1))}>-</Button>
+                                            <Input type="number" min="1" max={product.availableStock} value={product.quantity}
+                                              onChange={(e) => handleUpdateProduct(product.id, Math.min(product.availableStock, parseInt(e.target.value) || 0))}
+                                              className="w-16 h-7 text-xs text-center" />
+                                            <Button type="button" variant="outline" size="sm" className="h-7 w-7 p-0"
+                                              onClick={() => handleUpdateProduct(product.id, Math.min(product.availableStock, product.quantity + 1))}>+</Button>
+                                          </div>
+                                          <span className="text-xs text-muted-foreground ml-2">Stock: {product.availableStock}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                Will dispatch:{" "}
-                                <span className="font-medium">
-                                  {product.quantity}
-                                </span>
-                              </div>
+                            );
+                          })}
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Inline Bundle Creation UI */}
+                {selectedForBundle.size > 0 && (
+                  <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 bg-blue-50/20 mt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Package className="h-5 w-5 text-blue-600" />
+                      <h4 className="font-semibold text-blue-900">Create Bundle</h4>
+                      <Badge variant="outline" className="bg-white text-blue-700 border-blue-300">
+                        {selectedForBundle.size} items selected
+                      </Badge>
+                    </div>
+                    <div className="space-y-3">
+                      {/* Selected Products */}
+                      {selectedProducts.filter(item => selectedForBundle.has(item.id) && !item.isBundleItem).map(item => (
+                        <div key={item.id} className="flex items-center justify-between p-3 bg-white rounded border border-blue-200">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 flex-shrink-0 border rounded overflow-hidden">
+                              <img src={item.images[0] || '/placeholder.png'} alt={item.name} className="w-full h-full object-cover" />
                             </div>
+                            <div>
+                              <p className="font-medium text-sm">{item.name}</p>
+                              <p className="text-xs text-muted-foreground">Available in selection: {item.quantity}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground">Qty per bundle:</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max={item.quantity}
+                              value={bundleQuantities[item.id] || 1}
+                              onChange={(e) => handleBundleQuantityChange(item.id, parseInt(e.target.value) || 1)}
+                              className="w-16 h-8 text-center text-xs"
+                            />
                           </div>
                         </div>
                       ))}
+                      
+                      {/* Bundle Configuration */}
+                      <div className="flex items-center justify-between p-3 bg-blue-100 rounded border border-blue-300">
+                        <div className="flex items-center gap-2">
+                          <Label className="font-medium text-blue-900">Number of Bundles:</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={inlineBundleCount}
+                            onChange={(e) => setInlineBundleCount(parseInt(e.target.value) || 1)}
+                            className="w-20 h-8 text-center bg-white"
+                          />
+                        </div>
+                        <div className="text-sm text-blue-700">
+                          Total items needed: {Array.from(selectedForBundle).reduce((sum, productId) => {
+                            const qty = bundleQuantities[productId] || 1;
+                            return sum + (qty * inlineBundleCount);
+                          }, 0)}
+                        </div>
+                      </div>
+                      
+                      {/* Bundle Actions */}
+                      <div className="flex gap-2">
+                        <Button onClick={addInlineBundle} className="bg-blue-600 hover:bg-blue-700 text-white">
+                          <Package className="h-4 w-4 mr-2" />
+                          Add Bundle
+                        </Button>
+                        <Button variant="outline" onClick={() => { setSelectedForBundle(new Set()); setBundleQuantities({}); setInlineBundleCount(1); }}
+                          className="border-blue-300 text-blue-700 hover:bg-blue-50">
+                          Clear Selection
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -883,133 +1058,6 @@ export default function CreateDispatchOrderPage() {
           </div>
         </div>
       </div>
-
-      {/* Bundle Creation Dialog */}
-      <Dialog open={showBundleDialog} onOpenChange={setShowBundleDialog}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create Product Bundle</DialogTitle>
-            <DialogDescription>
-              Create a bundle of products that will be packaged together. Example: 2 notebooks + 1 pen per package.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Bundle Products Search */}
-            <div>
-              <Label>Search Products for Bundle</Label>
-              <div className="relative mt-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by product name or SKU..."
-                  value={bundleSearchTerm}
-                  onChange={(e) => setBundleSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
-            {/* Bundle Products List */}
-            {bundleSearchTerm && (
-              <div className="border rounded-md max-h-48 overflow-y-auto">
-                {bundleSearchResults.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No products found matching "{bundleSearchTerm}"
-                  </p>
-                ) : (
-                  <div className="divide-y">
-                    {bundleSearchResults.map((product) => {
-                      const isSelected = bundleProducts.some((p) => p.id === product.id);
-                      return (
-                        <div
-                          key={product.id}
-                          className={`flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer ${
-                            isSelected ? "bg-blue-50" : ""
-                          }`}
-                          onClick={() => handleBundleProductToggle(product, !isSelected)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Checkbox checked={isSelected} onChange={() => {}} />
-                            <div>
-                              <p className="text-sm font-medium">{product.name}</p>
-                              <p className="text-xs text-muted-foreground">SKU: {product.sku || "N/A"}</p>
-                            </div>
-                          </div>
-                          {isSelected && (
-                            <Badge variant="secondary" className="text-xs">
-                              Selected
-                            </Badge>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Selected Bundle Products */}
-            {bundleProducts.length > 0 && (
-              <div>
-                <Label className="text-sm font-medium">Bundle Contents ({bundleProducts.length} products)</Label>
-                <div className="border rounded-md mt-2 max-h-32 overflow-y-auto">
-                  {bundleProducts.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium">{product.name}</span>
-                        <div className="flex items-center gap-1">
-                          <Label className="text-xs">Qty per bundle:</Label>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={product.quantity}
-                            onChange={(e) => handleUpdateBundleProduct(product.id, parseInt(e.target.value) || 1)}
-                            className="w-16 h-6 text-xs"
-                          />
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveBundleProduct(product.id)}
-                        className="h-6 w-6 p-0"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Number of Bundles */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <Label>Number of Bundles</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={numberOfBundles}
-                  onChange={(e) => setNumberOfBundles(parseInt(e.target.value) || 1)}
-                  className="mt-1"
-                />
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Total items needed: {bundleProducts.reduce((sum, p) => sum + (p.quantity * numberOfBundles), 0)}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowBundleDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddBundle} disabled={bundleProducts.length === 0}>
-              Add Bundle to Order
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
         <DialogContent>
