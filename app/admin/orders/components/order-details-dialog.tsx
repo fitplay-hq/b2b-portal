@@ -235,6 +235,7 @@ export function OrderDetailsDialog({
                 }, {});
 
                 return Object.values(bundleGroups).map((group: any, groupIndex) => {
+                  const bundleCount = group.items[0]?.bundle?.quantity || 1;
                   return (
                     <div key={`bundle-group-${groupIndex}`} className="space-y-3">
                       {/* Bundle Header */}
@@ -242,7 +243,7 @@ export function OrderDetailsDialog({
                         <Package className="h-4 w-4 text-blue-600" />
                         <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
                         <span className="text-xs text-blue-600 ml-auto">
-                          {group.items.length} item{group.items.length > 1 ? 's' : ''} • ₹{group.bundle?.price?.toFixed(2) || '0.00'}
+                          {group.items.length} item{group.items.length > 1 ? 's' : ''} • {bundleCount} bundle{bundleCount > 1 ? 's' : ''} • ₹{group.bundle?.price?.toFixed(2) || '0.00'}
                         </span>
                       </div>
                     
