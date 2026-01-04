@@ -6,6 +6,7 @@ export interface CartItem {
   isBundleItem?: boolean;
   bundleQuantity?: number; // quantity per bundle
   bundleCount?: number; // number of bundles
+  bundleGroupId?: string; // unique identifier for each bundle group
 }
 
 export interface PurchaseOrder {

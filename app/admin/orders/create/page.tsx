@@ -48,6 +48,9 @@ type Modes = $Enums.Modes;
 
 interface SelectedProduct extends Product {
   quantity: number;
+  bundleProductQuantity?: number; // Added for bundle products
+  isBundleItem?: boolean; // Flag to indicate if this is a bundle item
+  bundleGroupId?: string; // Unique identifier for each bundle group
 }
 
 interface CreatedOrder {
@@ -208,12 +211,16 @@ export default function CreateDispatchOrderPage() {
       return;
     }
 
+    // Generate unique bundle group ID for this bundle
+    const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     // Add bundle items to selected products with total quantity
     const bundleItems = bundleProducts.map((product) => ({
       ...product,
       quantity: product.quantity * numberOfBundles, // Total quantity needed
       bundleProductQuantity: product.quantity, // Quantity per bundle
       isBundleItem: true,
+      bundleGroupId: bundleGroupId,
     }));
 
     setSelectedProducts((prev) => [...prev, ...bundleItems]);
@@ -247,11 +254,12 @@ export default function CreateDispatchOrderPage() {
         selectedProducts,
         regularItems,
         bundleItems,
-        numberOfBundles: bundleItems.length > 0 ? bundleItems[0].quantity / bundleItems[0].bundleProductQuantity : 0
+        uniqueBundleGroups: [...new Set(bundleItems.map(item => item.bundleGroupId).filter(Boolean))].length
       });
 
-      // Calculate number of bundles from bundle items
-      const numberOfBundles = bundleItems.length > 0 ? bundleItems[0].quantity / bundleItems[0].bundleProductQuantity : 0;
+      // Calculate number of bundles from unique bundle groups
+      const uniqueBundleGroups = new Set(bundleItems.map(item => item.bundleGroupId).filter(Boolean));
+      const numberOfBundles = uniqueBundleGroups.size;
 
       const order = await createOrder({
         clientEmail: selectedClientEmail,
@@ -266,6 +274,7 @@ export default function CreateDispatchOrderPage() {
           quantity: p.quantity,
           price: p.price ?? 0,
           bundleProductQuantity: p.bundleProductQuantity,
+          bundleGroupId: p.bundleGroupId, // Include bundleGroupId
         })),
         numberOfBundles,
         consigneeName,

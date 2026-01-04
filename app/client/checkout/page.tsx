@@ -190,6 +190,7 @@ export default function ClientCheckout() {
           quantity: item.quantity,
           price: item.price,
           bundleProductQuantity: item.bundleCount || 1,
+          bundleGroupId: item.bundleGroupId, // Include bundleGroupId to distinguish bundles
         }));
 
       const dateTimeForPrisma = requiredByDate
@@ -214,17 +215,9 @@ export default function ClientCheckout() {
           const bundleItems = cartItems.filter(item => item.isBundleItem);
           if (bundleItems.length === 0) return 0;
           
-          // Get the bundle count from any bundle item - they should all be the same
-          // This represents the actual number of bundle sets ordered
-          const bundleCount = bundleItems[0].bundleCount;
-          console.log('Bundle count from cart:', bundleCount, 'Bundle items:', bundleItems.map(item => ({
-            name: item.product.name,
-            bundleCount: item.bundleCount,
-            bundleQuantity: item.bundleQuantity,
-            totalQuantity: item.quantity
-          })));
-          
-          return bundleCount || 0;
+          // Count unique bundle groups to get actual number of separate bundles
+          const uniqueBundleGroups = new Set(bundleItems.map(item => item.bundleGroupId).filter(Boolean));
+          return uniqueBundleGroups.size;
         })(),
       };
 
