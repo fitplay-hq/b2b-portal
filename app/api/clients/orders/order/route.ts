@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
 
     const year = new Date().getFullYear();
     const startOrder = company.name.split(" ")[0].toUpperCase();
-    
+
     // Validate startOrder
     if (!startOrder || startOrder.length === 0) {
       console.error("Invalid company name for order ID generation:", company.name);
@@ -184,19 +184,33 @@ export async function POST(req: NextRequest) {
       const bundleGroups = bundleOrderItems.reduce((groups: any, item: any) => {
         const groupId = item.bundleGroupId || 'default-bundle';
         if (!groups[groupId]) {
-          groups[groupId] = [];
+          groups[groupId] = {
+            items: [],
+            numberOfBundles: item.numberOfBundles ?? 1,
+          };
         }
         groups[groupId].push(item);
         return groups;
       }, {});
-      
+
       // Create a bundle for each group
-      for (const [groupId, items] of Object.entries(bundleGroups)) {
+      for (const [groupId, groupData] of Object.entries(bundleGroups)) {
+        const { items, numberOfBundles } = groupData as any;
+
         const newBundle = await prisma.bundle.create({
-          data: {},
+          data: {
+            numberOfBundles,
+          },
         });
-        bundles.push({ bundle: newBundle, items: items as any[], groupId });
+
+        bundles.push({
+          bundle: newBundle,
+          items,
+          groupId,
+          numberOfBundles,
+        });
       }
+
     }
 
     let orderId = "";
@@ -212,7 +226,7 @@ export async function POST(req: NextRequest) {
       if (!existingOrder) break;
       nextSequence++;
       attempts++;
-      
+
       // Prevent infinite loop
       if (attempts > 1000) {
         console.error("Failed to generate unique order ID after 1000 attempts");
@@ -222,7 +236,7 @@ export async function POST(req: NextRequest) {
         );
       }
     }
-    
+
     // Final validation
     if (!orderId || orderId.length === 0) {
       console.error("Order ID generation failed", { startOrder, year, nextSequence });
@@ -231,13 +245,13 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     console.log("Generated order ID:", orderId);
 
     // --------------------------
     // 🔥 Create order without transaction to avoid serverless timeouts
     // --------------------------
-    
+
     // Create the main order first
     const newOrder = await prisma.order.create({
       data: {
@@ -276,7 +290,7 @@ export async function POST(req: NextRequest) {
     if (bundleOrderItems.length > 0 && bundles.length > 0) {
       for (const bundleGroup of bundles) {
         const { bundle, items } = bundleGroup;
-        
+
         await prisma.bundleOrderItem.createMany({
           data: items.map((item: any) => ({
             orderId: newOrder.id,
@@ -293,27 +307,28 @@ export async function POST(req: NextRequest) {
     if (bundles.length > 0) {
       for (const bundleGroup of bundles) {
         const { bundle, items } = bundleGroup;
-        
+
         // Calculate price for this specific bundle group
         const thisBundlePrice = items.reduce((sum: number, item: any) => {
           return sum + item.bundleProductQuantity * item.price;
         }, 0);
-        
+
         await prisma.bundle.update({
           where: { id: bundle.id },
           data: {
             orderId: newOrder.id,
             price: thisBundlePrice,
+            numberOfBundles: bundleGroup.numberOfBundles,
           },
         });
       }
     }
-    
+
     // Create bundle items separately for each bundle group
     if (bundleOrderItems.length > 0 && bundles.length > 0) {
       for (const bundleGroup of bundles) {
         const { bundle, items } = bundleGroup;
-        
+
         if (items.length > 0) {
           try {
             await prisma.bundleItem.createMany({
@@ -494,7 +509,11 @@ export async function POST(req: NextRequest) {
             </table>
         </div>
     `).join('')}
-      <p><b> Number of Bundles:</b> ${order.numberOfBundles}</p>
+      ${order.bundles.map(bundle => `
+  <p><b>Bundle ID:</b> ${bundle.id}</p>
+  <p><b>Number of Bundles:</b> ${bundle.numberOfBundles}</p>
+`).join("")}
+
     `: ""}
 
           <p>${footerMessage}</p>

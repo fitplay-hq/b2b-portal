@@ -184,6 +184,7 @@ model Bundle {
   orderId          String?
   order            Order?            @relation(fields: [orderId], references: [id])
   price            Float?
+  numberOfBundles  Int?
   items            BundleItem[]
   bundleOrderItems BundleOrderItem[]
   createdAt        DateTime          @default(now())
