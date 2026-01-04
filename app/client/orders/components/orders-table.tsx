@@ -17,8 +17,6 @@ import type { OrderWithItems } from "@/data/order/client.actions";
 
 interface ClientOrdersTableProps {
   orders: OrderWithItems[];
-  expandedOrders?: Set<string>;
-  onToggleOrder?: (orderId: string) => void;
 }
 
 const getStatusColor = (status: string) => {
@@ -70,15 +68,9 @@ const getStatusDescription = (status: string) => {
   }
 };
 
-export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: ClientOrdersTableProps) {
+export function ClientOrdersTable({ orders }: ClientOrdersTableProps) {
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const handleToggleOrder = (orderId: string) => {
-    if (onToggleOrder) {
-      onToggleOrder(orderId);
-    }
-  };
 
   const handleRowClick = (order: OrderWithItems) => {
     setSelectedOrder(order);
@@ -107,9 +99,7 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
           ) : (
             <>
               {orders.map((order) => {
-                const isExpanded = expandedOrders?.has(order.id) || false;
                 return (
-                  <>
                     <TableRow 
                       key={order.id} 
                       className="group cursor-pointer hover:bg-muted/50 transition-colors"
@@ -208,170 +198,6 @@ export function ClientOrdersTable({ orders, expandedOrders, onToggleOrder }: Cli
                         )}
                       </TableCell>
                     </TableRow>
-                    
-                    {/* Expanded Row with Timeline */}
-                    {isExpanded && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="bg-muted/20 p-0">
-                          <div className="p-4 space-y-4">
-                            {/* Order Timeline */}
-                            <div>
-                              <h4 className="font-medium mb-3">Order Timeline</h4>
-                              <div className="space-y-3 mb-4">
-                                {[
-                                  { status: "PENDING", label: "Order Placed", description: "Your order has been submitted" },
-                                  { status: "APPROVED", label: "Order Approved", description: "Your order has been approved" },
-                                  { status: "READY_FOR_DISPATCH", label: "Ready for Dispatch", description: "Your order is packed and ready" },
-                                  { status: "DISPATCHED", label: "Order Dispatched", description: "Your order has been dispatched" },
-                                  { status: "AT_DESTINATION", label: "At Destination", description: "Your order has reached destination" },
-                                  { status: "DELIVERED", label: "Delivered", description: "Your order has been delivered" },
-                                  { status: "COMPLETED", label: "Completed", description: "Your order is complete" },
-                                ].filter((timelineItem, index) => {
-                                  const currentStatusIndex = [
-                                    "PENDING", "APPROVED", "READY_FOR_DISPATCH", 
-                                    "DISPATCHED", "AT_DESTINATION", "DELIVERED", "COMPLETED"
-                                  ].indexOf(order.status);
-                                  return index <= currentStatusIndex;
-                                }).map((timelineItem, index, filteredArray) => {
-                                  const isCurrent = index === filteredArray.length - 1;
-
-                                  return (
-                                    <div key={timelineItem.status} className="flex items-center gap-3">
-                                      <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${
-                                        isCurrent ? 'bg-primary text-primary-foreground' : 'bg-green-100 text-green-600'
-                                      }`}>
-                                        ✓
-                                      </div>
-                                      <div className="flex-1">
-                                        <p className={`font-medium text-sm ${isCurrent ? 'text-primary' : ''}`}>
-                                          {timelineItem.label}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {timelineItem.description}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            {/* Order Items */}
-                            <div>
-                              <h4 className="font-medium mb-3">Order Items</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {order.orderItems && order.orderItems.map((item) => (
-                                  <div
-                                    key={item.product.id}
-                                    className="flex gap-3 rounded-lg bg-white p-3 border"
-                                  >
-                                    <ImageWithFallback
-                                      src={item.product.images[0]}
-                                      alt={item.product.name}
-                                      className="h-12 w-12 rounded object-cover shrink-0"
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                      <p className="font-medium text-sm truncate">
-                                        {item.product.name}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Qty: {item.quantity}
-                                      </p>
-                                      {item.price > 0 && (
-                                        <p className="text-xs font-medium">
-                                          ₹{item.price.toFixed(2)}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                                {order.bundleOrderItems && order.bundleOrderItems
-                                  .filter(bundleItem => bundleItem.bundle?.items)
-                                  .map((bundleItem) =>
-                                  bundleItem.bundle!.items.map((item) => (
-                                    <div
-                                      key={`bundle-${bundleItem.id}-${item.id}`}
-                                      className="flex gap-3 rounded-lg border p-3"
-                                    >
-                                      <div className="h-12 w-12 rounded overflow-hidden shrink-0">
-                                        <ImageWithFallback
-                                          src={item.product?.images?.[0] || ''}
-                                          alt={item.product?.name || 'Bundle Product'}
-                                          className="h-full w-full object-cover"
-                                        />
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-sm truncate">
-                                          {item.product?.name || 'Bundle Product'}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          SKU: {item.product?.sku || 'N/A'}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                        Bundle Qty: {Math.floor(bundleItem.quantity / item.bundleProductQuantity)} × Item Qty: {item.bundleProductQuantity}
-                                        </p>
-                                        {item.product?.price && item.product.price > 0 && (
-                                          <p className="text-xs font-medium">
-                                            ₹{item.product.price.toFixed(2)}
-                                          </p>
-                                        )}
-                                        <p className="text-xs text-blue-600 font-medium">Bundle</p>
-                                      </div>
-                                    </div>
-                                  ))
-                                )}
-                                {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
-                                  <div className="col-span-full text-center py-8 text-muted-foreground">
-                                    <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                    <p>No items found in this order</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Delivery Details */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                              <div>
-                                <h4 className="font-medium mb-2">Delivery Address</h4>
-                                <div className="text-sm text-muted-foreground space-y-1 bg-white p-3 rounded-lg border">
-                                  {order.consigneeName && (
-                                    <p><strong>Consignee:</strong> {order.consigneeName}</p>
-                                  )}
-                                  {order.consigneePhone && (
-                                    <p><strong>Phone:</strong> {order.consigneePhone}</p>
-                                  )}
-                                  {order.consigneeEmail && (
-                                    <p><strong>Email:</strong> {order.consigneeEmail}</p>
-                                  )}
-                                  <p><strong>Address:</strong> {order.deliveryAddress}</p>
-                                  {order.city && <p><strong>City:</strong> {order.city}</p>}
-                                  {order.state && <p><strong>State:</strong> {order.state}</p>}
-                                  {order.pincode && <p><strong>Pincode:</strong> {order.pincode}</p>}
-                                </div>
-                              </div>
-
-                              {(order.note || order.packagingInstructions || order.deliveryReference) && (
-                                <div>
-                                  <h4 className="font-medium mb-2">Additional Information</h4>
-                                  <div className="text-sm text-muted-foreground space-y-1 bg-white p-3 rounded-lg border">
-                                    {order.note && (
-                                      <p><strong>Notes:</strong> {order.note}</p>
-                                    )}
-                                    {order.packagingInstructions && (
-                                      <p><strong>Packaging:</strong> {order.packagingInstructions}</p>
-                                    )}
-                                    {order.deliveryReference && (
-                                      <p><strong>Reference:</strong> {order.deliveryReference}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
                 );
               })}
             </>

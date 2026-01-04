@@ -235,7 +235,7 @@ export function OrderDetailsDialog({
                 }, {});
 
                 return Object.values(bundleGroups).map((group: any, groupIndex) => {
-                  const bundleCount = group.items[0]?.bundle?.quantity || 1;
+                  const bundleCount = group.items[0]?.bundle?.numberOfBundles || 1;
                   return (
                     <div key={`bundle-group-${groupIndex}`} className="space-y-3">
                       {/* Bundle Header */}
@@ -248,7 +248,9 @@ export function OrderDetailsDialog({
                       </div>
                     
                     {/* Bundle Items */}
-                    {group.items.map((bundleItem: any, itemIndex: number) => (
+                    {group.items.map((bundleItem: any, itemIndex: number) => {
+                      const perBundleQty = bundleCount > 0 ? bundleItem.quantity / bundleCount : bundleItem.quantity;
+                      return (
                       <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex items-center gap-4 p-3 border rounded-lg ml-4">
                         <div className="h-12 w-12 rounded overflow-hidden">
                           <ImageWithFallback
@@ -260,16 +262,20 @@ export function OrderDetailsDialog({
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{bundleItem.product?.name || 'Bundle Product'}</p>
                           <p className="text-sm text-muted-foreground">SKU: {bundleItem.product?.sku || 'N/A'}</p>
+                          <p className="text-xs text-blue-700 font-medium">
+                            {perBundleQty} per bundle × {bundleCount} bundles = {bundleItem.quantity} total
+                          </p>
                           <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">Qty: {bundleItem.quantity}</p>
+                          <p className="font-medium">Qty: {perBundleQty}</p>
                           <p className="text-sm text-muted-foreground">
                             ₹{bundleItem.price?.toFixed(2) || '0.00'} each
                           </p>
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                     </div>
                 );
               });

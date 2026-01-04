@@ -189,8 +189,9 @@ export default function ClientCheckout() {
           productId: item.product.id,
           quantity: item.quantity,
           price: item.price,
-          bundleProductQuantity: item.bundleCount || 1,
-          bundleGroupId: item.bundleGroupId, // Include bundleGroupId to distinguish bundles
+          bundleProductQuantity: item.bundleQuantity || 1,
+          bundleGroupId: item.bundleGroupId,
+          numberOfBundles: item.bundleCount || 1,
         }));
 
       const dateTimeForPrisma = requiredByDate

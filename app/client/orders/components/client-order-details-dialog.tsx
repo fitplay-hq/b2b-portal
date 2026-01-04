@@ -251,20 +251,22 @@ export function ClientOrderDetailsDialog({
                 }, {});
 
                 return Object.values(bundleGroups).map((group: any, groupIndex) => {
-                  const totalBundles = Object.keys(bundleGroups).length;
+                  const bundleCount = group.items[0]?.bundle?.numberOfBundles || 1;
                   return (
                     <div key={`bundle-group-${groupIndex}`} className="space-y-3">
                       {/* Bundle Header */}
                       <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
                         <Package className="h-4 w-4 text-blue-600" />
                         <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
-                        <span className="text-xs text-blue-600">
-                          No. of items: {group.items.length} | No. of bundles: {totalBundles}
+                        <span className="text-xs text-blue-600 ml-auto">
+                          {group.items.length} item{group.items.length > 1 ? 's' : ''} • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}
                         </span>
                       </div>
                     
                     {/* Bundle Items */}
-                    {group.items.map((bundleItem: any, itemIndex: number) => (
+                    {group.items.map((bundleItem: any, itemIndex: number) => {
+                      const perBundleQty = bundleCount > 0 ? bundleItem.quantity / bundleCount : bundleItem.quantity;
+                      return (
                       <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex items-center gap-4 p-3 border rounded-lg ml-4">
                         <div className="h-12 w-12 rounded overflow-hidden">
                           <ImageWithFallback
@@ -276,16 +278,20 @@ export function ClientOrderDetailsDialog({
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{bundleItem.product?.name || 'Bundle Product'}</p>
                           <p className="text-sm text-muted-foreground">SKU: {bundleItem.product?.sku || 'N/A'}</p>
+                          <p className="text-xs text-blue-700 font-medium">
+                            {perBundleQty} per bundle × {bundleCount} bundles = {bundleItem.quantity} total
+                          </p>
                           <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">Qty: {bundleItem.quantity}</p>
+                          <p className="font-medium">Qty: {perBundleQty}</p>
                           <p className="text-sm text-muted-foreground">
                             ₹{bundleItem.price?.toFixed(2) || '0.00'} each
                           </p>
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                     </div>
                 );
               });

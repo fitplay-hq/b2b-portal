@@ -338,7 +338,8 @@ export default function CreateDispatchOrderPage() {
           quantity: p.quantity,
           price: p.price ?? 0,
           bundleProductQuantity: p.bundleProductQuantity,
-          bundleGroupId: p.bundleGroupId, // Include bundleGroupId
+          bundleGroupId: p.bundleGroupId,
+          numberOfBundles: p.bundleProductQuantity && p.quantity ? p.quantity / p.bundleProductQuantity : 1,
         })),
         numberOfBundles,
         consigneeName,

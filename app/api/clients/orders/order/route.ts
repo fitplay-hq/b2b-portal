@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
             numberOfBundles: item.numberOfBundles ?? 1,
           };
         }
-        groups[groupId].push(item);
+        groups[groupId].items.push(item);
         return groups;
       }, {});
 

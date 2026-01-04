@@ -245,9 +245,21 @@ export default function ClientCart() {
     }
     
     const selectedItems = cartItems.filter(item => selectedForBundle.has(item.product.id));
+    
+    // First, validate that all items have enough quantity
+    for (const item of selectedItems) {
+      const bundleQty = bundleQuantities[item.product.id] || 1;
+      const totalBundleItems = bundleQty * inlineBundleCount;
+      
+      if (item.quantity < totalBundleItems) {
+        toast.error(`Not enough ${item.product.name} in cart. Need ${totalBundleItems}, have ${item.quantity}`);
+        return;
+      }
+    }
+    
     const updatedCart = [...cartItems];
     
-    // Reduce quantities from individual items and add bundle
+    // Reduce quantities from individual items
     selectedItems.forEach(item => {
       const bundleQty = bundleQuantities[item.product.id] || 1;
       const totalBundleItems = bundleQty * inlineBundleCount;
@@ -255,16 +267,11 @@ export default function ClientCart() {
       // Find the item in cart and reduce its quantity
       const cartIndex = updatedCart.findIndex(cartItem => cartItem.product.id === item.product.id);
       if (cartIndex >= 0) {
-        if (updatedCart[cartIndex].quantity >= totalBundleItems) {
-          updatedCart[cartIndex].quantity -= totalBundleItems;
-          
-          // If quantity becomes 0, remove the item
-          if (updatedCart[cartIndex].quantity === 0) {
-            updatedCart.splice(cartIndex, 1);
-          }
-        } else {
-          toast.error(`Not enough ${item.product.name} in cart for bundle`);
-          return;
+        updatedCart[cartIndex].quantity -= totalBundleItems;
+        
+        // If quantity becomes 0, remove the item
+        if (updatedCart[cartIndex].quantity === 0) {
+          updatedCart.splice(cartIndex, 1);
         }
       }
     });

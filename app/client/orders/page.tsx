@@ -291,8 +291,6 @@ export default function ClientOrderHistory() {
           ) : viewType === "table" ? (
             <ClientOrdersTable 
               orders={filteredOrders}
-              expandedOrders={expandedOrders}
-              onToggleOrder={toggleOrderExpansion}
             />
           ) : (
             filteredOrders.map((order) => {
@@ -466,7 +464,7 @@ export default function ClientOrderHistory() {
                                 }, {});
 
                                 return Object.values(bundleGroups).map((group: any, groupIndex) => {
-                                  const bundleCount = group.items[0]?.bundle?.quantity || 1;
+                                  const bundleCount = group.items[0]?.bundle?.numberOfBundles || 1;
                                   return (
                                     <div key={`bundle-group-${groupIndex}`} className="space-y-3">
                                       {/* Bundle Header */}
@@ -479,7 +477,9 @@ export default function ClientOrderHistory() {
                                       </div>
                                     
                                     {/* Bundle Items */}
-                                    {group.items.map((bundleItem: any, itemIndex: number) => (
+                                    {group.items.map((bundleItem: any, itemIndex: number) => {
+                                      const perBundleQty = bundleCount > 0 ? bundleItem.quantity / bundleCount : bundleItem.quantity;
+                                      return (
                                       <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex gap-3 rounded-lg border p-3 ml-4">
                                         <div className="h-16 w-16 rounded overflow-hidden">
                                           <ImageWithFallback
@@ -488,20 +488,24 @@ export default function ClientOrderHistory() {
                                             className="h-full w-full object-cover"
                                           />
                                         </div>
-                                        <div>
+                                        <div className="flex-1">
                                           <p className="font-medium">
                                             {bundleItem.product?.name || 'Bundle Product'}
                                           </p>
                                           <p className="text-sm text-muted-foreground">
                                             SKU: {bundleItem.product?.sku || 'N/A'}
                                           </p>
-                                          <p className="text-sm text-muted-foreground">
-                                            Qty: {bundleItem.quantity}
+                                          <p className="text-xs text-blue-700 font-medium">
+                                            {perBundleQty} per bundle × {bundleCount} bundles = {bundleItem.quantity} total
                                           </p>
                                           <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                                         </div>
+                                        <div className="text-right">
+                                          <p className="text-sm font-medium">Qty: {perBundleQty} each</p>
+                                        </div>
                                       </div>
-                                    ))}
+                                    );
+                                    })}
                                     </div>
                                 );
                               });
