@@ -7,6 +7,7 @@ export interface CartItem {
   bundleQuantity?: number; // quantity per bundle
   bundleCount?: number; // number of bundles
   bundleGroupId?: string; // unique identifier for each bundle group
+  cartItemId?: string; // unique identifier for each cart item (including bundles)
 }
 
 export interface PurchaseOrder {

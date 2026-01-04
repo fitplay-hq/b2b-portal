@@ -95,27 +95,44 @@ export default function ClientCart() {
     setStoredData(`fitplay_cart_${session?.user?.id}`, updatedCart);
   };
 
-  const updateQuantity = (productId: string, newQuantity: number) => {
+  const updateQuantity = (productId: string, newQuantity: number, cartItemId?: string) => {
     if (newQuantity <= 0) {
-      removeItem(productId);
+      removeItem(productId, cartItemId);
       return;
     }
 
-    const updatedCart = cartItems.map((item) =>
-      item.product.id === productId
-        ? {
+    const updatedCart = cartItems.map((item) => {
+      // If cartItemId is provided (for bundle items), match by cartItemId
+      if (cartItemId && item.cartItemId) {
+        if (item.cartItemId === cartItemId) {
+          return {
             ...item,
             quantity: Math.min(newQuantity, item.product.availableStock),
-          }
-        : item
-    );
+          };
+        }
+      } else if (!item.cartItemId && item.product.id === productId) {
+        // For individual items (no cartItemId), match by productId
+        return {
+          ...item,
+          quantity: Math.min(newQuantity, item.product.availableStock),
+        };
+      }
+      return item;
+    });
     console.log({ updatedCart });
     updateCart(updatedCart);
   };
 
-  const removeItem = (productId: string) => {
+  const removeItem = (productId: string, cartItemId?: string) => {
     const updatedCart = cartItems.filter(
-      (item) => item.product.id !== productId
+      (item) => {
+        // If cartItemId is provided (for bundle items), match by cartItemId
+        if (cartItemId && item.cartItemId) {
+          return item.cartItemId !== cartItemId;
+        }
+        // Otherwise, match by productId (for individual items)
+        return item.product.id !== productId;
+      }
     );
     updateCart(updatedCart);
     toast.success("Item removed from cart");
@@ -173,30 +190,11 @@ export default function ClientCart() {
       bundleQuantity: bundleProduct.quantity,
       bundleCount: numberOfBundles,
       bundleGroupId: bundleGroupId,
+      cartItemId: `${bundleGroupId}-${bundleProduct.product.id}`, // Add unique cart item ID
     }));
 
-    // Add bundle items to cart
-    const updatedCart = [...cartItems];
-    bundleItems.forEach((bundleItem) => {
-      const existingIndex = updatedCart.findIndex(
-        (item) => item.product.id === bundleItem.product.id && item.bundleGroupId === bundleItem.bundleGroupId
-      );
-      if (existingIndex >= 0) {
-        // If item with same bundleGroupId already exists, add to its quantity
-        updatedCart[existingIndex].quantity += bundleItem.quantity;
-      } else {
-        // Check if this product exists as individual item or in another bundle
-        const existingProductIndex = updatedCart.findIndex(
-          (item) => item.product.id === bundleItem.product.id
-        );
-        if (existingProductIndex >= 0) {
-          // Add as separate bundle item (don't merge with existing)
-          updatedCart.push(bundleItem);
-        } else {
-          updatedCart.push(bundleItem);
-        }
-      }
-    });
+    // Add bundle items to cart (always as new bundles, don't merge)
+    const updatedCart = [...cartItems, ...bundleItems];
     updateCart(updatedCart);
 
     // Reset bundle state
@@ -244,7 +242,10 @@ export default function ClientCart() {
       return;
     }
     
-    const selectedItems = cartItems.filter(item => selectedForBundle.has(item.product.id));
+    // Only select individual (non-bundle) items
+    const selectedItems = cartItems.filter(item => 
+      selectedForBundle.has(item.product.id) && !item.isBundleItem
+    );
     
     // First, validate that all items have enough quantity
     for (const item of selectedItems) {
@@ -264,8 +265,10 @@ export default function ClientCart() {
       const bundleQty = bundleQuantities[item.product.id] || 1;
       const totalBundleItems = bundleQty * inlineBundleCount;
       
-      // Find the item in cart and reduce its quantity
-      const cartIndex = updatedCart.findIndex(cartItem => cartItem.product.id === item.product.id);
+      // Find the individual item (not bundle item) in cart and reduce its quantity
+      const cartIndex = updatedCart.findIndex(cartItem => 
+        cartItem.product.id === item.product.id && !cartItem.isBundleItem
+      );
       if (cartIndex >= 0) {
         updatedCart[cartIndex].quantity -= totalBundleItems;
         
@@ -279,6 +282,7 @@ export default function ClientCart() {
     // Add bundle items
     // Generate unique bundle group ID for this bundle
     const bundleGroupId = `bundle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log('Creating new bundle with ID:', bundleGroupId);
     
     selectedItems.forEach(item => {
       const bundleQty = bundleQuantities[item.product.id] || 1;
@@ -291,21 +295,22 @@ export default function ClientCart() {
         bundleQuantity: bundleQty,
         bundleCount: inlineBundleCount,
         bundleGroupId: bundleGroupId, // Add unique bundle group ID
+        cartItemId: `${bundleGroupId}-${item.product.id}`, // Add unique cart item ID
       };
       
-      // Check if bundle item already exists with same bundleGroupId
-      const existingBundleIndex = updatedCart.findIndex(
-        (cartItem) => cartItem.product.id === item.product.id && cartItem.isBundleItem && cartItem.bundleGroupId === bundleGroupId
-      );
-      
-      if (existingBundleIndex >= 0) {
-        updatedCart[existingBundleIndex].quantity += totalBundleItems;
-      } else {
-        updatedCart.push(bundleItem);
-      }
+      // Always push as a new bundle item (don't merge with existing bundles)
+      updatedCart.push(bundleItem);
     });
     
     updateCart(updatedCart);
+    
+    console.log('Bundle created. Updated cart:', updatedCart.map(i => ({ 
+      name: i.product.name, 
+      qty: i.quantity, 
+      isBundle: i.isBundleItem, 
+      bundleGroupId: i.bundleGroupId,
+      cartItemId: i.cartItemId
+    })));
     
     // Reset inline bundle state
     setSelectedForBundle(new Set());
@@ -567,7 +572,7 @@ export default function ClientCart() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removeItem(item.product.id)}
+                                onClick={() => removeItem(item.product.id, item.cartItemId)}
                                 className="text-destructive hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -579,7 +584,7 @@ export default function ClientCart() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                  onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.cartItemId)}
                                   disabled={item.quantity <= 1}
                                 >
                                   <Minus className="h-3 w-3" />
@@ -589,7 +594,7 @@ export default function ClientCart() {
                                   value={item.quantity}
                                   onChange={(e) => {
                                     const value = parseInt(e.target.value) || 1;
-                                    updateQuantity(item.product.id, value);
+                                    updateQuantity(item.product.id, value, item.cartItemId);
                                   }}
                                   className="w-16 text-center"
                                   min="1"
@@ -598,7 +603,7 @@ export default function ClientCart() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                                  onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.cartItemId)}
                                   disabled={item.quantity >= item.product.availableStock}
                                 >
                                   <Plus className="h-3 w-3" />
@@ -653,7 +658,7 @@ export default function ClientCart() {
                           <div className="space-y-3">
                             {items.map((item) => (
                               <div
-                                key={item.product.id}
+                                key={item.cartItemId || item.product.id}
                                 className="flex gap-4 p-3 border border-blue-200 bg-white rounded-lg"
                               >
                                 <div className="w-16 h-16 flex-shrink-0">
@@ -688,7 +693,7 @@ export default function ClientCart() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => removeItem(item.product.id)}
+                                      onClick={() => removeItem(item.product.id, item.cartItemId)}
                                       className="text-destructive hover:text-destructive"
                                     >
                                       <Trash2 className="h-3 w-3" />
@@ -700,7 +705,7 @@ export default function ClientCart() {
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                        onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.cartItemId)}
                                         disabled={item.quantity <= 1}
                                       >
                                         <Minus className="h-3 w-3" />
@@ -710,7 +715,7 @@ export default function ClientCart() {
                                         value={item.quantity}
                                         onChange={(e) => {
                                           const value = parseInt(e.target.value) || 1;
-                                          updateQuantity(item.product.id, value);
+                                          updateQuantity(item.product.id, value, item.cartItemId);
                                         }}
                                         className="w-16 text-center h-8"
                                         min="1"
@@ -719,7 +724,7 @@ export default function ClientCart() {
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                                        onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.cartItemId)}
                                         disabled={item.quantity >= item.product.availableStock}
                                       >
                                         <Plus className="h-3 w-3" />
