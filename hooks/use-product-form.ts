@@ -273,8 +273,9 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
       return;
     }
 
-    if (isNaN(minStockThreshold) || minStockThreshold < 0) {
-      toast.error("Please enter a valid minimum stock threshold (0 or greater).");
+    // Only validate minStockThreshold if a value is provided
+    if (formData.minStockThreshold && (isNaN(minStockThreshold) || minStockThreshold < 0)) {
+      toast.error("Please enter a valid restock level (0 or greater).");
       setIsSubmitting(false);
       return;
     }

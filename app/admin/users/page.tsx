@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { UserCog, UserPlus, Search, Users, Shield, Clock } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/use-permissions";
 import { ClientOnly } from "@/components/client-only";
 import { PageGuard } from "@/components/page-guard";
 import { RESOURCES } from "@/lib/utils";
@@ -43,13 +44,10 @@ export default function UsersPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
 
-  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can access users)
-  const isAdmin = session?.user?.role === "ADMIN";
-  const isSystemAdmin = session?.user?.role === 'SYSTEM_USER' && 
-                       session?.user?.systemRole && 
-                       session?.user?.systemRole.toLowerCase() === 'admin';
-  const hasAdminAccess = isAdmin || isSystemAdmin;
-  const isUnauthorized = session && !hasAdminAccess;
+  // Check if user has users permission
+  const { hasPermission, isAdmin, actions } = usePermissions();
+  const hasUsersAccess = isAdmin || hasPermission('users', 'view');
+  const isUnauthorized = session && !hasUsersAccess;
 
   useEffect(() => {
     if (status === "loading") return; // Still loading
@@ -155,12 +153,14 @@ export default function UsersPage() {
           </div>
           <p className="text-gray-600">Manage system users and their roles</p>
         </div>
-        <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
-          <Link href="/admin/users/new">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add User
-          </Link>
-        </Button>
+        {actions.users?.create && (
+          <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+            <Link href="/admin/users/new">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add User
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Filters Card */}
@@ -254,12 +254,14 @@ export default function UsersPage() {
             <p className="text-gray-600 mb-6">
               Get started by adding your first user with role-based permissions.
             </p>
-            <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
-              <Link href="/admin/users/new">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add User
-              </Link>
-            </Button>
+            {actions.users?.create && (
+              <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+                <Link href="/admin/users/new">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add User
+                </Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -285,10 +287,14 @@ export default function UsersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Button variant="outline" size="sm" onClick={() => window.location.href = `/admin/users/${u.id}`}>Edit</Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(u.id, u.name)}>
-                      Delete
-                    </Button>
+                    {actions.users?.edit && (
+                      <Button variant="outline" size="sm" onClick={() => window.location.href = `/admin/users/${u.id}`}>Edit</Button>
+                    )}
+                    {actions.users?.delete && (
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(u.id, u.name)}>
+                        Delete
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

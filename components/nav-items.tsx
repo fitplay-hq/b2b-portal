@@ -277,6 +277,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <List className="h-3 w-3" />
                   Overview
                 </Link>
+                {actions.companies?.create && (
                 <Link
                   href="/admin/companies/new"
                   className={cn(
@@ -289,6 +290,8 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <Plus className="h-3 w-3" />
                   Add Company
                 </Link>
+                )}
+                {actions.clients?.create && (
                 <Link
                   href="/admin/clients/new"
                   className={cn(
@@ -301,6 +304,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <Plus className="h-3 w-3" />
                   Add Client
                 </Link>
+                )}
               </CollapsibleContent>
             </Collapsible>
             ))}
@@ -346,6 +350,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <List className="h-3 w-3" />
                   All Roles
                 </Link>
+                {actions.roles?.create && (
                 <Link
                   href="/admin/roles/new"
                   className={cn(
@@ -358,6 +363,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <Plus className="h-3 w-3" />
                   Create Role
                 </Link>
+                )}
               </CollapsibleContent>
             </Collapsible>
             )}
@@ -403,6 +409,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <List className="h-3 w-3" />
                   All Users
                 </Link>
+                {actions.users?.create && (
                 <Link
                   href="/admin/users/new"
                   className={cn(
@@ -415,6 +422,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                   <Plus className="h-3 w-3" />
                   Add User
                 </Link>
+                )}
               </CollapsibleContent>
             </Collapsible>
             )}

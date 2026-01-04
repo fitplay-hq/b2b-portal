@@ -7,6 +7,60 @@ import { RESOURCES, PERMISSIONS } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import os from 'os';
+import fs from 'fs';
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
+function logError(step: string, error: unknown) {
+  console.error(`❌ [PDF EXPORT ERROR] Step: ${step}`);
+
+  if (error instanceof Error) {
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+
+
+
+function getLocalChromePath() {
+  const platform = os.platform();
+
+  if (platform === 'darwin') {
+    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  }
+
+  if (platform === 'win32') {
+    // Try multiple common locations for Chrome on Windows
+    const possiblePaths = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe'
+    ];
+    
+    // Check which path exists
+    const fs = require('fs');
+    for (const path of possiblePaths) {
+      if (fs.existsSync(path)) {
+        return path;
+      }
+    }
+    
+    // Return default if none found
+    return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+  }
+
+  return '/usr/bin/google-chrome';
+}
+
+
+
+const isServerless =
+  process.env.VERCEL === '1' ||
+  !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
 
 /**
  * GET /api/admin/analytics/export
@@ -14,23 +68,19 @@ import autoTable from 'jspdf-autotable';
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('🚀 Export API called:', request.url);
     const session = await getServerSession(auth);
-    
+
     if (!session?.user) {
-      console.log('❌ No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('✅ User authenticated:', session.user.email, 'Role:', session.user.role);
-
     // Check analytics export permission (ADMIN and SYSTEM_USER with admin role have full access)
     const isAdmin = session.user.role === 'ADMIN';
-    const isSystemAdmin = session.user.role === 'SYSTEM_USER' && 
-                         session.user.systemRole && 
-                         session.user.systemRole.toLowerCase() === 'admin';
+    const isSystemAdmin = session.user.role === 'SYSTEM_USER' &&
+      session.user.systemRole &&
+      session.user.systemRole.toLowerCase() === 'admin';
     const hasAdminAccess = isAdmin || isSystemAdmin;
-    
+
     if (!hasAdminAccess) {
       const userPermissions = session.user.permissions || [];
       if (!hasPermission(userPermissions, RESOURCES.ANALYTICS, PERMISSIONS.EXPORT)) {
@@ -47,30 +97,25 @@ export async function GET(request: NextRequest) {
     const companyId = searchParams.get('companyId');
     const status = searchParams.get('status');
 
-    console.log('📊 Export parameters:', {
-      exportType,
-      dateFrom,
-      dateTo,
-      clientId,
-      companyId,
-      status
-    });
-
     if (exportType === 'orders') {
-      console.log('📦 Exporting orders data...');
       return await exportOrdersData(dateFrom, dateTo, clientId, companyId, status, format);
     } else if (exportType === 'inventory') {
-      console.log('📋 Exporting inventory data...');
       return await exportInventoryData(companyId, format);
     } else {
-      console.log('❌ Invalid export type:', exportType);
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
     }
 
   } catch (error) {
-    console.error('Analytics Export API Error:', error);
+    logError('EXPORT_API_ROOT', error);
+
     return NextResponse.json(
-      { error: 'Failed to export analytics data' }, 
+      {
+        error: 'Failed to export analytics data',
+        details:
+          error instanceof Error
+            ? error.message
+            : 'Unknown server error',
+      },
       { status: 500 }
     );
   }
@@ -80,15 +125,13 @@ export async function GET(request: NextRequest) {
  * Export orders data as CSV
  */
 async function exportOrdersData(
-  dateFrom: string | null, 
-  dateTo: string | null, 
-  clientId: string | null, 
-  companyId: string | null, 
+  dateFrom: string | null,
+  dateTo: string | null,
+  clientId: string | null,
+  companyId: string | null,
   status: string | null,
   format: string = 'xlsx'
 ) {
-  console.log('📦 Starting orders export with filters:', { dateFrom, dateTo, clientId, companyId, status });
-  
   // Build date filter
   const dateFilter: any = {};
   if (dateFrom) {
@@ -97,8 +140,6 @@ async function exportOrdersData(
   if (dateTo) {
     dateFilter.lte = new Date(dateTo);
   }
-  
-  console.log('📅 Date filter:', dateFilter);
 
   // Build order filters
   const orderFilters: any = {};
@@ -132,8 +173,6 @@ async function exportOrdersData(
     orderBy: { createdAt: 'desc' }
   });
 
-  console.log('📊 Orders found for export:', orders.length);
-
   // Generate Excel workbook
   const workbook = XLSX.utils.book_new();
 
@@ -146,7 +185,7 @@ async function exportOrdersData(
       order.state,
       order.pincode
     ].filter(part => part && part !== 'Address' && part !== 'City' && part !== 'State' && part !== '000000');
-    
+
     const fullShippingAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Address not provided';
 
     return {
@@ -168,7 +207,7 @@ async function exportOrdersData(
       'Delivery Service': order.deliveryService || '',
       'Mode of Delivery': order.modeOfDelivery || '',
       'Required By Date': order.requiredByDate ? new Date(order.requiredByDate).toLocaleDateString() : '',
-      'Items Details': order.orderItems?.map((item: any) => 
+      'Items Details': order.orderItems?.map((item: any) =>
         `${item.product?.name || 'Unknown'} (Qty: ${item.quantity}, Price: ₹${item.price})`
       ).join('; ') || ''
     };
@@ -206,19 +245,19 @@ async function exportOrdersData(
 
   if (format === 'pdf') {
     const doc = new jsPDF();
-    
+
     doc.setFontSize(20);
     doc.text('Orders Report', 20, 20);
-    
+
     const tableColumns = [
       'Order ID',
-      'Client Name', 
+      'Client Name',
       'Order Date',
       'Status',
       'Total Amount',
       'Items Count'
     ];
-    
+
     const tableRows = excelData.map((order: any) => [
       order['Order ID'],
       order['Client Name'],
@@ -238,7 +277,7 @@ async function exportOrdersData(
 
     const pdfBuffer = doc.output('arraybuffer');
     const filename = `orders_export_${new Date().toISOString().split('T')[0]}.pdf`;
-    
+
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
@@ -255,7 +294,6 @@ async function exportOrdersData(
 
   const filename = `orders_export_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-  console.log('� Excel generated, orders:', orders.length, 'filename:', filename);
 
   return new NextResponse(excelBuffer, {
     headers: {
@@ -275,7 +313,6 @@ async function exportOrdersData(
  * Export inventory data as CSV
  */
 async function exportInventoryData(companyId: string | null, format: string = 'xlsx') {
-  console.log('📋 Starting inventory export with companyId:', companyId);
   const inventoryFilters: any = {};
   if (companyId) {
     inventoryFilters.companyId = companyId;
@@ -298,12 +335,12 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
   const excelData = products.map(product => {
     const stockQuantity = product.availableStock;
     const lowThreshold = 10;
-    const stockStatus = stockQuantity === 0 
-      ? 'Out of Stock' 
+    const stockStatus = stockQuantity === 0
+      ? 'Out of Stock'
       : stockQuantity <= lowThreshold
-      ? 'Low Stock'
-      : 'In Stock';
-    
+        ? 'Low Stock'
+        : 'In Stock';
+
     const stockValue = stockQuantity * (product.price || 0);
 
     // Get first image URL if images is an array or string
@@ -319,7 +356,7 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
     return {
       'Product ID': product.id,
       'Product Name': product.name,
-      'Product Image': imageUrl ? 'View Image' : 'No Image',
+      'Product Image': imageUrl ? imageUrl : 'No Image',
       'SKU': product.sku,
       'Category': product.categories || 'Uncategorized',
       'Companies': product.companies.map(c => c.name).join(', '),
@@ -382,49 +419,117 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
   // Add worksheet to workbook
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventory');
 
+  function generateInventoryHTML(products: any[]) {
+    return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <style>
+      body { font-family: Arial; font-size: 12px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #ccc; padding: 6px; }
+      th { background: #f3f4f6; }
+      img { width: 60px; height: 60px; object-fit: cover; }
+    </style>
+  </head>
+  <body>
+    <h2>Inventory Report</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Image</th>
+          <th>Name</th>
+          <th>SKU</th>
+          <th>Stock</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${products.map(p => `
+          <tr>
+            <td><img src="${Array.isArray(p.images) ? p.images[0] : ''}" /></td>
+            <td>${p.name}</td>
+            <td>${p.sku}</td>
+            <td>${p.availableStock}</td>
+            <td>₹${p.price}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </body>
+  </html>
+  `;
+  }
+
   if (format === 'pdf') {
-    const doc = new jsPDF();
-    
-    doc.setFontSize(20);
-    doc.text('Products Inventory Report', 20, 20);
-    
-    const tableColumns = [
-      'Product ID',
-      'Product Name', 
-      'SKU',
-      'Category',
-      'Stock Quantity',
-      'Stock Status',
-      'Unit Price'
-    ];
-    
-    const tableRows = excelData.map((product: any) => [
-      product['Product ID'],
-      product['Product Name'],
-      product['SKU'],
-      product['Category'],
-      product['Stock Quantity'].toString(),
-      product['Stock Status'],
-      `Rs.${product['Unit Price']}`
-    ]);
+    try {
+      const html = generateInventoryHTML(products);
 
-    autoTable(doc, {
-      head: [tableColumns],
-      body: tableRows,
-      startY: 30,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [66, 66, 66] }
-    });
+      const puppeteer = await import("puppeteer-core");
+      let executablePath: string;
+      let browserArgs: string[];
 
-    const pdfBuffer = doc.output('arraybuffer');
-    const filename = `products_export_${new Date().toISOString().split('T')[0]}.pdf`;
-    
-    return new NextResponse(pdfBuffer, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`
+      // Separate logic for production and development
+      if (process.env.NODE_ENV === 'production') {
+        const chromium = (await import('@sparticuz/chromium-min')).default;
+        
+        // Download and get Chromium executable path for production
+        executablePath = await chromium.executablePath(
+          'https://mf4mefwxnbqrp4a6.public.blob.vercel-storage.com/chromium-pack.tar'
+        );
+        browserArgs = chromium.args;
+      } else {
+        executablePath = getLocalChromePath();
+        browserArgs = [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu'
+        ];
       }
-    });
+
+      const browser = await puppeteer.launch({
+        args: browserArgs,
+        executablePath: executablePath,
+        headless: true,
+      });
+
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '20px',
+          bottom: '20px',
+          left: '20px',
+          right: '20px',
+        },
+      });
+
+      await browser.close();
+
+      return new NextResponse(Buffer.from(pdfBuffer), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename=inventory_${Date.now()}.pdf`,
+        },
+      });
+
+    } catch (error) {
+      logError('INVENTORY_PDF_FLOW', error);
+      return NextResponse.json(
+        {
+          error: 'Inventory PDF generation failed',
+          details:
+            error instanceof Error
+              ? error.message
+              : 'Unknown PDF error',
+        },
+        { status: 500 }
+      );
+    }
   }
 
   // Generate Excel buffer
@@ -434,8 +539,6 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
   });
 
   const filename = `inventory_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-
-  console.log('📋 Excel generated, products:', products.length, 'filename:', filename);
 
   return new NextResponse(excelBuffer, {
     headers: {

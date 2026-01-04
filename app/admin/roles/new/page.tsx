@@ -15,6 +15,7 @@ import { Shield, ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { PageGuard } from "@/components/page-guard";
+import { RESOURCES } from "@/lib/utils";
 
 // Interface for permissions fetched from API
 
@@ -35,14 +36,6 @@ export default function NewRolePage() {
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
 
-  // Check if user is authorized (ADMIN or SYSTEM_USER with admin role can create roles)
-  const isAdmin = session?.user?.role === "ADMIN";
-  const isSystemAdmin = session?.user?.role === "SYSTEM_USER" && 
-                        session?.user?.systemRole && 
-                        session?.user?.systemRole.toLowerCase() === "admin";
-  const hasAdminAccess = isAdmin || isSystemAdmin;
-  const isUnauthorized = session && !hasAdminAccess;
-
   useEffect(() => {
     if (status === "loading") return; // Still loading
     
@@ -50,17 +43,10 @@ export default function NewRolePage() {
       router.push('/login');
       return;
     }
-
-    // Don't redirect, just stop loading
-    if (!hasAdminAccess) {
-      setIsLoadingPermissions(false);
-      return;
-    }
-  }, [session, status, router, hasAdminAccess]);
+  }, [session, status, router]);
 
   // Fetch permissions from API
   useEffect(() => {
-    if (!hasAdminAccess) return;
     
     const fetchPermissions = async () => {
       try {
@@ -82,7 +68,7 @@ export default function NewRolePage() {
     };
 
     fetchPermissions();
-  }, [hasAdminAccess]);
+  }, []);
 
   const handlePermissionChange = (permissionId: string, checked: boolean) => {
     const permission = permissions.find(p => p.id === permissionId);
@@ -185,32 +171,8 @@ export default function NewRolePage() {
     }
   };
 
-  // Show unauthorized message if user doesn't have permission
-  if (isUnauthorized) {
-    return (
-      <Layout isClient={false}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Card className="w-full max-w-md">
-            <CardContent className="flex flex-col items-center text-center p-8">
-              <Shield className="h-16 w-16 text-red-500 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-              <p className="text-gray-600 mb-4">
-                You do not have permission to create roles. Role management is restricted to administrators only.
-              </p>
-              <Button asChild variant="outline">
-                <Link href="/admin">
-                  Return to Dashboard
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
-    <PageGuard adminOnly={true}>
+    <PageGuard resource={RESOURCES.ROLES} action="create">
       <Layout isClient={false}>
         <div className="bg-gray-50 -m-6">
           <div className="p-8">
