@@ -81,6 +81,7 @@ export async function GET(req: NextRequest) {
                                 select: {
                                     id: true,
                                     price: true,
+                                    numberOfBundles: true,
                                     items: {
                                         select: {
                                             id: true,

@@ -385,6 +385,7 @@ const OrderDetails = ({
 
               return Object.values(bundleGroups).map((group: any, groupIndex) => {
                 const totalBundles = Object.keys(bundleGroups).length;
+                const numberOfBundles = group.items[0]?.bundle?.numberOfBundles || 1;
                 return (
                   <div key={`bundle-group-${groupIndex}`} className="space-y-2">
                     {/* Bundle Header */}
@@ -392,12 +393,18 @@ const OrderDetails = ({
                       <Package className="h-3 w-3 text-blue-600" />
                       <span className="font-medium text-xs text-blue-900">Bundle {groupIndex + 1}</span>
                       <span className="text-xs text-blue-600 ml-auto">
-                        No of bundles: {totalBundles}
+                        {group.items.length} item{group.items.length > 1 ? 's' : ''} • {numberOfBundles} bundle{numberOfBundles > 1 ? 's' : ''}
                       </span>
                     </div>
                   
                   {/* Show first 2 bundle items */}
-                  {group.items.slice(0, 2).map((bundleItem: any, itemIndex: number) => (
+                  {group.items.slice(0, 2).map((bundleItem: any, itemIndex: number) => {
+                    // Get the bundle product quantity from the bundle items array
+                    const bundleProductQty = bundleItem.bundle?.items?.find(
+                      (item: any) => item.productId === bundleItem.productId
+                    )?.bundleProductQuantity || 1;
+                    
+                    return (
                     <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3 ml-2">
                       <div className="h-12 w-12 sm:h-16 sm:w-16 rounded overflow-hidden shrink-0">
                         <ImageWithFallback
@@ -411,13 +418,14 @@ const OrderDetails = ({
                         <p className="text-xs sm:text-sm text-muted-foreground">
                           SKU: {bundleItem.product?.sku || 'N/A'}
                         </p>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm">
-                          <p>Qty: {bundleItem.quantity}</p>
-                          <p className="text-blue-600 font-medium">Bundle Item</p>
-                        </div>
+                        <p className="text-xs text-blue-700 font-medium">
+                          {bundleProductQty} per bundle × {numberOfBundles} bundles = {bundleItem.quantity} total
+                        </p>
+                        <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                   
                   {/* Show more items indicator */}
                   {group.items.length > 2 && (

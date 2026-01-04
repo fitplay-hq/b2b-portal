@@ -235,7 +235,7 @@ export function OrderDetailsDialog({
                 }, {});
 
                 return Object.values(bundleGroups).map((group: any, groupIndex) => {
-                  const bundleCount = group.items[0]?.bundle?.numberOfBundles || 1;
+                  const numberOfBundles = group.items[0]?.bundle?.numberOfBundles || 1;
                   return (
                     <div key={`bundle-group-${groupIndex}`} className="space-y-3">
                       {/* Bundle Header */}
@@ -243,13 +243,17 @@ export function OrderDetailsDialog({
                         <Package className="h-4 w-4 text-blue-600" />
                         <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
                         <span className="text-xs text-blue-600 ml-auto">
-                          {group.items.length} item{group.items.length > 1 ? 's' : ''} • {bundleCount} bundle{bundleCount > 1 ? 's' : ''} • ₹{group.bundle?.price?.toFixed(2) || '0.00'}
+                          {group.items.length} item{group.items.length > 1 ? 's' : ''} • {numberOfBundles} bundle{numberOfBundles > 1 ? 's' : ''} • ₹{group.bundle?.price?.toFixed(2) || '0.00'}
                         </span>
                       </div>
                     
                     {/* Bundle Items */}
                     {group.items.map((bundleItem: any, itemIndex: number) => {
-                      const perBundleQty = bundleCount > 0 ? bundleItem.quantity / bundleCount : bundleItem.quantity;
+                      // Get the bundle product quantity from the bundle items array
+                      const bundleProductQty = bundleItem.bundle?.items?.find(
+                        (item: any) => item.productId === bundleItem.productId
+                      )?.bundleProductQuantity || 1;
+                      
                       return (
                       <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex items-center gap-4 p-3 border rounded-lg ml-4">
                         <div className="h-12 w-12 rounded overflow-hidden">
@@ -263,12 +267,12 @@ export function OrderDetailsDialog({
                           <p className="font-medium truncate">{bundleItem.product?.name || 'Bundle Product'}</p>
                           <p className="text-sm text-muted-foreground">SKU: {bundleItem.product?.sku || 'N/A'}</p>
                           <p className="text-xs text-blue-700 font-medium">
-                            {perBundleQty} per bundle × {bundleCount} bundles = {bundleItem.quantity} total
+                            {bundleProductQty} per bundle × {numberOfBundles} bundles = {bundleItem.quantity} total
                           </p>
                           <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">Qty: {perBundleQty}</p>
+                          <p className="font-medium">Qty: {bundleProductQty} each</p>
                           <p className="text-sm text-muted-foreground">
                             ₹{bundleItem.price?.toFixed(2) || '0.00'} each
                           </p>
