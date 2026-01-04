@@ -7,8 +7,8 @@ import { RESOURCES, PERMISSIONS } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import puppeteer from 'puppeteer-core';
 import os from 'os';
+import fs from 'fs';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -34,6 +34,22 @@ function getLocalChromePath() {
   }
 
   if (platform === 'win32') {
+    // Try multiple common locations for Chrome on Windows
+    const possiblePaths = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe'
+    ];
+    
+    // Check which path exists
+    const fs = require('fs');
+    for (const path of possiblePaths) {
+      if (fs.existsSync(path)) {
+        return path;
+      }
+    }
+    
+    // Return default if none found
     return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   }
 
@@ -52,15 +68,11 @@ const isServerless =
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('🚀 Export API called:', request.url);
     const session = await getServerSession(auth);
 
     if (!session?.user) {
-      console.log('❌ No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    console.log('✅ User authenticated:', session.user.email, 'Role:', session.user.role);
 
     // Check analytics export permission (ADMIN and SYSTEM_USER with admin role have full access)
     const isAdmin = session.user.role === 'ADMIN';
@@ -85,23 +97,11 @@ export async function GET(request: NextRequest) {
     const companyId = searchParams.get('companyId');
     const status = searchParams.get('status');
 
-    console.log('📊 Export parameters:', {
-      exportType,
-      dateFrom,
-      dateTo,
-      clientId,
-      companyId,
-      status
-    });
-
     if (exportType === 'orders') {
-      console.log('📦 Exporting orders data...');
       return await exportOrdersData(dateFrom, dateTo, clientId, companyId, status, format);
     } else if (exportType === 'inventory') {
-      console.log('📋 Exporting inventory data...');
       return await exportInventoryData(companyId, format);
     } else {
-      console.log('❌ Invalid export type:', exportType);
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
     }
 
@@ -132,8 +132,6 @@ async function exportOrdersData(
   status: string | null,
   format: string = 'xlsx'
 ) {
-  console.log('📦 Starting orders export with filters:', { dateFrom, dateTo, clientId, companyId, status });
-
   // Build date filter
   const dateFilter: any = {};
   if (dateFrom) {
@@ -142,8 +140,6 @@ async function exportOrdersData(
   if (dateTo) {
     dateFilter.lte = new Date(dateTo);
   }
-
-  console.log('📅 Date filter:', dateFilter);
 
   // Build order filters
   const orderFilters: any = {};
@@ -176,8 +172,6 @@ async function exportOrdersData(
     },
     orderBy: { createdAt: 'desc' }
   });
-
-  console.log('📊 Orders found for export:', orders.length);
 
   // Generate Excel workbook
   const workbook = XLSX.utils.book_new();
@@ -300,7 +294,6 @@ async function exportOrdersData(
 
   const filename = `orders_export_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-  console.log('� Excel generated, orders:', orders.length, 'filename:', filename);
 
   return new NextResponse(excelBuffer, {
     headers: {
@@ -320,7 +313,6 @@ async function exportOrdersData(
  * Export inventory data as CSV
  */
 async function exportInventoryData(companyId: string | null, format: string = 'xlsx') {
-  console.log('📋 Starting inventory export with companyId:', companyId);
   const inventoryFilters: any = {};
   if (companyId) {
     inventoryFilters.companyId = companyId;
@@ -471,29 +463,40 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
 
   if (format === 'pdf') {
     try {
-      console.log('🧪 PDF: Generating HTML');
       const html = generateInventoryHTML(products);
 
-      console.log('🧪 PDF: Resolving executable path');
-      console.log('🧪 PDF: Launching browser');
+      const puppeteer = await import("puppeteer-core");
+      let executablePath: string;
+      let browserArgs: string[];
 
-      const chromium = (await import('@sparticuz/chromium-min')).default;
+      // Separate logic for production and development
+      if (process.env.NODE_ENV === 'production') {
+        const chromium = (await import('@sparticuz/chromium-min')).default;
+        
+        // Download and get Chromium executable path for production
+        executablePath = await chromium.executablePath(
+          'https://mf4mefwxnbqrp4a6.public.blob.vercel-storage.com/chromium-pack.tar'
+        );
+        browserArgs = chromium.args;
+      } else {
+        executablePath = getLocalChromePath();
+        browserArgs = [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu'
+        ];
+      }
 
       const browser = await puppeteer.launch({
-        args: chromium.args,
-        executablePath: process.env.NODE_ENV === 'production'
-          ? await chromium.executablePath()
-          : getLocalChromePath(),
+        args: browserArgs,
+        executablePath: executablePath,
         headless: true,
       });
 
-      console.log('🧪 PDF: Creating page');
       const page = await browser.newPage();
-
-      console.log('🧪 PDF: Setting HTML content');
       await page.setContent(html, { waitUntil: 'networkidle0' });
 
-      console.log('🧪 PDF: Generating PDF buffer');
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
@@ -505,10 +508,7 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
         },
       });
 
-      console.log('🧪 PDF: Closing browser');
       await browser.close();
-
-      console.log('✅ PDF: Successfully generated');
 
       return new NextResponse(Buffer.from(pdfBuffer), {
         headers: {
@@ -539,8 +539,6 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
   });
 
   const filename = `inventory_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-
-  console.log('📋 Excel generated, products:', products.length, 'filename:', filename);
 
   return new NextResponse(excelBuffer, {
     headers: {

@@ -105,9 +105,9 @@ export function ProductFormDialog({
                 toast.error("Initial stock is required for new products and cannot be negative");
                 return;
               }
-              // Minimum stock threshold validation - only check if provided
+              // Restock level validation - only check if provided
               if (formData.minStockThreshold && Number(formData.minStockThreshold) < 0) {
-                toast.error("Minimum stock threshold cannot be negative");
+                toast.error("Restock level cannot be negative");
                 return;
               }
               if (!formData.description.trim()) {

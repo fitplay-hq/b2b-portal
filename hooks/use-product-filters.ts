@@ -24,7 +24,11 @@ export function useProductFilters(products: Product[] = []) {
     // Filter by category
     if (selectedCategory !== "All Categories") {
       filtered = filtered.filter(
-        (product) => product.categories === selectedCategory
+        (product) => {
+          // Check both the new relation (product.category?.name) and old enum field (product.categories)
+          const categoryName = (product as any).category?.name || product.categories;
+          return categoryName === selectedCategory;
+        }
       );
     }
 
