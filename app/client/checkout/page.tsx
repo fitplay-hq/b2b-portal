@@ -356,7 +356,7 @@ export default function ClientCheckout() {
                                   <p className="text-xs text-blue-700">{item.bundleQuantity} per bundle × {item.bundleCount} bundles = {item.quantity} total</p>
                                 </div>
                                 <div className="text-right shrink-0">
-                                  <p className="text-sm font-medium">Qty: {item.quantity}</p>
+                                  <p className="text-sm font-medium">Qty: {item.bundleQuantity} each</p>
                                   {item.product.price && <p className="text-xs">₹{(item.product.price * item.quantity).toFixed(2)}</p>}
                                 </div>
                               </div>
@@ -638,7 +638,7 @@ export default function ClientCheckout() {
                                     </div>
                                   )}
                                 </div>
-                                <div className="text-xs font-medium shrink-0">Qty: {item.quantity}</div>
+                                <div className="text-xs font-medium shrink-0">Qty: {item.bundleQuantity} each</div>
                               </div>
                             ))}
                           </div>

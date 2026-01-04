@@ -727,7 +727,7 @@ export default function ClientCart() {
                                     </div>
 
                                     <div className="text-right">
-                                      <p className="font-medium text-sm">Qty: {item.quantity}</p>
+                                      <p className="font-medium text-sm">Qty: {item.bundleQuantity} each</p>
                                       {item.product.price && (
                                         <p className="font-medium text-sm">
                                           Total: ₹{(item.product.price * item.quantity).toFixed(2)}
