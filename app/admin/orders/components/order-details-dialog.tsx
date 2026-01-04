@@ -187,12 +187,11 @@ export function OrderDetailsDialog({
                   // Group bundle items by bundle ID to count unique bundles
                   const uniqueBundles = [...new Set(bundleOrderItems.map(item => item.bundleId))];
                   const bundleCount = uniqueBundles.length;
-                  const numberOfBundles = order.numberOfBundles || 1;
                   
                   if (regularItems > 0) {
-                    return `${regularItems} items + ${bundleCount} bundle${bundleCount > 1 ? 's' : ''} (${numberOfBundles} set${numberOfBundles > 1 ? 's' : ''})`;
+                    return `${regularItems} items + ${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
                   } else {
-                    return `${bundleCount} bundle${bundleCount > 1 ? 's' : ''} (${numberOfBundles} set${numberOfBundles > 1 ? 's' : ''})`;
+                    return `${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
                   }
                 } else {
                   return `${regularItems} items`;
@@ -236,7 +235,6 @@ export function OrderDetailsDialog({
                 }, {});
 
                 return Object.values(bundleGroups).map((group: any, groupIndex) => {
-                  const totalBundles = Object.keys(bundleGroups).length;
                   return (
                     <div key={`bundle-group-${groupIndex}`} className="space-y-3">
                       {/* Bundle Header */}
@@ -244,7 +242,7 @@ export function OrderDetailsDialog({
                         <Package className="h-4 w-4 text-blue-600" />
                         <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
                         <span className="text-xs text-blue-600 ml-auto">
-                          No. of items: {group.items.length} | No. of bundles: {totalBundles} • ₹{group.bundle?.price?.toFixed(2) || '0.00'}
+                          {group.items.length} item{group.items.length > 1 ? 's' : ''} • ₹{group.bundle?.price?.toFixed(2) || '0.00'}
                         </span>
                       </div>
                     

@@ -291,67 +291,82 @@ export default function ClientCheckout() {
                 <CardTitle className="text-lg sm:text-xl">Dispatch Order Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4">
-                {cartItems.map((item) => (
-                  <div
-                    key={item.product.id}
-                    className="flex gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg"
-                  >
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0">
-                      <ImageWithFallback
-                        src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
-                        alt={item.product.name}
-                        className="w-full h-full object-cover rounded"
-                      />
-                    </div>
+                {(() => {
+                  const individualItems = cartItems.filter(item => !item.isBundleItem);
+                  const bundleItems = cartItems.filter(item => item.isBundleItem);
+                  
+                  const bundleGroups = bundleItems.reduce((groups: { [key: string]: typeof cartItems }, item) => {
+                    const groupId = item.bundleGroupId || 'default';
+                    if (!groups[groupId]) groups[groupId] = [];
+                    groups[groupId].push(item);
+                    return groups;
+                  }, {});
 
-                    <div className="flex-1 space-y-1 sm:space-y-2 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{item.product.name}</h3>
-                            {item.isBundleItem && (
-                              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
-                                Bundle Item
-                              </Badge>
-                            )}
+                  return (
+                    <>
+                      {individualItems.map((item) => (
+                        <div key={item.product.id} className="flex gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0">
+                            <ImageWithFallback
+                              src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
+                              alt={item.product.name}
+                              className="w-full h-full object-cover rounded"
+                            />
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            SKU: {item.product.sku}
-                          </p>
-                          {item.product.price && (
-                            <p className="text-sm font-medium">
-                              Price: ₹{item.product.price}
-                            </p>
-                          )}
-                          <p className="text-sm font-medium">
-                            {item.isBundleItem ? (
-                              `${item.bundleQuantity} per bundle × ${item.bundleCount} bundles = ${item.quantity} total`
-                            ) : (
-                              'Individual product'
-                            )}
-                          </p>
+                          <div className="flex-1 space-y-1 sm:space-y-2 min-w-0">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h3 className="font-medium">{item.product.name}</h3>
+                                <p className="text-sm text-muted-foreground">SKU: {item.product.sku}</p>
+                                {item.product.price && <p className="text-sm font-medium">Price: ₹{item.product.price}</p>}
+                                <p className="text-xs text-muted-foreground">Individual product</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">Qty: {item.quantity}</p>
+                              {item.product.price && <p className="font-medium">Total: ₹{(item.product.price * item.quantity).toFixed(2)}</p>}
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ))}
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2"></div>
-
-                        <div className="text-right">
-                          <p className="font-medium">Qty: {item.quantity}</p>
-                          {item.product.price && (
-                            <p className="font-medium">
-                              Total: ₹
-                              {(item.product.price * item.quantity).toFixed(2)}
-                            </p>
-                          )}
-                          <p className="text-xs text-muted-foreground">
-                            {item.quantity} quantity
-                          </p>
+                      {Object.entries(bundleGroups).map(([groupId, items], bundleIndex) => {
+                        const bundleCount = items[0]?.bundleCount || 1;
+                        return (
+                        <div key={groupId} className="border-2 border-blue-200 rounded-lg p-3 bg-blue-50/20">
+                          <div className="flex items-center gap-2 mb-2 pb-2 border-b border-blue-300">
+                            <Badge className="bg-blue-600 text-white text-xs">Bundle {bundleIndex + 1}</Badge>
+                            <span className="text-xs text-muted-foreground">{items.length} items • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="space-y-2">
+                            {items.map((item) => (
+                              <div key={item.product.id} className="flex gap-2 p-2 bg-white border border-blue-100 rounded">
+                                <div className="w-12 h-12 shrink-0">
+                                  <ImageWithFallback
+                                    src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
+                                    alt={item.product.name}
+                                    className="w-full h-full object-cover rounded"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-sm truncate">{item.product.name}</h4>
+                                  <p className="text-xs text-muted-foreground">SKU: {item.product.sku}</p>
+                                  {item.product.price && <p className="text-xs">₹{item.product.price}</p>}
+                                  <p className="text-xs text-blue-700">{item.bundleQuantity} per bundle × {item.bundleCount} bundles = {item.quantity} total</p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-sm font-medium">Qty: {item.quantity}</p>
+                                  {item.product.price && <p className="text-xs">₹{(item.product.price * item.quantity).toFixed(2)}</p>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                      );
+                      })}
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
 
@@ -561,32 +576,77 @@ export default function ClientCheckout() {
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {cartItems.map((item) => (
-                  <div key={item.product.id} className="flex gap-3">
-                    <div className="w-12 h-12 flex-shrink-0">
-                      <ImageWithFallback
-                        src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
-                        alt={item.product.name}
-                        className="w-12 h-12 object-cover rounded"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {item.product.name}
-                      </p>
-                      {item.product.price && (
-                        <div className="text-xs text-muted-foreground">
-                          ₹{item.product.price} x {item.quantity} = ₹
-                          {(item.product.price * item.quantity).toFixed(2)}
+              <CardContent className="space-y-3">
+                {(() => {
+                  const individualItems = cartItems.filter(item => !item.isBundleItem);
+                  const bundleItems = cartItems.filter(item => item.isBundleItem);
+                  
+                  const bundleGroups = bundleItems.reduce((groups: { [key: string]: typeof cartItems }, item) => {
+                    const groupId = item.bundleGroupId || 'default';
+                    if (!groups[groupId]) groups[groupId] = [];
+                    groups[groupId].push(item);
+                    return groups;
+                  }, {});
+
+                  return (
+                    <>
+                      {individualItems.map((item) => (
+                        <div key={item.product.id} className="flex gap-3">
+                          <div className="w-12 h-12 flex-shrink-0">
+                            <ImageWithFallback
+                              src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
+                              alt={item.product.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{item.product.name}</p>
+                            {item.product.price && (
+                              <div className="text-xs text-muted-foreground">
+                                ₹{item.product.price} x {item.quantity} = ₹{(item.product.price * item.quantity).toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-sm font-medium">Qty: {item.quantity}</div>
                         </div>
-                      )}
-                    </div>
-                    <div className="text-sm font-medium">
-                      Qty: {item.quantity}
-                    </div>
-                  </div>
-                ))}
+                      ))}
+
+                      {Object.entries(bundleGroups).map(([groupId, items], bundleIndex) => {
+                        const bundleCount = items[0]?.bundleCount || 1;
+                        return (
+                        <div key={groupId} className="border border-blue-200 rounded p-2 bg-blue-50/30">
+                          <div className="flex items-center gap-1 mb-2">
+                            <Badge className="bg-blue-600 text-white text-[10px] px-1.5 py-0">Bundle {bundleIndex + 1}</Badge>
+                            <span className="text-[10px] text-muted-foreground">{items.length} items • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {items.map((item) => (
+                              <div key={item.product.id} className="flex gap-2 items-center">
+                                <div className="w-8 h-8 flex-shrink-0">
+                                  <ImageWithFallback
+                                    src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
+                                    alt={item.product.name}
+                                    className="w-8 h-8 object-cover rounded"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium truncate">{item.product.name}</p>
+                                  {item.product.price && (
+                                    <div className="text-[10px] text-muted-foreground">
+                                      ₹{item.product.price} x {item.quantity} = ₹{(item.product.price * item.quantity).toFixed(2)}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-xs font-medium shrink-0">Qty: {item.quantity}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                      })}
+                    </>
+                  );
+                })()}
 
                 <Separator />
 

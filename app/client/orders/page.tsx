@@ -466,7 +466,6 @@ export default function ClientOrderHistory() {
                                 }, {});
 
                                 return Object.values(bundleGroups).map((group: any, groupIndex) => {
-                                  const totalBundles = Object.keys(bundleGroups).length;
                                   return (
                                     <div key={`bundle-group-${groupIndex}`} className="space-y-3">
                                       {/* Bundle Header */}
@@ -474,7 +473,7 @@ export default function ClientOrderHistory() {
                                         <Package className="h-4 w-4 text-blue-600" />
                                         <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
                                         <span className="text-xs text-blue-600 ml-auto">
-                                          No of bundles: {totalBundles}
+                                          {group.items.length} item{group.items.length > 1 ? 's' : ''}
                                         </span>
                                       </div>
                                     
