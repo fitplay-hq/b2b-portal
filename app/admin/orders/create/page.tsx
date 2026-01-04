@@ -216,10 +216,26 @@ export default function CreateDispatchOrderPage() {
       return;
     }
 
+    // Validate that all bundle products exist in selected products with sufficient quantity
+    for (const bundleProduct of bundleProducts) {
+      const totalNeeded = bundleProduct.quantity * numberOfBundles;
+      const selectedProduct = selectedProducts.find(p => p.id === bundleProduct.id && !p.isBundleItem);
+      
+      if (!selectedProduct) {
+        toast.error(`${bundleProduct.name} is not in selected products. Please add it first.`);
+        return;
+      }
+      
+      if (selectedProduct.quantity < totalNeeded) {
+        toast.error(`Insufficient quantity of ${bundleProduct.name}. Need ${totalNeeded}, have ${selectedProduct.quantity}`);
+        return;
+      }
+    }
+
     // Generate unique bundle group ID for this bundle
     const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Add bundle items to selected products with total quantity
+    // Calculate total quantity needed for each product
     const bundleItems = bundleProducts.map((product) => ({
       ...product,
       quantity: product.quantity * numberOfBundles, // Total quantity needed
@@ -228,7 +244,28 @@ export default function CreateDispatchOrderPage() {
       bundleGroupId: bundleGroupId,
     }));
 
-    setSelectedProducts((prev) => [...prev, ...bundleItems]);
+    // Reduce quantities from selected products or remove if quantity becomes 0
+    setSelectedProducts((prev) => {
+      const updated = [...prev];
+      
+      bundleProducts.forEach(bundleProduct => {
+        const totalNeeded = bundleProduct.quantity * numberOfBundles;
+        const existingIndex = updated.findIndex(p => p.id === bundleProduct.id && !p.isBundleItem);
+        
+        if (existingIndex >= 0) {
+          updated[existingIndex].quantity -= totalNeeded;
+          
+          // Remove if quantity becomes 0 or negative
+          if (updated[existingIndex].quantity <= 0) {
+            updated.splice(existingIndex, 1);
+          }
+        }
+      });
+      
+      // Add bundle items
+      return [...updated, ...bundleItems];
+    });
+
     toast.success(`Added bundle with ${bundleProducts.length} products × ${numberOfBundles} bundles`);
 
     // Reset bundle state
@@ -243,12 +280,21 @@ export default function CreateDispatchOrderPage() {
     const newSelected = new Set(selectedForBundle);
     if (checked) {
       newSelected.add(productId);
-      // Initialize quantity to 1 if not set
-      if (!bundleQuantities[productId]) {
-        setBundleQuantities(prev => ({ ...prev, [productId]: 1 }));
-      }
+      // Initialize quantity to 1 if not set or if less than 1
+      setBundleQuantities(prev => {
+        if (!prev[productId] || prev[productId] < 1) {
+          return { ...prev, [productId]: 1 };
+        }
+        return prev;
+      });
     } else {
       newSelected.delete(productId);
+      // Clean up bundle quantity when unchecked
+      setBundleQuantities(prev => {
+        const updated = { ...prev };
+        delete updated[productId];
+        return updated;
+      });
     }
     setSelectedForBundle(newSelected);
   };
@@ -263,11 +309,28 @@ export default function CreateDispatchOrderPage() {
       return;
     }
 
-    // Generate unique bundle group ID
-    const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
     // Get selected products
     const selectedItems = selectedProducts.filter(p => selectedForBundle.has(p.id) && !p.isBundleItem);
+    
+    console.log('selectedItems:', selectedItems);
+    console.log('bundleQuantities:', bundleQuantities);
+    console.log('inlineBundleCount:', inlineBundleCount);
+    
+    // Validate that all items have sufficient quantity
+    for (const item of selectedItems) {
+      const bundleQty = bundleQuantities[item.id] || 1;
+      const totalBundleItems = bundleQty * inlineBundleCount;
+      
+      console.log(`Item ${item.name}: bundleQty=${bundleQty}, inlineBundleCount=${inlineBundleCount}, totalNeeded=${totalBundleItems}, available=${item.quantity}`);
+      
+      if (item.quantity < totalBundleItems) {
+        toast.error(`Insufficient quantity of ${item.name}. Need ${totalBundleItems}, have ${item.quantity}`);
+        return;
+      }
+    }
+
+    // Generate unique bundle group ID
+    const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     // Create bundle items
     const bundleItems = selectedItems.map(item => {
@@ -283,11 +346,39 @@ export default function CreateDispatchOrderPage() {
       };
     });
 
-    // Remove selected items from selectedProducts and add bundle items
-    setSelectedProducts(prev => {
-      const remainingItems = prev.filter(p => !selectedForBundle.has(p.id) || p.isBundleItem);
-      return [...remainingItems, ...bundleItems];
+    console.log('bundleItems:', bundleItems);
+
+    // Create a map of reductions needed
+    const reductionsMap = new Map<string, number>();
+    selectedItems.forEach(item => {
+      const bundleQty = bundleQuantities[item.id] || 1;
+      const totalBundleItems = bundleQty * inlineBundleCount;
+      reductionsMap.set(item.id, totalBundleItems);
     });
+
+    // Reduce quantities from selected products or remove if quantity becomes 0
+    const updatedProducts = selectedProducts
+      .map(product => {
+        // Only reduce individual (non-bundle) items that are selected
+        if (!product.isBundleItem && reductionsMap.has(product.id)) {
+          const reduction = reductionsMap.get(product.id)!;
+          console.log(`Reducing ${product.name}: currentQty=${product.quantity}, toReduce=${reduction}`);
+          const newQuantity = product.quantity - reduction;
+          console.log(`After reduction: newQty=${newQuantity}`);
+          
+          if (newQuantity <= 0) {
+            console.log('Will remove item as quantity is 0');
+            return null; // Mark for removal
+          }
+          
+          return { ...product, quantity: newQuantity };
+        }
+        return product;
+      })
+      .filter((p): p is SelectedProduct => p !== null); // Remove nulls
+
+    // Add bundle items
+    setSelectedProducts([...updatedProducts, ...bundleItems]);
 
     toast.success(`Added bundle with ${selectedItems.length} products × ${inlineBundleCount} bundles`);
 

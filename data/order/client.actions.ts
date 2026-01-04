@@ -62,6 +62,8 @@ export type CreateOrderData = {
     quantity: number;
     price?: number;
     bundleProductQuantity: number;
+    bundleGroupId?: string;
+    numberOfBundles?: number;
   }>;
   numberOfBundles?: number;
 };
