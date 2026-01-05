@@ -57,6 +57,24 @@ export default function ClientOrderHistory() {
         // Search in order ID
         if (order.id.toLowerCase().includes(search)) return true;
         
+        // Search in total amount (order value)
+        if (order.totalAmount?.toString().includes(search)) return true;
+        
+        // Search in consignee details
+        if (order.consigneeName?.toLowerCase().includes(search)) return true;
+        if (order.consigneePhone?.toLowerCase().includes(search)) return true;
+        if (order.consigneeEmail?.toLowerCase().includes(search)) return true;
+        
+        // Search in delivery address fields
+        if (order.deliveryAddress?.toLowerCase().includes(search)) return true;
+        if (order.city?.toLowerCase().includes(search)) return true;
+        if (order.state?.toLowerCase().includes(search)) return true;
+        if (order.pincode?.toLowerCase().includes(search)) return true;
+        
+        // Search in delivery details
+        if (order.deliveryService?.toLowerCase().includes(search)) return true;
+        if (order.modeOfDelivery?.toLowerCase().includes(search)) return true;
+        
         // Search in order items (product names and SKUs)
         return order.orderItems?.some((item) => {
           const productName = item.product?.name?.toLowerCase() || '';
@@ -197,7 +215,7 @@ export default function ClientOrderHistory() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search by product name, or SKU..."
+                    placeholder="Search by order ID, amount, product, address, consignee..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 text-sm"
