@@ -1,7 +1,14 @@
-import { RefreshCw, ShoppingCart } from "lucide-react";
+import { RefreshCw, ShoppingCart, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface PageHeaderProps {
   totalCartItems: number;
@@ -12,6 +19,7 @@ interface PageHeaderProps {
 export function PageHeader({ totalCartItems, onRefresh, isRefreshing }: PageHeaderProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [previousCount, setPreviousCount] = useState(totalCartItems);
+  const [isExporting, setIsExporting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -25,6 +33,36 @@ export function PageHeader({ totalCartItems, onRefresh, isRefreshing }: PageHead
 
   const handleCartClick = () => {
     router.push('/client/cart');
+  };
+
+  const handleExport = async (format: 'xlsx' | 'pdf') => {
+    try {
+      setIsExporting(true);
+      toast.info(`Preparing ${format.toUpperCase()} export...`);
+
+      const response = await fetch(`/api/admin/analytics/export?type=inventory&format=${format}`);
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `products_export_${new Date().toISOString().split('T')[0]}.${format === 'xlsx' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success(`${format.toUpperCase()} exported successfully!`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export data');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -48,6 +86,31 @@ export function PageHeader({ totalCartItems, onRefresh, isRefreshing }: PageHead
             Refresh
           </Button>
         )}
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isExporting}
+              className="gap-2"
+            >
+              <Download className={`h-4 w-4 ${isExporting ? 'animate-bounce' : ''}`} />
+              Export
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleExport('xlsx')} disabled={isExporting}>
+              <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+              Export as Excel
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport('pdf')} disabled={isExporting}>
+              <FileText className="h-4 w-4 mr-2 text-red-600" />
+              Export as PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <button
           onClick={handleCartClick}
           className="relative flex items-center gap-3 px-4 py-2 hover:bg-primary/5 rounded-lg transition-colors group"
