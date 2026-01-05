@@ -7,6 +7,7 @@ import { SessionProvider } from "@/components/session-provider";
 import { PermissionPreloader } from "@/components/permission-preloader";
 import { ResourcePreloader, CriticalResourcePreloader } from "@/components/resource-preloader";
 import { FastPermissionProvider } from "@/contexts/fast-permission-context";
+import { CartProvider } from "@/contexts/cart-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,9 +34,11 @@ export default function RootLayout({
           <CriticalResourcePreloader />
           <SessionProvider>
             <FastPermissionProvider>
-              <PermissionPreloader />
-              <ResourcePreloader />
-              {children}
+              <CartProvider>
+                <PermissionPreloader />
+                <ResourcePreloader />
+                {children}
+              </CartProvider>
             </FastPermissionProvider>
           </SessionProvider>
           <Toaster />

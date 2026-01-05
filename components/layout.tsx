@@ -5,7 +5,7 @@ import { FitplayLogo } from "./fitplay-logo";
 import { ShoppingCart } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useCart } from "@/hooks/use-cart";
+import { useCartContext } from "@/contexts/cart-context";
 
 interface LayoutProps {
   children: ReactNode;
@@ -16,8 +16,7 @@ export default function Layout({ children, isClient }: LayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
-  const userId = session?.user?.id || "1";
-  const { totalCartItems } = useCart(userId);
+  const { totalCartItems } = useCartContext();
   const [isCartAnimating, setIsCartAnimating] = useState(false);
   const [previousCount, setPreviousCount] = useState(totalCartItems);
 
