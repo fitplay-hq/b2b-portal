@@ -125,7 +125,8 @@ export default function ClientAnalyticsPage() {
   });
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
-  const [isExporting, setIsExporting] = useState(false);
+  const [exportingOrders, setExportingOrders] = useState<string | null>(null); // 'xlsx' or 'pdf' or null
+  const [exportingInventory, setExportingInventory] = useState<string | null>(null); // 'xlsx' or 'pdf' or null
 
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -472,7 +473,7 @@ export default function ClientAnalyticsPage() {
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    setIsExporting(true);
+                    setExportingOrders('xlsx');
                     try {
                       console.log('Exporting orders as Excel...');
                       const result = await exportData('orders', 'xlsx');
@@ -480,13 +481,13 @@ export default function ClientAnalyticsPage() {
                         console.error('Export failed:', result.error);
                       }
                     } finally {
-                      setIsExporting(false);
+                      setExportingOrders(null);
                     }
                   }}
                   className="gap-2"
-                  disabled={isExporting}
+                  disabled={exportingOrders !== null}
                 >
-                  {isExporting ? (
+                  {exportingOrders === 'xlsx' ? (
                     <>
                       <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                       Exporting...
@@ -502,7 +503,7 @@ export default function ClientAnalyticsPage() {
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    setIsExporting(true);
+                    setExportingOrders('pdf');
                     try {
                       console.log('Exporting orders as PDF...');
                       const result = await exportData('orders', 'pdf');
@@ -510,13 +511,13 @@ export default function ClientAnalyticsPage() {
                         console.error('Export failed:', result.error);
                       }
                     } finally {
-                      setIsExporting(false);
+                      setExportingOrders(null);
                     }
                   }}
                   className="gap-2"
-                  disabled={isExporting}
+                  disabled={exportingOrders !== null}
                 >
-                  {isExporting ? (
+                  {exportingOrders === 'pdf' ? (
                     <>
                       <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                       Exporting...
@@ -631,7 +632,7 @@ export default function ClientAnalyticsPage() {
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    setIsExporting(true);
+                    setExportingInventory('xlsx');
                     try {
                       console.log('Exporting products as Excel...');
                       const result = await exportData('inventory', 'xlsx');
@@ -639,13 +640,13 @@ export default function ClientAnalyticsPage() {
                         console.error('Export failed:', result.error);
                       }
                     } finally {
-                      setIsExporting(false);
+                      setExportingInventory(null);
                     }
                   }}
                   className="gap-2"
-                  disabled={isExporting}
+                  disabled={exportingInventory !== null}
                 >
-                  {isExporting ? (
+                  {exportingInventory === 'xlsx' ? (
                     <>
                       <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                       Exporting...
@@ -661,7 +662,7 @@ export default function ClientAnalyticsPage() {
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    setIsExporting(true);
+                    setExportingInventory('pdf');
                     try {
                       console.log('Exporting products as PDF...');
                       const result = await exportData('inventory', 'pdf');
@@ -669,13 +670,13 @@ export default function ClientAnalyticsPage() {
                         console.error('Export failed:', result.error);
                       }
                     } finally {
-                      setIsExporting(false);
+                      setExportingInventory(null);
                     }
                   }}
                   className="gap-2"
-                  disabled={isExporting}
+                  disabled={exportingInventory !== null}
                 >
-                  {isExporting ? (
+                  {exportingInventory === 'pdf' ? (
                     <>
                       <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                       Exporting...

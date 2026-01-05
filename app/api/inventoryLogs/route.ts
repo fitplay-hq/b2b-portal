@@ -100,7 +100,18 @@ export async function GET(request: NextRequest) {
 
                 const reason = reasonText?.replace("Reason:", "").trim() || null;
                 if (reasonFilter && reason !== reasonFilter) continue;
-                if (search && !entry.toLowerCase().includes(search.toLowerCase())) continue;
+                
+                // Enhanced search - check product name, SKU, and log entry
+                if (search) {
+                    const searchLower = search.toLowerCase();
+                    const matchesProductName = product.name?.toLowerCase().includes(searchLower);
+                    const matchesSku = product.sku?.toLowerCase().includes(searchLower);
+                    const matchesEntry = entry.toLowerCase().includes(searchLower);
+                    
+                    if (!matchesProductName && !matchesSku && !matchesEntry) {
+                        continue;
+                    }
+                }
 
                 const remarks =
                     remarksText?.replace("Remarks:", "").trim() || null;

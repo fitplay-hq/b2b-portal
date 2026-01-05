@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
     const isSystemAdmin = session.user.role === 'SYSTEM_USER' &&
       session.user.systemRole &&
       session.user.systemRole.toLowerCase() === 'admin';
+    const isClient = session.user.role === 'CLIENT';
     const hasAdminAccess = isAdmin || isSystemAdmin;
 
     if (!hasAdminAccess && session.user.role !== 'CLIENT') {
@@ -105,13 +106,37 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
     const clientId = searchParams.get('clientId');
-    const companyId = searchParams.get('companyId');
+    let companyId = searchParams.get('companyId');
     const status = searchParams.get('status');
+    const search = searchParams.get('search');
+    const category = searchParams.get('category');
+
+    // For CLIENT users, use their company ID
+    if (isClient && client) {
+      companyId = client.companyID;
+    }
+
+    // Clients can only export inventory, not orders
+    if (isClient && exportType !== 'inventory') {
+      return NextResponse.json({ error: 'Clients can only export inventory' }, { status: 403 });
+    }
+
+    console.log('📊 Export parameters:', {
+      exportType,
+      dateFrom,
+      dateTo,
+      clientId,
+      companyId,
+      status,
+      search,
+      category
+    });
 
     if (exportType === 'orders') {
       return await exportOrdersData(dateFrom, dateTo, clientId, companyId, status, format);
     } else if (exportType === 'inventory') {
-      return await exportInventoryData(companyId, format, session);
+      console.log('📋 Exporting inventory data...');
+      return await exportInventoryData(companyId, format, search, category);
     } else {
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
     }
@@ -323,72 +348,46 @@ async function exportOrdersData(
 /**
  * Export inventory data as CSV
  */
-async function exportInventoryData(companyId: string | null, format: string = 'xlsx', session: any) {
-  let whereClause: any = {};
-
-  if (session.user.role === 'CLIENT') {
-    const client = await prisma.client.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        companyID: true,
-      },
-    });
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
-    }
-
-    whereClause = {
-      OR: [
-        // Products linked to client's company
-        {
-          companies: {
-            some: {
-              id: client.companyID,
-            },
-          },
-        },
-        // Products explicitly linked to client
-        {
-          clients: {
-            some: {
-              clientId: client.id,
-            },
-          },
-        },
-      ],
+async function exportInventoryData(
+  companyId: string | null, 
+  format: string = 'xlsx',
+  search: string | null = null,
+  category: string | null = null
+) {
+  console.log('📋 Starting inventory export with filters:', { companyId, search, category });
+  
+  const inventoryFilters: any = {};
+  
+  if (companyId) {
+    inventoryFilters.companies = {
+      some: {
+        id: companyId
+      }
     };
-  } else {
-    // ADMIN / SYSTEM_USER
-    if (companyId) {
-      whereClause = {
-        companies: {
-          some: {
-            id: companyId,
-          },
-        },
-      };
-    }
   }
 
+  // Add search filter
+  if (search && search.trim()) {
+    inventoryFilters.OR = [
+      { name: { contains: search.trim(), mode: 'insensitive' } },
+      { sku: { contains: search.trim(), mode: 'insensitive' } },
+      { brand: { contains: search.trim(), mode: 'insensitive' } }
+    ];
+  }
+
+  // Add category filter
+  if (category && category.trim()) {
+    inventoryFilters.categories = { equals: category.trim() };
+  }
 
   const products = await prisma.product.findMany({
-    where: whereClause,
+    where: inventoryFilters,
     include: {
       companies: {
-        select: { id: true, name: true },
-      },
-      clients: {
-        where: {
-          clientId: session.user.role === 'CLIENT' ? session.user.id : undefined,
-        },
-        select: {
-          clientId: true,
-        },
-      },
+        select: { id: true, name: true }
+      }
     },
-    orderBy: { name: 'asc' },
+    orderBy: { name: 'asc' }
   });
 
 

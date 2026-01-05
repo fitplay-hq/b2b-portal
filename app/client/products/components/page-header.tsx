@@ -14,9 +14,11 @@ interface PageHeaderProps {
   totalCartItems: number;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  searchTerm?: string;
+  selectedCategory?: string;
 }
 
-export function PageHeader({ totalCartItems, onRefresh, isRefreshing }: PageHeaderProps) {
+export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm, selectedCategory }: PageHeaderProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [previousCount, setPreviousCount] = useState(totalCartItems);
   const [isExporting, setIsExporting] = useState(false);
@@ -40,7 +42,21 @@ export function PageHeader({ totalCartItems, onRefresh, isRefreshing }: PageHead
       setIsExporting(true);
       toast.info(`Preparing ${format.toUpperCase()} export...`);
 
-      const response = await fetch(`/api/admin/analytics/export?type=inventory&format=${format}`);
+      // Build query params with filters
+      const params = new URLSearchParams({
+        type: 'inventory',
+        format: format
+      });
+      
+      if (searchTerm && searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+      
+      if (selectedCategory && selectedCategory !== 'All Categories') {
+        params.append('category', selectedCategory);
+      }
+
+      const response = await fetch(`/api/admin/analytics/export?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error('Export failed');
