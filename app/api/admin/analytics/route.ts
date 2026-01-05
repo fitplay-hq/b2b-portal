@@ -12,24 +12,24 @@ import { RESOURCES, PERMISSIONS } from '@/lib/utils';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(auth);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    console.log('✅ Analytics API - User authenticated:', { 
-      role: session.user.role, 
-      id: session.user.id,
-      systemRole: session.user.systemRole 
-    });
+
+    // console.log('✅ Analytics API - User authenticated:', { 
+    //   role: session.user.role, 
+    //   id: session.user.id,
+    //   systemRole: session.user.systemRole 
+    // });
 
     // Check analytics read permission (ADMIN, CLIENT, and SYSTEM_USER with admin role have full access)
     const isAdmin = session.user.role === 'ADMIN';
-    const isSystemAdmin = session.user.role === 'SYSTEM_USER' && 
-                         session.user.systemRole && 
-                         session.user.systemRole.toLowerCase() === 'admin';
+    const isSystemAdmin = session.user.role === 'SYSTEM_USER' &&
+      session.user.systemRole &&
+      session.user.systemRole.toLowerCase() === 'admin';
     const hasAdminAccess = isAdmin || isSystemAdmin;
-    
+
     if (!hasAdminAccess && session.user.role !== 'CLIENT') {
       const userPermissions = session.user.permissions || [];
       if (!hasPermission(userPermissions, RESOURCES.ANALYTICS, PERMISSIONS.READ)) {
@@ -44,6 +44,10 @@ export async function GET(request: NextRequest) {
     const companyId = searchParams.get('companyId');
     const status = searchParams.get('status');
     const period = searchParams.get('period') || '30d'; // Default to 30 days
+    const inventoryCategoryId = searchParams.get('categoryId');
+    const stockStatus = searchParams.get('stockStatus');
+    // IN_STOCK | LOW_STOCK | OUT_OF_STOCK
+
 
     // Build date filter
     const dateFilter: { gte?: Date; lte?: Date } = {};
@@ -53,13 +57,13 @@ export async function GET(request: NextRequest) {
     if (dateTo) {
       dateFilter.lte = new Date(dateTo);
     }
-    
+
     // If no specific dates, use period
     if (!dateFrom && !dateTo) {
       const now = new Date();
       const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 30;
       dateFilter.gte = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
-      console.log(`Using ${daysBack} day filter from:`, dateFilter.gte);
+      // console.log(`Using ${daysBack} day filter from:`, dateFilter.gte);
     }
 
     // Build order filters
@@ -96,28 +100,127 @@ export async function GET(request: NextRequest) {
     // console.log('Analytics API Debug:', { orderCount: orders.length, dateFilter });
 
     // Get inventory data
+
+    const inventoryFilters: any = {};
+
+    // Category filter (ProductCategory)
+    if (inventoryCategoryId) {
+      inventoryFilters.categoryId = inventoryCategoryId;
+    }
+
+    // Date filter (createdAt)
+    inventoryFilters.createdAt = dateFilter;
+
+    // Stock status filter
+    if (stockStatus === 'OUT_OF_STOCK') {
+      inventoryFilters.availableStock = 0;
+    }
+
+    if (stockStatus === 'LOW_STOCK') {
+      inventoryFilters.AND = [
+        { minStockThreshold: { not: null } },
+        { availableStock: { gt: 0 } },
+        { availableStock: { lt: prisma.product.fields.minStockThreshold } },
+      ];
+    }
+
+    if (stockStatus === 'IN_STOCK') {
+      inventoryFilters.OR = [
+        {
+          minStockThreshold: null,
+        },
+        {
+          availableStock: {
+            gt: prisma.product.fields.minStockThreshold,
+          },
+        },
+      ];
+    }
+
+
+
     const inventory = await prisma.product.findMany({
+      where: {
+        categoryId: inventoryCategoryId || undefined,
+        createdAt: dateFilter,
+      },
       include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            displayName: true
+          }
+        },
+        subCategory: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         companies: {
           select: { id: true, name: true }
         }
       }
     });
 
-    // console.log('Inventory found:', inventory.length);
+    const filteredInventory = inventory.filter(product => {
+      const threshold = product.minStockThreshold;
+
+      if (stockStatus === 'OUT_OF_STOCK') {
+        return product.availableStock === 0;
+      }
+
+      if (stockStatus === 'LOW_STOCK') {
+        return threshold !== null &&
+          product.availableStock > 0 &&
+          product.availableStock < threshold;
+      }
+
+      if (stockStatus === 'IN_STOCK') {
+        return threshold === null ||
+          product.availableStock > threshold;
+      }
+
+      return true; // no stock filter
+    });
+
+
+
+    // console.log('Inventory found:', inventory);
+
+    // console.log("Product threshold:", inventory.map(p => p.minStockThreshold));
 
     // Calculate analytics metrics
     const analytics = {
       overview: {
         totalOrders: orders.length,
         totalRevenue: orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0),
-        averageOrderValue: orders.length > 0 
-          ? orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0) / orders.length 
+        averageOrderValue: orders.length > 0
+          ? orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0) / orders.length
           : 0,
         totalProducts: inventory.length,
-        lowStockProducts: inventory.filter(p => p.availableStock <= 10).length,
+        lowStockProducts: inventory.filter(p => p.minStockThreshold ? p.availableStock < p.minStockThreshold : false).length,
       },
-      
+
+      inventoryStatus: {
+        inStock: filteredInventory.filter(p =>
+          p.minStockThreshold === null ||
+          p.availableStock > p.minStockThreshold
+        ).length,
+
+        lowStock: filteredInventory.filter(p =>
+          p.minStockThreshold !== null &&
+          p.availableStock > 0 &&
+          p.availableStock < p.minStockThreshold
+        ).length,
+
+        outOfStock: filteredInventory.filter(p =>
+          p.availableStock === 0
+        ).length,
+      },
+
+
       // Orders by status
       ordersByStatus: orders.reduce((acc: Record<string, number>, order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;
@@ -133,19 +236,13 @@ export async function GET(request: NextRequest) {
       // Top products by quantity sold
       topProducts: getTopProducts(orders as any),
 
-      // Inventory status
-      inventoryStatus: {
-        inStock: inventory.filter(p => p.availableStock > 10).length,
-        lowStock: inventory.filter(p => p.availableStock <= 10 && p.availableStock > 0).length,
-        outOfStock: inventory.filter(p => p.availableStock === 0).length,
-      },
-
       // Category distribution
-      categoryDistribution: inventory.reduce((acc: Record<string, number>, product) => {
-        const category = product.categories || 'UNCATEGORIZED';
-        acc[category] = (acc[category] || 0) + 1;
+      categoryDistribution: filteredInventory.reduce((acc: Record<string, number>, product) => {
+        const categoryName = product.category?.displayName || 'UNCATEGORIZED';
+        acc[categoryName] = (acc[categoryName] || 0) + 1;
         return acc;
       }, {}),
+
 
       // Raw data for exports
       rawData: {
@@ -173,7 +270,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Analytics API Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch analytics data' }, 
+      { error: 'Failed to fetch analytics data' },
       { status: 500 }
     );
   }
@@ -184,7 +281,7 @@ export async function GET(request: NextRequest) {
  */
 function generateTimeSeriesData(orders: { createdAt: Date; totalAmount: number }[]) {
   const dailyRevenue: { [key: string]: number } = {};
-  
+
   orders.forEach(order => {
     const date = new Date(order.createdAt).toISOString().split('T')[0];
     dailyRevenue[date] = (dailyRevenue[date] || 0) + (order.totalAmount || 0);
@@ -196,9 +293,9 @@ function generateTimeSeriesData(orders: { createdAt: Date; totalAmount: number }
     .map(([date, revenue]) => ({
       date,
       revenue,
-      formattedDate: new Date(date).toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
+      formattedDate: new Date(date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
       })
     }));
 }
@@ -208,7 +305,7 @@ function generateTimeSeriesData(orders: { createdAt: Date; totalAmount: number }
  */
 function getTopClients(orders: { client: { id: string; name: string } | null; totalAmount: number }[]) {
   const clientRevenue: { [key: string]: { name: string; revenue: number; orderCount: number } } = {};
-  
+
   orders.forEach(order => {
     if (order.client) {
       const clientId = order.client.id;
@@ -234,7 +331,7 @@ function getTopClients(orders: { client: { id: string; name: string } | null; to
  */
 function getTopProducts(orders: { orderItems: { product: { id: string; name: string }; quantity: number; price: number }[] }[]) {
   const productSales: { [key: string]: { name: string; quantity: number; revenue: number } } = {};
-  
+
   orders.forEach(order => {
     order.orderItems.forEach((item) => {
       if (item.product) {

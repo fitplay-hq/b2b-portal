@@ -30,6 +30,10 @@ export async function GET(request: NextRequest) {
         const clientId = searchParams.get('clientId');
         const status = searchParams.get('status');
         const period = searchParams.get('period') || '30d'; // Default to 30 days
+        const inventoryCategoryId = searchParams.get('categoryId');
+        const stockStatus = searchParams.get('stockStatus');
+        // IN_STOCK | LOW_STOCK | OUT_OF_STOCK
+
 
         let companyId;
 
@@ -84,7 +88,11 @@ export async function GET(request: NextRequest) {
                 orderItems: {
                     include: {
                         product: {
-                            select: { id: true, name: true, categories: true }
+                            select: {
+                                id: true,
+                                name: true,
+                                category: { select: { displayName: true } }
+                            }
                         }
                     }
                 }
@@ -96,24 +104,71 @@ export async function GET(request: NextRequest) {
         // console.log('Analytics API Debug:', { orderCount: orders.length, dateFilter });
 
         // Get inventory data
-        let inventoryWhere = {};
+        const inventoryWhere: any = {
+            createdAt: dateFilter,
+        };
 
-        if (session.user.role === 'CLIENT' && companyId) {
-            inventoryWhere = {
-                companies: {
-                    some: { id: companyId }
-                }
-            };
+        if (inventoryCategoryId) {
+            inventoryWhere.categoryId = inventoryCategoryId;
         }
+
+        if (session.user.role === 'CLIENT') {
+            inventoryWhere.OR = [
+                // Company products
+                companyId
+                    ? {
+                        companies: {
+                            some: { id: companyId }
+                        }
+                    }
+                    : undefined,
+
+                // Client-specific products
+                {
+                    clients: {
+                        some: {
+                            clientId: session.user.id
+                        }
+                    }
+                }
+            ].filter(Boolean);
+        }
+
+
 
         const inventory = await prisma.product.findMany({
             where: inventoryWhere,
             include: {
+                category: {
+                    select: { id: true, name: true, displayName: true }
+                },
                 companies: {
                     select: { id: true, name: true }
                 }
             }
         });
+
+        const filteredInventory = inventory.filter(product => {
+            const threshold = product.minStockThreshold;
+
+            if (stockStatus === 'OUT_OF_STOCK') {
+                return product.availableStock === 0;
+            }
+
+            if (stockStatus === 'LOW_STOCK') {
+                return threshold !== null &&
+                    product.availableStock > 0 &&
+                    product.availableStock < threshold;
+            }
+
+            if (stockStatus === 'IN_STOCK') {
+                return threshold === null ||
+                    product.availableStock > threshold;
+            }
+
+            return true;
+        });
+
 
 
         // console.log('Inventory found:', inventory.length);
@@ -126,8 +181,14 @@ export async function GET(request: NextRequest) {
                 averageOrderValue: orders.length > 0
                     ? orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0) / orders.length
                     : 0,
-                totalProducts: inventory.length,
-                lowStockProducts: inventory.filter(p => p.availableStock <= 10).length,
+                totalProducts: filteredInventory.length,
+
+                lowStockProducts: filteredInventory.filter(p =>
+                    p.minStockThreshold !== null &&
+                    p.availableStock > 0 &&
+                    p.availableStock < p.minStockThreshold
+                ).length,
+
             },
 
             // Orders by status
@@ -140,7 +201,7 @@ export async function GET(request: NextRequest) {
             revenueOverTime: session.user.role !== 'CLIENT' ? generateTimeSeriesData(orders as any) : [],
 
             // Top clients by revenue
-            
+
             topClients: session.user.role !== 'CLIENT' ? getTopClients(orders as any) : [],
 
             // Top products by quantity sold
@@ -148,17 +209,33 @@ export async function GET(request: NextRequest) {
 
             // Inventory status
             inventoryStatus: {
-                inStock: inventory.filter(p => p.availableStock > 10).length,
-                lowStock: inventory.filter(p => p.availableStock <= 10 && p.availableStock > 0).length,
-                outOfStock: inventory.filter(p => p.availableStock === 0).length,
+                inStock: filteredInventory.filter(p =>
+                    p.minStockThreshold === null ||
+                    p.availableStock > p.minStockThreshold
+                ).length,
+
+                lowStock: filteredInventory.filter(p =>
+                    p.minStockThreshold !== null &&
+                    p.availableStock > 0 &&
+                    p.availableStock < p.minStockThreshold
+                ).length,
+
+                outOfStock: filteredInventory.filter(p =>
+                    p.availableStock === 0
+                ).length,
             },
 
+
             // Category distribution
-            categoryDistribution: inventory.reduce((acc: Record<string, number>, product) => {
-                const category = product.categories || 'UNCATEGORIZED';
-                acc[category] = (acc[category] || 0) + 1;
-                return acc;
-            }, {}),
+            categoryDistribution: filteredInventory.reduce(
+                (acc: Record<string, number>, product) => {
+                    const categoryName = product.category?.displayName || 'UNCATEGORIZED';
+                    acc[categoryName] = (acc[categoryName] || 0) + 1;
+                    return acc;
+                },
+                {}
+            ),
+
 
             // Raw data for exports
             rawData: {
@@ -170,14 +247,15 @@ export async function GET(request: NextRequest) {
                     createdAt: order.createdAt,
                     itemCount: order.orderItems?.length || 0,
                 })),
-                inventory: inventory.map(product => ({
+                inventory: filteredInventory.map(product => ({
                     id: product.id,
                     name: product.name,
-                    category: product.categories,
+                    category: product.category?.displayName || null,
                     stockQuantity: product.availableStock,
                     unitPrice: product.price,
                     companyNames: product.companies.map(c => c.name).join(', '),
                 }))
+
             }
         };
 

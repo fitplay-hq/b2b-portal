@@ -110,6 +110,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const stockStatus = searchParams.get('stockStatus');
+
 
     // For CLIENT users, use their company ID
     if (isClient && client) {
@@ -136,7 +138,7 @@ export async function GET(request: NextRequest) {
       return await exportOrdersData(dateFrom, dateTo, clientId, companyId, status, format);
     } else if (exportType === 'inventory') {
       console.log('📋 Exporting inventory data...');
-      return await exportInventoryData(companyId, format, search, category);
+      return await exportInventoryData(companyId, format, search, session, category, dateFrom, dateTo, stockStatus);
     } else {
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
     }
@@ -349,40 +351,73 @@ async function exportOrdersData(
  * Export inventory data as CSV
  */
 async function exportInventoryData(
-  companyId: string | null, 
+  companyId: string | null,
   format: string = 'xlsx',
   search: string | null = null,
-  category: string | null = null
+  session: any = null,
+  category: string | null = null,
+  dateFrom: string | null = null,
+  dateTo: string | null = null,
+  stockStatus: string | null = null
 ) {
   console.log('📋 Starting inventory export with filters:', { companyId, search, category });
-  
-  const inventoryFilters: any = {};
-  
-  if (companyId) {
-    inventoryFilters.companies = {
-      some: {
-        id: companyId
-      }
-    };
-  }
 
-  // Add search filter
-  if (search && search.trim()) {
-    inventoryFilters.OR = [
+  const dateFilter: any = {};
+  if (dateFrom) dateFilter.gte = new Date(dateFrom);
+  if (dateTo) dateFilter.lte = new Date(dateTo);
+
+
+  const inventoryFilters: any = {};
+const andConditions: any[] = [];
+
+// Date filter
+if (Object.keys(dateFilter).length > 0) {
+  inventoryFilters.createdAt = dateFilter;
+}
+
+// Client / company scope
+if (companyId) {
+  andConditions.push({
+    OR: [
+      { companies: { some: { id: companyId } } },
+      {
+        clients: {
+          some: { clientId: session?.user.id }
+        }
+      }
+    ]
+  });
+}
+
+// Search filter
+if (search && search.trim()) {
+  andConditions.push({
+    OR: [
       { name: { contains: search.trim(), mode: 'insensitive' } },
       { sku: { contains: search.trim(), mode: 'insensitive' } },
       { brand: { contains: search.trim(), mode: 'insensitive' } }
-    ];
-  }
+    ]
+  });
+}
 
-  // Add category filter
-  if (category && category.trim()) {
-    inventoryFilters.categories = { equals: category.trim() };
-  }
+// Attach AND conditions
+if (andConditions.length > 0) {
+  inventoryFilters.AND = andConditions;
+}
+
+// Category filter
+if (category && category.trim()) {
+  inventoryFilters.categoryId = category.trim();
+}
+
+
 
   const products = await prisma.product.findMany({
     where: inventoryFilters,
     include: {
+      category: {
+        select: { displayName: true }
+      },
       companies: {
         select: { id: true, name: true }
       }
@@ -391,14 +426,37 @@ async function exportInventoryData(
   });
 
 
+  const filteredProducts = products.filter(product => {
+    const threshold = product.minStockThreshold;
+
+    if (stockStatus === 'OUT_OF_STOCK') {
+      return product.availableStock === 0;
+    }
+
+    if (stockStatus === 'LOW_STOCK') {
+      return threshold !== null &&
+        product.availableStock > 0 &&
+        product.availableStock < threshold;
+    }
+
+    if (stockStatus === 'IN_STOCK') {
+      return threshold === null ||
+        product.availableStock > threshold;
+    }
+
+    return true;
+  });
+
+
+
   // Generate Excel workbook
   const workbook = XLSX.utils.book_new();
 
   // Prepare data for Excel
-  const excelData = products.map(product => {
+  const excelData = filteredProducts.map(product => {
     const stockQuantity = product.availableStock;
-    const lowThreshold = 10;
-    const stockStatus = stockQuantity === 0
+    const lowThreshold = product.minStockThreshold || 0;
+    const computedStockStatus = stockQuantity === 0
       ? 'Out of Stock'
       : stockQuantity <= lowThreshold
         ? 'Low Stock'
@@ -421,7 +479,8 @@ async function exportInventoryData(
       'Product Name': product.name,
       'Product Image': imageUrl ? imageUrl : 'No Image',
       'SKU': product.sku,
-      'Category': product.categories || 'Uncategorized',
+      'Category': product.category?.displayName || 'Uncategorized',
+
       'Companies': product.companies.map(c => c.name).join(', '),
       'Stock Quantity': stockQuantity,
       'Low Stock Threshold': lowThreshold,
@@ -508,7 +567,7 @@ async function exportInventoryData(
         </tr>
       </thead>
       <tbody>
-        ${products.map(p => `
+        ${filteredProducts.map(p => `
           <tr>
             <td><img src="${Array.isArray(p.images) ? p.images[0] : ''}" /></td>
             <td>${p.name}</td>
@@ -526,7 +585,7 @@ async function exportInventoryData(
 
   if (format === 'pdf') {
     try {
-      const html = generateInventoryHTML(products);
+      const html = generateInventoryHTML(filteredProducts);
 
       const puppeteer = await import("puppeteer-core");
       let executablePath: string;
