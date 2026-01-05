@@ -8,7 +8,6 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import os from 'os';
-import fs from 'fs';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -40,7 +39,7 @@ function getLocalChromePath() {
       'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
       process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe'
     ];
-    
+
     // Check which path exists
     const fs = require('fs');
     for (const path of possiblePaths) {
@@ -48,7 +47,7 @@ function getLocalChromePath() {
         return path;
       }
     }
-    
+
     // Return default if none found
     return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   }
@@ -81,10 +80,22 @@ export async function GET(request: NextRequest) {
       session.user.systemRole.toLowerCase() === 'admin';
     const hasAdminAccess = isAdmin || isSystemAdmin;
 
-    if (!hasAdminAccess) {
+    if (!hasAdminAccess && session.user.role !== 'CLIENT') {
       const userPermissions = session.user.permissions || [];
       if (!hasPermission(userPermissions, RESOURCES.ANALYTICS, PERMISSIONS.EXPORT)) {
         return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      }
+    }
+
+    let client;
+
+    if (session.user.role === 'CLIENT') {
+      client = await prisma.client.findUnique({
+        where: { id: session.user.id }
+      });
+
+      if (!client) {
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 });
       }
     }
 
@@ -100,7 +111,7 @@ export async function GET(request: NextRequest) {
     if (exportType === 'orders') {
       return await exportOrdersData(dateFrom, dateTo, clientId, companyId, status, format);
     } else if (exportType === 'inventory') {
-      return await exportInventoryData(companyId, format);
+      return await exportInventoryData(companyId, format, session);
     } else {
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
     }
@@ -312,21 +323,74 @@ async function exportOrdersData(
 /**
  * Export inventory data as CSV
  */
-async function exportInventoryData(companyId: string | null, format: string = 'xlsx') {
-  const inventoryFilters: any = {};
-  if (companyId) {
-    inventoryFilters.companyId = companyId;
+async function exportInventoryData(companyId: string | null, format: string = 'xlsx', session: any) {
+  let whereClause: any = {};
+
+  if (session.user.role === 'CLIENT') {
+    const client = await prisma.client.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        companyID: true,
+      },
+    });
+
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
+    whereClause = {
+      OR: [
+        // Products linked to client's company
+        {
+          companies: {
+            some: {
+              id: client.companyID,
+            },
+          },
+        },
+        // Products explicitly linked to client
+        {
+          clients: {
+            some: {
+              clientId: client.id,
+            },
+          },
+        },
+      ],
+    };
+  } else {
+    // ADMIN / SYSTEM_USER
+    if (companyId) {
+      whereClause = {
+        companies: {
+          some: {
+            id: companyId,
+          },
+        },
+      };
+    }
   }
 
+
   const products = await prisma.product.findMany({
-    where: inventoryFilters,
+    where: whereClause,
     include: {
       companies: {
-        select: { id: true, name: true }
-      }
+        select: { id: true, name: true },
+      },
+      clients: {
+        where: {
+          clientId: session.user.role === 'CLIENT' ? session.user.id : undefined,
+        },
+        select: {
+          clientId: true,
+        },
+      },
     },
-    orderBy: { name: 'asc' }
+    orderBy: { name: 'asc' },
   });
+
 
   // Generate Excel workbook
   const workbook = XLSX.utils.book_new();
@@ -472,7 +536,7 @@ async function exportInventoryData(companyId: string | null, format: string = 'x
       // Separate logic for production and development
       if (process.env.NODE_ENV === 'production') {
         const chromium = (await import('@sparticuz/chromium-min')).default;
-        
+
         // Download and get Chromium executable path for production
         executablePath = await chromium.executablePath(
           'https://mf4mefwxnbqrp4a6.public.blob.vercel-storage.com/chromium-pack.tar'
