@@ -54,8 +54,9 @@ export default function ClientOrderHistory() {
         // Search by Order ID
         if (order.id.toLowerCase().includes(lowercasedTerm)) return true;
         
-        // Search by Order Status
+        // Search by Order Status (both raw and formatted)
         if (order.status.toLowerCase().includes(lowercasedTerm)) return true;
+        if (formatStatus(order.status).toLowerCase().includes(lowercasedTerm)) return true;
         
         // Search by Total Amount
         if (order.totalAmount.toString().includes(lowercasedTerm)) return true;
@@ -63,9 +64,25 @@ export default function ClientOrderHistory() {
         // Search by Order notes
         if (order.note?.toLowerCase().includes(lowercasedTerm)) return true;
         
+        // Search in consignee details
+        if (order.consigneeName?.toLowerCase().includes(lowercasedTerm)) return true;
+        if (order.consigneePhone?.toLowerCase().includes(lowercasedTerm)) return true;
+        if (order.consigneeEmail?.toLowerCase().includes(lowercasedTerm)) return true;
+        
+        // Search in delivery address fields
+        if (order.deliveryAddress?.toLowerCase().includes(lowercasedTerm)) return true;
+        if (order.city?.toLowerCase().includes(lowercasedTerm)) return true;
+        if (order.state?.toLowerCase().includes(lowercasedTerm)) return true;
+        if (order.pincode?.toLowerCase().includes(lowercasedTerm)) return true;
+        
+        // Search in delivery details
+        if (order.deliveryService?.toLowerCase().includes(lowercasedTerm)) return true;
+        if (order.modeOfDelivery?.toLowerCase().includes(lowercasedTerm)) return true;
+        
         // Search by Product names in regular order items
         if (order.orderItems?.some(item =>
-          item.product?.name?.toLowerCase().includes(lowercasedTerm)
+          item.product?.name?.toLowerCase().includes(lowercasedTerm) ||
+          item.product?.sku?.toLowerCase().includes(lowercasedTerm)
         )) return true;
         
         // Search by Product names in bundle order items
@@ -88,39 +105,6 @@ export default function ClientOrderHistory() {
     // Apply status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter((order) => order.status === statusFilter);
-    }
-
-    if (searchTerm.trim()) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter((order) => {
-        // Search in order ID
-        if (order.id.toLowerCase().includes(search)) return true;
-        
-        // Search in total amount (order value)
-        if (order.totalAmount?.toString().includes(search)) return true;
-        
-        // Search in consignee details
-        if (order.consigneeName?.toLowerCase().includes(search)) return true;
-        if (order.consigneePhone?.toLowerCase().includes(search)) return true;
-        if (order.consigneeEmail?.toLowerCase().includes(search)) return true;
-        
-        // Search in delivery address fields
-        if (order.deliveryAddress?.toLowerCase().includes(search)) return true;
-        if (order.city?.toLowerCase().includes(search)) return true;
-        if (order.state?.toLowerCase().includes(search)) return true;
-        if (order.pincode?.toLowerCase().includes(search)) return true;
-        
-        // Search in delivery details
-        if (order.deliveryService?.toLowerCase().includes(search)) return true;
-        if (order.modeOfDelivery?.toLowerCase().includes(search)) return true;
-        
-        // Search in order items (product names and SKUs)
-        return order.orderItems?.some((item) => {
-          const productName = item.product?.name?.toLowerCase() || '';
-          const productSku = item.product?.sku?.toLowerCase() || '';
-          return productName.includes(search) || productSku.includes(search);
-        });
-      });
     }
 
     return filtered.sort(
