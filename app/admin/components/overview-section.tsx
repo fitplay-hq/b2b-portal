@@ -52,17 +52,17 @@ export function OverviewSection({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Card className="overflow-hidden">
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-1">
           <CardTitle className="text-lg">Order Status Overview</CardTitle>
         </CardHeader>
-        <CardContent className="p-1">
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart margin={{ top: -20, right: -10, left: -10, bottom: -20 }}>
+        <CardContent className="p-3 pt-0">
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
               <Pie
                 data={chartData}
                 cx="50%"
                 cy="45%"
-                outerRadius={75}
+                outerRadius={110}
                 innerRadius={0}
                 fill="#8884d8"
                 dataKey="value"
@@ -82,14 +82,13 @@ export function OverviewSection({
               />
               <Legend 
                 verticalAlign="bottom" 
-                height={35}
+                height={36}
                 wrapperStyle={{
-                  paddingTop: '2px',
-                  fontSize: '9px',
-                  lineHeight: '1.0'
+                  fontSize: '11px',
+                  lineHeight: '1.3'
                 }}
                 formatter={(value: string) => (
-                  <span style={{ color: '#374151', fontSize: '8px' }}>{value}</span>
+                  <span style={{ color: '#374151', fontSize: '10px' }}>{value}</span>
                 )}
               />
             </PieChart>
