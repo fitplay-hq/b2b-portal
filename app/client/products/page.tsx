@@ -11,6 +11,7 @@ import { PageHeader } from "./components/page-header";
 import { ProductGrid } from "./components/product-grid";
 import { ProductFilters } from "./components/product-filters";
 import { QuantityDialog } from "./components/quantity-dialog";
+import { FloatingCartButton } from "./components/floating-cart-button";
 import { useProducts } from "@/data/product/client.hooks";
 
 export default function ClientProductsPage() {
@@ -100,6 +101,7 @@ export default function ClientProductsPage() {
       </div>
 
       <QuantityDialog dialog={quantityDialog} onConfirm={addToCart} />
+      <FloatingCartButton totalCartItems={totalCartItems} />
     </Layout>
   );
 }
