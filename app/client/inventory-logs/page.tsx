@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Layout from "@/components/layout";
 import { ClientInventoryLogsTable } from "@/components/client-inventory-logs-table";
 import { useClientInventoryLogs, ClientInventoryLogsFilters } from "@/data/inventory/client.hooks";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useDebouncedSearch } from "@/hooks/use-debounced-search";
 import { useInventoryExport } from "@/hooks/use-inventory-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +35,7 @@ export default function ClientInventoryLogsPage() {
     period: "30d",
   });
 
+  const [searchTerm, setSearchTerm] = useState("");
   const [advancedFilters, setAdvancedFilters] = useState({
     dateFrom: "",
     dateTo: "",
@@ -43,23 +43,37 @@ export default function ClientInventoryLogsPage() {
     reason: "",
   });
 
-  // Debounced search hook with 2.5 second delay for automatic search
-  const { searchValue, handleSearch } = useDebouncedSearch((searchTerm: string) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      search: searchTerm || undefined
-    }));
-  }, 2500);
+  // Fetch all logs without search filter (client-side filtering)
+  const { logs: allLogs, count, error, isLoading } = useClientInventoryLogs({
+    ...filters,
+    search: undefined, // Don't filter on server
+  });
 
-  // Immediate search function for Enter key
-  const handleImmediateSearch = (searchTerm: string) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      search: searchTerm || undefined
-    }));
-  };
+  // Client-side filtering with useMemo for instant search
+  const logs = useMemo(() => {
+    if (!allLogs) return [];
+    
+    let filtered = allLogs;
+    const lowercasedTerm = searchTerm.toLowerCase();
 
-  const { logs, count, error, isLoading } = useClientInventoryLogs(filters);
+    // Apply search filter
+    if (lowercasedTerm) {
+      filtered = filtered.filter(log => {
+        return (
+          log.productName?.toLowerCase().includes(lowercasedTerm) ||
+          log.sku?.toLowerCase().includes(lowercasedTerm) ||
+          (log.reason && log.reason.toLowerCase().includes(lowercasedTerm)) ||
+          log.action?.toLowerCase().includes(lowercasedTerm) ||
+          (log.changeAmount && log.changeAmount.toString().includes(lowercasedTerm)) ||
+          (log.changeDirection && log.changeDirection.toLowerCase().includes(lowercasedTerm)) ||
+          (log.finalStock !== undefined && log.finalStock.toString().includes(lowercasedTerm)) ||
+          (log.remarks && log.remarks.toLowerCase().includes(lowercasedTerm))
+        );
+      });
+    }
+
+    return filtered;
+  }, [allLogs, searchTerm]);
 
   const handleFilterChange = (newFilters: Record<string, string>) => {
     const cleanFilters = Object.fromEntries(
@@ -84,20 +98,13 @@ export default function ClientInventoryLogsPage() {
       productId: "",
       reason: "",
     });
-    handleSearch("");
+    setSearchTerm("");
   };
 
   const getActiveFilters = () => {
     const activeFilters = [];
     
-    if (searchValue) {
-      activeFilters.push({
-        key: 'search',
-        label: 'Search',
-        value: searchValue,
-        icon: FileText
-      });
-    }
+    // Don't include search in active filters - it's for instant filtering
     
     if (advancedFilters.dateFrom) {
       activeFilters.push({
@@ -130,20 +137,16 @@ export default function ClientInventoryLogsPage() {
   };
 
   const removeFilter = (filterKey: string) => {
-    if (filterKey === 'search') {
-      handleSearch("");
-    } else {
-      // Update advanced filters state
-      const updatedAdvancedFilters = { ...advancedFilters, [filterKey]: '' };
-      setAdvancedFilters(updatedAdvancedFilters);
-      
-      // Update main filters state to trigger API call
-      setFilters(prev => {
-        const newFilters = { ...prev };
-        delete newFilters[filterKey as keyof typeof newFilters];
-        return newFilters;
-      });
-    }
+    // Update advanced filters state
+    const updatedAdvancedFilters = { ...advancedFilters, [filterKey]: '' };
+    setAdvancedFilters(updatedAdvancedFilters);
+    
+    // Update main filters state to trigger API call
+    setFilters(prev => {
+      const newFilters = { ...prev };
+      delete newFilters[filterKey as keyof typeof newFilters];
+      return newFilters;
+    });
   };
 
   const handleExport = async (format: 'xlsx' | 'pdf') => {
@@ -151,7 +154,7 @@ export default function ClientInventoryLogsPage() {
     const exportFilters = {
       dateFrom: advancedFilters.dateFrom || undefined,
       dateTo: advancedFilters.dateTo || undefined,
-      search: searchValue || undefined,
+      search: searchTerm || undefined,
       reason: advancedFilters.reason || undefined,
       period: !advancedFilters.dateFrom && !advancedFilters.dateTo ? filters.period : undefined,
     };
@@ -291,13 +294,13 @@ export default function ClientInventoryLogsPage() {
             <ClientInventoryLogsTable
               logs={logs}
               isLoading={isLoading}
-              onSearch={handleSearch}
-              onImmediateSearch={handleImmediateSearch}
+              onSearch={setSearchTerm}
+              onImmediateSearch={setSearchTerm}
               onFilterChange={handleFilterChange}
               showFilters={true}
               title="My Inventory Movements"
               description="Track changes to products you manage"
-              searchValue={searchValue}
+              searchValue={searchTerm}
               onResetFilters={resetFilters}
               activeFilters={getActiveFilters()}
               currentFilters={advancedFilters}

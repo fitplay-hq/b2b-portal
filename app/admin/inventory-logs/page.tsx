@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Layout from "@/components/layout";
 import PageGuard from "@/components/page-guard";
 import { InventoryLogsTable } from "@/components/inventory-logs-table";
 import { useInventoryLogs, InventoryLogsFilters } from "@/data/inventory/admin.hooks";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useDebouncedSearch } from "@/hooks/use-debounced-search";
 import { useInventoryExport } from "@/hooks/use-inventory-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +39,7 @@ export default function InventoryLogsPage() {
     sortOrder: "desc",
   });
 
+  const [searchTerm, setSearchTerm] = useState("");
   const [advancedFilters, setAdvancedFilters] = useState({
     dateFrom: "",
     dateTo: "",
@@ -48,25 +48,36 @@ export default function InventoryLogsPage() {
     reason: "",
   });
 
-  // Debounced search hook with 2.5 second delay for automatic search
-  const { searchValue, handleSearch } = useDebouncedSearch((searchTerm: string) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      search: searchTerm || undefined, 
-      page: 1 
-    }));
-  }, 2500); // 2.5 second delay for automatic search
+  // Fetch all logs without search filter (client-side filtering)
+  const { logs: allLogs, pagination, error, isLoading } = useInventoryLogs({
+    ...filters,
+    search: undefined, // Don't filter on server
+  });
 
-  // Immediate search function for Enter key
-  const handleImmediateSearch = (searchTerm: string) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      search: searchTerm || undefined, 
-      page: 1 
-    }));
-  };
+  // Client-side filtering with useMemo for instant search
+  const logs = useMemo(() => {
+    if (!allLogs) return [];
+    
+    let filtered = allLogs;
+    const lowercasedTerm = searchTerm.toLowerCase();
 
-  const { logs, pagination, error, isLoading } = useInventoryLogs(filters);
+    // Apply search filter
+    if (lowercasedTerm) {
+      filtered = filtered.filter(log => {
+        return (
+          log.productName.toLowerCase().includes(lowercasedTerm) ||
+          log.sku.toLowerCase().includes(lowercasedTerm) ||
+          log.reason.toLowerCase().includes(lowercasedTerm) ||
+          log.change.toLowerCase().includes(lowercasedTerm) ||
+          log.currentStock.toString().includes(lowercasedTerm) ||
+          log.remarks.toLowerCase().includes(lowercasedTerm) ||
+          log.user.toLowerCase().includes(lowercasedTerm)
+        );
+      });
+    }
+
+    return filtered;
+  }, [allLogs, searchTerm]);
 
   const handlePageChange = (page: number) => {
     setFilters(prev => ({ ...prev, page }));
@@ -104,21 +115,14 @@ export default function InventoryLogsPage() {
       sku: "",
       reason: "",
     });
-    handleSearch(""); // Clear search as well
+    setSearchTerm(""); // Clear search as well
   };
 
-  // Get active filters for display
+  // Get active filters for display (excluding search)
   const getActiveFilters = () => {
     const activeFilters = [];
     
-    if (searchValue) {
-      activeFilters.push({
-        key: 'search',
-        label: 'Search',
-        value: searchValue,
-        icon: FileText
-      });
-    }
+    // Don't include search in active filters - it's for instant filtering
     
     if (advancedFilters.dateFrom) {
       activeFilters.push({
@@ -169,23 +173,19 @@ export default function InventoryLogsPage() {
   };
 
   const removeFilter = (filterKey: string) => {
-    if (filterKey === 'search') {
-      handleSearch("");
-    } else {
-      // Update advanced filters state
-      const updatedAdvancedFilters = { ...advancedFilters, [filterKey]: '' };
-      setAdvancedFilters(updatedAdvancedFilters);
-      
-      // Update main filters state to trigger API call
-      setFilters(prev => {
-        const newFilters = { ...prev };
-        delete newFilters[filterKey as keyof typeof newFilters];
-        return {
-          ...newFilters,
-          page: 1, // Reset to first page
-        };
-      });
-    }
+    // Update advanced filters state
+    const updatedAdvancedFilters = { ...advancedFilters, [filterKey]: '' };
+    setAdvancedFilters(updatedAdvancedFilters);
+    
+    // Update main filters state to trigger API call
+    setFilters(prev => {
+      const newFilters = { ...prev };
+      delete newFilters[filterKey as keyof typeof newFilters];
+      return {
+        ...newFilters,
+        page: 1, // Reset to first page
+      };
+    });
   };
 
   const handleExport = async (format: 'xlsx' | 'pdf') => {
@@ -193,7 +193,7 @@ export default function InventoryLogsPage() {
     const exportFilters = {
       dateFrom: advancedFilters.dateFrom || undefined,
       dateTo: advancedFilters.dateTo || undefined,
-      search: searchValue || undefined,
+      search: searchTerm || undefined,
       reason: advancedFilters.reason || undefined,
       // The /api/inventoryLogs endpoint uses different filter names than admin hooks
       productId: undefined, // We don't have direct product ID filter in the UI
@@ -343,8 +343,8 @@ export default function InventoryLogsPage() {
               pagination={pagination}
               onPageChange={handlePageChange}
               onSortChange={handleSortChange}
-              onSearch={handleSearch}
-              onImmediateSearch={handleImmediateSearch}
+              onSearch={setSearchTerm}
+              onImmediateSearch={setSearchTerm}
               onFilterChange={handleFilterChange}
               currentSort={{ 
                 sortBy: filters.sortBy || "date", 
@@ -353,7 +353,7 @@ export default function InventoryLogsPage() {
               showFilters={true}
               title="All Inventory Movements"
               description="Track every inventory change across your entire product catalog"
-              searchValue={searchValue}
+              searchValue={searchTerm}
               onResetFilters={resetFilters}
               activeFilters={getActiveFilters()}
               currentFilters={advancedFilters}

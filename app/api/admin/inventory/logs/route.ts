@@ -152,13 +152,17 @@ export async function GET(req: NextRequest) {
     // Apply filters
     let filteredLogs = allLogs;
 
-    // Search filter (searches in product name, SKU, reason)
+    // Search filter (searches in all visible fields)
     if (search) {
       const searchLower = search.toLowerCase();
       filteredLogs = filteredLogs.filter(log => 
         log.productName.toLowerCase().includes(searchLower) ||
         log.sku.toLowerCase().includes(searchLower) ||
-        log.reason.toLowerCase().includes(searchLower)
+        log.reason.toLowerCase().includes(searchLower) ||
+        log.change.toLowerCase().includes(searchLower) ||
+        log.currentStock.toString().includes(searchLower) ||
+        log.remarks.toLowerCase().includes(searchLower) ||
+        log.user.toLowerCase().includes(searchLower)
       );
     }
 
