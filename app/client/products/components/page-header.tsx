@@ -1,4 +1,4 @@
-import { RefreshCw, ShoppingCart, Download, FileSpreadsheet, FileText } from "lucide-react";
+import { RefreshCw, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -6,8 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 
 interface PageHeaderProps {
@@ -19,23 +18,7 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm, selectedCategory }: PageHeaderProps) {
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [previousCount, setPreviousCount] = useState(totalCartItems);
   const [isExporting, setIsExporting] = useState(false);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (totalCartItems > previousCount) {
-      setIsAnimating(true);
-      const timer = setTimeout(() => setIsAnimating(false), 600);
-      return () => clearTimeout(timer);
-    }
-    setPreviousCount(totalCartItems);
-  }, [totalCartItems, previousCount]);
-
-  const handleCartClick = () => {
-    router.push('/client/cart');
-  };
 
   const handleExport = async (format: 'xlsx' | 'pdf') => {
     try {
@@ -127,31 +110,9 @@ export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <button
-          onClick={handleCartClick}
-          className="relative flex items-center gap-3 px-4 py-2 hover:bg-primary/5 rounded-lg transition-colors group"
-        >
-          <div className="relative">
-            <ShoppingCart className={`h-6 w-6 text-primary transition-all duration-300 group-hover:text-primary/80 ${
-              isAnimating ? 'scale-125 animate-bounce' : 'scale-100'
-            }`} />
-            {totalCartItems > 0 && (
-              <div className={`absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg transition-all duration-300 ${
-                isAnimating ? 'scale-125 animate-pulse' : 'scale-100'
-              }`}>
-                {totalCartItems > 99 ? '99+' : totalCartItems}
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col items-start">
-            <span className="font-semibold text-primary group-hover:text-primary/80 transition-colors">
-              {totalCartItems} item{totalCartItems !== 1 ? "s" : ""}
-            </span>
-            <span className="text-xs text-muted-foreground group-hover:text-muted-foreground/80">
-              View Cart
-            </span>
-          </div>
-        </button>
+        <div className="text-sm text-muted-foreground">
+          {totalCartItems} item{totalCartItems !== 1 ? "s" : ""}
+        </div>
       </div>
     </div>
   );

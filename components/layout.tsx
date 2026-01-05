@@ -89,7 +89,8 @@ export default function Layout({ children, isClient }: LayoutProps) {
     router.push('/client/cart');
   };
 
-  const showCartButton = isClient && !pathname?.includes('/cart');
+  // Show cart button on all client pages except cart page itself
+  const showCartButton = (isClient || session?.user?.role === 'CLIENT') && !pathname?.includes('/cart');
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
