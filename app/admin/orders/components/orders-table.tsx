@@ -152,12 +152,18 @@ export function OrdersTable({
                     <span className="text-sm font-medium">
                       {(() => {
                         const regularItems = order.orderItems?.length || 0;
-                        const bundleItems = order.bundleOrderItems?.length || 0;
+                        const bundleOrderItems = order.bundleOrderItems || [];
                         
-                        if (bundleItems > 0 && regularItems > 0) {
-                          return `${regularItems} items + ${bundleItems} bundle items`;
-                        } else if (bundleItems > 0) {
-                          return `${bundleItems} bundle items`;
+                        if (bundleOrderItems.length > 0) {
+                          // Group bundle items by bundle ID to count unique bundles
+                          const uniqueBundles = [...new Set(bundleOrderItems.map(item => item.bundleId))];
+                          const bundleCount = uniqueBundles.length;
+                          
+                          if (regularItems > 0) {
+                            return `${regularItems} items + ${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
+                          } else {
+                            return `${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
+                          }
                         } else {
                           return `${regularItems} items`;
                         }
@@ -172,21 +178,17 @@ export function OrdersTable({
                     ))}
                     {order.bundleOrderItems && order.bundleOrderItems.slice(0, 2)
                       .map((bundleItem, idx) => {
-                        // If bundle has detailed items, show them
-                        if (bundleItem.bundle?.items && bundleItem.bundle.items.length > 0) {
-                          return bundleItem.bundle.items.slice(0, 1).map((item, itemIdx) => (
-                            <div key={`bundle-${idx}-${itemIdx}`}>
-                              {item.product?.name || 'Bundle Product'} (Bundle) x{bundleItem.quantity}
-                            </div>
-                          ));
-                        } else {
-                          // Use the product info directly from bundleOrderItem
-                          return [
-                            <div key={`bundle-simple-${idx}`}>
-                              {bundleItem.product?.name || 'Bundle Item'} (Bundle) x{bundleItem.quantity}
-                            </div>
-                          ];
-                        }
+                        // Get bundle product quantity from the bundle items
+                        const bundleProductQty = bundleItem.bundle?.items?.find(
+                          (item) => item.productId === bundleItem.productId
+                        )?.bundleProductQuantity || 1;
+                        const numberOfBundles = bundleItem.bundle?.numberOfBundles || 1;
+                        
+                        return (
+                          <div key={`bundle-${idx}`}>
+                            {bundleItem.product?.name || 'Bundle Item'} (Bundle): {bundleProductQty} × {numberOfBundles} = {bundleItem.quantity}
+                          </div>
+                        );
                       })}
                     {(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) > 2 && (
                       <div className="text-muted-foreground">

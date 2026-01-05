@@ -46,9 +46,81 @@ export default function ClientOrderHistory() {
     if (!orders) return [];
 
     let filtered: OrderWithItems[] = orders as OrderWithItems[];
+    const lowercasedTerm = searchTerm.toLowerCase();
 
+    // Apply search filter
+    if (lowercasedTerm) {
+      filtered = filtered.filter(order => {
+        // Search by Order ID
+        if (order.id.toLowerCase().includes(lowercasedTerm)) return true;
+        
+        // Search by Order Status
+        if (order.status.toLowerCase().includes(lowercasedTerm)) return true;
+        
+        // Search by Total Amount
+        if (order.totalAmount.toString().includes(lowercasedTerm)) return true;
+        
+        // Search by Order notes
+        if (order.note?.toLowerCase().includes(lowercasedTerm)) return true;
+        
+        // Search by Product names in regular order items
+        if (order.orderItems?.some(item =>
+          item.product?.name?.toLowerCase().includes(lowercasedTerm)
+        )) return true;
+        
+        // Search by Product names in bundle order items
+        if (order.bundleOrderItems?.some(bundleItem => {
+          // Check bundle product name
+          if (bundleItem.product?.name?.toLowerCase().includes(lowercasedTerm)) return true;
+          
+          // Check individual items within the bundle
+          if (bundleItem.bundle?.items?.some(item =>
+            item.product?.name?.toLowerCase().includes(lowercasedTerm)
+          )) return true;
+          
+          return false;
+        })) return true;
+        
+        return false;
+      });
+    }
+
+    // Apply status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter((order) => order.status === statusFilter);
+    }
+
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter((order) => {
+        // Search in order ID
+        if (order.id.toLowerCase().includes(search)) return true;
+        
+        // Search in total amount (order value)
+        if (order.totalAmount?.toString().includes(search)) return true;
+        
+        // Search in consignee details
+        if (order.consigneeName?.toLowerCase().includes(search)) return true;
+        if (order.consigneePhone?.toLowerCase().includes(search)) return true;
+        if (order.consigneeEmail?.toLowerCase().includes(search)) return true;
+        
+        // Search in delivery address fields
+        if (order.deliveryAddress?.toLowerCase().includes(search)) return true;
+        if (order.city?.toLowerCase().includes(search)) return true;
+        if (order.state?.toLowerCase().includes(search)) return true;
+        if (order.pincode?.toLowerCase().includes(search)) return true;
+        
+        // Search in delivery details
+        if (order.deliveryService?.toLowerCase().includes(search)) return true;
+        if (order.modeOfDelivery?.toLowerCase().includes(search)) return true;
+        
+        // Search in order items (product names and SKUs)
+        return order.orderItems?.some((item) => {
+          const productName = item.product?.name?.toLowerCase() || '';
+          const productSku = item.product?.sku?.toLowerCase() || '';
+          return productName.includes(search) || productSku.includes(search);
+        });
+      });
     }
 
     return filtered.sort(
@@ -182,7 +254,7 @@ export default function ClientOrderHistory() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search by product name, or SKU..."
+                    placeholder="Search by order ID, amount, product, address, consignee..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 text-sm"
@@ -197,7 +269,7 @@ export default function ClientOrderHistory() {
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     {Object.keys($Enums.Status).map((status) => (
-                      <SelectItem value={status}>
+                      <SelectItem key={status} value={status}>
                         {formatStatus(status)}
                       </SelectItem>
                     ))}
@@ -252,8 +324,6 @@ export default function ClientOrderHistory() {
           ) : viewType === "table" ? (
             <ClientOrdersTable 
               orders={filteredOrders}
-              expandedOrders={expandedOrders}
-              onToggleOrder={toggleOrderExpansion}
             />
           ) : (
             filteredOrders.map((order) => {
@@ -412,48 +482,38 @@ export default function ClientOrderHistory() {
                                   </div>
                                 </div>
                               ))}
-                              {order.bundleOrderItems && order.bundleOrderItems
-                                .map((bundleItem) => {
-                                  // If bundle has detailed items, show them
-                                  if (bundleItem.bundle?.items && bundleItem.bundle.items.length > 0) {
-                                    return bundleItem.bundle.items.map((item) => (
-                                      <div
-                                        key={`bundle-${bundleItem.id}-${item.id}`}
-                                        className="flex gap-3 rounded-lg border p-3"
-                                      >
-                                        <div className="h-16 w-16 rounded overflow-hidden">
-                                          <ImageWithFallback
-                                            src={item.product?.images?.[0] || ''}
-                                            alt={item.product?.name || 'Bundle Product'}
-                                            className="h-full w-full object-cover"
-                                          />
-                                        </div>
-                                        <div>
-                                          <p className="font-medium">
-                                            {item.product?.name || 'Bundle Product'}
-                                          </p>
-                                          <p className="text-sm text-muted-foreground">
-                                            SKU: {item.product?.sku || 'N/A'}
-                                          </p>
-                                          <p className="text-sm text-muted-foreground">
-                                              Bundle Qty: {Math.floor(bundleItem.quantity / item.bundleProductQuantity)} × Item Qty: {item.bundleProductQuantity}
-                                          </p>
-                                          {item.product?.price && item.product.price > 0 && (
-                                            <p className="text-sm">
-                                              Price: ₹{item.product.price.toFixed(2)}
-                                            </p>
-                                          )}
-                                          <p className="text-xs text-blue-600 font-medium">Bundle</p>
-                                        </div>
+                              {order.bundleOrderItems && order.bundleOrderItems.length > 0 && (() => {
+                                // Group bundleOrderItems by bundle
+                                const bundleGroups = order.bundleOrderItems.reduce((groups: any, bundleItem) => {
+                                  const bundleId = bundleItem.bundleId;
+                                  if (!groups[bundleId]) {
+                                    groups[bundleId] = {
+                                      bundle: bundleItem.bundle,
+                                      items: []
+                                    };
+                                  }
+                                  groups[bundleId].items.push(bundleItem);
+                                  return groups;
+                                }, {});
+
+                                return Object.values(bundleGroups).map((group: any, groupIndex) => {
+                                  const bundleCount = group.items[0]?.bundle?.numberOfBundles || 1;
+                                  return (
+                                    <div key={`bundle-group-${groupIndex}`} className="space-y-3">
+                                      {/* Bundle Header */}
+                                      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                                        <Package className="h-4 w-4 text-blue-600" />
+                                        <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
+                                        <span className="text-xs text-blue-600 ml-auto">
+                                          {group.items.length} item{group.items.length > 1 ? 's' : ''} • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}
+                                        </span>
                                       </div>
-                                    ));
-                                  } else {
-                                    // Use the product info directly from bundleOrderItem
-                                    return [
-                                      <div
-                                        key={`bundle-simple-${bundleItem.id}`}
-                                        className="flex gap-3 rounded-lg border p-3"
-                                      >
+                                    
+                                    {/* Bundle Items */}
+                                    {group.items.map((bundleItem: any, itemIndex: number) => {
+                                      const perBundleQty = bundleCount > 0 ? bundleItem.quantity / bundleCount : bundleItem.quantity;
+                                      return (
+                                      <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex gap-3 rounded-lg border p-3 ml-4">
                                         <div className="h-16 w-16 rounded overflow-hidden">
                                           <ImageWithFallback
                                             src={bundleItem.product?.images?.[0] || ''}
@@ -461,22 +521,28 @@ export default function ClientOrderHistory() {
                                             className="h-full w-full object-cover"
                                           />
                                         </div>
-                                        <div>
+                                        <div className="flex-1">
                                           <p className="font-medium">
-                                            {bundleItem.product?.name || 'Bundle Item'}
+                                            {bundleItem.product?.name || 'Bundle Product'}
                                           </p>
                                           <p className="text-sm text-muted-foreground">
                                             SKU: {bundleItem.product?.sku || 'N/A'}
                                           </p>
-                                          <p className="text-sm text-muted-foreground">
-                                            Qty: {bundleItem.quantity}
+                                          <p className="text-xs text-blue-700 font-medium">
+                                            {perBundleQty} per bundle × {bundleCount} bundles = {bundleItem.quantity} total
                                           </p>
-                                          <p className="text-xs text-blue-600 font-medium">Bundle</p>
+                                          <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
+                                        </div>
+                                        <div className="text-right">
+                                          <p className="text-sm font-medium">Qty: {perBundleQty} each</p>
                                         </div>
                                       </div>
-                                    ];
-                                  }
-                                })}
+                                    );
+                                    })}
+                                    </div>
+                                );
+                              });
+                              })()}
                               {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
                                 <div className="text-center py-8 text-muted-foreground">
                                   <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />

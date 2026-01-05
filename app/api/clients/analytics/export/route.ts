@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        const { searchParams } = new URL(request.url);
+        const { searchParams} = new URL(request.url);
         const exportType = searchParams.get('type') || 'orders';
         const format = searchParams.get('format') || 'xlsx';
         const dateFrom = searchParams.get('dateFrom');
@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
         const clientId = searchParams.get('clientId');
         const status = searchParams.get('status');
         const period = searchParams.get('period') || '30d';
+        const search = searchParams.get('search');
+        const category = searchParams.get('category');
 
         let companyID: string | null = null;
 
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (exportType === 'inventory') {
-            return await exportInventoryData({ session, companyID, format });
+            return await exportInventoryData({ session, companyID, format, search, category });
         }
 
         return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
@@ -186,11 +188,25 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, se
     });
 }
 
-async function exportInventoryData({ session, companyID, format = 'xlsx' }: any) {
+async function exportInventoryData({ session, companyID, format = 'xlsx', search, category }: any) {
     let inventoryWhere: any = {};
 
     if (session.user.role === 'CLIENT' && companyID) {
         inventoryWhere = { companies: { some: { id: companyID } } };
+    }
+
+    // Add search filter
+    if (search && search.trim()) {
+        inventoryWhere.OR = [
+            { name: { contains: search.trim(), mode: 'insensitive' } },
+            { sku: { contains: search.trim(), mode: 'insensitive' } },
+            { brand: { contains: search.trim(), mode: 'insensitive' } }
+        ];
+    }
+
+    // Add category filter
+    if (category && category.trim()) {
+        inventoryWhere.categories = { contains: category.trim(), mode: 'insensitive' };
     }
 
     const products = await prisma.product.findMany({

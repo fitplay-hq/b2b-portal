@@ -108,7 +108,8 @@ export function useAnalytics(apiEndpoint: string = '/api/analytics', filters: An
       // Create a temporary link to download the file
       const response = await fetch(exportUrl);
       if (!response.ok) {
-        throw new Error('Export failed');
+        const errorData = await response.json().catch(() => ({ error: 'Export failed' }));
+        throw new Error(errorData.error || errorData.details || 'Export failed');
       }
 
       const blob = await response.blob();

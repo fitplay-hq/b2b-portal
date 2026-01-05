@@ -1,8 +1,11 @@
 import { ReactNode, useState, useEffect } from "react";
-import { SessionProvider } from "next-auth/react";
 import NavItems from "./nav-items";
 import AccountInfo from "./account-info";
 import { FitplayLogo } from "./fitplay-logo";
+import { ShoppingCart } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useCart } from "@/hooks/use-cart";
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,6 +13,14 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, isClient }: LayoutProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { data: session } = useSession();
+  const userId = session?.user?.id || "1";
+  const { totalCartItems } = useCart(userId);
+  const [isCartAnimating, setIsCartAnimating] = useState(false);
+  const [previousCount, setPreviousCount] = useState(totalCartItems);
+
   // Initialize sidebar state directly from localStorage to prevent flicker
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     // Only access localStorage on client side
@@ -64,10 +75,26 @@ export default function Layout({ children, isClient }: LayoutProps) {
     document.documentElement.style.setProperty('--sidebar-open', sidebarOpen ? '1' : '0');
   }, [sidebarOpen]);
 
+  // Animate cart when items are added
+  useEffect(() => {
+    if (totalCartItems > previousCount) {
+      setIsCartAnimating(true);
+      const timer = setTimeout(() => setIsCartAnimating(false), 600);
+      return () => clearTimeout(timer);
+    }
+    setPreviousCount(totalCartItems);
+  }, [totalCartItems, previousCount]);
+
+  const handleCartClick = () => {
+    router.push('/client/cart');
+  };
+
+  // Show cart button on all client pages except cart page itself
+  const showCartButton = (isClient || session?.user?.role === 'CLIENT') && !pathname?.includes('/cart');
+
   return (
-    <SessionProvider>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        {/* Sidebar Overlay for mobile - positioned to not interfere with content visibility */}
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    {/* Sidebar Overlay for mobile - positioned to not interfere with content visibility */}
         {sidebarOpen && isMobile && (
           <div 
             className="fixed inset-0 bg-transparent z-25"
@@ -153,7 +180,26 @@ export default function Layout({ children, isClient }: LayoutProps) {
               </button>
             </div>
             
-            <div className="flex items-center">
+            <div className="flex items-center gap-4">
+              {showCartButton && (
+                <button
+                  onClick={handleCartClick}
+                  className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="View cart"
+                >
+                  <ShoppingCart className={`h-5 w-5 text-gray-600 transition-all duration-300 ${
+                    isCartAnimating ? 'scale-125 animate-bounce' : 'scale-100'
+                  }`} />
+                  {totalCartItems > 0 && (
+                    <div className={`absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg transition-all duration-300 ${
+                      isCartAnimating ? 'scale-125 animate-pulse' : 'scale-100'
+                    }`}>
+                      {totalCartItems > 99 ? '99+' : totalCartItems}
+                    </div>
+                  )}
+                </button>
+              )}
+              
               <div className="text-sm text-gray-500">
                 {new Date().toLocaleDateString('en-US', { 
                   weekday: 'short', 
@@ -172,6 +218,5 @@ export default function Layout({ children, isClient }: LayoutProps) {
           </main>
         </div>
       </div>
-    </SessionProvider>
   );
 }

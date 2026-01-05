@@ -4,6 +4,31 @@ export type OrderWithItems = Order & {
   orderItems: (OrderItem & {
     product: Pick<Product, 'id' | 'name' | 'images' | 'price'>;
   })[];
+  bundleOrderItems?: Array<{
+    id: string;
+    quantity: number;
+    price: number;
+    bundleId: string;
+    orderId: string;
+    bundle?: {
+      id: string;
+      price: number;
+      items: Array<{
+        id: string;
+        productId: string;
+        bundleProductQuantity: number;
+        price: number;
+        product: {
+          id: string;
+          name: string;
+          images: string[];
+          sku: string;
+          price: number;
+        };
+      }>;
+    };
+  }>;
+  numberOfBundles?: number;
 };
 
 export async function getOrders(url: string) {
@@ -37,6 +62,8 @@ export type CreateOrderData = {
     quantity: number;
     price?: number;
     bundleProductQuantity: number;
+    bundleGroupId?: string;
+    numberOfBundles?: number;
   }>;
   numberOfBundles?: number;
 };

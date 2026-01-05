@@ -52,9 +52,9 @@ export class PermanentPermissionStorage {
       // Store in IndexedDB for larger storage (optional fallback)
       this.storeInIndexedDB(permissionData);
       
-      console.log('[PermanentStorage] Permissions stored for user:', userId);
+      // Permissions stored successfully
     } catch (error) {
-      console.error('[PermanentStorage] Failed to store permissions:', error);
+      // Failed to store permissions
     }
   }
 
@@ -113,7 +113,7 @@ export class PermanentPermissionStorage {
       sessionStorage.removeItem(PERMISSION_STORAGE_KEY);
       this.clearIndexedDB();
     } catch (error) {
-      console.error('[PermanentStorage] Failed to clear permissions:', error);
+      // Failed to clear permissions
     }
   }
 

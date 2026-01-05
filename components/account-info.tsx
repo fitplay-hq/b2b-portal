@@ -26,6 +26,7 @@ const useStableUser = () => {
     email?: string | null;
     role?: string;
     systemRole?: string;
+    companyName?: string;
   } | null>(null);
 
   React.useEffect(() => {

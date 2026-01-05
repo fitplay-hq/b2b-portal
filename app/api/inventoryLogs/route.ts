@@ -100,12 +100,9 @@ export async function GET(request: NextRequest) {
 
                 const reason = reasonText?.replace("Reason:", "").trim() || null;
                 if (reasonFilter && reason !== reasonFilter) continue;
-                if (search && !entry.toLowerCase().includes(search.toLowerCase())) continue;
-
-                const remarks =
-                    remarksText?.replace("Remarks:", "").trim() || null;
-
-
+                
+                const remarks = remarksText?.replace("Remarks:", "").trim() || null;
+                
                 const qtyMatch = actionText.match(/\d+/);
                 const amount = qtyMatch ? parseInt(qtyMatch[0]) : 0;
 
@@ -119,6 +116,26 @@ export async function GET(request: NextRequest) {
                 const explicitFinalStock = stockText
                     ? parseInt(stockText.replace("Updated stock:", "").trim())
                     : null;
+                
+                // Enhanced search - check all visible fields including change amount and final stock
+                if (search) {
+                    const searchLower = search.toLowerCase();
+                    const matchesProductName = product.name?.toLowerCase().includes(searchLower);
+                    const matchesSku = product.sku?.toLowerCase().includes(searchLower);
+                    const matchesAction = actionText.toLowerCase().includes(searchLower);
+                    const matchesReason = reason?.toLowerCase().includes(searchLower);
+                    const matchesRemarks = remarks?.toLowerCase().includes(searchLower);
+                    const matchesTimestamp = timestamp.toLocaleString('en-US').toLowerCase().includes(searchLower);
+                    const matchesChangeAmount = amount.toString().includes(searchLower);
+                    const matchesChangeDirection = changeDirection?.toLowerCase().includes(searchLower);
+                    const matchesFinalStock = explicitFinalStock?.toString().includes(searchLower);
+                    
+                    if (!matchesProductName && !matchesSku && !matchesAction && !matchesReason && 
+                        !matchesRemarks && !matchesTimestamp && !matchesChangeAmount && 
+                        !matchesChangeDirection && !matchesFinalStock) {
+                        continue;
+                    }
+                }
 
                 productLogs.push({
                     productId: product.id,

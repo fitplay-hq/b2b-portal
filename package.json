@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build --turbopack",
+    "build": "prisma generate && next build",
     "seed": "tsx prisma/seed.ts",
     "start": "next start",
     "lint": "eslint",
@@ -26,6 +26,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-email/render": "^2.0.1",
     "@sparticuz/chromium": "^143.0.4",
     "@sparticuz/chromium-min": "^143.0.4",
     "@uploadthing/react": "^7.3.3",

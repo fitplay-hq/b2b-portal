@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ArrowLeft, ExternalLink } from "lucide-react";
+import { Loader2, ArrowLeft, ExternalLink, Package } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { $Enums } from "@/lib/generated/prisma";
@@ -116,7 +116,7 @@ const OrderDetailsPage = () => {
             <div>
               <h3 className="font-semibold mb-2">Order Items</h3>
               <div className="space-y-2">
-                {order.orderItems.map((item) => (
+                {order.orderItems && order.orderItems.map((item) => (
                   <div key={item.id} className="flex items-center">
                     <span className="font-medium">{item.product.name}</span>
                     <span className="text-sm text-muted-foreground ml-2">
@@ -124,6 +124,37 @@ const OrderDetailsPage = () => {
                     </span>
                   </div>
                 ))}
+                {order.bundleOrderItems && order.bundleOrderItems.length > 0 && (() => {
+                  // Group bundleOrderItems by bundle
+                  const bundleGroups = order.bundleOrderItems.reduce((groups: any, bundleItem) => {
+                    const bundleId = bundleItem.bundleId;
+                    if (!groups[bundleId]) {
+                      groups[bundleId] = {
+                        bundle: bundleItem.bundle,
+                        items: []
+                      };
+                    }
+                    groups[bundleId].items.push(bundleItem);
+                    return groups;
+                  }, {});
+
+                  return Object.values(bundleGroups).map((group: any, groupIndex) => (
+                    <div key={`bundle-group-${groupIndex}`} className="space-y-2">
+                      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+                        <Package className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
+                      </div>
+                      {group.items.map((bundleItem: any, itemIndex: number) => (
+                        <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex items-center ml-4">
+                          <span className="font-medium">{bundleItem.product?.name || 'Bundle Product'}</span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            (Qty: {bundleItem.quantity})
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
             <div className="border-t pt-4">
