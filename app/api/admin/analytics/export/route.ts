@@ -66,9 +66,11 @@ export async function GET(request: NextRequest) {
     const isSystemAdmin = session.user.role === 'SYSTEM_USER' &&
       session.user.systemRole &&
       session.user.systemRole.toLowerCase() === 'admin';
+    const isClient = session.user.role === 'CLIENT';
     const hasAdminAccess = isAdmin || isSystemAdmin;
 
-    if (!hasAdminAccess) {
+    // Allow clients to export inventory without permission check
+    if (!hasAdminAccess && !isClient) {
       const userPermissions = session.user.permissions || [];
       if (!hasPermission(userPermissions, RESOURCES.ANALYTICS, PERMISSIONS.EXPORT)) {
         return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -83,6 +85,13 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('clientId');
     const companyId = searchParams.get('companyId');
     const status = searchParams.get('status');
+    const search = searchParams.get('search');
+    const category = searchParams.get('category');
+
+    // Clients can only export inventory, not orders
+    if (isClient && exportType !== 'inventory') {
+      return NextResponse.json({ error: 'Clients can only export inventory' }, { status: 403 });
+    }
 
     console.log('📊 Export parameters:', {
       exportType,
@@ -90,7 +99,9 @@ export async function GET(request: NextRequest) {
       dateTo,
       clientId,
       companyId,
-      status
+      status,
+      search,
+      category
     });
 
     if (exportType === 'orders') {
@@ -98,7 +109,7 @@ export async function GET(request: NextRequest) {
       return await exportOrdersData(dateFrom, dateTo, clientId, companyId, status, format);
     } else if (exportType === 'inventory') {
       console.log('📋 Exporting inventory data...');
-      return await exportInventoryData(companyId, format);
+      return await exportInventoryData(companyId, format, search, category);
     } else {
       console.log('❌ Invalid export type:', exportType);
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
@@ -318,11 +329,32 @@ async function exportOrdersData(
 /**
  * Export inventory data as CSV
  */
-async function exportInventoryData(companyId: string | null, format: string = 'xlsx') {
-  console.log('📋 Starting inventory export with companyId:', companyId);
+async function exportInventoryData(
+  companyId: string | null, 
+  format: string = 'xlsx',
+  search: string | null = null,
+  category: string | null = null
+) {
+  console.log('📋 Starting inventory export with filters:', { companyId, search, category });
+  
   const inventoryFilters: any = {};
+  
   if (companyId) {
     inventoryFilters.companyId = companyId;
+  }
+
+  // Add search filter
+  if (search && search.trim()) {
+    inventoryFilters.OR = [
+      { name: { contains: search.trim(), mode: 'insensitive' } },
+      { sku: { contains: search.trim(), mode: 'insensitive' } },
+      { brand: { contains: search.trim(), mode: 'insensitive' } }
+    ];
+  }
+
+  // Add category filter
+  if (category && category.trim()) {
+    inventoryFilters.categories = { contains: category.trim(), mode: 'insensitive' };
   }
 
   const products = await prisma.product.findMany({

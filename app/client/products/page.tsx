@@ -81,6 +81,8 @@ export default function ClientProductsPage() {
           totalCartItems={totalCartItems} 
           onRefresh={handleRefresh}
           isRefreshing={isLoading}
+          searchTerm={filterProps.searchTerm}
+          selectedCategory={filterProps.selectedCategory}
         />
 
         <ProductFilters

@@ -51,6 +51,21 @@ export default function ClientOrderHistory() {
       filtered = filtered.filter((order) => order.status === statusFilter);
     }
 
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter((order) => {
+        // Search in order ID
+        if (order.id.toLowerCase().includes(search)) return true;
+        
+        // Search in order items (product names and SKUs)
+        return order.orderItems?.some((item) => {
+          const productName = item.product?.name?.toLowerCase() || '';
+          const productSku = item.product?.sku?.toLowerCase() || '';
+          return productName.includes(search) || productSku.includes(search);
+        });
+      });
+    }
+
     return filtered.sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
