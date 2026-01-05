@@ -405,9 +405,11 @@ if (andConditions.length > 0) {
   inventoryFilters.AND = andConditions;
 }
 
-// Category filter
+// Category filter - filter by category name
 if (category && category.trim()) {
-  inventoryFilters.categoryId = category.trim();
+  inventoryFilters.category = {
+    name: category.trim()
+  };
 }
 
 
@@ -429,17 +431,17 @@ if (category && category.trim()) {
   const filteredProducts = products.filter(product => {
     const threshold = product.minStockThreshold;
 
-    if (stockStatus === 'OUT_OF_STOCK') {
+    if (stockStatus === 'out-of-stock') {
       return product.availableStock === 0;
     }
 
-    if (stockStatus === 'LOW_STOCK') {
+    if (stockStatus === 'low-stock') {
       return threshold !== null &&
         product.availableStock > 0 &&
         product.availableStock < threshold;
     }
 
-    if (stockStatus === 'IN_STOCK') {
+    if (stockStatus === 'in-stock') {
       return threshold === null ||
         product.availableStock > threshold;
     }

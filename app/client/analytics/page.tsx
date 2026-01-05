@@ -37,6 +37,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar } from '@/components/ui/calendar';
@@ -116,6 +117,12 @@ export default function ClientAnalyticsPage() {
     period: '30d'
   });
   
+  const [inventoryFilters, setInventoryFilters] = useState({
+    category: undefined as string | undefined,
+    stockStatus: undefined as string | undefined,
+    search: undefined as string | undefined,
+  });
+  
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
@@ -130,7 +137,10 @@ export default function ClientAnalyticsPage() {
 
   const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const { data: analytics, error, isLoading, mutate, exportData } = useAnalytics('/api/clients/analytics', filters);
+  const { data: analytics, error, isLoading, mutate, exportData } = useAnalytics('/api/clients/analytics', {
+    ...filters,
+    ...inventoryFilters
+  });
 
   const applyDateRange = () => {
     if (startDate && endDate) {
@@ -626,6 +636,79 @@ export default function ClientAnalyticsPage() {
 
             {/* Product Insights Tab */}
             <TabsContent value="products" className="space-y-6">
+              {/* Inventory Filters */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Filter className="h-5 w-5" />
+                        Product Filters
+                      </CardTitle>
+                      <CardDescription>Filter products for export</CardDescription>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setInventoryFilters({ category: undefined, stockStatus: undefined, search: undefined })}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Clear
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Category</Label>
+                      <Select
+                        value={inventoryFilters.category || 'all'}
+                        onValueChange={(value) => setInventoryFilters(prev => ({ ...prev, category: value === 'all' ? undefined : value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          <SelectItem value="stationery">Stationery</SelectItem>
+                          <SelectItem value="accessories">Accessories</SelectItem>
+                          <SelectItem value="funAndStickers">Fun & Stickers</SelectItem>
+                          <SelectItem value="drinkware">Drinkware</SelectItem>
+                          <SelectItem value="apparel">Apparel</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Stock Status</Label>
+                      <Select 
+                        value={inventoryFilters.stockStatus || 'all'}
+                        onValueChange={(value) => setInventoryFilters(prev => ({ ...prev, stockStatus: value === 'all' ? undefined : value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Stock Levels</SelectItem>
+                          <SelectItem value="in-stock">In Stock</SelectItem>
+                          <SelectItem value="low-stock">Low Stock</SelectItem>
+                          <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Search Products</Label>
+                      <Input
+                        placeholder="Search by name or SKU"
+                        value={inventoryFilters.search || ''}
+                        onChange={(e) => setInventoryFilters(prev => ({ ...prev, search: e.target.value || undefined }))}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
               {/* Export Buttons for Products */}
               <div className="flex justify-end gap-2">
                 <Button

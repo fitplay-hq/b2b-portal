@@ -25,6 +25,7 @@ export default function ClientProductsPage() {
   const handleClearFilters = () => {
     filterProps.setSearchTerm("");
     filterProps.setSelectedCategory("All Categories");
+    filterProps.setStockStatus("all");
   };
 
   const handleRefresh = async () => {
@@ -83,6 +84,7 @@ export default function ClientProductsPage() {
           isRefreshing={isLoading}
           searchTerm={filterProps.searchTerm}
           selectedCategory={filterProps.selectedCategory}
+          stockStatus={filterProps.stockStatus}
         />
 
         <ProductFilters

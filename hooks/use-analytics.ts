@@ -8,6 +8,12 @@ interface AnalyticsFilters {
   companyId?: string;
   status?: string;
   period?: '7d' | '30d' | '90d';
+  // Inventory filters
+  category?: string;
+  stockStatus?: string;
+  search?: string;
+  productDateFrom?: string;
+  productDateTo?: string;
 }
 
 interface AnalyticsData {
@@ -101,6 +107,13 @@ export function useAnalytics(apiEndpoint: string = '/api/analytics', filters: An
       if (filters.clientId) exportParams.set('clientId', filters.clientId);
       if (filters.companyId) exportParams.set('companyId', filters.companyId);
       if (filters.status) exportParams.set('status', filters.status);
+      
+      // Inventory-specific filters
+      if (filters.category) exportParams.set('category', filters.category);
+      if (filters.stockStatus) exportParams.set('stockStatus', filters.stockStatus);
+      if (filters.search) exportParams.set('search', filters.search);
+      if (filters.productDateFrom) exportParams.set('productDateFrom', filters.productDateFrom);
+      if (filters.productDateTo) exportParams.set('productDateTo', filters.productDateTo);
 
       // Use the client analytics export endpoint
       const exportUrl = `${apiEndpoint}/export?${exportParams.toString()}`;

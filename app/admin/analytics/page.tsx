@@ -69,7 +69,9 @@ export default function AnalyticsPage() {
   const { data, error, isLoading, exportData, refreshData } = useAnalytics('/api/admin/analytics', {
     ...filters,
     dateFrom: dateFrom?.toISOString().split('T')[0],
-    dateTo: dateTo?.toISOString().split('T')[0]
+    dateTo: dateTo?.toISOString().split('T')[0],
+    productDateFrom: dateFrom?.toISOString().split('T')[0],
+    productDateTo: dateTo?.toISOString().split('T')[0]
   });
 
   // Get all orders data without date filtering for accurate pie chart
@@ -668,12 +670,12 @@ export default function AnalyticsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label>Category</Label>
                   <Select
-                    value={filters.status || 'all'}
-                    onValueChange={(value) => handleFilterChange('status', value === 'all' ? undefined : value)}
+                    value={filters.category || 'all'}
+                    onValueChange={(value) => handleFilterChange('category', value === 'all' ? undefined : value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All Categories" />
@@ -691,7 +693,10 @@ export default function AnalyticsPage() {
                 
                 <div className="space-y-2">
                   <Label>Stock Status</Label>
-                  <Select defaultValue="all">
+                  <Select 
+                    value={filters.stockStatus || 'all'}
+                    onValueChange={(value) => handleFilterChange('stockStatus', value === 'all' ? undefined : value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -705,7 +710,16 @@ export default function AnalyticsPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Date From</Label>
+                  <Label>Search Products</Label>
+                  <Input
+                    placeholder="Search by name or SKU"
+                    value={filters.search || ''}
+                    onChange={(e) => handleFilterChange('search', e.target.value || undefined)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Product Created From</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn("w-full justify-start text-left", !dateFrom && "text-muted-foreground")}>
@@ -720,7 +734,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Date To</Label>
+                  <Label>Product Created To</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn("w-full justify-start text-left", !dateTo && "text-muted-foreground")}>

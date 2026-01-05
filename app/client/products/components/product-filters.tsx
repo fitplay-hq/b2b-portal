@@ -31,6 +31,8 @@ interface ProductFiltersProps {
   setSearchTerm: (term: string) => void;
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
+  stockStatus: string;
+  setStockStatus: (status: string) => void;
   sortBy: SortOption | undefined;
   setSortBy: (sortBy: SortOption) => void;
   resultsCount: number;
@@ -83,6 +85,8 @@ export function ProductFilters({
   setSearchTerm,
   selectedCategory,
   setSelectedCategory,
+  stockStatus,
+  setStockStatus,
   sortBy,
   setSortBy,
   resultsCount,
@@ -101,7 +105,7 @@ export function ProductFilters({
         Filter Products
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
@@ -112,6 +116,34 @@ export function ProductFilters({
             className="pl-10"
           />
         </div>
+
+        {/* Category Filter */}
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All Categories">All Categories</SelectItem>
+            {categories?.filter(cat => cat.isActive).map((category) => (
+              <SelectItem key={category.id} value={category.name}>
+                {category.displayName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Stock Status Filter */}
+        <Select value={stockStatus} onValueChange={setStockStatus}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Stock Levels</SelectItem>
+            <SelectItem value="in-stock">In Stock</SelectItem>
+            <SelectItem value="low-stock">Low Stock</SelectItem>
+            <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+          </SelectContent>
+        </Select>
 
         {/* Sort By */}
         <Select value={sortBy} onValueChange={setSortBy}>
@@ -127,21 +159,6 @@ export function ProductFilters({
             <SelectItem value="oldest">Oldest</SelectItem>
             <SelectItem value="latest-update">Latest Update</SelectItem>
             <SelectItem value="name-desc">Name (Z-A)</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Category Filter */}
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All Categories">All Categories</SelectItem>
-            {categories?.filter(cat => cat.isActive).map((category) => (
-              <SelectItem key={category.id} value={category.name}>
-                {category.displayName}
-              </SelectItem>
-            ))}
           </SelectContent>
         </Select>
       </div>

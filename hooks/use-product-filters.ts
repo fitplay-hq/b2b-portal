@@ -6,6 +6,7 @@ export type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "lowes
 export function useProductFilters(products: Product[] = []) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [stockStatus, setStockStatus] = useState("all");
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
 
   const filteredProducts = useMemo(() => {
@@ -30,6 +31,23 @@ export function useProductFilters(products: Product[] = []) {
           return categoryName === selectedCategory;
         }
       );
+    }
+
+    // Filter by stock status
+    if (stockStatus !== "all") {
+      filtered = filtered.filter((product) => {
+        const stock = product.availableStock;
+        const minThreshold = product.minStockThreshold || 0;
+        
+        if (stockStatus === "in-stock") {
+          return stock > minThreshold;
+        } else if (stockStatus === "low-stock") {
+          return stock > 0 && stock <= minThreshold;
+        } else if (stockStatus === "out-of-stock") {
+          return stock === 0;
+        }
+        return true;
+      });
     }
 
     // Apply sorting
@@ -80,13 +98,15 @@ export function useProductFilters(products: Product[] = []) {
     }
 
     return sortedProducts;
-  }, [products, searchTerm, selectedCategory, sortBy]);
+  }, [products, searchTerm, selectedCategory, stockStatus, sortBy]);
 
   return {
     searchTerm,
     setSearchTerm,
     selectedCategory,
     setSelectedCategory,
+    stockStatus,
+    setStockStatus,
     sortBy,
     setSortBy,
     filteredProducts,
