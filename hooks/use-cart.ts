@@ -19,6 +19,33 @@ export function useCart(userId: string | undefined) {
       const storedCart = getStoredData<CartItem[]>(cartKey, []);
       setCartItems(storedCart);
     }
+
+    // Listen for storage changes (when cart is updated in another component or tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === cartKey && e.newValue) {
+        try {
+          const updatedCart = JSON.parse(e.newValue);
+          setCartItems(updatedCart);
+        } catch (error) {
+          console.error('Error parsing cart data:', error);
+        }
+      }
+    };
+
+    // Listen for custom cart update events
+    const handleCartUpdate = (e: CustomEvent) => {
+      if (e.detail?.cartKey === cartKey && e.detail?.cart) {
+        setCartItems(e.detail.cart);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('cartUpdated' as any, handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('cartUpdated' as any, handleCartUpdate);
+    };
   }, [userId, cartKey]);
 
   const addToCart = useCallback((product: Product, quantity: number) => {
@@ -38,6 +65,12 @@ export function useCart(userId: string | undefined) {
 
     setCartItems(updatedCart);
     setStoredData(cartKey, updatedCart);
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { cartKey, cart: updatedCart } 
+    }));
+
     toast.success(`${quantity} x ${product.name} added to cart`, {
       action: {
         label: "Go to Cart",
