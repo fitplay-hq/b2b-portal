@@ -536,7 +536,7 @@ if (category && category.trim()) {
       'Stock Quantity': stockQuantity,
       'Low Stock Threshold': lowThreshold,
       'Unit Price': product.price || 0,
-      'Stock Status': stockStatus,
+      'Stock Status': computedStockStatus,
       'Stock Value': stockValue,
       'Brand': product.brand || '',
       'Created Date': new Date(product.createdAt).toLocaleDateString(),

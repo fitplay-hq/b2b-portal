@@ -158,6 +158,14 @@ export default function ClientAnalyticsPage() {
     productDateTo: filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : undefined
   });
 
+  const handleFilterChange = (key: keyof AnalyticsFilters, value: string | undefined) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleInventoryFilterChange = (key: 'category' | 'stockStatus' | 'search', value: string | undefined) => {
+    setInventoryFilters(prev => ({ ...prev, [key]: value }));
+  };
+
   const applyDateRange = () => {
     if (startDate && endDate) {
       setFilters(prev => ({
@@ -281,7 +289,7 @@ export default function ClientAnalyticsPage() {
                   value={filters.period || 'custom'}
                   onValueChange={(value) => {
                     if (value === 'custom') {
-                      setFilters(prev => ({ ...prev, period: undefined }));
+                      handleFilterChange('period', undefined);
                     } else {
                       setFilters(prev => ({
                         ...prev,
@@ -312,12 +320,7 @@ export default function ClientAnalyticsPage() {
                 <Label className="text-sm font-medium text-gray-700 mb-2 block">Order Status</Label>
                 <Select
                   value={filters.status || 'all'}
-                  onValueChange={(value) => {
-                    setFilters(prev => ({
-                      ...prev,
-                      status: value === 'all' ? undefined : value
-                    }));
-                  }}
+                  onValueChange={(value) => handleFilterChange('status', value === 'all' ? undefined : value)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select status" />
@@ -679,7 +682,7 @@ export default function ClientAnalyticsPage() {
                       <Label>Category</Label>
                       <Select
                         value={inventoryFilters.category || 'all'}
-                        onValueChange={(value) => setInventoryFilters(prev => ({ ...prev, category: value === 'all' ? undefined : value }))}
+                        onValueChange={(value) => handleInventoryFilterChange('category', value === 'all' ? undefined : value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="All Categories" />
@@ -699,7 +702,7 @@ export default function ClientAnalyticsPage() {
                       <Label>Stock Status</Label>
                       <Select 
                         value={inventoryFilters.stockStatus || 'all'}
-                        onValueChange={(value) => setInventoryFilters(prev => ({ ...prev, stockStatus: value === 'all' ? undefined : value }))}
+                        onValueChange={(value) => handleInventoryFilterChange('stockStatus', value === 'all' ? undefined : value)}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -725,10 +728,41 @@ export default function ClientAnalyticsPage() {
                     setExportingInventory('xlsx');
                     try {
                       console.log('Exporting products as Excel...');
-                      const result = await exportData('inventory', 'xlsx');
-                      if (!result.success) {
-                        console.error('Export failed:', result.error);
+                      
+                      // Build query params
+                      const exportParams = new URLSearchParams();
+                      exportParams.set('type', 'inventory');
+                      exportParams.set('format', 'xlsx');
+                      if (inventoryFilters.category) exportParams.set('category', inventoryFilters.category);
+                      if (inventoryFilters.stockStatus) exportParams.set('stockStatus', inventoryFilters.stockStatus);
+                      if (inventoryFilters.search) exportParams.set('search', inventoryFilters.search);
+                      if (filters.dateFrom) exportParams.set('productDateFrom', new Date(filters.dateFrom).toISOString().split('T')[0]);
+                      if (filters.dateTo) exportParams.set('productDateTo', new Date(filters.dateTo).toISOString().split('T')[0]);
+                      
+                      // Call the admin analytics export endpoint
+                      const response = await fetch(`/api/admin/analytics/export?${exportParams.toString()}`);
+                      if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ error: 'Export failed' }));
+                        throw new Error(errorData.error || 'Export failed');
                       }
+
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      
+                      const contentDisposition = response.headers.get('Content-Disposition');
+                      const filename = contentDisposition
+                        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+                        : `products_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+                      
+                      link.download = filename;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(url);
+                    } catch (error) {
+                      console.error('Export failed:', error);
                     } finally {
                       setExportingInventory(null);
                     }
@@ -754,11 +788,42 @@ export default function ClientAnalyticsPage() {
                   onClick={async () => {
                     setExportingInventory('pdf');
                     try {
-                      console.log('Exporting products as PDF...');
-                      const result = await exportData('inventory', 'pdf');
-                      if (!result.success) {
-                        console.error('Export failed:', result.error);
+                      console.log('Exporting products as PDF with images...');
+                      
+                      // Build query params
+                      const exportParams = new URLSearchParams();
+                      exportParams.set('type', 'inventory');
+                      exportParams.set('format', 'pdf');
+                      if (inventoryFilters.category) exportParams.set('category', inventoryFilters.category);
+                      if (inventoryFilters.stockStatus) exportParams.set('stockStatus', inventoryFilters.stockStatus);
+                      if (inventoryFilters.search) exportParams.set('search', inventoryFilters.search);
+                      if (filters.dateFrom) exportParams.set('productDateFrom', new Date(filters.dateFrom).toISOString().split('T')[0]);
+                      if (filters.dateTo) exportParams.set('productDateTo', new Date(filters.dateTo).toISOString().split('T')[0]);
+                      
+                      // Call the admin analytics export endpoint
+                      const response = await fetch(`/api/admin/analytics/export?${exportParams.toString()}`);
+                      if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ error: 'Export failed' }));
+                        throw new Error(errorData.error || 'Export failed');
                       }
+
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      
+                      const contentDisposition = response.headers.get('Content-Disposition');
+                      const filename = contentDisposition
+                        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+                        : `products_export_${new Date().toISOString().split('T')[0]}.pdf`;
+                      
+                      link.download = filename;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(url);
+                    } catch (error) {
+                      console.error('Export failed:', error);
                     } finally {
                       setExportingInventory(null);
                     }

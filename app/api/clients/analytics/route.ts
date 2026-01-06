@@ -118,25 +118,32 @@ export async function GET(request: NextRequest) {
         }
 
         if (session.user.role === 'CLIENT') {
-            inventoryWhere.OR = [
-                // Company products
-                companyId
-                    ? {
-                        companies: {
-                            some: { id: companyId }
-                        }
+            const clientFilters = [];
+            
+            // Company products
+            if (companyId) {
+                clientFilters.push({
+                    companies: {
+                        some: { id: companyId }
                     }
-                    : undefined,
-
-                // Client-specific products
-                {
-                    clients: {
-                        some: {
-                            clientId: session.user.id
-                        }
+                });
+            }
+            
+            // Client-specific products
+            clientFilters.push({
+                clients: {
+                    some: {
+                        clientId: session.user.id
                     }
                 }
-            ].filter(Boolean);
+            });
+            
+            // Only add OR if we have multiple conditions
+            if (clientFilters.length > 1) {
+                inventoryWhere.OR = clientFilters;
+            } else if (clientFilters.length === 1) {
+                Object.assign(inventoryWhere, clientFilters[0]);
+            }
         }
 
 

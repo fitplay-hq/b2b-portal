@@ -14,6 +14,7 @@ interface AnalyticsFilters {
   search?: string;
   productDateFrom?: string;
   productDateTo?: string;
+  sortBy?: string;
 }
 
 interface AnalyticsData {
@@ -84,6 +85,7 @@ export function useAnalytics(apiEndpoint: string = '/api/analytics', filters: An
     if (filters.search) params.set('search', filters.search);
     if (filters.productDateFrom) params.set('productDateFrom', filters.productDateFrom);
     if (filters.productDateTo) params.set('productDateTo', filters.productDateTo);
+    if (filters.sortBy) params.set('sortBy', filters.sortBy);
     
     return params.toString();
   }, [filters]);
@@ -121,6 +123,7 @@ export function useAnalytics(apiEndpoint: string = '/api/analytics', filters: An
       if (filters.search) exportParams.set('search', filters.search);
       if (filters.productDateFrom) exportParams.set('productDateFrom', filters.productDateFrom);
       if (filters.productDateTo) exportParams.set('productDateTo', filters.productDateTo);
+      if (filters.sortBy) exportParams.set('sortBy', filters.sortBy);
 
       // Use the client analytics export endpoint
       const exportUrl = `${apiEndpoint}/export?${exportParams.toString()}`;
