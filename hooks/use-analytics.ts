@@ -78,6 +78,13 @@ export function useAnalytics(apiEndpoint: string = '/api/analytics', filters: An
     if (filters.status) params.set('status', filters.status);
     if (filters.period) params.set('period', filters.period);
     
+    // Inventory-specific filters
+    if (filters.category) params.set('category', filters.category);
+    if (filters.stockStatus) params.set('stockStatus', filters.stockStatus);
+    if (filters.search) params.set('search', filters.search);
+    if (filters.productDateFrom) params.set('productDateFrom', filters.productDateFrom);
+    if (filters.productDateTo) params.set('productDateTo', filters.productDateTo);
+    
     return params.toString();
   }, [filters]);
 

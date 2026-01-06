@@ -16,9 +16,10 @@ interface PageHeaderProps {
   searchTerm?: string;
   selectedCategory?: string;
   stockStatus?: string;
+  sortBy?: string;
 }
 
-export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm, selectedCategory, stockStatus }: PageHeaderProps) {
+export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm, selectedCategory, stockStatus, sortBy }: PageHeaderProps) {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async (format: 'xlsx' | 'pdf') => {
@@ -42,6 +43,10 @@ export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm
       
       if (stockStatus && stockStatus !== 'all') {
         params.append('stockStatus', stockStatus);
+      }
+      
+      if (sortBy) {
+        params.append('sortBy', sortBy);
       }
 
       const response = await fetch(`/api/admin/analytics/export?${params.toString()}`);

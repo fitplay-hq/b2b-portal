@@ -54,8 +54,16 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Layout from '@/components/layout';
 import { usePermissions } from '@/hooks/use-permissions';
+import useSWR from 'swr';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
+
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch');
+  const data = await res.json();
+  return data.success ? data.data : [];
+};
 
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();
@@ -66,6 +74,12 @@ export default function AnalyticsPage() {
   });
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+
+  // Fetch categories from database
+  const { data: categories } = useSWR('/api/admin/categories', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000,
+  });
 
   const { data, error, isLoading, exportData, refreshData } = useAnalytics('/api/admin/analytics', {
     ...filters,
@@ -683,11 +697,11 @@ export default function AnalyticsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="stationery">Stationery</SelectItem>
-                      <SelectItem value="accessories">Accessories</SelectItem>
-                      <SelectItem value="funAndStickers">Fun & Stickers</SelectItem>
-                      <SelectItem value="drinkware">Drinkware</SelectItem>
-                      <SelectItem value="apparel">Apparel</SelectItem>
+                      {categories?.filter((cat: any) => cat.isActive).map((category: any) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          {category.displayName}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

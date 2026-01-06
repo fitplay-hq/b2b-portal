@@ -111,6 +111,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const category = searchParams.get('category');
     const stockStatus = searchParams.get('stockStatus');
+    const sortBy = searchParams.get('sortBy');
+    const productDateFrom = searchParams.get('productDateFrom');
+    const productDateTo = searchParams.get('productDateTo');
 
 
     // For CLIENT users, use their company ID
@@ -138,7 +141,10 @@ export async function GET(request: NextRequest) {
       return await exportOrdersData(dateFrom, dateTo, clientId, companyId, status, format);
     } else if (exportType === 'inventory') {
       console.log('📋 Exporting inventory data...');
-      return await exportInventoryData(companyId, format, search, session, category, dateFrom, dateTo, stockStatus);
+      // Use productDateFrom/productDateTo if available, otherwise fall back to dateFrom/dateTo
+      const inventoryDateFrom = productDateFrom || dateFrom;
+      const inventoryDateTo = productDateTo || dateTo;
+      return await exportInventoryData(companyId, format, search, session, category, inventoryDateFrom, inventoryDateTo, stockStatus, sortBy);
     } else {
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
     }
@@ -358,9 +364,10 @@ async function exportInventoryData(
   category: string | null = null,
   dateFrom: string | null = null,
   dateTo: string | null = null,
-  stockStatus: string | null = null
+  stockStatus: string | null = null,
+  sortBy: string | null = null
 ) {
-  console.log('📋 Starting inventory export with filters:', { companyId, search, category });
+  console.log('📋 Starting inventory export with filters:', { companyId, search, category, sortBy });
 
   const dateFilter: any = {};
   if (dateFrom) dateFilter.gte = new Date(dateFrom);
@@ -449,13 +456,55 @@ if (category && category.trim()) {
     return true;
   });
 
+  // Apply sorting based on sortBy parameter
+  let sortedProducts = [...filteredProducts];
+  
+  if (sortBy) {
+    switch (sortBy) {
+      case "name-asc":
+        sortedProducts.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+        break;
+      case "name-desc":
+        sortedProducts.sort((a, b) => b.name.toLowerCase().localeCompare(a.name.toLowerCase()));
+        break;
+      case "newest":
+        sortedProducts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case "oldest":
+        sortedProducts.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        break;
+      case "lowest-stock":
+        sortedProducts.sort((a, b) => a.availableStock - b.availableStock);
+        break;
+      case "highest-stock":
+        sortedProducts.sort((a, b) => b.availableStock - a.availableStock);
+        break;
+      case "latest-update":
+        sortedProducts.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        break;
+      case "category":
+        sortedProducts.sort((a, b) => {
+          const categoryA = a.category?.displayName || "";
+          const categoryB = b.category?.displayName || "";
+          if (categoryA === categoryB) {
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+          }
+          return categoryA.localeCompare(categoryB);
+        });
+        break;
+      default:
+        // Default to name ascending if sortBy is not recognized
+        sortedProducts.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    }
+  }
+
 
 
   // Generate Excel workbook
   const workbook = XLSX.utils.book_new();
 
   // Prepare data for Excel
-  const excelData = filteredProducts.map(product => {
+  const excelData = sortedProducts.map(product => {
     const stockQuantity = product.availableStock;
     const lowThreshold = product.minStockThreshold || 0;
     const computedStockStatus = stockQuantity === 0
@@ -569,7 +618,7 @@ if (category && category.trim()) {
         </tr>
       </thead>
       <tbody>
-        ${filteredProducts.map(p => `
+        ${sortedProducts.map(p => `
           <tr>
             <td><img src="${Array.isArray(p.images) ? p.images[0] : ''}" /></td>
             <td>${p.name}</td>
@@ -587,7 +636,7 @@ if (category && category.trim()) {
 
   if (format === 'pdf') {
     try {
-      const html = generateInventoryHTML(filteredProducts);
+      const html = generateInventoryHTML(sortedProducts);
 
       const puppeteer = await import("puppeteer-core");
       let executablePath: string;

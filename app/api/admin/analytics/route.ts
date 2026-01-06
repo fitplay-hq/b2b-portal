@@ -44,9 +44,8 @@ export async function GET(request: NextRequest) {
     const companyId = searchParams.get('companyId');
     const status = searchParams.get('status');
     const period = searchParams.get('period') || '30d'; // Default to 30 days
-    const inventoryCategoryId = searchParams.get('categoryId');
-    const stockStatus = searchParams.get('stockStatus');
-    // IN_STOCK | LOW_STOCK | OUT_OF_STOCK
+    const categoryName = searchParams.get('category'); // Category name from filter
+    const stockStatus = searchParams.get('stockStatus'); // kebab-case: in-stock, low-stock, out-of-stock
 
 
     // Build date filter
@@ -103,47 +102,20 @@ export async function GET(request: NextRequest) {
 
     const inventoryFilters: any = {};
 
-    // Category filter (ProductCategory)
-    if (inventoryCategoryId) {
-      inventoryFilters.categoryId = inventoryCategoryId;
+    // Category filter by name
+    if (categoryName) {
+      inventoryFilters.category = {
+        name: categoryName
+      };
     }
 
     // Date filter (createdAt)
-    inventoryFilters.createdAt = dateFilter;
-
-    // Stock status filter
-    if (stockStatus === 'OUT_OF_STOCK') {
-      inventoryFilters.availableStock = 0;
+    if (Object.keys(dateFilter).length > 0) {
+      inventoryFilters.createdAt = dateFilter;
     }
-
-    if (stockStatus === 'LOW_STOCK') {
-      inventoryFilters.AND = [
-        { minStockThreshold: { not: null } },
-        { availableStock: { gt: 0 } },
-        { availableStock: { lt: prisma.product.fields.minStockThreshold } },
-      ];
-    }
-
-    if (stockStatus === 'IN_STOCK') {
-      inventoryFilters.OR = [
-        {
-          minStockThreshold: null,
-        },
-        {
-          availableStock: {
-            gt: prisma.product.fields.minStockThreshold,
-          },
-        },
-      ];
-    }
-
-
 
     const inventory = await prisma.product.findMany({
-      where: {
-        categoryId: inventoryCategoryId || undefined,
-        createdAt: dateFilter,
-      },
+      where: inventoryFilters,
       include: {
         category: {
           select: {
@@ -164,20 +136,21 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Filter by stock status after fetching (since it requires calculation)
     const filteredInventory = inventory.filter(product => {
       const threshold = product.minStockThreshold;
 
-      if (stockStatus === 'OUT_OF_STOCK') {
+      if (stockStatus === 'out-of-stock') {
         return product.availableStock === 0;
       }
 
-      if (stockStatus === 'LOW_STOCK') {
+      if (stockStatus === 'low-stock') {
         return threshold !== null &&
           product.availableStock > 0 &&
           product.availableStock < threshold;
       }
 
-      if (stockStatus === 'IN_STOCK') {
+      if (stockStatus === 'in-stock') {
         return threshold === null ||
           product.availableStock > threshold;
       }
@@ -199,8 +172,8 @@ export async function GET(request: NextRequest) {
         averageOrderValue: orders.length > 0
           ? orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0) / orders.length
           : 0,
-        totalProducts: inventory.length,
-        lowStockProducts: inventory.filter(p => p.minStockThreshold ? p.availableStock < p.minStockThreshold : false).length,
+        totalProducts: filteredInventory.length,
+        lowStockProducts: filteredInventory.filter(p => p.minStockThreshold ? p.availableStock < p.minStockThreshold : false).length,
       },
 
       inventoryStatus: {
@@ -254,7 +227,7 @@ export async function GET(request: NextRequest) {
           createdAt: order.createdAt,
           itemCount: order.orderItems?.length || 0,
         })),
-        inventory: inventory.map(product => ({
+        inventory: filteredInventory.map(product => ({
           id: product.id,
           name: product.name,
           category: product.categories,

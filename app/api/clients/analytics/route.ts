@@ -30,9 +30,8 @@ export async function GET(request: NextRequest) {
         const clientId = searchParams.get('clientId');
         const status = searchParams.get('status');
         const period = searchParams.get('period') || '30d'; // Default to 30 days
-        const inventoryCategoryId = searchParams.get('categoryId');
-        const stockStatus = searchParams.get('stockStatus');
-        // IN_STOCK | LOW_STOCK | OUT_OF_STOCK
+        const categoryName = searchParams.get('category'); // Category name from filter
+        const stockStatus = searchParams.get('stockStatus'); // kebab-case: in-stock, low-stock, out-of-stock
 
 
         let companyId;
@@ -104,12 +103,18 @@ export async function GET(request: NextRequest) {
         // console.log('Analytics API Debug:', { orderCount: orders.length, dateFilter });
 
         // Get inventory data
-        const inventoryWhere: any = {
-            createdAt: dateFilter,
-        };
+        const inventoryWhere: any = {};
 
-        if (inventoryCategoryId) {
-            inventoryWhere.categoryId = inventoryCategoryId;
+        // Date filter
+        if (Object.keys(dateFilter).length > 0) {
+            inventoryWhere.createdAt = dateFilter;
+        }
+
+        // Category filter by name
+        if (categoryName) {
+            inventoryWhere.category = {
+                name: categoryName
+            };
         }
 
         if (session.user.role === 'CLIENT') {
@@ -151,17 +156,17 @@ export async function GET(request: NextRequest) {
         const filteredInventory = inventory.filter(product => {
             const threshold = product.minStockThreshold;
 
-            if (stockStatus === 'OUT_OF_STOCK') {
+            if (stockStatus === 'out-of-stock') {
                 return product.availableStock === 0;
             }
 
-            if (stockStatus === 'LOW_STOCK') {
+            if (stockStatus === 'low-stock') {
                 return threshold !== null &&
                     product.availableStock > 0 &&
                     product.availableStock < threshold;
             }
 
-            if (stockStatus === 'IN_STOCK') {
+            if (stockStatus === 'in-stock') {
                 return threshold === null ||
                     product.availableStock > threshold;
             }

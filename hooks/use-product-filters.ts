@@ -87,8 +87,9 @@ export function useProductFilters(products: Product[] = []) {
         break;
       case "category":
         sortedProducts = sortedProducts.sort((a, b) => {
-          const categoryA = a.categories || "";
-          const categoryB = b.categories || "";
+          // Use the new category relation (category.displayName) or fallback to old enum field
+          const categoryA = (a as any).category?.displayName || a.categories || "";
+          const categoryB = (b as any).category?.displayName || b.categories || "";
           if (categoryA === categoryB) {
             return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
           }

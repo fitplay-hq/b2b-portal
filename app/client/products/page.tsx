@@ -85,6 +85,7 @@ export default function ClientProductsPage() {
           searchTerm={filterProps.searchTerm}
           selectedCategory={filterProps.selectedCategory}
           stockStatus={filterProps.stockStatus}
+          sortBy={filterProps.sortBy}
         />
 
         <ProductFilters
