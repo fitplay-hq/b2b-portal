@@ -671,7 +671,7 @@ export default function AnalyticsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Category</Label>
                   <Select
@@ -708,15 +708,6 @@ export default function AnalyticsPage() {
                       <SelectItem value="out-of-stock">Out of Stock</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Search Products</Label>
-                  <Input
-                    placeholder="Search by name or SKU"
-                    value={filters.search || ''}
-                    onChange={(e) => handleFilterChange('search', e.target.value || undefined)}
-                  />
                 </div>
                 
                 <div className="space-y-2">
