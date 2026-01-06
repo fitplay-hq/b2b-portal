@@ -151,6 +151,12 @@ export default function ClientAnalyticsPage() {
     dedupingInterval: 30000,
   });
 
+  // Fetch order statuses from database
+  const { data: orderStatuses } = useSWR('/api/order-statuses', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000,
+  });
+
   const { data: analytics, error, isLoading, mutate, exportData } = useAnalytics('/api/clients/analytics', {
     ...filters,
     ...inventoryFilters,
@@ -327,11 +333,11 @@ export default function ClientAnalyticsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="APPROVED">Approved</SelectItem>
-                    <SelectItem value="DELIVERED">Delivered</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                    {orderStatuses?.map((status: string) => (
+                      <SelectItem key={status} value={status}>
+                        {status.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

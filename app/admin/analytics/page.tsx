@@ -323,9 +323,11 @@ export default function AnalyticsPage() {
                     <SelectContent>
                       <SelectItem value="all">All Statuses</SelectItem>
                       <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                      <SelectItem value="APPROVED">Approved</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
                       <SelectItem value="READY_FOR_DISPATCH">Ready for Dispatch</SelectItem>  
                       <SelectItem value="DISPATCHED">Dispatched</SelectItem>
+                      <SelectItem value="AT_DESTINATION">At Destination</SelectItem>
                       <SelectItem value="DELIVERED">Delivered</SelectItem>
                     </SelectContent>
                   </Select>
