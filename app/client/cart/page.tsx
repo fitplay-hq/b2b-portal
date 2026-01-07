@@ -769,7 +769,7 @@ export default function ClientCart() {
                                 </Button>
                                 <Input
                                   type="number"
-                                  value={cartInputValues[item.cartItemId || item.product.id] ?? item.quantity}
+                                  value={cartInputValues[item.cartItemId || item.product.id] !== undefined ? cartInputValues[item.cartItemId || item.product.id] : item.quantity}
                                   onChange={(e) => handleCartQuantityChange(item, e.target.value)}
                                   onBlur={() => validateCartQuantity(item)}
                                   onKeyDown={(e) => {
@@ -892,7 +892,7 @@ export default function ClientCart() {
                                       </Button>
                                       <Input
                                         type="number"
-                                        value={cartInputValues[item.cartItemId || item.product.id] ?? item.quantity}
+                                        value={cartInputValues[item.cartItemId || item.product.id] !== undefined ? cartInputValues[item.cartItemId || item.product.id] : item.quantity}
                                         onChange={(e) => handleCartQuantityChange(item, e.target.value)}
                                         onBlur={() => validateCartQuantity(item)}
                                         onKeyDown={(e) => {
