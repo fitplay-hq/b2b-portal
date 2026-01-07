@@ -15,17 +15,18 @@ interface PageHeaderProps {
   isRefreshing?: boolean;
   searchTerm?: string;
   selectedCategory?: string;
+  selectedSubCategory?: string;
   stockStatus?: string;
   sortBy?: string;
 }
 
-export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm, selectedCategory, stockStatus, sortBy }: PageHeaderProps) {
+export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm, selectedCategory, selectedSubCategory, stockStatus, sortBy }: PageHeaderProps) {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async (format: 'xlsx' | 'pdf') => {
     try {
       setIsExporting(true);
-      toast.info(`Preparing ${format.toUpperCase()} export...`);
+      const loadingToast = toast.loading(`Preparing ${format.toUpperCase()} export... Please wait while we generate your file`);
 
       // Build query params with filters
       const params = new URLSearchParams({
@@ -39,6 +40,10 @@ export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm
       
       if (selectedCategory && selectedCategory !== 'All Categories') {
         params.append('category', selectedCategory);
+      }
+      
+      if (selectedSubCategory && selectedSubCategory !== 'All SubCategories') {
+        params.append('subCategory', selectedSubCategory);
       }
       
       if (stockStatus && stockStatus !== 'all') {
@@ -65,10 +70,12 @@ export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success(`${format.toUpperCase()} exported successfully!`);
+      toast.dismiss(loadingToast);
+      toast.success(`${format.toUpperCase()} file downloaded successfully!`);
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('Failed to export data');
+      toast.dismiss(loadingToast);
+      toast.error('Failed to export data. Please try again or contact support.');
     } finally {
       setIsExporting(false);
     }

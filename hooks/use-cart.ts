@@ -84,6 +84,64 @@ export function useCart(userId: string | undefined) {
     return cartItems.find(item => item.product.id === productId)?.quantity || 0;
   }, [cartItems]);
 
+  const updateQuantity = useCallback((productId: string, newQuantity: number) => {
+    if (!userId) {
+      toast.error("You must be logged in to update cart items.");
+      return;
+    }
+
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+
+    const updatedCart = cartItems.map(item => 
+      item.product.id === productId 
+        ? { ...item, quantity: newQuantity }
+        : item
+    );
+
+    setCartItems(updatedCart);
+    setStoredData(cartKey, updatedCart);
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { cartKey, cart: updatedCart } 
+    }));
+  }, [cartItems, userId, cartKey]);
+
+  const removeFromCart = useCallback((productId: string) => {
+    if (!userId) {
+      toast.error("You must be logged in to remove cart items.");
+      return;
+    }
+
+    const updatedCart = cartItems.filter(item => item.product.id !== productId);
+    setCartItems(updatedCart);
+    setStoredData(cartKey, updatedCart);
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { cartKey, cart: updatedCart } 
+    }));
+
+    toast.success("Item removed from cart");
+  }, [cartItems, userId, cartKey]);
+
+  const incrementQuantity = useCallback((productId: string) => {
+    const currentQuantity = getCartQuantity(productId);
+    updateQuantity(productId, currentQuantity + 1);
+  }, [getCartQuantity, updateQuantity]);
+
+  const decrementQuantity = useCallback((productId: string) => {
+    const currentQuantity = getCartQuantity(productId);
+    if (currentQuantity > 1) {
+      updateQuantity(productId, currentQuantity - 1);
+    } else {
+      removeFromCart(productId);
+    }
+  }, [getCartQuantity, updateQuantity, removeFromCart]);
+
   const totalCartItems = useMemo(() => {
     return cartItems.reduce((sum, item) => sum + item.quantity, 0);
   }, [cartItems]);
@@ -91,6 +149,10 @@ export function useCart(userId: string | undefined) {
   return {
     cartItems,
     addToCart,
+    updateQuantity,
+    removeFromCart,
+    incrementQuantity,
+    decrementQuantity,
     getCartQuantity,
     totalCartItems,
   };

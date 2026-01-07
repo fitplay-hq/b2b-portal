@@ -8,7 +8,7 @@ import {
 import { ImageWithFallback } from "@/components/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Minus, Plus } from "lucide-react";
 import { $Enums } from "@/lib/generated/prisma";
 
 // Function to convert enum values to human-friendly names
@@ -44,12 +44,16 @@ interface ProductCardProps {
   product: Product;
   cartQuantity: number;
   onAddToCartClick: (product: Product) => void;
+  onIncrementQuantity?: (productId: string) => void;
+  onDecrementQuantity?: (productId: string) => void;
 }
 
 export function ProductCard({
   product,
   cartQuantity,
   onAddToCartClick,
+  onIncrementQuantity,
+  onDecrementQuantity,
 }: ProductCardProps) {
   const isInStock = product.availableStock > 0;
 
@@ -74,8 +78,9 @@ export function ProductCard({
               <span className="block truncate" title={product.name}>{product.name}</span>
             </CardTitle>
             <Badge variant="secondary" className="text-xs w-fit mb-1">
-              {getHumanFriendlyCategoryName(product.categories && product.categories[0]
-                ? product.categories[0]
+              {(product as any).category?.displayName || 
+               getHumanFriendlyCategoryName(product.categories && product.categories[0]
+                ? product.categories
                 : "Uncategorized")}
             </Badge>
           </div>
@@ -103,15 +108,36 @@ export function ProductCard({
         </div>
       </CardContent>
       <CardFooter className="p-3 pt-0">
-        <Button
-          onClick={() => onAddToCartClick(product)}
-          disabled={!isInStock}
-          className="w-full text-sm h-8"
-          size="sm"
-        >
-          <ShoppingCart className="h-3 w-3 mr-2" />
-          {isInStock ? "Add to Cart" : "Out of Stock"}
-        </Button>
+        {cartQuantity > 0 ? (
+          <div className="w-full border rounded-md overflow-hidden flex items-stretch">
+            <button
+              onClick={() => onDecrementQuantity?.(product.id)}
+              className="flex-1 py-2 hover:bg-muted transition-colors border-r flex items-center justify-center"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <div className="flex-1 py-2 flex items-center justify-center font-semibold text-sm border-r">
+              {cartQuantity}
+            </div>
+            <button
+              onClick={() => onIncrementQuantity?.(product.id)}
+              disabled={!isInStock}
+              className="flex-1 py-2 hover:bg-muted transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <Button
+            onClick={() => onAddToCartClick(product)}
+            disabled={!isInStock}
+            className="w-full text-sm h-8"
+            size="sm"
+          >
+            <ShoppingCart className="h-3 w-3 mr-2" />
+            {isInStock ? "Add to Cart" : "Out of Stock"}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
