@@ -40,6 +40,7 @@ export default function ClientCart() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartInputValues, setCartInputValues] = useState<{[key: string]: string}>({});
 
   // Bundle-related state
   const [showBundleDialog, setShowBundleDialog] = useState(false);
@@ -50,7 +51,9 @@ export default function ClientCart() {
   // New inline bundle state
   const [selectedForBundle, setSelectedForBundle] = useState<Set<string>>(new Set());
   const [bundleQuantities, setBundleQuantities] = useState<{[productId: string]: number}>({});
+  const [bundleInputValues, setBundleInputValues] = useState<{[productId: string]: string}>({});
   const [inlineBundleCount, setInlineBundleCount] = useState(1);
+  const [bundleCountInputValue, setBundleCountInputValue] = useState("1");
 
   const { products, isLoading: isProductsLoading } = useProducts();
 
@@ -60,6 +63,14 @@ export default function ClientCart() {
       []
     );
     setCartItems(cart);
+    
+    // Initialize input values
+    const inputValues: {[key: string]: string} = {};
+    cart.forEach(item => {
+      const key = item.cartItemId || item.product.id;
+      inputValues[key] = item.quantity.toString();
+    });
+    setCartInputValues(inputValues);
   }, [session?.user?.id]);
   
   // Clean up bundle selections when cart changes
@@ -93,6 +104,76 @@ export default function ClientCart() {
   const updateCart = (updatedCart: CartItem[]) => {
     setCartItems(updatedCart);
     setStoredData(`fitplay_cart_${session?.user?.id}`, updatedCart);
+    
+    // Update input values for the updated cart
+    const inputValues: {[key: string]: string} = {};
+    updatedCart.forEach(item => {
+      const key = item.cartItemId || item.product.id;
+      inputValues[key] = item.quantity.toString();
+    });
+    setCartInputValues(inputValues);
+    
+    // Dispatch event to update cart count in header
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { 
+        cartKey: `fitplay_cart_${session?.user?.id}`, 
+        cart: updatedCart 
+      } 
+    }));
+  };
+  
+  const handleCartQuantityChange = (item: CartItem, value: string) => {
+    const key = item.cartItemId || item.product.id;
+    setCartInputValues(prev => ({ ...prev, [key]: value }));
+    
+    // Update cart if valid number
+    if (value === '' || value === '0') {
+      return; // Don't update cart yet
+    }
+    
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      const clampedValue = Math.min(numValue, item.product.availableStock);
+      
+      const updatedCart = cartItems.map((i) => {
+        if (item.cartItemId && i.cartItemId === item.cartItemId) {
+          return { ...i, quantity: clampedValue };
+        } else if (!item.cartItemId && !i.cartItemId && i.product.id === item.product.id) {
+          return { ...i, quantity: clampedValue };
+        }
+        return i;
+      });
+      setCartItems(updatedCart);
+      
+      // Show toast if exceeded
+      if (numValue > item.product.availableStock) {
+        toast.error(`Only ${item.product.availableStock} available for ${item.product.name}`);
+      }
+    }
+  };
+  
+  const validateCartQuantity = (item: CartItem) => {
+    const key = item.cartItemId || item.product.id;
+    const inputValue = cartInputValues[key] || "1";
+    const numValue = parseInt(inputValue) || 1;
+    const clampedValue = Math.max(1, Math.min(numValue, item.product.availableStock));
+    updateQuantity(item.product.id, clampedValue, item.cartItemId);
+  };
+  
+  const isCartQuantityValid = (item: CartItem) => {
+    const key = item.cartItemId || item.product.id;
+    const inputValue = cartInputValues[key];
+    if (!inputValue) return false;
+    const numValue = parseInt(inputValue);
+    return !isNaN(numValue) && numValue > 0 && numValue <= item.product.availableStock;
+  };
+  
+  const canProceedToCheckout = () => {
+    // Check if all cart items have valid quantities
+    for (const item of cartItems) {
+      if (!isCartQuantityValid(item)) return false;
+    }
+    return cartItems.length > 0;
   };
 
   const updateQuantity = (productId: string, newQuantity: number, cartItemId?: string) => {
@@ -101,20 +182,38 @@ export default function ClientCart() {
       return;
     }
 
+    // Find the item to check available stock
+    const targetItem = cartItems.find(item => {
+      if (cartItemId && item.cartItemId) {
+        return item.cartItemId === cartItemId;
+      } else if (!item.cartItemId) {
+        return item.product.id === productId;
+      }
+      return false;
+    });
+
+    if (targetItem && newQuantity > targetItem.product.availableStock) {
+      toast.error(`Not enough stock available!`, {
+        description: `Only ${targetItem.product.availableStock} items available for ${targetItem.product.name}`
+      });
+      // Set to max available
+      newQuantity = targetItem.product.availableStock;
+    }
+
     const updatedCart = cartItems.map((item) => {
       // If cartItemId is provided (for bundle items), match by cartItemId
       if (cartItemId && item.cartItemId) {
         if (item.cartItemId === cartItemId) {
           return {
             ...item,
-            quantity: Math.min(newQuantity, item.product.availableStock),
+            quantity: newQuantity,
           };
         }
       } else if (!item.cartItemId && item.product.id === productId) {
         // For individual items (no cartItemId), match by productId
         return {
           ...item,
-          quantity: Math.min(newQuantity, item.product.availableStock),
+          quantity: newQuantity,
         };
       }
       return item;
@@ -217,9 +316,10 @@ export default function ClientCart() {
     const newSelected = new Set(selectedForBundle);
     if (selected) {
       newSelected.add(productId);
-      // Set default bundle quantity to current cart quantity
+      // Set default bundle quantity to 1
       if (cartItem) {
-        setBundleQuantities(prev => ({ ...prev, [productId]: cartItem.quantity }));
+        setBundleQuantities(prev => ({ ...prev, [productId]: 1 }));
+        setBundleInputValues(prev => ({ ...prev, [productId]: "1" }));
       }
     } else {
       newSelected.delete(productId);
@@ -228,12 +328,88 @@ export default function ClientCart() {
         delete updated[productId];
         return updated;
       });
+      setBundleInputValues(prev => {
+        const updated = { ...prev };
+        delete updated[productId];
+        return updated;
+      });
     }
     setSelectedForBundle(newSelected);
   };
   
-  const handleBundleQuantityChange = (productId: string, quantity: number) => {
-    setBundleQuantities(prev => ({ ...prev, [productId]: Math.max(1, quantity) }));
+  const handleBundleQuantityChange = (productId: string, value: string) => {
+    setBundleInputValues(prev => ({ ...prev, [productId]: value }));
+    
+    // Update quantity if valid number
+    if (value === '' || value === '0') {
+      return; // Don't update quantity yet
+    }
+    
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      const item = cartItems.find(item => item.product.id === productId && !item.isBundleItem);
+      const clampedValue = Math.min(numValue, item?.quantity || 1);
+      setBundleQuantities(prev => ({ ...prev, [productId]: clampedValue }));
+      
+      // Show toast if exceeded
+      if (item && numValue > item.quantity) {
+        toast.error(`Only ${item.quantity} available in cart for ${item.product.name}`);
+      }
+    }
+  };
+  
+  const validateBundleQuantity = (productId: string) => {
+    const item = cartItems.find(item => item.product.id === productId && !item.isBundleItem);
+    const inputValue = bundleInputValues[productId] || "1";
+    const numValue = parseInt(inputValue) || 1;
+    const clampedValue = Math.max(1, Math.min(numValue, item?.quantity || 1));
+    setBundleQuantities(prev => ({ ...prev, [productId]: clampedValue }));
+    setBundleInputValues(prev => ({ ...prev, [productId]: clampedValue.toString() }));
+  };
+  
+  const isBundleQuantityValid = (productId: string) => {
+    const item = cartItems.find(item => item.product.id === productId && !item.isBundleItem);
+    const inputValue = bundleInputValues[productId];
+    if (!inputValue) return false;
+    const numValue = parseInt(inputValue);
+    return !isNaN(numValue) && numValue > 0 && numValue <= (item?.quantity || 0);
+  };
+  
+  const handleBundleCountChange = (value: string) => {
+    setBundleCountInputValue(value);
+    
+    if (value === '' || value === '0') {
+      return;
+    }
+    
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      setInlineBundleCount(numValue);
+    }
+  };
+  
+  const validateBundleCount = () => {
+    const numValue = parseInt(bundleCountInputValue) || 1;
+    const clampedValue = Math.max(1, numValue);
+    setInlineBundleCount(clampedValue);
+    setBundleCountInputValue(clampedValue.toString());
+  };
+  
+  const isBundleCountValid = () => {
+    const numValue = parseInt(bundleCountInputValue);
+    return !isNaN(numValue) && numValue > 0;
+  };
+  
+  const canAddBundle = () => {
+    if (selectedForBundle.size === 0) return false;
+    if (!isBundleCountValid()) return false;
+    
+    // Check all selected items have valid quantities
+    for (const productId of Array.from(selectedForBundle)) {
+      if (!isBundleQuantityValid(productId)) return false;
+    }
+    
+    return true;
   };
   
   const addInlineBundle = () => {
@@ -315,7 +491,9 @@ export default function ClientCart() {
     // Reset inline bundle state
     setSelectedForBundle(new Set());
     setBundleQuantities({});
+    setBundleInputValues({});
     setInlineBundleCount(1);
+    setBundleCountInputValue("1");
     
     toast.success(`Added ${inlineBundleCount} bundle(s) to cart`);
   };
@@ -591,14 +769,16 @@ export default function ClientCart() {
                                 </Button>
                                 <Input
                                   type="number"
-                                  value={item.quantity}
-                                  onChange={(e) => {
-                                    const value = parseInt(e.target.value) || 1;
-                                    updateQuantity(item.product.id, value, item.cartItemId);
+                                  value={cartInputValues[item.cartItemId || item.product.id] !== undefined ? cartInputValues[item.cartItemId || item.product.id] : item.quantity}
+                                  onChange={(e) => handleCartQuantityChange(item, e.target.value)}
+                                  onBlur={() => validateCartQuantity(item)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      validateCartQuantity(item);
+                                      e.currentTarget.blur();
+                                    }
                                   }}
-                                  className="w-16 text-center"
-                                  min="1"
-                                  max={item.product.availableStock}
+                                  className={`w-20 text-center ${!isCartQuantityValid(item) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                                 />
                                 <Button
                                   variant="outline"
@@ -712,14 +892,16 @@ export default function ClientCart() {
                                       </Button>
                                       <Input
                                         type="number"
-                                        value={item.quantity}
-                                        onChange={(e) => {
-                                          const value = parseInt(e.target.value) || 1;
-                                          updateQuantity(item.product.id, value, item.cartItemId);
+                                        value={cartInputValues[item.cartItemId || item.product.id] !== undefined ? cartInputValues[item.cartItemId || item.product.id] : item.quantity}
+                                        onChange={(e) => handleCartQuantityChange(item, e.target.value)}
+                                        onBlur={() => validateCartQuantity(item)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            validateCartQuantity(item);
+                                            e.currentTarget.blur();
+                                          }
                                         }}
-                                        className="w-16 text-center h-8"
-                                        min="1"
-                                        max={item.product.availableStock}
+                                        className={`w-20 text-center h-8 ${!isCartQuantityValid(item) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                                       />
                                       <Button
                                         variant="outline"
@@ -792,11 +974,16 @@ export default function ClientCart() {
                             <Label className="text-xs text-muted-foreground">Qty per bundle:</Label>
                             <Input
                               type="number"
-                              min="1"
-                              max={item.quantity}
-                              value={bundleQuantities[item.product.id] || 1}
-                              onChange={(e) => handleBundleQuantityChange(item.product.id, parseInt(e.target.value) || 1)}
-                              className="w-16 h-8 text-center"
+                              value={bundleInputValues[item.product.id] !== undefined ? bundleInputValues[item.product.id] : (bundleQuantities[item.product.id] || 1)}
+                              onChange={(e) => handleBundleQuantityChange(item.product.id, e.target.value)}
+                              onBlur={() => validateBundleQuantity(item.product.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  validateBundleQuantity(item.product.id);
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                              className={`w-16 h-8 text-center ${!isBundleQuantityValid(item.product.id) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                             />
                           </div>
                         </div>
@@ -810,10 +997,16 @@ export default function ClientCart() {
                       <Label className="font-medium text-gray-800">Number of Bundles:</Label>
                       <Input
                         type="number"
-                        min="1"
-                        value={inlineBundleCount}
-                        onChange={(e) => setInlineBundleCount(parseInt(e.target.value) || 1)}
-                        className="w-20 h-8 text-center"
+                        value={bundleCountInputValue}
+                        onChange={(e) => handleBundleCountChange(e.target.value)}
+                        onBlur={validateBundleCount}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            validateBundleCount();
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        className={`w-20 h-8 text-center ${!isBundleCountValid() ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                       />
                     </div>
                     <div className="text-sm text-gray-700">
@@ -829,6 +1022,7 @@ export default function ClientCart() {
                   <div className="flex gap-2 pt-2">
                     <Button 
                       onClick={addInlineBundle}
+                      disabled={!canAddBundle()}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       <Package className="h-4 w-4 mr-2" />
@@ -839,7 +1033,9 @@ export default function ClientCart() {
                       onClick={() => {
                         setSelectedForBundle(new Set());
                         setBundleQuantities({});
+                        setBundleInputValues({});
                         setInlineBundleCount(1);
+                        setBundleCountInputValue("1");
                       }}
                       className="border-gray-300 text-gray-700 hover:bg-gray-50"
                     >
@@ -910,6 +1106,7 @@ export default function ClientCart() {
                   className="w-full"
                   size="lg"
                   onClick={() => router.push("/client/checkout")}
+                  disabled={!canProceedToCheckout()}
                 >
                   <ArrowRight className="h-4 w-4 mr-2" />
                   Next
