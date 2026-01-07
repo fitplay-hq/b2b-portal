@@ -242,8 +242,16 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Analytics API Error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      filters: { dateFrom, dateTo, clientId, companyId, status, period, categoryName, stockStatus }
+    });
     return NextResponse.json(
-      { error: 'Failed to fetch analytics data' },
+      { 
+        error: 'Failed to fetch analytics data',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

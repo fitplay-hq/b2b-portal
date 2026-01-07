@@ -55,13 +55,9 @@ export async function GET(request: NextRequest) {
 
         // Build order filters
         const orderFilters: any = {
-            createdAt: dateFilter,
-            clientId: session.user.role === 'CLIENT' ? session.user.id : undefined
+            createdAt: dateFilter
         };
 
-        if (clientId) {
-            orderFilters.clientId = clientId;
-        }
         if (status) {
             orderFilters.status = status;
         }
@@ -72,9 +68,12 @@ export async function GET(request: NextRequest) {
                 select: { companyID: true }
             });
             companyId = client?.companyID;
-            orderFilters.client = {
-                companyID: companyId
-            };
+            
+            // For CLIENT role, filter by their ID
+            orderFilters.clientId = session.user.id;
+        } else if (clientId) {
+            // For non-CLIENT roles, use clientId if provided
+            orderFilters.clientId = clientId;
         }
 
         // Get orders data
@@ -274,8 +273,17 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(analytics);
 
     } catch (err) {
-        console.error("Analytics™ ERROR:", err);
-        return NextResponse.json({ error: String(err), message: "Failed to get analytics data" }, { status: 500, });
+        console.error("Client Analytics API ERROR:", err);
+        console.error('Error details:', {
+            message: err instanceof Error ? err.message : 'Unknown error',
+            stack: err instanceof Error ? err.stack : undefined,
+            filters: { dateFrom, dateTo, clientId, status, period, categoryName, stockStatus }
+        });
+        return NextResponse.json({ 
+            error: String(err), 
+            message: "Failed to get analytics data",
+            details: err instanceof Error ? err.message : 'Unknown error'
+        }, { status: 500 });
     }
 }
 

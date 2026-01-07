@@ -10,6 +10,8 @@ interface ProductGridProps {
   allProducts: Product[];
   getCartQuantity: (productId: string) => number;
   onAddToCartClick: (product: Product) => void;
+  onIncrementQuantity?: (productId: string) => void;
+  onDecrementQuantity?: (productId: string) => void;
   onClearFilters: () => void;
   selectedSort: SortOption | undefined;
 }
@@ -19,6 +21,8 @@ export function ProductGrid({
   allProducts,
   getCartQuantity,
   onAddToCartClick,
+  onIncrementQuantity,
+  onDecrementQuantity,
   onClearFilters,
   selectedSort,
 }: ProductGridProps) {
@@ -50,6 +54,8 @@ export function ProductGrid({
             product={product}
             cartQuantity={getCartQuantity(product.id)}
             onAddToCartClick={onAddToCartClick}
+            onIncrementQuantity={onIncrementQuantity}
+            onDecrementQuantity={onDecrementQuantity}
           />
         ))}
       </div>
@@ -83,6 +89,8 @@ export function ProductGrid({
                 product={product}
                 cartQuantity={getCartQuantity(product.id)}
                 onAddToCartClick={onAddToCartClick}
+                onIncrementQuantity={onIncrementQuantity}
+                onDecrementQuantity={onDecrementQuantity}
               />
             ))}
           </div>

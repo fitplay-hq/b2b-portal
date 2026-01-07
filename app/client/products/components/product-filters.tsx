@@ -26,11 +26,27 @@ interface ProductCategory {
   };
 }
 
+interface SubCategory {
+  id: string;
+  name: string;
+  categoryId: string;
+  shortCode: string;
+  createdAt: Date;
+  updatedAt: Date;
+  category: {
+    id: string;
+    name: string;
+    displayName: string;
+  };
+}
+
 interface ProductFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
+  selectedSubCategory: string;
+  setSelectedSubCategory: (subCategory: string) => void;
   stockStatus: string;
   setStockStatus: (status: string) => void;
   sortBy: SortOption | undefined;
@@ -85,6 +101,8 @@ export function ProductFilters({
   setSearchTerm,
   selectedCategory,
   setSelectedCategory,
+  selectedSubCategory,
+  setSelectedSubCategory,
   stockStatus,
   setStockStatus,
   sortBy,
@@ -98,6 +116,23 @@ export function ProductFilters({
     dedupingInterval: 30000,
   });
 
+  // Fetch subcategories from database
+  const { data: subCategoriesData } = useSWR<{ success: boolean; data: SubCategory[] }>('/api/admin/subcategories', async (url) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch subcategories');
+    return res.json();
+  }, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000,
+  });
+
+  const subCategories = subCategoriesData?.data || [];
+  
+  // Filter subcategories based on selected category
+  const filteredSubCategories = selectedCategory === "All Categories" 
+    ? subCategories 
+    : subCategories.filter(sub => sub.category.name === selectedCategory);
+
   return (
     <div className="space-y-4 bg-card rounded-lg border p-4">
       <div className="flex items-center gap-2 text-sm font-medium">
@@ -105,7 +140,7 @@ export function ProductFilters({
         Filter Products
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
@@ -118,7 +153,11 @@ export function ProductFilters({
         </div>
 
         {/* Category Filter */}
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+        <Select value={selectedCategory} onValueChange={(value) => {
+          setSelectedCategory(value);
+          // Reset subcategory when category changes
+          setSelectedSubCategory("All SubCategories");
+        }}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -127,6 +166,21 @@ export function ProductFilters({
             {categories?.filter(cat => cat.isActive).map((category) => (
               <SelectItem key={category.id} value={category.name}>
                 {category.displayName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* SubCategory Filter */}
+        <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All SubCategories">All SubCategories</SelectItem>
+            {filteredSubCategories.map((subCategory) => (
+              <SelectItem key={subCategory.id} value={subCategory.name}>
+                {subCategory.name}
               </SelectItem>
             ))}
           </SelectContent>

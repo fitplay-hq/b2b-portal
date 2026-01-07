@@ -110,6 +110,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const subCategory = searchParams.get('subCategory');
     const stockStatus = searchParams.get('stockStatus');
     const sortBy = searchParams.get('sortBy');
     const productDateFrom = searchParams.get('productDateFrom');
@@ -144,7 +145,7 @@ export async function GET(request: NextRequest) {
       // Use productDateFrom/productDateTo if available, otherwise fall back to dateFrom/dateTo
       const inventoryDateFrom = productDateFrom || dateFrom;
       const inventoryDateTo = productDateTo || dateTo;
-      return await exportInventoryData(companyId, format, search, session, category, inventoryDateFrom, inventoryDateTo, stockStatus, sortBy);
+      return await exportInventoryData(companyId, format, search, session, category, subCategory, inventoryDateFrom, inventoryDateTo, stockStatus, sortBy);
     } else {
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
     }
@@ -362,6 +363,7 @@ async function exportInventoryData(
   search: string | null = null,
   session: any = null,
   category: string | null = null,
+  subCategory: string | null = null,
   dateFrom: string | null = null,
   dateTo: string | null = null,
   stockStatus: string | null = null,
@@ -419,13 +421,21 @@ if (category && category.trim()) {
   };
 }
 
-
+// SubCategory filter - filter by subcategory name
+if (subCategory && subCategory.trim()) {
+  inventoryFilters.subCategory = {
+    name: subCategory.trim()
+  };
+}
 
   const products = await prisma.product.findMany({
     where: inventoryFilters,
     include: {
       category: {
         select: { displayName: true }
+      },
+      subCategory: {
+        select: { name: true }
       },
       companies: {
         select: { id: true, name: true }

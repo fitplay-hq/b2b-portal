@@ -6,6 +6,7 @@ export type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "lowes
 export function useProductFilters(products: Product[] = []) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [selectedSubCategory, setSelectedSubCategory] = useState("All SubCategories");
   const [stockStatus, setStockStatus] = useState("all");
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
 
@@ -29,6 +30,16 @@ export function useProductFilters(products: Product[] = []) {
           // Check both the new relation (product.category?.name) and old enum field (product.categories)
           const categoryName = (product as any).category?.name || product.categories;
           return categoryName === selectedCategory;
+        }
+      );
+    }
+
+    // Filter by subcategory
+    if (selectedSubCategory !== "All SubCategories") {
+      filtered = filtered.filter(
+        (product) => {
+          const subCategoryName = (product as any).subCategory?.name;
+          return subCategoryName === selectedSubCategory;
         }
       );
     }
@@ -99,13 +110,15 @@ export function useProductFilters(products: Product[] = []) {
     }
 
     return sortedProducts;
-  }, [products, searchTerm, selectedCategory, stockStatus, sortBy]);
+  }, [products, searchTerm, selectedCategory, selectedSubCategory, stockStatus, sortBy]);
 
   return {
     searchTerm,
     setSearchTerm,
     selectedCategory,
     setSelectedCategory,
+    selectedSubCategory,
+    setSelectedSubCategory,
     stockStatus,
     setStockStatus,
     sortBy,

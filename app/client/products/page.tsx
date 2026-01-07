@@ -18,13 +18,14 @@ export default function ClientProductsPage() {
   const { products, error, isLoading, mutate } = useProducts();
 
   const userId = session?.user.id || "1";
-  const { totalCartItems, addToCart, getCartQuantity } = useCart(userId);
+  const { totalCartItems, addToCart, getCartQuantity, incrementQuantity, decrementQuantity } = useCart(userId);
   const { filteredProducts, ...filterProps } = useProductFilters(products);
   const quantityDialog = useQuantityDialog();
 
   const handleClearFilters = () => {
     filterProps.setSearchTerm("");
     filterProps.setSelectedCategory("All Categories");
+    filterProps.setSelectedSubCategory("All SubCategories");
     filterProps.setStockStatus("all");
   };
 
@@ -84,6 +85,7 @@ export default function ClientProductsPage() {
           isRefreshing={isLoading}
           searchTerm={filterProps.searchTerm}
           selectedCategory={filterProps.selectedCategory}
+          selectedSubCategory={filterProps.selectedSubCategory}
           stockStatus={filterProps.stockStatus}
           sortBy={filterProps.sortBy}
         />
@@ -100,6 +102,8 @@ export default function ClientProductsPage() {
           selectedSort={filterProps.sortBy}
           getCartQuantity={getCartQuantity}
           onAddToCartClick={quantityDialog.openDialog}
+          onIncrementQuantity={incrementQuantity}
+          onDecrementQuantity={decrementQuantity}
           onClearFilters={handleClearFilters}
         />
       </div>
