@@ -260,7 +260,7 @@ export default function ClientCheckout() {
 
   return (
     <Layout title="Checkout" isClient>
-      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-4 lg:px-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-4 lg:px-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <Button
@@ -282,10 +282,10 @@ export default function ClientCheckout() {
 
         <form
           onSubmit={handleSubmit}
-          className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
+          className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6"
         >
           {/* Order Details Form */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
             {/* PO Information */}
             <Card>
               <CardHeader>
@@ -571,7 +571,7 @@ export default function ClientCheckout() {
           </div>
 
           {/* Order Summary */}
-          <div className="space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             {/* Items Summary */}
             <Card>
               <CardHeader>

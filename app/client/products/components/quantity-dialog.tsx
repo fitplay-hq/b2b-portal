@@ -24,14 +24,18 @@ export function QuantityDialog({ dialog, onConfirm }: QuantityDialogProps) {
     setIsOpen,
     selectedProduct,
     quantity,
+    inputValue,
     updateQuantity,
-    handleManualQuantityChange,
+    handleInputChange,
+    validateInput,
+    isValidQuantity,
     closeDialog,
   } = dialog;
 
   if (!selectedProduct) return null;
 
   const handleConfirm = () => {
+    if (!isValidQuantity()) return;
     onConfirm(selectedProduct, quantity);
     closeDialog();
   };
@@ -69,11 +73,16 @@ export function QuantityDialog({ dialog, onConfirm }: QuantityDialogProps) {
             <Input
               id="quantity"
               type="number"
-              value={quantity}
-              className="w-20 text-center"
-              onChange={(e) =>
-                handleManualQuantityChange(parseInt(e.target.value) || 1)
-              }
+              value={inputValue}
+              className={`w-20 text-center ${!isValidQuantity() ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onBlur={validateInput}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  validateInput();
+                  e.currentTarget.blur();
+                }
+              }}
             />
             <Button
               variant="outline"
@@ -90,7 +99,9 @@ export function QuantityDialog({ dialog, onConfirm }: QuantityDialogProps) {
           <Button variant="outline" onClick={closeDialog}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm}>Add to Cart</Button>
+          <Button onClick={handleConfirm} disabled={!isValidQuantity()}>
+            Add to Cart
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
