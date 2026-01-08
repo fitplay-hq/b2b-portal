@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Search, 
   ArrowUpDown, 
@@ -69,9 +76,6 @@ export function ClientInventoryLogsTable({
     productId: "",
     reason: "",
   });
-  
-  const displayFilters = localFilters;
-  const filters = useMemo(() => currentFilters || localFilters, [currentFilters, localFilters]);
 
   const handleSearch = (value: string) => {
     onSearch?.(value);
@@ -85,7 +89,7 @@ export function ClientInventoryLogsTable({
   }, [onImmediateSearch]);
 
   const handleFilterApply = () => {
-    onFilterChange?.(displayFilters);
+    onFilterChange?.(localFilters);
     setShowAdvancedFilters(false);
   };
 
@@ -226,7 +230,7 @@ export function ClientInventoryLogsTable({
                     <label className="text-sm font-medium">Date From</label>
                     <Input
                       type="date"
-                      value={displayFilters.dateFrom}
+                      value={localFilters.dateFrom}
                       onChange={(e) => setLocalFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
                     />
                   </div>
@@ -234,17 +238,26 @@ export function ClientInventoryLogsTable({
                     <label className="text-sm font-medium">Date To</label>
                     <Input
                       type="date"
-                      value={displayFilters.dateTo}
+                      value={localFilters.dateTo}
                       onChange={(e) => setLocalFilters(prev => ({ ...prev, dateTo: e.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Reason</label>
-                    <Input
-                      placeholder="e.g., Sale, Restock, Damaged"
-                      value={displayFilters.reason}
-                      onChange={(e) => setLocalFilters(prev => ({ ...prev, reason: e.target.value }))}
-                    />
+                    <Select 
+                      value={localFilters.reason || undefined} 
+                      onValueChange={(value) => setLocalFilters(prev => ({ ...prev, reason: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select reason" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NEW_PURCHASE">New Purchase</SelectItem>
+                        <SelectItem value="PHYSICAL_STOCK_CHECK">Physical Stock Check</SelectItem>
+                        <SelectItem value="RETURN_FROM_PREVIOUS_DISPATCH">Return from Dispatch</SelectItem>
+                        <SelectItem value="NEW_ORDER">New Order</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
