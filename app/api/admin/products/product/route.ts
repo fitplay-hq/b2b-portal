@@ -137,7 +137,7 @@ export async function PATCH(req: NextRequest) {
         ...(body.price !== undefined && { price: body.price ? parseInt(body.price) : null }),
         ...(body.minStockThreshold !== undefined && { minStockThreshold: body.minStockThreshold }),
         ...(body.images && { images: body.images }),
-        brand: body.brand || null, // Always update brand, allow clearing with null
+        ...('brand' in body && { brand: body.brand || null }), // Update brand if provided, allow clearing with null
         ...(body.avgRating !== undefined && { avgRating: body.avgRating }),
         ...(body.noOfReviews !== undefined && { noOfReviews: body.noOfReviews }),
         ...(body.inventoryUpdateReason && { inventoryUpdateReason: body.inventoryUpdateReason }),
