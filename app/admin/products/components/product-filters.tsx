@@ -82,11 +82,27 @@ type SortOption =
   | "highest-stock"
   | "latest-update";
 
+interface SubCategory {
+  id: string;
+  name: string;
+  categoryId: string;
+  shortCode: string;
+  createdAt: Date;
+  updatedAt: Date;
+  category: {
+    id: string;
+    name: string;
+    displayName: string;
+  };
+}
+
 interface ProductFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
+  selectedSubCategory: string;
+  setSelectedSubCategory: (subCategory: string) => void;
   sortBy: SortOption;
   setSortBy: (sortBy: SortOption) => void;
 }
@@ -107,6 +123,8 @@ export function ProductFilters({
   setSearchTerm,
   selectedCategory,
   setSelectedCategory,
+  selectedSubCategory,
+  setSelectedSubCategory,
   sortBy,
   setSortBy,
 }: ProductFiltersProps) {
@@ -115,6 +133,26 @@ export function ProductFilters({
     revalidateOnFocus: false,
     dedupingInterval: 30000,
   });
+
+  // Fetch subcategories from database
+  const { data: subCategoriesData } = useSWR('/api/admin/subcategories', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000,
+  });
+
+  const subCategories = subCategoriesData || [];
+  
+  console.log('Admin filters - subCategoriesData:', subCategoriesData);
+  console.log('Admin filters - subCategories:', subCategories);
+  console.log('Admin filters - selectedCategory:', selectedCategory);
+  
+  // Filter subcategories based on selected category
+  const filteredSubCategories = selectedCategory === "All Categories" 
+    ? subCategories 
+    : subCategories.filter(sub => {
+        console.log('Filtering sub:', sub.name, 'category:', sub.category);
+        return sub.category?.name === selectedCategory;
+      });
 
   return (
     <div className="w-full overflow-x-hidden">
@@ -143,7 +181,11 @@ export function ProductFilters({
           </SelectContent>
         </Select>
         {/* Category Filter */}
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+        <Select value={selectedCategory} onValueChange={(value) => {
+          setSelectedCategory(value);
+          // Reset subcategory when category changes
+          setSelectedSubCategory("All SubCategories");
+        }}>
           <SelectTrigger className="w-full sm:w-[150px] text-sm">
             <SelectValue />
           </SelectTrigger>
@@ -152,6 +194,20 @@ export function ProductFilters({
             {categories?.filter(cat => cat.isActive).map((category) => (
               <SelectItem key={category.id} value={category.name}>
                 {category.displayName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {/* SubCategory Filter */}
+        <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
+          <SelectTrigger className="w-full sm:w-[150px] text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All SubCategories">All SubCategories</SelectItem>
+            {filteredSubCategories.map((subCategory) => (
+              <SelectItem key={subCategory.id} value={subCategory.name}>
+                {subCategory.name}
               </SelectItem>
             ))}
           </SelectContent>

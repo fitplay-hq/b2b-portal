@@ -57,7 +57,7 @@ export function useSubcategoryManagement(): UseSubcategoryManagementReturn {
 
   const getSubcategoriesByCategory = useCallback(
     (categoryId: string): SubCategory[] | undefined => {
-      if (!subcategories) return undefined;
+      if (!subcategories || !Array.isArray(subcategories)) return undefined;
       return subcategories.filter((sub) => sub.categoryId === categoryId);
     },
     [subcategories]
