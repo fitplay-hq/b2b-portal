@@ -106,32 +106,76 @@ pnpm lint     # run linter
 
 Existing (high-level)
 
-- `api/auth`: NextAuth (admin/client)
+Auth
+
+- `api/auth/[...nextauth]` - NextAuth (admin/client)
+- `api/auth/2fa` - Send OTP for 2FA
+- `api/auth/resend-otp` - Resend otp for 2FA
+- `api/auth/resentPassword` - Reset and update password
+- `api/auth/verify` - Email verification 
+- `api/auth/verify-otp` - OTP verification for email
 
 Admin
 
+- `api/admin/analytics/` - admin analytics for orders and products
+- `api/admin/analytics/export` - admin and client order and inventory analytics export excel file or pdf file
+- `api/admin/categories` — list all categories and create new category
+- `api/admin/categories/[id]` — Update or delete single category
+- `api/admin/clients` — get all clients
+- `api/admin/clients/client` — CRUD single client
+- `api/admin/clients/[id]/products` — List and add client products
+- `api/admin/companies` — get all companies and create a company
+- `api/admin/companies/[id]` — CRUD single company
+- `api/admin/companies/products` — select products for a company, delete/get products for a company
+- `api/admin/dashboard` — admin dashboard metrics
+- `api/admin/debug` — debug dashboard info
+- `api/admin/inventory/logs` - get inventory logs
 - `api/admin/orders` — list orders
 - `api/admin/orders/order` — get by id, create dispatch order
-- `api/admin/orders/send-email` — send dispatch email to client + cc to admin
 - `api/admin/orders/order/approve` — Update order status
+- `api/admin/orders/order/status-mails` — Send each status change email with control to admin
+- `api/admin/orders/order/status-mails/history` — Check status mails history for an order 
+- `api/admin/orders/regenerate-label` — Regenerate PDF label for an order
+- `api/admin/permissions` — list all permissions
+- `api/admin/orders/send-email` — send dispatch email to client + cc to admin
 - `api/admin/products` — list/create/update many products
 - `api/admin/products/product` — CRUD single product
 - `api/admin/products/search` — search products
 - `api/admin/products/product/inventory` — update inventory (single/bulk)
-- `api/admin/clients` — get all clients
-- `api/admin/clients/client` — CRUD single client
-- `api/admin/companies` — get all companies and create a company
-- `api/admin/companies/[id]` — CRUD single company
-- `api/admin/companies/products` — select products for a company, delete/get products for a company
+- `api/admin/roles/` — list all roles and add new role
+- `api/admin/roles/[id]` — Get, Update or delete single role
+- `api/admin/subcategories` — CRUD subcategories
+- `api/admin/subcategories/subcategory` — Get a subcategory
+- `api/admin/subcategories/subcategory/[id]` — Update or delete single subcategory
+- `api/admin/subcategories/subcategory-category` - Get subcategories of a category
+- `api/admin/system-users` - List all system users or create new system users
+- `api/admin/system-users/[id]` - List, update or delete a system user
+- `api/admin/users` - List all users or create new users
+- `api/admin/users/[id]` - List, update or delete a user
 
 Client
 
+- `api/client/analytics/` - client analytics for orders and products
 - `api/client` — Get client info
 - `api/client/orders` — list client orders
 - `api/client/orders/order` — create dispatch order; get an order detail
 - `api/client/products` — list all products of a client
 - `api/client/products/product` — single product detail
 - `api/client/products/search` — search products
+
+Inventory Logs
+
+- `api/inventoryLogs` - Get inventorylogs for both admin and client
+- `api/inventoryLogs/export` - Export inventory logs as excel for both admin and client
+- `api/inventoryLogs/export/pdf` - Export inventory logs as pdf for both admin and client
+
+Pincode
+
+- `api/pincode/[pincode]` - Fetch City and State from pincode
+
+Uploadthing
+
+- `api/uploadthing/` - Upload files on uplaodathing
 
 Database
 

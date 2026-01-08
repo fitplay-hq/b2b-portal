@@ -37,6 +37,7 @@ export const auth: AuthOptions = {
               role: "CLIENT",
               companyId: client.companyID,
               companyName: client.company?.name || client.companyName || 'No Company',
+              isShowPrice: client.isShowPrice
             };
           }
 
@@ -87,6 +88,7 @@ export const auth: AuthOptions = {
               role: "CLIENT",
               companyId: client.companyID,
               companyName: client.company?.name || client.companyName || 'No Company',
+              isShowPrice: client.isShowPrice
             };
           }
 
@@ -136,6 +138,7 @@ export const auth: AuthOptions = {
               role: "CLIENT",
               companyId: client.companyID,
               companyName: client.company?.name || client.companyName || 'No Company',
+              isShowPrice: client.isShowPrice
             };
           }
 
@@ -199,6 +202,7 @@ export const auth: AuthOptions = {
             role: "CLIENT",
             companyId: client.companyID,
             companyName: client.company?.name || client.companyName || 'No Company',
+            isShowPrice: client.isShowPrice
           };
         }
 
