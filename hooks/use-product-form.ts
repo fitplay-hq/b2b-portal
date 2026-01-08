@@ -328,7 +328,7 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           price,
           availableStock,
           minStockThreshold,
-          brand: formData.brand || null,
+          brand: formData.brand || undefined,
           // Only set categories enum field if it's a legacy category
           ...(isLegacyCategory && { categories: formData.categories as Category }),
           categoryId: selectedCategory?.id, // Send categoryId directly

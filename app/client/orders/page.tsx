@@ -321,8 +321,8 @@ export default function ClientOrderHistory() {
                   >
                     <CollapsibleTrigger asChild>
                       <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="space-y-2 flex-1 min-w-0">
                             <div className="flex items-center gap-3">
                               <CardTitle className="text-lg">
                                 {order.id}
@@ -331,28 +331,24 @@ export default function ClientOrderHistory() {
                                 {formatStatus(order.status)}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
                                 {new Date(order.createdAt).toLocaleDateString()}
                               </span>
                               <span>•</span>
-                              <span>
+                              <span className="flex items-center gap-1">
+                                <Package className="h-3 w-3" />
                                 {(() => {
                                   const regularItems = order.orderItems?.length || 0;
                                   const bundleItems = order.bundleOrderItems?.length || 0;
-                                  const totalItems = regularItems + bundleItems;
                                   
-                                  if (totalItems === 1) {
-                                    // Show single item name
-                                    if (order.orderItems?.[0]) {
-                                      return order.orderItems[0].product?.name || 'Item';
-                                    } else if (order.bundleOrderItems?.[0]?.bundle?.items?.[0]) {
-                                      return order.bundleOrderItems[0].bundle.items[0].product?.name || 'Bundle Item';
-                                    }
-                                    return 'Item';
+                                  if (regularItems > 0 && bundleItems > 0) {
+                                    return `${regularItems} item${regularItems !== 1 ? 's' : ''} + ${bundleItems} bundle${bundleItems !== 1 ? 's' : ''}`;
+                                  } else if (bundleItems > 0) {
+                                    return `${bundleItems} bundle${bundleItems !== 1 ? 's' : ''}`;
                                   } else {
-                                    // Show count for multiple items
-                                    return `${totalItems} items`;
+                                    return `${regularItems} item${regularItems !== 1 ? 's' : ''}`;
                                   }
                                 })()
                               }
@@ -362,12 +358,82 @@ export default function ClientOrderHistory() {
                               {getStatusDescription(order.status)}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
+                          
+                          {/* Right Side Summary */}
+                          <div className="flex items-center gap-4">
+                            <div className="text-right space-y-1">
+                              <div className="text-sm font-medium text-muted-foreground">
+                                {(() => {
+                                  const totalQuantity = (order.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
+                                    (order.bundleOrderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0);
+                                  return `${totalQuantity} Total Items`;
+                                })()}
+                              </div>
+                              {/* Compact product list - Show unique products */}
+                              <div className="flex flex-wrap gap-1 justify-end max-w-[250px]">
+                                {(() => {
+                                  // Collect unique items/bundles to show variety
+                                  const itemsToShow: Array<{ type: 'item' | 'bundle', data: any, key: string }> = [];
+                                  const seenProductIds = new Set<string>();
+                                  
+                                  // Add regular items
+                                  order.orderItems?.forEach((item) => {
+                                    if (itemsToShow.length < 2 && item.product?.id && !seenProductIds.has(item.product.id)) {
+                                      seenProductIds.add(item.product.id);
+                                      itemsToShow.push({ type: 'item', data: item, key: `item-${item.product.id}` });
+                                    }
+                                  });
+                                  
+                                  // Add bundles (different bundles)
+                                  const seenBundleIds = new Set<string>();
+                                  order.bundleOrderItems?.forEach((item) => {
+                                    if (itemsToShow.length < 2 && item.bundle?.id && !seenBundleIds.has(item.bundle.id)) {
+                                      seenBundleIds.add(item.bundle.id);
+                                      itemsToShow.push({ type: 'bundle', data: item, key: `bundle-${item.bundle.id}` });
+                                    }
+                                  });
+                                  
+                                  return (
+                                    <>
+                                      {itemsToShow.map((entry) => {
+                                        if (entry.type === 'item') {
+                                          const item = entry.data;
+                                          return (
+                                            <div key={entry.key} className="flex items-center gap-1 text-xs bg-muted px-2 py-0.5 rounded whitespace-nowrap">
+                                              <span className="font-medium truncate max-w-[100px]">{item.product?.name}</span>
+                                              <span className="text-muted-foreground">×{item.quantity}</span>
+                                            </div>
+                                          );
+                                        } else {
+                                          const item = entry.data;
+                                          return (
+                                            <div key={entry.key} className="flex items-center gap-1 text-xs bg-blue-50 border border-blue-200 px-2 py-0.5 rounded whitespace-nowrap">
+                                              <Package className="h-3 w-3 text-blue-600" />
+                                              <span className="font-medium truncate max-w-[80px]">
+                                                {item.bundle?.items?.[0]?.product?.name || 'Bundle'}
+                                              </span>
+                                              <span className="text-muted-foreground">×{item.quantity}</span>
+                                            </div>
+                                          );
+                                        }
+                                      })}
+                                      {((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) > 2 && (
+                                        <span className="text-xs text-muted-foreground">
+                                          +{((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) - 2} more
+                                        </span>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              {isExpanded ? (
+                                <ChevronUp className="h-5 w-5" />
+                              ) : (
+                                <ChevronDown className="h-5 w-5" />
+                              )}
+                            </div>
                           </div>
                         </div>
                       </CardHeader>
