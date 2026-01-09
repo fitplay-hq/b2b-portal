@@ -511,6 +511,8 @@ export async function POST(req: NextRequest) {
           <p><b>Email:</b> ${order.consigneeEmail}</p>
           <p><b>Mode of Delivery:</b> ${order.modeOfDelivery}</p>
           <p><b>Delivery Reference:</b> ${order.deliveryReference}</p>
+          <p><b>Additional Note:</b> ${order.note}</p>
+          <p><b>Packaging Instructions:</b> ${order.packagingInstructions}</p>
           <p><b>Required By:</b> ${new Date(order.requiredByDate).toLocaleDateString()}</p>
 
           <h3>Delivery Address</h3>

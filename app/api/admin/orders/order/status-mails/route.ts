@@ -6,6 +6,7 @@ import { withPermissions } from "@/lib/auth-middleware";
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 const STATUS_PRIORITY: Record<string, number> = {
+    PENDING: 0,
     APPROVED: 1,
     READY_FOR_DISPATCH: 2,
     DISPATCHED: 3,
@@ -13,6 +14,8 @@ const STATUS_PRIORITY: Record<string, number> = {
     DELIVERED: 5,
     CANCELLED: 99,
 };
+
+let toggleTracker = true;
 
 export async function POST(req: NextRequest) {
     return withPermissions(req, async () => {
@@ -22,13 +25,6 @@ export async function POST(req: NextRequest) {
             if (!orderId || !status) {
                 return NextResponse.json(
                     { error: "Missing parameters" },
-                    { status: 400 }
-                );
-            }
-
-            if (status == "PENDING") {
-                return NextResponse.json(
-                    { error: "Cannot send email for PENDING status" },
                     { status: 400 }
                 );
             }
@@ -46,13 +42,6 @@ export async function POST(req: NextRequest) {
 
             if (!order) {
                 return NextResponse.json({ error: "Order not found" }, { status: 404 });
-            }
-
-            if (!order.isMailSent) {
-                return NextResponse.json(
-                    { error: "Can't send email for this order before order creation mail" },
-                    { status: 400 }
-                );
             }
 
             const sentStatuses = order.emails.map((e) => e.purpose);
@@ -96,43 +85,78 @@ export async function POST(req: NextRequest) {
             const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
             const ccEmails = [ownerEmail];
 
+            const client = await prisma.client.findUnique({
+                where: { email: clientEmail }
+            })
+
             let recipients: string[] = [];
             let subject = "";
             let html = "";
             let reqByDate = "";
 
+            const productMap = new Map<string, {
+                name: string;
+                quantity: number;
+                bundles: Set<number>;
+            }>();
+
+            order.orderItems.forEach((item) => {
+                if (!productMap.has(item.productId)) {
+                    productMap.set(item.productId, {
+                        name: item.product.name,
+                        quantity: 0,
+                        bundles: new Set(),
+                    });
+                }
+                productMap.get(item.productId)!.quantity += item.quantity;
+            });
+
+            order.bundleOrderItems.forEach((item) => {
+                if (!productMap.has(item.productId)) {
+                    productMap.set(item.productId, {
+                        name: item.product.name,
+                        quantity: 0,
+                        bundles: new Set(),
+                    });
+                }
+                productMap.get(item.productId)!.quantity += item.quantity;
+
+                const bundleIndex =
+                    order.bundles.findIndex((b) => b.id === item.bundleId) + 1;
+
+                if (bundleIndex > 0) {
+                    productMap.get(item.productId)!.bundles.add(bundleIndex);
+                }
+            });
+
             const orderTable = `
-        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 16px;">
-        <thead>
-            <tr>
-            <th align="left">Product</th>
-            <th align="center">Quantity</th>
-            </tr>
-        </thead>
-        <tbody>
-        ${order.orderItems
-                    .map(
-                        (item) => `
-            <tr>
-                <td>${item.product.name}</td>
-                <td align="center">${item.quantity}</td>
-            </tr>
-        `
-                    )
+<table border="1" cellpadding="8" cellspacing="0"
+  style="border-collapse: collapse; width: 100%; margin-top: 16px;">
+  <thead>
+    <tr>
+      <th align="left">Product</th>
+      <th align="center">Quantity</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${Array.from(productMap.values())
+                    .map(({ name, quantity, bundles }) => {
+                        const bundleLabel =
+                            bundles.size > 0
+                                ? ` (Bundle - ${Array.from(bundles).join(", ")})`
+                                : "";
+
+                        return `
+          <tr>
+            <td>${name}${bundleLabel}</td>
+            <td align="center">${quantity}</td>
+          </tr>
+        `;
+                    })
                     .join("")}
-            ${order.bundleOrderItems
-                    .map(
-                        (item) => `
-            <tr>
-            <td>${item.product.name} (Bundle)</td>
-            <td align="center">${item.quantity}</td>
-            </tr>
-        `
-                    )
-                    .join("")}
-        </tbody>
-    </table>
-    `;
+  </tbody>
+</table>
+`;
 
 
             if (!clientEmail) {
@@ -143,6 +167,11 @@ export async function POST(req: NextRequest) {
             }
 
             switch (status) {
+                case "PENDING":
+                    recipients = [clientEmail, adminEmail];
+                    subject = "New Order Awaiting Approval";
+                    break;
+
                 case "APPROVED":
                     recipients = [clientEmail, warehouseEmail];
                     subject = `Order ${order.id} Approved`;
@@ -176,7 +205,69 @@ export async function POST(req: NextRequest) {
             }
             // Req by date -> Approval(order creation) and confirmation(approve)
 
-            html = `
+            const footerMessage = toggleTracker
+                ? "Please reply confirmation to this new dispatch order."
+                : "Please reply confirmation to this new dispatch order mail.";
+            toggleTracker = !toggleTracker;
+
+            html = status === 'PENDING' ? `
+          <h2>New Dispatch Order</h2>
+          <p>A new order has been created for ${client?.name || "Unknown User"}.</p>
+          
+          <h3>Consignee Details</h3>
+          <p><b>Name:</b> ${order.consigneeName}</p>
+          <p><b>Phone:</b> ${order.consigneePhone}</p>
+          <p><b>Email:</b> ${order.consigneeEmail}</p>
+          <p><b>Mode of Delivery:</b> ${order.modeOfDelivery}</p>
+          <p><b>Delivery Reference:</b> ${order.deliveryReference}</p>
+          <p><b>Additional Note:</b> ${order.note}</p>
+          <p><b>Packaging Instructions:</b> ${order.packagingInstructions}</p>
+          <p><b>Required By:</b> ${new Date(order.requiredByDate).toLocaleDateString()}</p>
+
+          <h3>Delivery Address</h3>
+          <p>${order.deliveryAddress}, ${order.city}, ${order.state}, ${order.pincode}</p>
+
+          <h3>Order Summary</h3>
+          ${orderTable}
+
+          ${order.bundleOrderItems.length > 0 ? `
+            <h3>Bundle Breakdown:</h3>
+            ${order.bundles
+                        .map((bundle, index) => `
+    <div style="margin-bottom:16px;">
+      <p><b>Bundle - ${index + 1}</b></p>
+      ${bundle.numberOfBundles ? `<p><b>Number of Bundles:</b> ${bundle.numberOfBundles}</p>` : ""}
+
+      <table border="1" cellpadding="6" cellspacing="0"
+        style="border-collapse:collapse;width:100%;margin-top:8px;">
+        <thead>
+          <tr>
+            <th align="left">Product</th>
+            <th align="center">Quantity (per bundle)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bundle.items
+                                .map(item => `
+              <tr>
+                <td>${item.product?.name || "Unknown Product"}</td>
+                <td align="center">${item.bundleProductQuantity ?? 0}</td>
+              </tr>
+            `)
+                                .join("")}
+        </tbody>
+      </table>
+    </div>
+  `)
+                        .join("")}
+
+
+    `: ""}
+
+          <p>${footerMessage}</p>
+          <p style="display: none;">&#8203;</p>
+        `
+                : `
         <h2>Order Status Update: ${status.replace(/_/g, " ")}</h2>
         <p>Your order has been updated to <b>${status.replace(/_/g, " ")}</b> status.</p>
         <h3>Consignee Details</h3>
