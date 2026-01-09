@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, ResponsiveContainer, Tooltip, Cell, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { useEffect, useState } from 'react';
 
 interface ClientChartsProps {
   orderStatusDistribution: Array<{
@@ -23,9 +24,60 @@ export function ClientChartsSection({
   monthlyTrends,
   orderValueTrends 
 }: ClientChartsProps) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure component is mounted before rendering charts (fixes hydration/SSR issues)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const hasOrders = orderStatusDistribution.length > 0;
   const hasValueData = orderValueTrends.some(trend => trend.value > 0);
   const hasTrendData = monthlyTrends.some(trend => trend.orders > 0);
+
+  // Don't render charts until mounted (prevents SSR issues)
+  if (!isMounted) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-sm border-0 bg-white/50 backdrop-blur-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              Order Status Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-[300px]">
+              <div className="animate-pulse text-gray-400">Loading chart...</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-0 bg-white/50 backdrop-blur-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              6-Month Order Trends
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-[300px]">
+              <div className="animate-pulse text-gray-400">Loading chart...</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-0 bg-white/50 backdrop-blur-sm lg:col-span-2">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              Monthly Order Value Trends
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-[300px]">
+              <div className="animate-pulse text-gray-400">Loading chart...</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
