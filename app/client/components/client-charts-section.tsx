@@ -27,18 +27,6 @@ export function ClientChartsSection({
   const hasValueData = orderValueTrends.some(trend => trend.value > 0);
   const hasTrendData = monthlyTrends.some(trend => trend.orders > 0);
 
-  // Sample data for demonstration when no real data exists
-  const sampleTrends = [
-    { month: "Jan", orders: 5, delivered: 4 },
-    { month: "Feb", orders: 8, delivered: 7 },
-    { month: "Mar", orders: 12, delivered: 10 },
-    { month: "Apr", orders: 6, delivered: 5 },
-    { month: "May", orders: 15, delivered: 13 },
-    { month: "Jun", orders: 10, delivered: 9 },
-  ];
-
-  const displayTrends = hasTrendData ? monthlyTrends : sampleTrends;
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Order Status Distribution */}
@@ -85,11 +73,6 @@ export function ClientChartsSection({
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[300px]">
-              <div className="text-center p-4">
-                <div className="text-2xl mb-2">📊</div>
-                <p className="font-medium text-gray-700">Start placing orders</p>
-                <p className="text-sm text-gray-500">Your order analytics will appear here</p>
-              </div>
             </div>
           )}
         </CardContent>
@@ -142,11 +125,6 @@ export function ClientChartsSection({
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[300px]">
-              <div className="text-center p-4">
-                <div className="text-2xl mb-2">📈</div>
-                <p className="font-medium text-gray-700">Build your order history</p>
-                <p className="text-sm text-gray-500">Monthly trends will show here</p>
-              </div>
             </div>
           )}
         </CardContent>
@@ -197,11 +175,6 @@ export function ClientChartsSection({
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[300px]">
-              <div className="text-center p-4">
-                <div className="text-2xl mb-2">💰</div>
-                <p className="font-medium text-gray-700">Track your business growth</p>
-                <p className="text-sm text-gray-500">Order value analytics will appear here</p>
-              </div>
             </div>
           )}
         </CardContent>
