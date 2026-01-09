@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SortOption } from "@/hooks/use-product-filters";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, ArrowUpDown } from "lucide-react";
 import useSWR from 'swr';
 
 interface ProductCategory {
@@ -134,31 +134,32 @@ export function ProductFilters({
     : subCategories.filter(sub => sub.category.name === selectedCategory);
 
   return (
-    <div className="space-y-4 bg-card rounded-lg border p-4">
-      <div className="flex items-center gap-2 text-sm font-medium">
-        <Filter className="h-4 w-4" />
-        Filter Products
+    <div className="space-y-4">
+      {/* Search Bar - Full Width */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search products, SKUs, or brands..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
-          <Input
-            placeholder="Search products or SKUs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      {/* Filters and Sort in One Row */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Filter Label */}
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Filter className="h-4 w-4" />
+          <span>Filters:</span>
         </div>
 
         {/* Category Filter */}
         <Select value={selectedCategory} onValueChange={(value) => {
           setSelectedCategory(value);
-          // Reset subcategory when category changes
           setSelectedSubCategory("All SubCategories");
         }}>
-          <SelectTrigger>
+          <SelectTrigger className="w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -173,7 +174,7 @@ export function ProductFilters({
 
         {/* SubCategory Filter */}
         <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
-          <SelectTrigger>
+          <SelectTrigger className="w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -188,7 +189,7 @@ export function ProductFilters({
 
         {/* Stock Status Filter */}
         <Select value={stockStatus} onValueChange={setStockStatus}>
-          <SelectTrigger>
+          <SelectTrigger className="w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -199,27 +200,31 @@ export function ProductFilters({
           </SelectContent>
         </Select>
 
+        {/* Divider */}
+        <div className="h-8 w-px bg-border" />
+
+        {/* Sort Label */}
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <ArrowUpDown className="h-4 w-4" />
+          <span>Sort by:</span>
+        </div>
+
         {/* Sort By */}
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger>
-            <SelectValue placeholder="Sort by" />
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select sorting" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="category">Category</SelectItem>
-            <SelectItem value="name-asc">Name</SelectItem>
+            <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+            <SelectItem value="name-desc">Name (Z-A)</SelectItem>
             <SelectItem value="highest-stock">Highest Stock</SelectItem>
             <SelectItem value="lowest-stock">Lowest Stock</SelectItem>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="oldest">Oldest</SelectItem>
+            <SelectItem value="newest">Newest First</SelectItem>
+            <SelectItem value="oldest">Oldest First</SelectItem>
             <SelectItem value="latest-update">Latest Update</SelectItem>
-            <SelectItem value="name-desc">Name (Z-A)</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-
-      {/* Results Count */}
-      <div className="text-sm text-muted-foreground border-t pt-3">
-        Showing {resultsCount} of {totalCount} products
       </div>
     </div>
   );
