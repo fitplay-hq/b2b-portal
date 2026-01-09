@@ -42,6 +42,8 @@ export default function ClientCart() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartInputValues, setCartInputValues] = useState<{[key: string]: string}>({});
 
+  const isShowPrice = session?.user?.isShowPrice ?? false;
+
   // Bundle-related state
   const [showBundleDialog, setShowBundleDialog] = useState(false);
   const [bundleProducts, setBundleProducts] = useState<{product: any, quantity: number}[]>([]);
@@ -740,7 +742,7 @@ export default function ClientCart() {
                                 <p className="text-sm text-muted-foreground">
                                   SKU: {item.product.sku}
                                 </p>
-                                {item.product.price && (
+                                {isShowPrice && item.product.price && (
                                   <p className="text-sm font-medium">
                                     Price: ₹{item.product.price}
                                   </p>
@@ -792,7 +794,7 @@ export default function ClientCart() {
 
                               <div className="text-right">
                                 <p className="font-medium">Qty: {item.quantity}</p>
-                                {item.product.price && (
+                                {isShowPrice && item.product.price && (
                                   <p className="font-medium">
                                     Total: ₹{(item.product.price * item.quantity).toFixed(2)}
                                   </p>
@@ -861,7 +863,7 @@ export default function ClientCart() {
                                       <p className="text-xs text-muted-foreground">
                                         SKU: {item.product.sku}
                                       </p>
-                                      {item.product.price && (
+                                      {isShowPrice && item.product.price && (
                                         <p className="text-xs font-medium">
                                           Price: ₹{item.product.price}
                                         </p>

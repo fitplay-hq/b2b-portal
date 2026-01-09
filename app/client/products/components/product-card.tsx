@@ -46,6 +46,7 @@ interface ProductCardProps {
   onAddToCartClick: (product: Product) => void;
   onIncrementQuantity?: (productId: string) => void;
   onDecrementQuantity?: (productId: string) => void;
+  isShowPrice?: boolean;
 }
 
 export function ProductCard({
@@ -54,6 +55,7 @@ export function ProductCard({
   onAddToCartClick,
   onIncrementQuantity,
   onDecrementQuantity,
+  isShowPrice = false,
 }: ProductCardProps) {
   const isInStock = product.availableStock > 0;
 
@@ -96,7 +98,7 @@ export function ProductCard({
                 </p>
               )}
             </div>
-            {product.price && (
+            {isShowPrice && product.price && (
               <p className="text-sm font-medium text-primary">₹{product.price}</p>
             )}
             <div className="flex items-center justify-between">

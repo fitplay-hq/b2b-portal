@@ -14,6 +14,7 @@ interface ProductGridProps {
   onDecrementQuantity?: (productId: string) => void;
   onClearFilters: () => void;
   selectedSort: SortOption | undefined;
+  isShowPrice?: boolean;
 }
 
 export function ProductGrid({
@@ -25,6 +26,7 @@ export function ProductGrid({
   onDecrementQuantity,
   onClearFilters,
   selectedSort,
+  isShowPrice = false,
 }: ProductGridProps) {
   if (products.length === 0) {
     return (
@@ -56,6 +58,7 @@ export function ProductGrid({
             onAddToCartClick={onAddToCartClick}
             onIncrementQuantity={onIncrementQuantity}
             onDecrementQuantity={onDecrementQuantity}
+            isShowPrice={isShowPrice}
           />
         ))}
       </div>
@@ -91,6 +94,7 @@ export function ProductGrid({
                 onAddToCartClick={onAddToCartClick}
                 onIncrementQuantity={onIncrementQuantity}
                 onDecrementQuantity={onDecrementQuantity}
+                isShowPrice={isShowPrice}
               />
             ))}
           </div>

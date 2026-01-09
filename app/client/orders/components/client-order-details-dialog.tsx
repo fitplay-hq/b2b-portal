@@ -87,12 +87,14 @@ interface ClientOrderDetailsDialogProps {
   order: OrderWithItems | null;
   isOpen: boolean;
   onClose: () => void;
+  isShowPrice?: boolean;
 }
 
 export function ClientOrderDetailsDialog({
   order,
   isOpen,
   onClose,
+  isShowPrice = false,
 }: ClientOrderDetailsDialogProps) {
   if (!order) return null;
 
@@ -228,7 +230,7 @@ export function ClientOrderDetailsDialog({
                   </div>
                   <div className="text-right">
                     <p className="font-medium">Qty: {item.quantity}</p>
-                    {item.price > 0 && (
+                    {isShowPrice && item.price > 0 && (
                       <p className="text-sm text-muted-foreground">
                         ₹{item.price.toFixed(2)} each
                       </p>
@@ -286,7 +288,7 @@ export function ClientOrderDetailsDialog({
                         <div className="text-right">
                           <p className="font-medium">Qty: {perBundleQty}</p>
                           <p className="text-sm text-muted-foreground">
-                            ₹{bundleItem.price?.toFixed(2) || '0.00'} each
+                            {isShowPrice && `₹${bundleItem.price?.toFixed(2) || '0.00'} each`}
                           </p>
                         </div>
                       </div>
@@ -297,7 +299,7 @@ export function ClientOrderDetailsDialog({
               });
             })()}
             </div>
-            {order.totalAmount > 0 && (
+            {isShowPrice && order.totalAmount > 0 && (
               <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                 <span className="font-medium">Total Amount:</span>
                 <span className="font-bold text-lg flex items-center gap-1">

@@ -18,6 +18,7 @@ export default function ClientProductsPage() {
   const { products, error, isLoading, mutate } = useProducts();
 
   const userId = session?.user.id || "1";
+  const isShowPrice = session?.user?.isShowPrice ?? false;
   const { totalCartItems, addToCart, getCartQuantity, incrementQuantity, decrementQuantity } = useCart(userId);
   const { filteredProducts, ...filterProps } = useProductFilters(products);
   const quantityDialog = useQuantityDialog();
@@ -105,6 +106,7 @@ export default function ClientProductsPage() {
           onIncrementQuantity={incrementQuantity}
           onDecrementQuantity={decrementQuantity}
           onClearFilters={handleClearFilters}
+          isShowPrice={isShowPrice}
         />
       </div>
 

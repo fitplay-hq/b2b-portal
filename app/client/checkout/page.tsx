@@ -38,6 +38,8 @@ export default function ClientCheckout() {
   const router = useRouter();
   const { createOrder, isCreating } = useCreateOrder();
 
+  const isShowPrice = session?.user?.isShowPrice ?? false;
+
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   // Form state
@@ -319,13 +321,13 @@ export default function ClientCheckout() {
                               <div>
                                 <h3 className="font-medium">{item.product.name}</h3>
                                 <p className="text-sm text-muted-foreground">SKU: {item.product.sku}</p>
-                                {item.product.price && <p className="text-sm font-medium">Price: ₹{item.product.price}</p>}
+                                {isShowPrice && item.product.price && <p className="text-sm font-medium">Price: ₹{item.product.price}</p>}
                                 <p className="text-xs text-muted-foreground">Individual product</p>
                               </div>
                             </div>
                             <div className="text-right">
                               <p className="font-medium">Qty: {item.quantity}</p>
-                              {item.product.price && <p className="font-medium">Total: ₹{(item.product.price * item.quantity).toFixed(2)}</p>}
+                              {isShowPrice && item.product.price && <p className="font-medium">Total: ₹{(item.product.price * item.quantity).toFixed(2)}</p>}
                             </div>
                           </div>
                         </div>
@@ -352,12 +354,12 @@ export default function ClientCheckout() {
                                 <div className="flex-1 min-w-0">
                                   <h4 className="font-medium text-sm truncate">{item.product.name}</h4>
                                   <p className="text-xs text-muted-foreground">SKU: {item.product.sku}</p>
-                                  {item.product.price && <p className="text-xs">₹{item.product.price}</p>}
+                                  {isShowPrice && item.product.price && <p className="text-xs">₹{item.product.price}</p>}
                                   <p className="text-xs text-blue-700">{item.bundleQuantity} per bundle × {item.bundleCount} bundles = {item.quantity} total</p>
                                 </div>
                                 <div className="text-right shrink-0">
                                   <p className="text-sm font-medium">Qty: {item.bundleQuantity} each</p>
-                                  {item.product.price && <p className="text-xs">₹{(item.product.price * item.quantity).toFixed(2)}</p>}
+                                  {isShowPrice && item.product.price && <p className="text-xs">₹{(item.product.price * item.quantity).toFixed(2)}</p>}
                                 </div>
                               </div>
                             ))}
@@ -602,7 +604,7 @@ export default function ClientCheckout() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{item.product.name}</p>
-                            {item.product.price && (
+                            {isShowPrice && item.product.price && (
                               <div className="text-xs text-muted-foreground">
                                 ₹{item.product.price} x {item.quantity} = ₹{(item.product.price * item.quantity).toFixed(2)}
                               </div>

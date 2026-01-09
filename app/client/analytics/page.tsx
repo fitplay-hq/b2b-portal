@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Layout from "@/components/layout";
 import { 
   Download, 
@@ -121,6 +122,9 @@ const exportToCSV = (data: any[], filename: string, type: 'orders' | 'inventory'
 };
 
 export default function ClientAnalyticsPage() {
+  const { data: session } = useSession();
+  const isShowPrice = session?.user?.isShowPrice ?? false;
+  
   const [filters, setFilters] = useState<AnalyticsFilters>({
     period: '30d'
   });
@@ -453,7 +457,7 @@ export default function ClientAnalyticsPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Total Spent</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(analytics?.overview?.totalRevenue || 0)}
+                      {isShowPrice ? formatCurrency(analytics?.overview?.totalRevenue || 0) : ''}
                     </p>
                   </div>
                 </div>
@@ -469,7 +473,7 @@ export default function ClientAnalyticsPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Avg. Order Value</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(analytics?.overview?.averageOrderValue || 0)}
+                      {isShowPrice ? formatCurrency(analytics?.overview?.averageOrderValue || 0) : ''}
                     </p>
                   </div>
                 </div>
@@ -646,7 +650,7 @@ export default function ClientAnalyticsPage() {
                           />
                           <Legend wrapperStyle={{ fontSize: '12px' }} />
                           <Bar dataKey="quantity" fill="#8884d8" name="Quantity" />
-                          <Bar dataKey="revenue" fill="#82ca9d" name="Revenue ($)" />
+                          {isShowPrice && <Bar dataKey="revenue" fill="#82ca9d" name="Revenue ($)" />}
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (

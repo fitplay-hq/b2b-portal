@@ -17,6 +17,7 @@ import type { OrderWithItems } from "@/data/order/client.actions";
 
 interface ClientOrdersTableProps {
   orders: OrderWithItems[];
+  isShowPrice?: boolean;
 }
 
 const getStatusColor = (status: string) => {
@@ -68,7 +69,7 @@ const getStatusDescription = (status: string) => {
   }
 };
 
-export function ClientOrdersTable({ orders }: ClientOrdersTableProps) {
+export function ClientOrdersTable({ orders, isShowPrice = false }: ClientOrdersTableProps) {
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -86,13 +87,16 @@ export function ClientOrdersTable({ orders }: ClientOrdersTableProps) {
             <TableHead>Order ID</TableHead>
             <TableHead>Items</TableHead>
             <TableHead>Order Status</TableHead>
-            <TableHead>Total Amount</TableHead>
+            {isShowPrice && <TableHead>Total Amount</TableHead>}
+            <TableHead>City</TableHead>
+            <TableHead>State</TableHead>
+            <TableHead>Pincode</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {orders.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={isShowPrice ? 8 : 7} className="text-center py-8 text-muted-foreground">
                 No orders found
               </TableCell>
             </TableRow>
@@ -189,13 +193,26 @@ export function ClientOrdersTable({ orders }: ClientOrdersTableProps) {
                       </TableCell>
                       
                       {/* Total Amount */}
+                      {isShowPrice && (
+                        <TableCell>
+                          {order.totalAmount > 0 && (
+                            <div className="flex items-center gap-1 font-medium">
+                              <IndianRupee className="h-4 w-4" />
+                              {order.totalAmount.toFixed(2)}
+                            </div>
+                          )}
+                        </TableCell>
+                      )}
+                      
+                      {/* Address Details - always shown */}
                       <TableCell>
-                        {order.totalAmount > 0 && (
-                          <div className="flex items-center gap-1 font-medium">
-                            <IndianRupee className="h-4 w-4" />
-                            {order.totalAmount.toFixed(2)}
-                          </div>
-                        )}
+                        <div className="text-sm">{order.city || '-'}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{order.state || '-'}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-mono">{order.pincode || '-'}</div>
                       </TableCell>
                     </TableRow>
                 );
@@ -207,6 +224,7 @@ export function ClientOrdersTable({ orders }: ClientOrdersTableProps) {
 
       <ClientOrderDetailsDialog
         order={selectedOrder}
+        isShowPrice={isShowPrice}
         isOpen={isDialogOpen}
         onClose={() => {
           setIsDialogOpen(false);

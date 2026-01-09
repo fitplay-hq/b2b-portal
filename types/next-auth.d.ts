@@ -21,6 +21,7 @@ declare module "next-auth" {
       permissions?: Permission[] // User's permissions
       companyId?: string // For CLIENT users
       companyName?: string // For CLIENT users
+      isShowPrice?: boolean // For CLIENT users - whether to show prices
       isDemo?: boolean // Flag for demo accounts
     } & DefaultSession["user"]
   }
@@ -35,6 +36,7 @@ declare module "next-auth" {
     permissions?: Permission[] // User's permissions
     companyId?: string // For CLIENT users
     companyName?: string // For CLIENT users
+    isShowPrice?: boolean // For CLIENT users - whether to show prices
     isDemo?: boolean // Flag for demo accounts
   }
 }
@@ -50,6 +52,7 @@ declare module "next-auth/jwt" {
     permissions?: Permission[] // User's permissions
     companyId?: string // For CLIENT users
     companyName?: string // For CLIENT users
+    isShowPrice?: boolean // For CLIENT users - whether to show prices
     isDemo?: boolean // Flag for demo accounts
   }
 }

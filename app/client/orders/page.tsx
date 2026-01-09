@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,8 @@ import type { OrderWithItems } from "@/data/order/client.actions";
 import { ClientOrdersTable } from "./components/orders-table";
 
 export default function ClientOrderHistory() {
+  const { data: session } = useSession();
+  const isShowPrice = session?.user?.isShowPrice ?? false;
   const { orders, isLoading } = useOrders();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -308,6 +311,7 @@ export default function ClientOrderHistory() {
           ) : viewType === "table" ? (
             <ClientOrdersTable 
               orders={filteredOrders}
+              isShowPrice={isShowPrice}
             />
           ) : (
             filteredOrders.map((order) => {
@@ -341,7 +345,9 @@ export default function ClientOrderHistory() {
                                 <Package className="h-3 w-3" />
                                 {(() => {
                                   const regularItems = order.orderItems?.length || 0;
-                                  const bundleItems = order.bundleOrderItems?.length || 0;
+                                  // Count unique bundles, not bundleOrderItems
+                                  const uniqueBundles = new Set(order.bundleOrderItems?.map(item => item.bundleId) || []);
+                                  const bundleItems = uniqueBundles.size;
                                   
                                   if (regularItems > 0 && bundleItems > 0) {
                                     return `${regularItems} item${regularItems !== 1 ? 's' : ''} + ${bundleItems} bundle${bundleItems !== 1 ? 's' : ''}`;
@@ -524,7 +530,7 @@ export default function ClientOrderHistory() {
                                     <p className="text-sm text-muted-foreground">
                                       Quantity: {item.quantity}
                                     </p>
-                                    {item.price > 0 && (
+                                    {isShowPrice && item.price > 0 && (
                                       <p className="text-sm">
                                         Price: ₹{item.price.toFixed(2)}
                                       </p>
@@ -603,7 +609,7 @@ export default function ClientOrderHistory() {
                           </div>
 
                           {/* Total Amount */}
-                          {order.totalAmount > 0 && (
+                          {isShowPrice && order.totalAmount > 0 && (
                             <div className="pt-4 border-t">
                               <div className="flex justify-between items-center">
                                 <span className="font-medium">
