@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Layout from "@/components/layout";
 import PageGuard from "@/components/page-guard";
 import { InventoryLogsTable } from "@/components/inventory-logs-table";
@@ -40,6 +40,7 @@ export default function InventoryLogsPage() {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [advancedFilters, setAdvancedFilters] = useState({
     dateFrom: "",
     dateTo: "",
@@ -48,21 +49,31 @@ export default function InventoryLogsPage() {
     reason: "",
   });
 
-  // Fetch all logs without search filter (client-side filtering)
+  // Debounce search term for API call - waits 500ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch logs with debounced search - searches across all pages
   const { logs: allLogs, pagination, error, isLoading } = useInventoryLogs({
     ...filters,
-    search: undefined, // Don't filter on server
+    search: debouncedSearch || undefined, // Use debounced search for API
   });
 
-  // Client-side filtering with useMemo for instant search
+  // Client-side filtering with useMemo for instant visual feedback while typing
   const logs = useMemo(() => {
     if (!allLogs) return [];
     
     let filtered = allLogs;
     const lowercasedTerm = searchTerm.toLowerCase();
 
-    // Apply search filter
-    if (lowercasedTerm) {
+    // Apply instant search filter for immediate feedback
+    if (lowercasedTerm && lowercasedTerm !== debouncedSearch.toLowerCase()) {
+      // Only do client-side filtering if user is still typing (searchTerm differs from debouncedSearch)
       filtered = filtered.filter(log => {
         return (
           log.productName.toLowerCase().includes(lowercasedTerm) ||
@@ -77,7 +88,7 @@ export default function InventoryLogsPage() {
     }
 
     return filtered;
-  }, [allLogs, searchTerm]);
+  }, [allLogs, searchTerm, debouncedSearch]);
 
   const handlePageChange = (page: number) => {
     setFilters(prev => ({ ...prev, page }));
@@ -326,7 +337,7 @@ export default function InventoryLogsPage() {
                     </span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    Showing all {logs?.length || 0} inventory logs
+                    Showing all logs
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-gray-600">

@@ -250,7 +250,7 @@ export function InventoryLogsTable({
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by product name, SKU, or reason... (2.5s auto-search, Enter for instant)"
+                placeholder="Search by product name, SKU, or reason..."
                 value={searchValue}
                 onChange={(e) => handleSearch(e.target.value)}
                 onKeyPress={(e) => {
@@ -341,6 +341,11 @@ export function InventoryLogsTable({
             )}
           </div>
         )}
+
+        {/* Log count display */}
+        <div className="mb-4 text-sm text-muted-foreground">
+          Showing {logs?.length || 0} out of {pagination?.totalLogs || 0} logs
+        </div>
 
         {/* Table */}
         <div className="rounded-md border overflow-x-auto">
