@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Search, 
   ArrowUpDown, 
@@ -131,7 +138,7 @@ export function InventoryLogsTable({
     }
     
     // For text inputs, use longer debounce delay
-    const isTextInput = ['productName', 'sku', 'reason'].includes(key);
+    const isTextInput = ['productName', 'sku'].includes(key);
     const debounceDelay = isTextInput ? 2500 : 300; // 2.5s for text, 300ms for dates
     
     // Show loading state for text inputs
@@ -322,20 +329,25 @@ export function InventoryLogsTable({
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Reason</label>
-                  <div className="relative">
-                    <Input
-                      key="reason"
-                      placeholder="Filter by reason... (2.5s auto, Enter instant)"
-                      value={displayFilters.reason}
-                      onChange={(e) => handleFilterChange("reason", e.target.value)}
-                      onKeyPress={(e) => handleKeyPress("reason", displayFilters.reason, e)}
-                      onBlur={() => handleBlur("reason", displayFilters.reason)}
-                      className="pr-8"
-                    />
-                    {isFilteringLoading && displayFilters.reason && (
-                      <Loader2 className="absolute right-2 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
-                    )}
-                  </div>
+                  <Select
+                    value={displayFilters.reason || "all"}
+                    onValueChange={(value) => {
+                      const reasonValue = value === "all" ? "" : value;
+                      handleFilterChange("reason", reasonValue);
+                      handleApplyFilter("reason", reasonValue);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Reasons" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Reasons</SelectItem>
+                      <SelectItem value="NEW_PURCHASE">New Purchase</SelectItem>
+                      <SelectItem value="PHYSICAL_STOCK_CHECK">Physical Stock Check</SelectItem>
+                      <SelectItem value="RETURN_FROM_PREVIOUS_DISPATCH">Return From Previous Dispatch</SelectItem>
+                      <SelectItem value="NEW_ORDER">New Order</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
