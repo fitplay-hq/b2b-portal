@@ -48,8 +48,10 @@ export async function GET(request: NextRequest) {
         // If no specific dates, use period
         if (!dateFrom && !dateTo) {
             const now = new Date();
-            const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 30;
-            dateFilter.gte = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+            const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 0;
+            if (daysBack>0) {
+                dateFilter.gte = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+            }
             console.log(`Using ${daysBack} day filter from:`, dateFilter.gte);
         }
 

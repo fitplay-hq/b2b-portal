@@ -70,8 +70,10 @@ async function exportOrdersPDF({ dateFrom, dateTo, clientId, status, period, ses
 
     if (!dateFrom && !dateTo) {
         const now = new Date();
-        const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
-        dateFilter.gte = new Date(now.getTime() - days * 86400000);
+        const days = period === "7d" ? 7 : period === "30d" ? 30 : 0;
+        if (days > 0) {
+            dateFilter.gte = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+        }
     }
 
     const orderFilters: any = { createdAt: dateFilter };
