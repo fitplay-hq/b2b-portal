@@ -33,14 +33,6 @@ export function useInventoryExport() {
       
       console.log('Export request:', { format, filters, exportUrl });
       
-      // Debug: Check current user session first
-      const sessionCheck = await fetch('/api/auth/session', { credentials: 'include' });
-      const session = await sessionCheck.json();
-      console.log('Current session for export:', { 
-        role: session?.user?.role, 
-        permissions: session?.user?.permissions 
-      });
-      
       // Create a temporary link to download the file
       const response = await fetch(exportUrl, {
         method: 'GET',
@@ -49,6 +41,9 @@ export function useInventoryExport() {
           'Accept': format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         }
       });
+      
+      console.log('Export response status:', response.status, response.statusText);
+      
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Export API Error:', {

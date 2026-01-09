@@ -154,12 +154,12 @@ export default function ClientInventoryLogsPage() {
     const exportFilters = {
       dateFrom: advancedFilters.dateFrom || undefined,
       dateTo: advancedFilters.dateTo || undefined,
-      search: searchTerm || undefined,
+      search: searchTerm || undefined, // Use searchTerm directly
       reason: advancedFilters.reason || undefined,
       period: !advancedFilters.dateFrom && !advancedFilters.dateTo ? filters.period : undefined,
     };
 
-    console.log('Starting client inventory export:', { format, exportFilters });
+    console.log('Client Export Filters:', exportFilters);
     await exportData(format, exportFilters);
   };
 
@@ -288,11 +288,10 @@ export default function ClientInventoryLogsPage() {
                 </div>
               </CardContent>
             </Card>
-          )}
-
-          <div className="flex-1">
+          )}          <div className="flex-1">
             <ClientInventoryLogsTable
               logs={logs}
+              totalCount={allLogs?.length || 0}
               isLoading={isLoading}
               onSearch={setSearchTerm}
               onImmediateSearch={setSearchTerm}

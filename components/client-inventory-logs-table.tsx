@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 
 interface ClientInventoryLogsTableProps {
   logs: ClientInventoryLogEntry[];
+  totalCount?: number;
   isLoading: boolean;
   onSearch?: (search: string) => void;
   onImmediateSearch?: (search: string) => void;
@@ -57,6 +58,7 @@ interface ClientInventoryLogsTableProps {
 
 export function ClientInventoryLogsTable({
   logs,
+  totalCount,
   isLoading,
   onSearch,
   onImmediateSearch,
@@ -281,6 +283,11 @@ export function ClientInventoryLogsTable({
           </div>
         )}
 
+        {/* Log count display */}
+        <div className="mb-4 text-sm text-muted-foreground">
+          Showing {logs.length} {totalCount ? `of ${totalCount}` : ''} log{logs.length !== 1 ? 's' : ''}
+        </div>
+
         <div className="rounded-md border">
           <div className="overflow-x-auto">
             <div className="min-w-[1000px]">
@@ -370,13 +377,7 @@ export function ClientInventoryLogsTable({
               </table>
             </div>
           </div>
-        </div>        {logs.length > 0 && (
-          <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">
-            <div>
-              Showing {logs.length} inventory log{logs.length !== 1 ? 's' : ''}
-            </div>
-          </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

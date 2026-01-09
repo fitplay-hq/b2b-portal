@@ -200,17 +200,22 @@ export default function InventoryLogsPage() {
   };
 
   const handleExport = async (format: 'xlsx' | 'pdf') => {
+    // Use searchTerm directly to capture the current search value
+    // (debouncedSearch might not have updated yet if user just typed)
+    const currentSearch = searchTerm || debouncedSearch;
+    
     // Convert current filters to export format matching /api/inventoryLogs expectations
     const exportFilters = {
       dateFrom: advancedFilters.dateFrom || undefined,
       dateTo: advancedFilters.dateTo || undefined,
-      search: searchTerm || undefined,
+      search: currentSearch || undefined,
       reason: advancedFilters.reason || undefined,
       // The /api/inventoryLogs endpoint uses different filter names than admin hooks
       productId: undefined, // We don't have direct product ID filter in the UI
       period: !advancedFilters.dateFrom && !advancedFilters.dateTo ? 'all' : undefined,
     };
 
+    console.log('Admin Export Filters:', exportFilters);
     // Toast notifications are handled inside the exportData function
     await exportData(format, exportFilters);
   };
