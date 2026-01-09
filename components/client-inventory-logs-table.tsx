@@ -154,6 +154,11 @@ export function ClientInventoryLogsTable({
     return "outline";
   };
 
+  const formatReason = (reason: string | null) => {
+    if (!reason) return "-";
+    return reason.replace(/_/g, " ");
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -340,7 +345,7 @@ export function ClientInventoryLogsTable({
                       <td className="p-4">
                         {log.reason ? (
                           <Badge variant={getReasonBadgeColor(log.reason)}>
-                            {log.reason}
+                            {formatReason(log.reason)}
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground text-sm">-</span>
