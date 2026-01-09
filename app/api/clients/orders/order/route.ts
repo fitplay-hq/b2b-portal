@@ -422,38 +422,70 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order created but could not be retrieved" }, { status: 500 });
     }
 
+    const productMap = new Map<string, {
+      name: string;
+      quantity: number;
+      bundles: Set<number>;
+    }>();
+
+    order.orderItems.forEach((item) => {
+      if (!productMap.has(item.productId)) {
+        productMap.set(item.productId, {
+          name: item.product.name,
+          quantity: 0,
+          bundles: new Set(),
+        });
+      }
+      productMap.get(item.productId)!.quantity += item.quantity;
+    });
+
+    order.bundleOrderItems.forEach((item) => {
+      if (!productMap.has(item.productId)) {
+        productMap.set(item.productId, {
+          name: item.product.name,
+          quantity: 0,
+          bundles: new Set(),
+        });
+      }
+      productMap.get(item.productId)!.quantity += item.quantity;
+
+      const bundleIndex =
+        order.bundles.findIndex((b) => b.id === item.bundleId) + 1;
+
+      if (bundleIndex > 0) {
+        productMap.get(item.productId)!.bundles.add(bundleIndex);
+      }
+    });
+
     const orderTable = `
-        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 16px;">
-        <thead>
-            <tr>
-            <th align="left">Product</th>
-            <th align="center">Quantity</th>
-            </tr>
-        </thead>
-        <tbody>
-        ${order.orderItems
-        .map(
-          (item) => `
-            <tr>
-                <td>${item.product.name}</td>
-                <td align="center">${item.quantity}</td>
-            </tr>
-        `
-        )
+<table border="1" cellpadding="8" cellspacing="0"
+  style="border-collapse: collapse; width: 100%; margin-top: 16px;">
+  <thead>
+    <tr>
+      <th align="left">Product</th>
+      <th align="center">Quantity</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${Array.from(productMap.values())
+        .map(({ name, quantity, bundles }) => {
+          const bundleLabel =
+            bundles.size > 0
+              ? ` (Bundle - ${Array.from(bundles).join(", ")})`
+              : "";
+
+          return `
+          <tr>
+            <td>${name}${bundleLabel}</td>
+            <td align="center">${quantity}</td>
+          </tr>
+        `;
+        })
         .join("")}
-            ${order.bundleOrderItems
-        .map(
-          (item) => `
-            <tr>
-            <td>${item.product.name} (Bundle)</td>
-            <td align="center">${item.quantity}</td>
-            </tr>
-        `
-        )
-        .join("")}
-        </tbody>
-    </table>
-    `;
+  </tbody>
+</table>
+`;
+
 
     const footerMessage = toggleTracker
       ? "Please reply confirmation to this new dispatch order."
@@ -488,31 +520,36 @@ export async function POST(req: NextRequest) {
           ${orderTable}
 
           ${order.bundleOrderItems.length > 0 ? `
-      <h3>Bundle Breakdown:</h3>
-    ${order.bundles.map(bundle => `
-        <div style="margin-bottom:12px;">
-            <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;margin-top:8px;">
-                <thead>
-                    <tr>
-                        <th align="left">Product</th>
-                        <th align="center">Quantity</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${bundle.items.map(item => `
-                        <tr>
-                            <td>${item.product?.name || 'Unknown Product'}</td>
-                            <td align="center">${item.bundleProductQuantity ?? 0}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    `).join('')}
-      ${order.bundles.map(bundle => `
-  <p><b>Bundle ID:</b> ${bundle.id}</p>
-  <p><b>Number of Bundles:</b> ${bundle.numberOfBundles}</p>
-`).join("")}
+            <h3>Bundle Breakdown:</h3>
+            ${order.bundles
+            .map((bundle, index) => `
+    <div style="margin-bottom:16px;">
+      <p><b>Bundle - ${index + 1}</b></p>
+      ${bundle.numberOfBundles ? `<p><b>Number of Bundles:</b> ${bundle.numberOfBundles}</p>` : ""}
+
+      <table border="1" cellpadding="6" cellspacing="0"
+        style="border-collapse:collapse;width:100%;margin-top:8px;">
+        <thead>
+          <tr>
+            <th align="left">Product</th>
+            <th align="center">Quantity (per bundle)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bundle.items
+                .map(item => `
+              <tr>
+                <td>${item.product?.name || "Unknown Product"}</td>
+                <td align="center">${item.bundleProductQuantity ?? 0}</td>
+              </tr>
+            `)
+                .join("")}
+        </tbody>
+      </table>
+    </div>
+  `)
+            .join("")}
+
 
     `: ""}
 
