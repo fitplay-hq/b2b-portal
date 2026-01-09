@@ -79,6 +79,9 @@ async function exportInventoryLogsData({
     companyID
 }: any) {
 
+    const normalizedSearch = search?.toLowerCase() || null;
+
+
     /* ---------------- DATE FILTER ---------------- */
     const dateFilter: { gte?: Date; lte?: Date } = {};
     if (dateFrom) dateFilter.gte = new Date(dateFrom);
@@ -134,7 +137,16 @@ async function exportInventoryLogsData({
 
             if (reasonFilter && reason !== reasonFilter) continue;
 
-            if (search && !entry.toLowerCase().includes(search.toLowerCase())) continue;
+            if (normalizedSearch) {
+                const matchesSearch =
+                    product.name.toLowerCase().includes(normalizedSearch) ||
+                    product.sku.toLowerCase().includes(normalizedSearch) ||
+                    actionText.toLowerCase().includes(normalizedSearch) ||
+                    remarks?.toLowerCase().includes(normalizedSearch)
+
+                if (!matchesSearch) continue;
+            }
+
 
             const qtyMatch = actionText.match(/\d+/);
             const amount = qtyMatch ? parseInt(qtyMatch[0]) : 0;
@@ -209,7 +221,6 @@ async function exportInventoryLogsData({
                 'Reason': log.reason,
                 'Remarks': log.remarks, // ✅ NEW COLUMN
                 'Final Stock': log.finalStock,
-                'Raw Log': log.raw
             });
 
         }

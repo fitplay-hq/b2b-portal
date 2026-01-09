@@ -94,6 +94,9 @@ async function exportInventoryLogsPDF({
     if (dateFrom) dateFilter.gte = new Date(dateFrom);
     if (dateTo) dateFilter.lte = new Date(dateTo);
 
+    const normalizedSearch = search?.toLowerCase() || null;
+
+
     if (!dateFrom && !dateTo && period !== "all") {
         const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
         dateFilter.gte = new Date(Date.now() - days * 86400000);
@@ -147,7 +150,21 @@ async function exportInventoryLogsPDF({
 
             const reasonValue = reasonText?.replace("Reason:", "").trim() || null;
             if (reason && reasonValue !== reason) continue;
-            if (search && !entry.toLowerCase().includes(search.toLowerCase())) continue;
+
+            if (normalizedSearch) {
+                const matchesSearch =
+                    product.name.toLowerCase().includes(normalizedSearch) ||
+                    product.sku.toLowerCase().includes(normalizedSearch) ||
+                    actionText.toLowerCase().includes(normalizedSearch) ||
+                    parts.find(p => p.startsWith("Remarks:"))
+                        ?.replace("Remarks:", "")
+                        .trim()
+                        .toLowerCase()
+                        .includes(normalizedSearch);
+
+                if (!matchesSearch) continue;
+            }
+
 
             const qtyMatch = actionText.match(/\d+/);
             const amount = qtyMatch ? parseInt(qtyMatch[0]) : 0;
@@ -229,49 +246,81 @@ async function exportInventoryLogsPDF({
 
     let page = pdf.addPage([595.28, 841.89]);
     let y = 800;
-    const m = 40;
-    const lh = 14;
+    const margin = 30;
+    const rowHeight = 16;
 
-    page.drawText("Inventory Logs Report", { x: m, y, size: 20, font: boldFont });
-    y -= 25;
-    page.drawText(`Total Logs: ${finalLogs.length}`, { x: m, y, size: 12, font: boldFont });
+    const cols = {
+        product: margin,   // 30
+        sku: 180,
+        date: 270,
+        qty: 370,
+        stock: 420,
+        reason: 470        // starts earlier → more width
+    };
+
+
+    // Title
+    page.drawText("Inventory Logs Report", {
+        x: margin,
+        y,
+        size: 18,
+        font: boldFont
+    });
     y -= 30;
 
+    // Table Header
+    page.drawText("Product", { x: cols.product, y, size: 10, font: boldFont });
+    page.drawText("SKU", { x: cols.sku, y, size: 10, font: boldFont });
+    page.drawText("Date & Time", { x: cols.date, y, size: 10, font: boldFont });
+    page.drawText("Qty", { x: cols.qty, y, size: 10, font: boldFont });
+    page.drawText("Stock", { x: cols.stock, y, size: 10, font: boldFont });
+    page.drawText("Reason", { x: cols.reason, y, size: 10, font: boldFont });
+
+    y -= rowHeight;
+
+    // Divider
+    page.drawLine({
+        start: { x: margin, y },
+        end: { x: 565, y },
+        thickness: 1
+    });
+
+    y -= rowHeight;
+
+    const rowFontSize = 7.6;
+
+    // Table Rows
     for (const log of finalLogs) {
-        if (y < 100) {
+        if (y < 60) {
             page = pdf.addPage([595.28, 841.89]);
             y = 800;
         }
 
-        page.drawText(log.productName, { x: m, y, size: 12, font: boldFont });
-        y -= lh;
-
-        page.drawText(`SKU: ${log.sku}`, { x: m, y, size: 10, font });
-        y -= lh;
-
-        page.drawText(`Timestamp: ${log.timestamp.toLocaleString()}`, { x: m, y, size: 10, font });
-        y -= lh;
-
-        page.drawText(`Action: ${log.action}`, { x: m, y, size: 10, font });
-        y -= lh;
-
+        page.drawText(log.productName, { x: cols.product, y, size: rowFontSize, font });
+        page.drawText(log.sku, { x: cols.sku, y, size: rowFontSize, font });
         page.drawText(
-            `Quantity: ${log.changeDirection === "Added" ? "+" : "-"}${log.changeAmount}`,
-            { x: m, y, size: 10, font }
+            log.timestamp.toLocaleString(),
+            { x: cols.date, y, size: rowFontSize, font }
         );
-        y -= lh;
+        page.drawText(
+            `${log.changeDirection === "Added" ? "+" : "-"}${log.changeAmount}`,
+            { x: cols.qty, y, size: rowFontSize, font }
+        );
+        page.drawText(
+            String(log.finalStock),
+            { x: cols.stock, y, size: rowFontSize, font }
+        );
+        page.drawText(
+            log.reason || "N/A",
+            { x: cols.reason, y, size: rowFontSize, font }
+        );
 
-        page.drawText(`Updated Stock: ${log.finalStock}`, { x: m, y, size: 10, font });
-        y -= lh;
-
-        page.drawText(`Reason: ${log.reason || 'N/A'}`, { x: m, y, size: 10, font });
-        y -= lh;
-
-        y -= 15;
+        y -= rowHeight;
     }
 
     const bytes = await pdf.save();
     return sendPDF(bytes, "inventory_logs_export");
+
 }
 
 /* ============================================================
