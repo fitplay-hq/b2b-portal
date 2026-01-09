@@ -54,12 +54,12 @@ export function useQuantityDialog() {
   }
 
   const handleInputChange = (value: string) => {
-    // Allow backspace and free editing
+    // Always update input value to show what user is typing
     setInputValue(value);
     
     // Update quantity if valid number
     if (value === '' || value === '0') {
-      return; // Don't update quantity yet
+      return; // Don't update quantity yet, will validate on blur
     }
     
     const numValue = parseInt(value);

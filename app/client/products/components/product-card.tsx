@@ -8,7 +8,7 @@ import {
 import { ImageWithFallback } from "@/components/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Minus, Plus, X } from "lucide-react";
 import { $Enums } from "@/lib/generated/prisma";
 
 // Function to convert enum values to human-friendly names
@@ -46,6 +46,7 @@ interface ProductCardProps {
   onAddToCartClick: (product: Product) => void;
   onIncrementQuantity?: (productId: string) => void;
   onDecrementQuantity?: (productId: string) => void;
+  onClearCart?: (productId: string) => void;
   isShowPrice?: boolean;
 }
 
@@ -55,6 +56,7 @@ export function ProductCard({
   onAddToCartClick,
   onIncrementQuantity,
   onDecrementQuantity,
+  onClearCart,
   isShowPrice = false,
 }: ProductCardProps) {
   const isInStock = product.availableStock > 0;
@@ -111,22 +113,31 @@ export function ProductCard({
       </CardContent>
       <CardFooter className="p-3 pt-0">
         {cartQuantity > 0 ? (
-          <div className="w-full border rounded-md overflow-hidden flex items-stretch">
-            <button
-              onClick={() => onDecrementQuantity?.(product.id)}
-              className="flex-1 py-2 hover:bg-muted transition-colors border-r flex items-center justify-center"
-            >
-              <Minus className="h-4 w-4" />
-            </button>
-            <div className="flex-1 py-2 flex items-center justify-center font-semibold text-sm border-r">
-              {cartQuantity}
+          <div className="w-full flex items-center gap-2">
+            <div className="flex-1 border rounded-md overflow-hidden flex items-stretch">
+              <button
+                onClick={() => onDecrementQuantity?.(product.id)}
+                className="flex-1 py-2 hover:bg-muted transition-colors border-r flex items-center justify-center"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <div className="flex-1 py-2 flex items-center justify-center font-semibold text-sm border-r">
+                {cartQuantity}
+              </div>
+              <button
+                onClick={() => onIncrementQuantity?.(product.id)}
+                disabled={!isInStock}
+                className="flex-1 py-2 hover:bg-muted transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
             </div>
             <button
-              onClick={() => onIncrementQuantity?.(product.id)}
-              disabled={!isInStock}
-              className="flex-1 py-2 hover:bg-muted transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => onClearCart?.(product.id)}
+              className="p-2 rounded-md border hover:bg-destructive hover:text-destructive-foreground transition-colors"
+              title="Remove from cart"
             >
-              <Plus className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         ) : (

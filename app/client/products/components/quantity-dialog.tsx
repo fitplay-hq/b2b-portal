@@ -74,7 +74,7 @@ export function QuantityDialog({ dialog, onConfirm }: QuantityDialogProps) {
               id="quantity"
               type="number"
               value={inputValue}
-              className={`w-20 text-center ${!isValidQuantity() ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              className={`w-28 text-center ${!isValidQuantity() ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               onChange={(e) => handleInputChange(e.target.value)}
               onBlur={validateInput}
               onKeyDown={(e) => {
@@ -93,7 +93,9 @@ export function QuantityDialog({ dialog, onConfirm }: QuantityDialogProps) {
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-sm font-semibold">Quantity: {quantity}</p>
+          {inputValue !== '' && (
+            <p className="text-sm font-semibold">Quantity: {quantity}</p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={closeDialog}>
