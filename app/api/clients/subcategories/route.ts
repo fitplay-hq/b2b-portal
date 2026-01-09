@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Client not found" }, { status: 404 });
         }
 
-        const categories = await prisma.productCategory.findMany({
+        const categories = await prisma.subCategory.findMany({
             where: {
                 products: {
                     some: {
@@ -48,12 +48,9 @@ export async function GET(req: NextRequest) {
             select: {
                 id: true,
                 name: true,
-                displayName: true,
-                description: true,
-                sortOrder: true,
-            },
-            orderBy: {
-                sortOrder: "asc",
+                categoryId: true,
+                shortCode: true,
+                category: true
             },
         });
 
