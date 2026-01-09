@@ -496,12 +496,12 @@ const OrderDetails = ({
               )}
               {order.deliveryReference && (
                 <p>
-                  <strong>Reference:</strong> {order.deliveryReference}
+                  <strong>Delivery Reference:</strong> {order.deliveryReference}
                 </p>
               )}
               {order.packagingInstructions && (
                 <p>
-                  <strong>Packaging:</strong> {order.packagingInstructions}
+                  <strong>Packaging Instructions:</strong> {order.packagingInstructions}
                 </p>
               )}
             </div>
@@ -514,7 +514,7 @@ const OrderDetails = ({
           </div>
           {order.note && (
             <div className="md:col-span-2">
-              <h4 className="font-medium mb-2">Notes from Client</h4>
+              <h4 className="font-medium mb-2">Additional Notes</h4>
               <p className="text-sm text-muted-foreground whitespace-pre-line">
                 {order.note}
               </p>

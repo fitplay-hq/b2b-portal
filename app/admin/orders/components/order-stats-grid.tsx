@@ -70,9 +70,9 @@ export function OrderStatsGrid({
         iconColor="text-green-600"
       />
       <StatCard
-        title="Order Metrics"
-        value={totalRevenue.toFixed(0)}
-        description="Order count metrics"
+        title="Total Revenue"
+        value={`₹${totalRevenue.toLocaleString()}`}
+        description="Total order value"
         Icon={FileText}
       />
     </div>

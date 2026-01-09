@@ -34,6 +34,7 @@ import {
   CheckCircle,
   ShoppingCart,
   Package,
+  Building2,
 } from "lucide-react";
 import { useProducts } from "@/data/product/admin.hooks";
 import { useClients } from "@/data/client/admin.hooks";
@@ -497,28 +498,61 @@ export default function CreateDispatchOrderPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2">
-                <Label>Client</Label>
                 <Select
                   value={selectedClientEmail}
                   onValueChange={setSelectedClientEmail}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-auto min-h-[60px] w-full">
                     <SelectValue
                       placeholder={
                         isClientsLoading
                           ? "Loading clients..."
                           : "Select client"
                       }
-                    />
+                    >
+                      {selectedClientEmail && clients && (() => {
+                        const selectedClient = clients.find(c => c.email === selectedClientEmail);
+                        if (!selectedClient) return null;
+                        return (
+                          <div className="flex flex-col gap-1 py-1.5 text-left w-full pr-4">
+                            <div className="font-medium text-sm truncate">{selectedClient.name}</div>
+                            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                              {(selectedClient.company?.name || selectedClient.companyName) && (
+                                <div className="flex items-center gap-1.5">
+                                  <Building2 className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{selectedClient.company?.name || selectedClient.companyName}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-1.5">
+                                <Mail className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{selectedClient.email}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="w-[600px]">
                     {(clients || []).map((c) => (
                       <SelectItem
                         key={c.id}
                         value={c.email}
-                        className="capitalize"
+                        className="cursor-pointer py-3"
                       >
-                        {c.companyName || c.name}
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-sm">{c.name}</span>
+                          {(c.company?.name || c.companyName) && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Building2 className="h-3.5 w-3.5" />
+                              <span>{c.company?.name || c.companyName}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Mail className="h-3.5 w-3.5" />
+                            <span>{c.email}</span>
+                          </div>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -544,8 +578,12 @@ export default function CreateDispatchOrderPage() {
                   <Label>Consignee Phone</Label>
                   <Input
                     value={consigneePhone}
-                    onChange={(e) => setConsigneePhone(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      setConsigneePhone(value);
+                    }}
                     maxLength={10}
+                    placeholder="Enter 10-digit phone number"
                   />
                 </div>
                 <div className="space-y-2">
@@ -579,7 +617,10 @@ export default function CreateDispatchOrderPage() {
                   <div className="relative">
                     <Input
                       value={pincode}
-                      onChange={(e) => handlePincodeChange(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        handlePincodeChange(value);
+                      }}
                       placeholder="Enter 6-digit pincode"
                       maxLength={6}
                       className={pincodeError ? "border-red-500" : ""}
