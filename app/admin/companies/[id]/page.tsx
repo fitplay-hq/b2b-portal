@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { toast } from "sonner";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
@@ -123,10 +124,11 @@ export default function EditCompanyPage() {
         }
       }
 
+      toast.success("Company updated successfully!");
       router.push("/admin/companies-clients");
     } catch (error) {
       console.error("Failed to update company:", error);
-      // Handle error - could show toast notification
+      toast.error("Failed to update company. Please try again.");
     }
   };
 

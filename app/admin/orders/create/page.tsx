@@ -533,7 +533,7 @@ export default function CreateDispatchOrderPage() {
                       })()}
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent className="w-[600px]">
+                  <SelectContent className="w-[600px] max-h-[400px] overflow-y-auto scroll-smooth">
                     {(clients || []).map((c) => (
                       <SelectItem
                         key={c.id}
