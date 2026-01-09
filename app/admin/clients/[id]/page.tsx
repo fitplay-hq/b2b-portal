@@ -4,6 +4,7 @@ import { useState } from "react";
 import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { mutate } from "swr";
+import { toast } from "sonner";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
@@ -211,10 +212,11 @@ export default function EditClientPage() {
       // Also invalidate companies cache since products may have been assigned to companies
       await mutate('/api/admin/companies');
       
+      toast.success("Client updated successfully!");
       router.push("/admin/companies-clients");
     } catch (error) {
       console.error("Failed to update client:", error);
-      // Handle error - could show toast notification
+      toast.error("Failed to update client. Please try again.");
     }
   };
 
