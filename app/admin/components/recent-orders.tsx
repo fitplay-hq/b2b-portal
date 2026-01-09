@@ -69,10 +69,6 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                   {new Date(order.createdAt).toLocaleDateString()}
                 </p>
               </div>
-              <Button asChild variant="secondary" size="sm">
-                {/* This link should ideally go to the specific order's detail page */}
-                <Link href={`/admin/orders/${order.id}`}>View Details</Link>
-              </Button>
             </div>
           ))}
         </div>

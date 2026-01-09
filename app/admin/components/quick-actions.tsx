@@ -28,7 +28,7 @@ export function QuickActions() {
       <ActionCard
         title="Client Management"
         description="Manage client accounts and permissions"
-        href="/admin/clients"
+        href="/admin/companies-clients"
         Icon={Users}
       />
     </div>
