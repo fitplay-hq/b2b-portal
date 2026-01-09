@@ -82,10 +82,7 @@ export function ProductCard({
               <span className="block truncate" title={product.name}>{product.name}</span>
             </CardTitle>
             <Badge variant="secondary" className="text-xs w-fit mb-1">
-              {(product as any).category?.displayName || 
-               getHumanFriendlyCategoryName(product.categories && product.categories[0]
-                ? product.categories
-                : "Uncategorized")}
+              {(product as any).category?.displayName || "Uncategorized"}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground truncate">SKU: {product.sku}</p>

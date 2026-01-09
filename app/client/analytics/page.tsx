@@ -149,8 +149,8 @@ export default function ClientAnalyticsPage() {
 
   const [calendarOpen, setCalendarOpen] = useState(false);
 
-  // Fetch categories from database
-  const { data: categories } = useSWR('/api/admin/categories', fetcher, {
+  // Fetch categories from database (client-specific)
+  const { data: categories } = useSWR('/api/clients/categories', fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 30000,
   });

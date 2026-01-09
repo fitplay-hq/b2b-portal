@@ -55,14 +55,13 @@ interface ProductFiltersProps {
   totalCount: number;
 }
 
-// Fetcher for categories
+// Fetcher for categories and subcategories
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error('Failed to fetch categories');
+    throw new Error('Failed to fetch data');
   }
-  const data = await res.json();
-  return data.success ? data.data : [];
+  return res.json();
 };
 
 // Function to convert enum values to human-friendly names - fallback for legacy enum values
@@ -110,28 +109,22 @@ export function ProductFilters({
   resultsCount,
   totalCount,
 }: ProductFiltersProps) {
-  // Fetch categories from database
-  const { data: categories } = useSWR<ProductCategory[]>('/api/admin/categories', fetcher, {
+  // Fetch categories from database (client-specific)
+  const { data: categories } = useSWR<ProductCategory[]>('/api/clients/categories', fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 30000,
   });
 
-  // Fetch subcategories from database
-  const { data: subCategoriesData } = useSWR<{ success: boolean; data: SubCategory[] }>('/api/admin/subcategories', async (url) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to fetch subcategories');
-    return res.json();
-  }, {
+  // Fetch subcategories from database (client-specific)
+  const { data: subCategories } = useSWR<SubCategory[]>('/api/clients/subcategories', fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 30000,
   });
-
-  const subCategories = subCategoriesData?.data || [];
   
   // Filter subcategories based on selected category
   const filteredSubCategories = selectedCategory === "All Categories" 
-    ? subCategories 
-    : subCategories.filter(sub => sub.category.name === selectedCategory);
+    ? subCategories || []
+    : (subCategories || []).filter(sub => sub.category.name === selectedCategory);
 
   return (
     <div className="flex flex-col gap-3">
@@ -164,7 +157,7 @@ export function ProductFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="All Categories">All Categories</SelectItem>
-          {categories?.filter(cat => cat.isActive).map((category) => (
+          {categories?.map((category) => (
             <SelectItem key={category.id} value={category.name}>
               {category.displayName}
             </SelectItem>
