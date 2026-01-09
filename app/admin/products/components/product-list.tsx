@@ -66,10 +66,9 @@ export function ProductList({
 
   // Group products by category when showing all categories
   const groupedProducts = products.reduce((acc, product) => {
-    // Prioritize the new category relationship, fall back to enum, then "Uncategorized"
+    // Use database category relationship
     const categoryName = product.category?.displayName || 
                         product.category?.name || 
-                        product.categories || 
                         "Uncategorized";
     
     if (!acc[categoryName]) {
@@ -97,9 +96,7 @@ export function ProductList({
               <div key={category} className="space-y-4">
                 <div className="border-b pb-2 mb-4">
                   <h3 className="text-lg font-semibold">
-                    {category === "Uncategorized" ? category : 
-                     category.includes(" ") ? category : 
-                     category.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()}
+                    {category}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     ({categoryProducts.length} items)

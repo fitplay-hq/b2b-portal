@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/image";
 import { Product, ProductCategory, Company } from "@/lib/generated/prisma";
 import { Edit, Trash2, Package } from "lucide-react";
-import { getHumanFriendlyCategoryName } from "./product-filters";
 import { usePermissions } from "@/hooks/use-permissions";
 
 // Extended Product type that includes the category relationship
@@ -46,16 +45,8 @@ export function ProductItem({
               </Badge>
             )}
             <Badge variant="secondary" className="text-xs">
-              {product.category?.displayName || 
-               (product.category?.name ? getHumanFriendlyCategoryName(product.category.name) : null) ||
-               (product.categories ? getHumanFriendlyCategoryName(product.categories) : null) ||
-               "Uncategorized"}
+              {product.category?.displayName || product.category?.name || "Uncategorized"}
             </Badge>
-            {product.subCategory && (
-              <Badge variant="secondary" className="text-xs">
-                {product.subCategory.name}
-              </Badge>
-            )}
             {product.availableStock === 0 && (
               <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
             )}

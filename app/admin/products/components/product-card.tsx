@@ -19,31 +19,6 @@ type ProductWithRelations = Product & {
   companies?: Company[];
 };
 
-// Function to convert enum values to human-friendly names
-const getHumanFriendlyCategoryName = (category: string): string => {
-  const friendlyNames: Record<string, string> = {
-    stationery: "Stationery",
-    accessories: "Accessories",
-    funAndStickers: "Fun & Stickers",
-    drinkware: "Drinkware",
-    apparel: "Apparel",
-    travelAndTech: "Travel & Tech",
-    books: "Books",
-    welcomeKit: "Welcome Kit",
-  };
-
-  if (friendlyNames[category]) {
-    return friendlyNames[category];
-  }
-
-  return category
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/([A-Z])([A-Z][a-z])/g, "$1 $2")
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
-};
-
 interface AdminProductCardProps {
   product: ProductWithRelations;
   onEdit: (product: ProductWithRelations) => void;
@@ -85,13 +60,11 @@ export function AdminProductCard({
       <CardContent className="px-3 pb-3 pt-0 flex-grow flex flex-col">
         <div className="flex flex-col gap-1 flex-grow">
           <div className="min-h-0">
-            <CardTitle className="text-sm leading-tight mb-1 overflow-hidden">
-              <span className="block truncate" title={product.name}>{product.name}</span>
+            <CardTitle className="text-sm leading-tight mb-1">
+              <span className="block line-clamp-2" title={product.name}>{product.name}</span>
             </CardTitle>
             <Badge variant="secondary" className="text-xs w-fit mb-1">
-              {getHumanFriendlyCategoryName(product.categories && product.categories[0]
-                ? product.categories[0]
-                : "Uncategorized")}
+              {product.category?.displayName || product.category?.name || "Uncategorized"}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground truncate">SKU: {product.sku}</p>

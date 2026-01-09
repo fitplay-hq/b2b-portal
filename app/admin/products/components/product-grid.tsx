@@ -31,7 +31,7 @@ export function AdminProductGrid({
 
   // Group products by category
   const groupedProducts = products.reduce((groups, product) => {
-    const category = product.categories || 'Uncategorized';
+    const category = product.category?.displayName || product.category?.name || 'Uncategorized';
     if (!groups[category]) {
       groups[category] = [];
     }

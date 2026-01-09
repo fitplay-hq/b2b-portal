@@ -1,4 +1,3 @@
-import { Card, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -7,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, Filter, ArrowUpDown } from "lucide-react";
 import useSWR from 'swr';
 
 interface ProductCategory {
@@ -107,17 +106,6 @@ interface ProductFiltersProps {
   setSortBy: (sortBy: SortOption) => void;
 }
 
-const sortOptions = [
-  { value: "category", label: "Category" },
-  { value: "name-asc", label: "Name" },
-  { value: "highest-stock", label: "Highest Stock" },
-  { value: "lowest-stock", label: "Lowest Stock" },
-  { value: "newest", label: "Newest" },
-  { value: "latest-update", label: "Latest Update" },
-  { value: "oldest", label: "Oldest" },
-  { value: "name-desc", label: "Name (Z-A)" },
-];
-
 export function ProductFilters({
   searchTerm,
   setSearchTerm,
@@ -142,78 +130,88 @@ export function ProductFilters({
 
   const subCategories = subCategoriesData || [];
   
-  console.log('Admin filters - subCategoriesData:', subCategoriesData);
-  console.log('Admin filters - subCategories:', subCategories);
-  console.log('Admin filters - selectedCategory:', selectedCategory);
-  
   // Filter subcategories based on selected category
   const filteredSubCategories = selectedCategory === "All Categories" 
     ? subCategories 
-    : subCategories.filter(sub => {
-        console.log('Filtering sub:', sub.name, 'category:', sub.category);
-        return sub.category?.name === selectedCategory;
-      });
+    : subCategories.filter(sub => sub.category?.name === selectedCategory);
 
   return (
-    <div className="w-full overflow-x-hidden">
-      <div className="flex flex-col gap-3 sm:gap-4">
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <div className="flex-1 min-w-0 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4 sm:h-5 sm:w-5" />
-            <Input
-              placeholder="Search products or SKUs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 text-sm sm:text-base"
-            />
-          </div>
-          {/* Sort By */}
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full sm:w-[160px] text-sm">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-          <SelectContent>
-            {sortOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {/* Category Filter */}
-        <Select value={selectedCategory} onValueChange={(value) => {
-          setSelectedCategory(value);
-          // Reset subcategory when category changes
-          setSelectedSubCategory("All SubCategories");
-        }}>
-          <SelectTrigger className="w-full sm:w-[150px] text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All Categories">All Categories</SelectItem>
-            {categories?.filter(cat => cat.isActive).map((category) => (
-              <SelectItem key={category.id} value={category.name}>
-                {category.displayName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {/* SubCategory Filter */}
-        <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
-          <SelectTrigger className="w-full sm:w-[150px] text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All SubCategories">All SubCategories</SelectItem>
-            {filteredSubCategories.map((subCategory) => (
-              <SelectItem key={subCategory.id} value={subCategory.name}>
-                {subCategory.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="flex items-center gap-3 flex-nowrap overflow-x-auto">
+      {/* Search Bar */}
+      <div className="relative w-[280px] shrink-0">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search products, SKUs..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
-    </div>
+
+      {/* Filter Label */}
+      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground shrink-0">
+        <Filter className="h-4 w-4" />
+        <span>Filters:</span>
+      </div>
+
+      {/* Category Filter */}
+      <Select value={selectedCategory} onValueChange={(value) => {
+        setSelectedCategory(value);
+        setSelectedSubCategory("All SubCategories");
+      }}>
+        <SelectTrigger className="w-[150px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="All Categories">All Categories</SelectItem>
+          {categories?.filter(cat => cat.isActive).map((category) => (
+            <SelectItem key={category.id} value={category.name}>
+              {category.displayName}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* SubCategory Filter */}
+      <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
+        <SelectTrigger className="w-[150px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="All SubCategories">All SubCategories</SelectItem>
+          {filteredSubCategories.map((subCategory) => (
+            <SelectItem key={subCategory.id} value={subCategory.name}>
+              {subCategory.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Divider */}
+      <div className="h-8 w-px bg-border shrink-0" />
+
+      {/* Sort Label */}
+      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground shrink-0">
+        <ArrowUpDown className="h-4 w-4" />
+        <span>Sort by:</span>
+      </div>
+
+      {/* Sort By */}
+      <Select value={sortBy} onValueChange={setSortBy}>
+        <SelectTrigger className="w-[140px]">
+          <SelectValue placeholder="Select sorting" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="category">Category</SelectItem>
+          <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+          <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+          <SelectItem value="highest-stock">Highest Stock</SelectItem>
+          <SelectItem value="lowest-stock">Lowest Stock</SelectItem>
+          <SelectItem value="newest">Newest First</SelectItem>
+          <SelectItem value="oldest">Oldest First</SelectItem>
+          <SelectItem value="latest-update">Latest Update</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }

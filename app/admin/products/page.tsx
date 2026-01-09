@@ -148,26 +148,24 @@ export default function AdminProductsPage() {
             </div>
 
           <StatsGrid products={products || []} />
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4">
             <ProductFilters {...filterProps} />
-            <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
+            <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg shrink-0">
               <Button
                 variant={viewMode === "list" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("list")}
-                className="h-8 px-3"
+                className="h-8 px-2"
               >
-                <List className="h-4 w-4 mr-2" />
-                List
+                <List className="h-4 w-4" />
               </Button>
               <Button
                 variant={viewMode === "cards" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("cards")}
-                className="h-8 px-3"
+                className="h-8 px-2"
               >
-                <Grid3X3 className="h-4 w-4 mr-2" />
-                Cards
+                <Grid3X3 className="h-4 w-4" />
               </Button>
             </div>
           </div>
