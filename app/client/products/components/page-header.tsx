@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
 
 interface PageHeaderProps {
   totalCartItems: number;
@@ -22,11 +23,31 @@ interface PageHeaderProps {
 
 export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm, selectedCategory, selectedSubCategory, stockStatus, sortBy }: PageHeaderProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
 
   const handleExport = async (format: 'xlsx' | 'pdf') => {
+    let toastId: string | number;
+    let progressInterval: NodeJS.Timeout;
+    
     try {
       setIsExporting(true);
-      const loadingToast = toast.loading(`Preparing ${format.toUpperCase()} export... Please wait while we generate your file`);
+      setExportProgress(0);
+
+      // Show simple loading toast
+      toastId = toast.loading(`Preparing ${format.toUpperCase()} export...`);
+
+      // Simulate progress for better UX - smoother and more realistic
+      progressInterval = setInterval(() => {
+        setExportProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90; // Stop at 90%
+          } else if (prev >= 50) {
+            return prev + 5; // Medium speed
+          }
+          return prev + 8; // Faster at start
+        });
+      }, 150);
 
       // Build query params with filters
       const params = new URLSearchParams({
@@ -60,6 +81,9 @@ export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm
         throw new Error('Export failed');
       }
 
+      clearInterval(progressInterval);
+      setExportProgress(100);
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -70,67 +94,83 @@ export function PageHeader({ totalCartItems, onRefresh, isRefreshing, searchTerm
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.dismiss(loadingToast);
+      toast.dismiss(toastId);
       toast.success(`${format.toUpperCase()} file downloaded successfully!`);
     } catch (error) {
       console.error('Export error:', error);
-      toast.dismiss(loadingToast);
+      if (progressInterval!) clearInterval(progressInterval);
+      toast.dismiss(toastId!);
       toast.error('Failed to export data. Please try again or contact support.');
     } finally {
       setIsExporting(false);
+      setExportProgress(0);
     }
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-bold">Product Catalog</h1>
-        <p className="text-muted-foreground">
-          Browse and order from our complete product range
-        </p>
-      </div>
-      <div className="flex items-center gap-4">
-        {onRefresh && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        )}
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Product Catalog</h1>
+          <p className="text-muted-foreground">
+            Browse and order from our complete product range
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          {onRefresh && (
             <Button
               variant="outline"
               size="sm"
-              disabled={isExporting}
+              onClick={onRefresh}
+              disabled={isRefreshing}
               className="gap-2"
             >
-              <Download className={`h-4 w-4 ${isExporting ? 'animate-bounce' : ''}`} />
-              Export
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleExport('xlsx')} disabled={isExporting}>
-              <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
-              Export as Excel
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExport('pdf')} disabled={isExporting}>
-              <FileText className="h-4 w-4 mr-2 text-red-600" />
-              Export as PDF
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          )}
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExporting}
+                className="gap-2"
+              >
+                <Download className={`h-4 w-4 ${isExporting ? 'animate-bounce' : ''}`} />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('xlsx')} disabled={isExporting}>
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                Export as Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('pdf')} disabled={isExporting}>
+                <FileText className="h-4 w-4 mr-2 text-red-600" />
+                Export as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <div className="text-sm text-muted-foreground">
-          {totalCartItems} item{totalCartItems !== 1 ? "s" : ""}
+          <div className="text-sm text-muted-foreground">
+            {totalCartItems} item{totalCartItems !== 1 ? "s" : ""}
+          </div>
         </div>
       </div>
+      
+      {/* Progress bar shown below export button when exporting */}
+      {isExporting && (
+        <div className="flex justify-end">
+          <div className="flex items-center gap-2">
+            <div className="w-[100px]">
+              <Progress value={exportProgress} className="h-1.5 [&>div]:bg-blue-600" />
+            </div>
+            <span className="text-xs text-muted-foreground min-w-[35px]">{Math.round(exportProgress)}%</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

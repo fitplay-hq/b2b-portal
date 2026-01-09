@@ -19,7 +19,8 @@ export function useProductFilters(products: Product[] = []) {
       filtered = filtered.filter(
         (product) =>
           product.name.toLowerCase().includes(lowercasedTerm) ||
-          product.sku.toLowerCase().includes(lowercasedTerm)
+          product.sku.toLowerCase().includes(lowercasedTerm) ||
+          product.brand?.toLowerCase().includes(lowercasedTerm)
       );
     }
 
