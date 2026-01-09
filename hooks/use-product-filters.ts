@@ -17,10 +17,20 @@ export function useProductFilters(products: Product[] = []) {
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
       filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(lowercasedTerm) ||
-          product.sku.toLowerCase().includes(lowercasedTerm) ||
-          product.brand?.toLowerCase().includes(lowercasedTerm)
+        (product) => {
+          // Search in product name, SKU, brand
+          const basicMatch = 
+            product.name.toLowerCase().includes(lowercasedTerm) ||
+            product.sku.toLowerCase().includes(lowercasedTerm) ||
+            product.brand?.toLowerCase().includes(lowercasedTerm);
+          
+          // Search in company names
+          const companyMatch = (product as any).companies?.some((company: any) =>
+            company.name?.toLowerCase().includes(lowercasedTerm)
+          );
+          
+          return basicMatch || companyMatch;
+        }
       );
     }
 
