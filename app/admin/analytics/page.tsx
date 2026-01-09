@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
   const router = useRouter();
   const { hasPermission, isAdmin, actions } = usePermissions();
   const [filters, setFilters] = useState<AnalyticsFilters>({
-    period: '30d'
+    period: 'all'
   });
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
@@ -81,13 +81,40 @@ export default function AnalyticsPage() {
     dedupingInterval: 30000,
   });
 
-  const { data, error, isLoading, exportData, refreshData } = useAnalytics('/api/admin/analytics', {
-    ...filters,
-    dateFrom: dateFrom?.toISOString().split('T')[0],
-    dateTo: dateTo?.toISOString().split('T')[0],
-    productDateFrom: dateFrom?.toISOString().split('T')[0],
-    productDateTo: dateTo?.toISOString().split('T')[0]
-  });
+  // Build analytics filters
+  const analyticsFilters: any = {};
+  
+  // Add period only if it's not 'all' AND no custom dates are selected
+  if (filters.period && filters.period !== 'all' && !dateFrom && !dateTo) {
+    analyticsFilters.period = filters.period;
+  }
+  
+  // Add status filter
+  if (filters.status) {
+    analyticsFilters.status = filters.status;
+  }
+  
+  // Add category filter
+  if (filters.category) {
+    analyticsFilters.category = filters.category;
+  }
+  
+  // Add stock status filter
+  if (filters.stockStatus) {
+    analyticsFilters.stockStatus = filters.stockStatus;
+  }
+  
+  // Add custom date filters if dates are set (regardless of period)
+  if (dateFrom) {
+    analyticsFilters.dateFrom = dateFrom.toISOString().split('T')[0];
+    analyticsFilters.productDateFrom = dateFrom.toISOString().split('T')[0];
+  }
+  if (dateTo) {
+    analyticsFilters.dateTo = dateTo.toISOString().split('T')[0];
+    analyticsFilters.productDateTo = dateTo.toISOString().split('T')[0];
+  }
+
+  const { data, error, isLoading, exportData, refreshData } = useAnalytics('/api/admin/analytics', analyticsFilters);
 
   // Get all orders data without date filtering for accurate pie chart
   const { data: allOrdersData } = useAnalytics('/api/admin/analytics', {});
@@ -158,7 +185,7 @@ export default function AnalyticsPage() {
   };
 
   const resetFilters = () => {
-    setFilters({ period: '30d' });
+    setFilters({ period: 'all' });
     setDateFrom(undefined);
     setDateTo(undefined);
   };
@@ -271,9 +298,10 @@ export default function AnalyticsPage() {
                     onValueChange={(value) => handleFilterChange('period', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select time period" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="all">All Time</SelectItem>
                       <SelectItem value="7d">Last 7 days</SelectItem>
                       <SelectItem value="30d">Last 30 days</SelectItem>
                       <SelectItem value="90d">Last 90 days</SelectItem>
@@ -574,7 +602,7 @@ export default function AnalyticsPage() {
                   <CardDescription>Stock level distribution</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={320}>
                     <PieChart>
                       <Pie
                         data={[
@@ -584,11 +612,31 @@ export default function AnalyticsPage() {
                         ]}
                         cx="50%"
                         cy="50%"
-                        labelLine={false}
-                        label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
-                        outerRadius={100}
+                        labelLine={true}
+                        label={({ cx, cy, midAngle, innerRadius, outerRadius, name, value }: any) => {
+                          const RADIAN = Math.PI / 180;
+                          const radius = outerRadius + 25;
+                          const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                          const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                          
+                          return (
+                            <text 
+                              x={x} 
+                              y={y} 
+                              fill="#374151"
+                              textAnchor={x > cx ? 'start' : 'end'}
+                              dominantBaseline="central"
+                              fontSize="13"
+                              fontWeight="500"
+                            >
+                              {`${name}: ${value}`}
+                            </text>
+                          );
+                        }}
+                        outerRadius={85}
                         fill="#8884d8"
                         dataKey="value"
+                        isAnimationActive={false}
                       >
                         <Cell fill="#00C49F" />
                         <Cell fill="#FFBB28" />
@@ -823,7 +871,7 @@ export default function AnalyticsPage() {
                 <CardDescription>Stock level breakdown</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={320}>
                   <PieChart>
                     <Pie
                       data={[
@@ -833,11 +881,31 @@ export default function AnalyticsPage() {
                       ]}
                       cx="50%"
                       cy="50%"
-                      labelLine={false}
-                      label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
-                      outerRadius={100}
+                      labelLine={true}
+                      label={({ cx, cy, midAngle, innerRadius, outerRadius, name, value }: any) => {
+                        const RADIAN = Math.PI / 180;
+                        const radius = outerRadius + 25;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        
+                        return (
+                          <text 
+                            x={x} 
+                            y={y} 
+                            fill="#374151"
+                            textAnchor={x > cx ? 'start' : 'end'}
+                            dominantBaseline="central"
+                            fontSize="13"
+                            fontWeight="500"
+                          >
+                            {`${name}: ${value}`}
+                          </text>
+                        );
+                      }}
+                      outerRadius={85}
                       fill="#8884d8"
                       dataKey="value"
+                      isAnimationActive={false}
                     >
                       <Cell fill="#00C49F" />
                       <Cell fill="#FFBB28" />
@@ -861,13 +929,24 @@ export default function AnalyticsPage() {
                 <CardDescription>Products by category</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={Object.entries(data?.categoryDistribution || {}).map(([category, count]) => ({
-                    category: category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-                    count
-                  }))}>
+                <ResponsiveContainer width="100%" height={340}>
+                  <BarChart 
+                    data={Object.entries(data?.categoryDistribution || {}).map(([category, count]) => ({
+                      category: category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                      count
+                    }))}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 70 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="category" stroke="#6b7280" angle={-45} textAnchor="end" height={100} />
+                    <XAxis 
+                      dataKey="category" 
+                      stroke="#6b7280" 
+                      angle={-35}
+                      textAnchor="end"
+                      interval={0}
+                      height={70}
+                      tick={{ fontSize: 11 }}
+                    />
                     <YAxis stroke="#6b7280" />
                     <Tooltip 
                       contentStyle={{ 

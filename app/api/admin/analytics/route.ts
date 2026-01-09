@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('clientId');
     const companyId = searchParams.get('companyId');
     const status = searchParams.get('status');
-    const period = searchParams.get('period') || '30d'; // Default to 30 days
+    const period = searchParams.get('period'); // No default, allow null
     const categoryName = searchParams.get('category'); // Category name from filter
     const stockStatus = searchParams.get('stockStatus'); // kebab-case: in-stock, low-stock, out-of-stock
 
@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
       dateFilter.lte = new Date(dateTo);
     }
 
-    // If no specific dates, use period
-    if (!dateFrom && !dateTo) {
+    // If no specific dates and period is not 'all', use period
+    if (!dateFrom && !dateTo && period && period !== 'all') {
       const now = new Date();
       const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 30;
       dateFilter.gte = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
@@ -66,9 +66,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Build order filters
-    const orderFilters: any = {
-      createdAt: dateFilter,
-    };
+    const orderFilters: any = {};
+
+    // Only add date filter if it has values
+    if (dateFilter.gte || dateFilter.lte) {
+      orderFilters.createdAt = dateFilter;
+    }
 
     if (clientId) {
       orderFilters.clientId = clientId;
