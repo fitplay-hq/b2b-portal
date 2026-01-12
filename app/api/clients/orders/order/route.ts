@@ -346,31 +346,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Update stock for regular items
-    for (const item of items) {
+    // Update stock for all items (regular and bundle)
+    const allItems = [...items, ...bundleOrderItems];
+    for (const item of allItems) {
       await prisma.product.update({
-        where: { id: item.productId },
-        data: {
-          availableStock: { decrement: item.quantity },
-          inventoryUpdateReason: "NEW_ORDER",
-          inventoryLogs: {
-            push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Order: ${orderId}`,
-          },
+      where: { id: item.productId },
+      data: {
+        availableStock: { decrement: item.quantity },
+        inventoryUpdateReason: "NEW_ORDER",
+        inventoryLogs: {
+        push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Order: ${orderId}`,
         },
-      });
-    }
-
-    // Update stock for bundle items
-    for (const item of bundleOrderItems) {
-      await prisma.product.update({
-        where: { id: item.productId },
-        data: {
-          availableStock: { decrement: item.quantity },
-          inventoryUpdateReason: "NEW_ORDER",
-          inventoryLogs: {
-            push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Order: ${orderId}`,
-          },
-        },
+      },
       });
     }
 

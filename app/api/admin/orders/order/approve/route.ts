@@ -24,6 +24,7 @@ export async function PATCH(req: NextRequest) {
         where: { id: orderId },
         include: {
           orderItems: { include: { product: true } },
+          bundleOrderItems: { include: { bundle: true, product: true } },
           client: { include: { company: true } },
         },
       });
@@ -69,7 +70,7 @@ export async function PATCH(req: NextRequest) {
 
       if (status === "CANCELLED" && (currentStatus === "PENDING" || currentStatus === "APPROVED" || currentStatus === "READY_FOR_DISPATCH")) {
         console.log("Restoring inventory for cancelled order:", orderId);
-        for (const item of order.orderItems) {
+        for (const item of [...order.orderItems, ...order.bundleOrderItems]) {
           const currentProduct = await prisma.product.findUnique({ where: { id: item.productId } });
           if (!currentProduct) continue;
           const newStock = currentProduct.availableStock + item.quantity;
