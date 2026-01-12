@@ -257,56 +257,15 @@ const OrderDetails = ({
             order.status === "AT_DESTINATION" ||
             order.status === "DELIVERED") && (
             <>
-              {order.shippingLabelUrl ? (
-                <>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleDownloadLabel(order.shippingLabelUrl!)}
-                    className="text-xs sm:text-sm h-8 sm:h-9"
-                  >
-                    <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                    Download Label
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleGenerateLabel(order.id)}
-                    disabled={isGeneratingLabel}
-                    className="text-xs sm:text-sm h-8 sm:h-9"
-                  >
-                    {isGeneratingLabel ? (
-                      <>
-                        <div className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                        Regenerate Label
-                      </>
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  size="sm"
+              {order.shippingLabelUrl && (
+                <Button 
+                  size="sm" 
                   variant="outline"
-                  onClick={() => handleGenerateLabel(order.id)}
-                  disabled={isGeneratingLabel}
+                  onClick={() => handleDownloadLabel(order.shippingLabelUrl!)}
                   className="text-xs sm:text-sm h-8 sm:h-9"
                 >
-                  {isGeneratingLabel ? (
-                    <>
-                      <div className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                      Generate Label
-                    </>
-                  )}
+                  <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  Download Label
                 </Button>
               )}
             </>
