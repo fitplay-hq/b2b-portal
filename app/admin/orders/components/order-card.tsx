@@ -347,6 +347,9 @@ const OrderDetails = ({
                       (item: any) => item.productId === bundleItem.productId
                     )?.bundleProductQuantity || 1;
                     
+                    // Calculate the correct total
+                    const calculatedTotal = bundleProductQty * numberOfBundles;
+                    
                     return (
                     <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3 ml-2">
                       <div className="h-12 w-12 sm:h-16 sm:w-16 rounded overflow-hidden shrink-0">
@@ -362,7 +365,7 @@ const OrderDetails = ({
                           SKU: {bundleItem.product?.sku || 'N/A'}
                         </p>
                         <p className="text-xs text-blue-700 font-medium">
-                          {bundleProductQty} per bundle × {numberOfBundles} bundles = {bundleItem.quantity} total
+                          {bundleProductQty} per bundle × {numberOfBundles} bundle{numberOfBundles > 1 ? 's' : ''} = {calculatedTotal} total
                         </p>
                         <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                       </div>
