@@ -270,22 +270,6 @@ const OrderDetails = ({
               )}
             </>
           )}
-          {actions.orders.edit && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleSendEmail}
-              disabled={isSending || order.isMailSent}
-              className="text-xs sm:text-sm h-8 sm:h-9"
-            >
-              <Mail className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              {order.isMailSent
-                ? "Mail Sent"
-                : isSending
-                ? "Sending..."
-                : "Send Email"}
-            </Button>
-          )}
         </div>
         <div>
           <h4 className="mb-3 font-medium text-sm sm:text-base">Order Items</h4>
