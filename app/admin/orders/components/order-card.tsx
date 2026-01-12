@@ -247,14 +247,6 @@ const OrderDetails = ({
     <CardContent className="pt-0">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 border-b pb-4">
-          {actions.orders.view && (
-            <Link href={`/admin/orders/${order.id}`}>
-              <Button size="sm" variant="secondary" className="text-xs sm:text-sm h-8 sm:h-9">
-                <ExternalLink className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                View Details
-              </Button>
-            </Link>
-          )}
           {actions.orders.edit && (
             <Button size="sm" onClick={onOpenStatusDialog} className="text-xs sm:text-sm h-8 sm:h-9">
               Update Status
