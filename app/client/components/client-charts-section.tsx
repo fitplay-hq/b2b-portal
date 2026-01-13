@@ -63,18 +63,6 @@ export function ClientChartsSection({
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-0 bg-white/50 backdrop-blur-sm lg:col-span-2">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold text-gray-900">
-              Monthly Order Value Trends
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-[300px]">
-              <div className="animate-pulse text-gray-400">Loading chart...</div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -172,56 +160,6 @@ export function ClientChartsSection({
                   fill="#10b981" 
                   radius={[6, 6, 0, 0]}
                   name="Delivered Orders"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[300px]">
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Order Value Trends - Show for all clients with appropriate messaging */}
-      <Card className="shadow-sm border-0 bg-white/50 backdrop-blur-sm lg:col-span-2">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold text-gray-900">
-            Monthly Order Value Trends
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {hasValueData ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart 
-                data={orderValueTrends} 
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis 
-                  dataKey="month" 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
-                />
-                <YAxis 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                  }}
-                  formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Order Value']}
-                />
-                <Bar 
-                  dataKey="value" 
-                  fill="#8b5cf6" 
-                  radius={[6, 6, 0, 0]}
-                  name="Order Value"
                 />
               </BarChart>
             </ResponsiveContainer>
