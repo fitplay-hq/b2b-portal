@@ -208,7 +208,7 @@ export function ProductFilters({
           <SelectValue placeholder="Select sorting" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="category">Category</SelectItem>
+          <SelectItem value="subcategory">SubCategory</SelectItem>
           <SelectItem value="name-asc">Name (A-Z)</SelectItem>
           <SelectItem value="name-desc">Name (Z-A)</SelectItem>
           <SelectItem value="highest-stock">Highest Stock</SelectItem>

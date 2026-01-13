@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Product } from "@/lib/generated/prisma";
 
-export type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "lowest-stock" | "highest-stock" | "latest-update" | "category";
+export type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "lowest-stock" | "highest-stock" | "latest-update" | "subcategory";
 
 export function useProductFilters(products: Product[] = []) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -107,15 +107,15 @@ export function useProductFilters(products: Product[] = []) {
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         );
         break;
-      case "category":
+      case "subcategory":
         sortedProducts = sortedProducts.sort((a, b) => {
-          // Use the new category relation (category.displayName) or fallback to old enum field
-          const categoryA = (a as any).category?.displayName || a.categories || "";
-          const categoryB = (b as any).category?.displayName || b.categories || "";
-          if (categoryA === categoryB) {
+          // Sort by subcategory name
+          const subCategoryA = (a as any).subCategory?.name || "";
+          const subCategoryB = (b as any).subCategory?.name || "";
+          if (subCategoryA === subCategoryB) {
             return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
           }
-          return categoryA.localeCompare(categoryB);
+          return subCategoryA.localeCompare(subCategoryB);
         });
         break;
     }
