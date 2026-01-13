@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        const { searchParams} = new URL(request.url);
+        const { searchParams } = new URL(request.url);
         const exportType = searchParams.get('type') || 'orders';
         const format = searchParams.get('format') || 'xlsx';
         const dateFrom = searchParams.get('dateFrom');
@@ -32,11 +32,12 @@ export async function GET(request: NextRequest) {
         const category = searchParams.get('category');
 
         let companyID: string | null = null;
+        let client: any = null;
 
         if (session.user.role === 'CLIENT') {
-            const client = await prisma.client.findUnique({
+            client = await prisma.client.findUnique({
                 where: { id: session.user.id },
-                select: { companyID: true }
+                select: { companyID: true, isShowPrice: true }
             });
             companyID = client?.companyID || null;
         }
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
                 dateFrom,
                 dateTo,
                 clientId,
+                client,
                 status,
                 period,
                 session,
@@ -55,7 +57,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (exportType === 'inventory') {
-            return await exportInventoryData({ session, companyID, format, search, category });
+            return await exportInventoryData({ session, client, companyID, format, search, category });
         }
 
         return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
@@ -65,7 +67,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, session, companyID, format = 'xlsx' }: any) {
+async function exportOrdersData({ dateFrom, dateTo, clientId, client, status, period, session, companyID, format = 'xlsx' }: any) {
     const dateFilter: any = {};
     if (dateFrom) dateFilter.gte = new Date(dateFrom);
     if (dateTo) dateFilter.lte = new Date(dateTo);
@@ -95,7 +97,14 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, se
                 include: {
                     product: { select: { id: true, name: true, categories: true } }
                 }
-            }
+            },
+            bundleOrderItems: {
+                include: {
+                    product: {
+                        select: { id: true, name: true, categories: true }
+                    }
+                }
+            },
         },
         orderBy: { createdAt: 'desc' }
     });
@@ -110,13 +119,15 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, se
             order.pincode
         ].filter(x => x && x !== 'Address' && x !== 'City' && x !== 'State' && x !== '000000');
 
+        const all_items = [...order.orderItems, ...order.bundleOrderItems];
+
         return {
             'Order ID': order.id,
             'Client Name': order.client?.name || '',
             'Client Email': order.client?.email || '',
             'Status': order.status,
-            'Total Amount': order.totalAmount || 0,
-            'Items Count': order.orderItems?.length || 0,
+            ...(client?.isShowPrice ? { 'Total Amount': order.totalAmount || 0 } : {}),
+            'Items Count': all_items?.length || 0,
             'Order Date': new Date(order.createdAt).toLocaleDateString(),
             'Consignee Name': order.consigneeName || '',
             'Consignee Phone': order.consigneePhone || '',
@@ -126,35 +137,56 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, se
             'Required By Date': order.requiredByDate
                 ? new Date(order.requiredByDate).toLocaleDateString()
                 : '',
-            'Items Details': order.orderItems
-                .map((i: any) => `${i.product?.name} (Qty: ${i.quantity}, Price: ${i.price})`)
+            'Items Details': all_items
+                .map((i: any) => `${i.product?.name} (Qty: ${i.quantity}${client?.isShowPrice ? `, Price: ${i.price}` : ''})`)
                 .join('; ')
         };
     });
 
     if (format === 'pdf') {
         const doc = new jsPDF();
-        
+
         doc.setFontSize(20);
         doc.text('Orders Report', 20, 20);
-        
-        const tableColumns = [
+
+        console.log("Sesion isShowPrice:", client?.isShowPrice);
+
+        const tableColumns = client?.isShowPrice ? [
             'Order ID',
-            'Client Name', 
+            'Client Name',
             'Order Date',
             'Status',
             'Total Amount',
             'Items Count'
+        ] : [
+            'Order ID',
+            'Client Name',
+            'Order Date',
+            'Status',
+            'Items Count'
         ];
-        
-        const tableRows = excelData.map((order: any) => [
-            order['Order ID'],
-            order['Client Name'],
-            order['Order Date'],
-            order['Status'],
-            `Rs.${order['Total Amount']}`,
-            order['Items Count'].toString()
-        ]);
+
+        const tableRows = excelData.map((order: any) => {
+            if (client?.isShowPrice) {
+                return [
+                    order['Order ID'],
+                    order['Client Name'],
+                    order['Order Date'],
+                    order['Status'],
+                    `Rs.${order['Total Amount']}`,
+                    order['Items Count'].toString()
+                ];
+            }
+
+            return [
+                order['Order ID'],
+                order['Client Name'],
+                order['Order Date'],
+                order['Status'],
+                order['Items Count'].toString()
+            ];
+        });
+
 
         autoTable(doc, {
             head: [tableColumns],
@@ -166,7 +198,7 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, se
 
         const pdfBuffer = doc.output('arraybuffer');
         const filename = `orders_export_${new Date().toISOString().split('T')[0]}.pdf`;
-        
+
         return new NextResponse(pdfBuffer, {
             headers: {
                 'Content-Type': 'application/pdf',
@@ -190,7 +222,7 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, status, period, se
     });
 }
 
-async function exportInventoryData({ session, companyID, format = 'xlsx', search, category }: any) {
+async function exportInventoryData({ session, client, companyID, format = 'xlsx', search, category }: any) {
     let inventoryWhere: any = {};
 
     if (session.user.role === 'CLIENT' && companyID) {
@@ -234,8 +266,10 @@ async function exportInventoryData({ session, companyID, format = 'xlsx', search
             'Stock Quantity': stock,
             'Stock Status':
                 stock === 0 ? 'Out of Stock' : stock <= threshold ? 'Low Stock' : 'In Stock',
-            'Unit Price': p.unitPrice || p.price || 0,
-            'Stock Value': (p.unitPrice || p.price || 0) * stock,
+            ...(client && client.isShowPrice ? {
+                'Unit Price': p.price || 0,
+                'Stock Value': (p.price || 0) * stock
+            } : {}),
             'Brand': p.brand || '',
             'Created Date': new Date(p.createdAt).toLocaleDateString(),
             'Last Updated': new Date(p.updatedAt).toLocaleDateString()
@@ -244,20 +278,27 @@ async function exportInventoryData({ session, companyID, format = 'xlsx', search
 
     if (format === 'pdf') {
         const doc = new jsPDF();
-        
+
         doc.setFontSize(20);
         doc.text('Products Inventory Report', 20, 20);
-        
-        const tableColumns = [
+
+        const tableColumns = client.isShowPrice ? [
             'Product ID',
-            'Product Name', 
+            'Product Name',
             'SKU',
             'Category',
             'Stock Quantity',
             'Stock Status',
             'Unit Price'
+        ] : [
+            'Product ID',
+            'Product Name',
+            'SKU',
+            'Category',
+            'Stock Quantity',
+            'Stock Status'
         ];
-        
+
         const tableRows = excelData.map((product: any) => [
             product['Product ID'],
             product['Product Name'],
@@ -265,7 +306,7 @@ async function exportInventoryData({ session, companyID, format = 'xlsx', search
             product['Category'],
             product['Stock Quantity'].toString(),
             product['Stock Status'],
-            `Rs.${product['Unit Price']}`
+            `${client.isShowPrice ? `Rs.${product['Unit Price']}` : ''}`
         ]);
 
         autoTable(doc, {
@@ -278,7 +319,7 @@ async function exportInventoryData({ session, companyID, format = 'xlsx', search
 
         const pdfBuffer = doc.output('arraybuffer');
         const filename = `products_export_${new Date().toISOString().split('T')[0]}.pdf`;
-        
+
         return new NextResponse(pdfBuffer, {
             headers: {
                 'Content-Type': 'application/pdf',

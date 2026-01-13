@@ -213,7 +213,14 @@ async function exportOrdersData(
             select: { id: true, name: true, categories: true }
           }
         }
-      }
+      },
+      bundleOrderItems: {
+        include: {
+          product: {
+            select: { id: true, name: true, categories: true }
+          }
+        }
+      },
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -237,13 +244,15 @@ async function exportOrdersData(
 
     const fullShippingAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Address not provided';
 
+    const all_items = [...order.orderItems, ...order.bundleOrderItems];
+
     return {
       'Order ID': order.id,
       'Client Name': order.client?.name || '',
       'Client Email': order.client?.email || '',
       'Status': order.status,
       'Total Amount': order.totalAmount || 0,
-      'Items Count': order.orderItems?.length || 0,
+      'Items Count': (order.orderItems?.length + order?.bundleOrderItem?.length) || 0,
       'Order Date': new Date(order.createdAt).toLocaleDateString(),
       'Consignee Name': order.consigneeName || '',
       'Consignee Phone': order.consigneePhone || '',
@@ -256,7 +265,7 @@ async function exportOrdersData(
       'Delivery Service': order.deliveryService || '',
       'Mode of Delivery': order.modeOfDelivery || '',
       'Required By Date': order.requiredByDate ? new Date(order.requiredByDate).toLocaleDateString() : '',
-      'Items Details': order.orderItems?.map((item: any) =>
+      'Items Details': all_items?.map((item: any) =>
         `${item.product?.name || 'Unknown'} (Qty: ${item.quantity}, Price: ₹${item.price})`
       ).join('; ') || ''
     };
