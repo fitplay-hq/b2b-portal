@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
       // Use productDateFrom/productDateTo if available, otherwise fall back to dateFrom/dateTo
       const inventoryDateFrom = productDateFrom || dateFrom;
       const inventoryDateTo = productDateTo || dateTo;
-      return await exportInventoryData(companyId, format, search, session, category, subCategory, inventoryDateFrom, inventoryDateTo, stockStatus, sortBy);
+      return await exportInventoryData(companyId, format, search, client, category, subCategory, inventoryDateFrom, inventoryDateTo, stockStatus, sortBy);
     } else {
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
     }
@@ -221,6 +221,10 @@ async function exportOrdersData(
   // Generate Excel workbook
   const workbook = XLSX.utils.book_new();
 
+  const client = await prisma.client.findUnique({
+    where: { id: clientId || '' }
+  });
+
   // Prepare data for Excel
   const excelData = (orders as any).map((order: any) => {
     // Build complete shipping address from components
@@ -294,7 +298,20 @@ async function exportOrdersData(
     doc.setFontSize(20);
     doc.text('Orders Report', 20, 20);
 
-    const tableColumns = [
+    const tableColumns = client ? client?.isShowPrice ? [
+      'Order ID',
+      'Client Name',
+      'Order Date',
+      'Status',
+      'Total Amount',
+      'Items Count'
+    ] : [
+      'Order ID',
+      'Client Name',
+      'Order Date',
+      'Status',
+      'Items Count'
+    ] : [
       'Order ID',
       'Client Name',
       'Order Date',
@@ -308,7 +325,7 @@ async function exportOrdersData(
       order['Client Name'],
       order['Order Date'],
       order['Status'],
-      `Rs.${order['Total Amount']}`,
+      `${client ? (client.isShowPrice ? `Rs.${order['Total Amount']}` : '') : `Rs.${order['Total Amount']}`}`,
       order['Items Count'].toString()
     ]);
 
@@ -361,7 +378,7 @@ async function exportInventoryData(
   companyId: string | null,
   format: string = 'xlsx',
   search: string | null = null,
-  session: any = null,
+  client: any = null,
   category: string | null = null,
   subCategory: string | null = null,
   dateFrom: string | null = null,
@@ -391,7 +408,7 @@ if (companyId) {
       { companies: { some: { id: companyId } } },
       {
         clients: {
-          some: { clientId: session?.user.id }
+          some: { clientId: client?.id || ''}
         }
       }
     ]
@@ -541,13 +558,14 @@ if (subCategory && subCategory.trim()) {
       'Product Image': imageUrl ? imageUrl : 'No Image',
       'SKU': product.sku,
       'Category': product.category?.displayName || 'Uncategorized',
-
       'Companies': product.companies.map(c => c.name).join(', '),
       'Stock Quantity': stockQuantity,
       'Low Stock Threshold': lowThreshold,
+      ...(client && client.isShowPrice ? {
       'Unit Price': product.price || 0,
+      'Stock Value': stockValue
+      } : {}),
       'Stock Status': computedStockStatus,
-      'Stock Value': stockValue,
       'Brand': product.brand || '',
       'Created Date': new Date(product.createdAt).toLocaleDateString(),
       'Last Updated': new Date(product.updatedAt).toLocaleDateString()
@@ -603,6 +621,8 @@ if (subCategory && subCategory.trim()) {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventory');
 
   function generateInventoryHTML(products: any[]) {
+
+    console.log("Sesion isShowPrice:", client?.isShowPrice);
     return `
   <!DOCTYPE html>
   <html>
@@ -624,7 +644,7 @@ if (subCategory && subCategory.trim()) {
           <th>Name</th>
           <th>SKU</th>
           <th>Stock</th>
-          <th>Price</th>
+          ${ client ? (client.isShowPrice ? (console.log("Generating price"), `<th>Price</th>`) : '') : `<th>Price</th>`}
         </tr>
       </thead>
       <tbody>
@@ -634,7 +654,7 @@ if (subCategory && subCategory.trim()) {
             <td>${p.name}</td>
             <td>${p.sku}</td>
             <td>${p.availableStock}</td>
-            <td>₹${p.price}</td>
+            ${ client ? (client.isShowPrice ? `<td>₹${p.price}</td>` : '') : `<td>₹${p.price}</td>`}
           </tr>
         `).join('')}
       </tbody>
