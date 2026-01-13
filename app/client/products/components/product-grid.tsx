@@ -48,8 +48,8 @@ export function ProductGrid({
     );
   }
 
-  // If not "All Categories" or products come from filtered set, show normal grid
-  if (selectedSort !== "category" || products.length !== allProducts.length) {
+  // If not sorting by subcategory or products come from filtered set, show normal grid
+  if (selectedSort !== "subcategory" || products.length !== allProducts.length) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
         {products.map((product) => (
@@ -68,28 +68,28 @@ export function ProductGrid({
     );
   }
 
-  // Group products by category when showing all categories
+  // Group products by subcategory when showing all subcategories
   const groupedProducts = products.reduce((acc, product) => {
-    const category = product.categories;
-    if (!category) {
+    const subCategory = (product as any).subCategory?.name;
+    if (!subCategory) {
       return acc;
     }
-    if (!acc[category]) {
-      acc[category] = [];
+    if (!acc[subCategory]) {
+      acc[subCategory] = [];
     }
-    acc[category].push(product);
+    acc[subCategory].push(product);
     return acc;
-  }, {} as Record<Category, Product[]>);
+  }, {} as Record<string, Product[]>);
 
   return (
     <div className="space-y-8">
-      {Object.entries(groupedProducts).map(([category, categoryProducts]) => (
-        <div key={category} className="space-y-4">
+      {Object.entries(groupedProducts).map(([subCategory, subCategoryProducts]) => (
+        <div key={subCategory} className="space-y-4">
           <h3 className="text-2xl font-semibold capitalize">
-            {category.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()}
+            {subCategory}
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
-            {categoryProducts.map((product) => (
+            {subCategoryProducts.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}

@@ -79,7 +79,7 @@ export function ProductCard({
         <div className="flex flex-col gap-1 flex-grow">
           <div className="min-h-0">
             <CardTitle className="text-sm leading-tight mb-1 overflow-hidden">
-              <span className="block truncate" title={product.name}>{product.name}</span>
+              <span className="block line-clamp-2" title={product.name}>{product.name}</span>
             </CardTitle>
             <Badge variant="secondary" className="text-xs w-fit mb-1">
               {(product as any).subCategory?.name || "Uncategorized"}
