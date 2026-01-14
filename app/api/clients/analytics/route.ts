@@ -121,15 +121,6 @@ export async function GET(request: NextRequest) {
         if (session.user.role === 'CLIENT') {
             const clientFilters = [];
             
-            // Company products
-            if (companyId) {
-                clientFilters.push({
-                    companies: {
-                        some: { id: companyId }
-                    }
-                });
-            }
-            
             // Client-specific products
             clientFilters.push({
                 clients: {
