@@ -383,6 +383,16 @@ async function exportOrdersData(
 /**
  * Export inventory data as CSV
  */
+
+function colToLetter(col: number) {
+  let letter = '';
+  while (col >= 0) {
+    letter = String.fromCharCode((col % 26) + 65) + letter;
+    col = Math.floor(col / 26) - 1;
+  }
+  return letter;
+}
+
 async function exportInventoryData(
   format: string = 'xlsx',
   search: string | null = null,
@@ -560,20 +570,19 @@ if (subCategory && subCategory.trim()) {
     }
 
     return {
-      'Product ID': product.id,
       'Product Name': product.name,
       'Product Image': imageUrl ? imageUrl : 'No Image',
       'SKU': product.sku,
       'Category': product.category?.displayName || 'Uncategorized',
-      'Companies': product.companies.map(c => c.name).join(', '),
+      ...(client ? {} : { 'Companies': product.companies.map(c => c.name).join(', ') }),
       'Stock Quantity': stockQuantity,
-      'Low Stock Threshold': lowThreshold,
+      ...(client ? {} : { 'Low Stock Threshold': lowThreshold }),
       ...(client && client.isShowPrice ? {
       'Unit Price': product.price || 0,
       'Stock Value': stockValue
       } : {}),
       'Stock Status': computedStockStatus,
-      'Brand': product.brand || '',
+      ...(client ? {} : { 'Brand': product.brand || '' }),
       'Created Date': new Date(product.createdAt).toLocaleDateString(),
       'Last Updated': new Date(product.updatedAt).toLocaleDateString()
     };
@@ -583,31 +592,39 @@ if (subCategory && subCategory.trim()) {
   const worksheet = XLSX.utils.json_to_sheet(excelData);
 
   // Add hyperlinks to the Product Image column (Column C)
-  products.forEach((product, index) => {
-    if (product.images) {
-      // Extract image URL - handle both string and array
-      let imageUrl = '';
-      if (Array.isArray(product.images)) {
-        imageUrl = product.images[0] || '';
-      } else if (typeof product.images === 'string') {
-        imageUrl = product.images;
-      }
+  const headers = Object.keys(excelData[0]);
+const imageColIndex = headers.indexOf('Product Image');
 
-      // Only add hyperlink if we have a valid string URL
-      if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '') {
-        const cellAddress = `C${index + 2}`; // Column C, starting from row 2
-        worksheet[cellAddress] = {
-          t: 's',
-          v: 'View Image',
-          l: { Target: imageUrl, Tooltip: 'Click to view product image' }
-        };
-      }
+if (imageColIndex !== -1) {
+  excelData.forEach((_, index) => {
+    const product = sortedProducts[index];
+
+    let imageUrl = '';
+    if (Array.isArray(product.images)) {
+      imageUrl = product.images[0] || '';
+    } else if (typeof product.images === 'string') {
+      imageUrl = product.images;
     }
+
+    if (!imageUrl) return;
+
+    const colLetter = colToLetter(imageColIndex);
+    const cellAddress = `${colLetter}${index + 2}`;
+
+    worksheet[cellAddress] = {
+      t: 's',
+      v: 'View Image',
+      l: {
+        Target: imageUrl,
+        Tooltip: 'Click to view product image'
+      }
+    };
   });
+}
+
 
   // Set column widths for better readability
   const columnWidths = [
-    { wch: 15 }, // Product ID
     { wch: 25 }, // Product Name
     { wch: 15 }, // Product Image
     { wch: 15 }, // SKU
