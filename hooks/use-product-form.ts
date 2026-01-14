@@ -306,18 +306,19 @@ export function useProductForm({ onSuccess }: UseProductFormProps) {
           price,
           minStockThreshold,
           brand: formData.brand.trim() || null,
-          // Don't send availableStock for updates - use inventory management instead
-          // Only set categories enum field if it's a legacy category
-          ...(isLegacyCategory && { categories: formData.categories as Category }),
-          categoryId: selectedCategory?.id, // Send categoryId directly
-          subCategoryId: selectedSubcategory?.id || null, // Send subCategoryId
-          categories: formData.categories, // Send category name for API lookup
           description: formData.description,
           images: [
             formData.image ||
               "https://static.vecteezy.com/system/resources/thumbnails/004/141/669/small_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
           ],
         };
+
+        // Only include category/subcategory if both are selected
+        if (selectedCategory?.id && selectedSubcategory?.id) {
+          productUpdateData.categoryId = selectedCategory.id;
+          productUpdateData.subCategoryId = selectedSubcategory.id;
+        }
+
         await updateProduct(productUpdateData as any);
         toast.success("Product updated successfully!");
       } else {
