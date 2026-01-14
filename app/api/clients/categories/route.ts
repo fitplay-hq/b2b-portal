@@ -32,15 +32,6 @@ export async function GET(req: NextRequest) {
                                     },
                                 },
                             },
-                            client.companyID
-                                ? {
-                                    companies: {
-                                        some: {
-                                            id: client.companyID,
-                                        },
-                                    },
-                                }
-                                : {},
                         ],
                     },
                 },
