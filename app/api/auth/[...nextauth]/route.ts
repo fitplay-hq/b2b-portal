@@ -238,7 +238,7 @@ export const auth: AuthOptions = {
     updateAge: 24 * 60 * 60, // 24 hours
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.name = user.name;
@@ -249,6 +249,8 @@ export const auth: AuthOptions = {
         token.companyId = (user as { companyId?: string }).companyId;
         token.companyName = (user as { companyName?: string }).companyName;
         token.isDemo = (user as { isDemo?: boolean }).isDemo;
+        token.isShowPrice = (user as { isShowPrice?: boolean }).isShowPrice;
+        token.lastRefresh = Date.now();
         
         // Cache permissions in JWT token to avoid repeated database calls
         if ((user as { role: UserRole }).role === "SYSTEM_USER" && (user as { systemRoleId?: string }).systemRoleId) {
@@ -273,11 +275,65 @@ export const auth: AuthOptions = {
         } else {
           token.permissions = []; // ADMIN or other roles
         }
+      } else {
+        // Refresh token data periodically (every 10 seconds for immediate updates)
+        const shouldRefresh = !token.lastRefresh || Date.now() - (token.lastRefresh as number) > 10 * 1000;
+        
+        if (shouldRefresh && token.role === "CLIENT" && token.id) {
+          try {
+            console.log("🔄 Refreshing client token data for:", token.email);
+            const client = await prisma.client.findUnique({
+              where: { id: token.id as string },
+              select: { 
+                isShowPrice: true,
+                name: true,
+                companyID: true,
+                company: { select: { name: true } }
+              }
+            });
+            
+            if (client) {
+              console.log("✅ Client data refreshed - isShowPrice:", client.isShowPrice);
+              token.isShowPrice = client.isShowPrice;
+              token.name = client.name;
+              token.companyId = client.companyID;
+              token.companyName = client.company?.name || token.companyName;
+              token.lastRefresh = Date.now();
+            }
+          } catch (error) {
+            console.error("❌ Error refreshing client data:", error);
+          }
+        }
+        
+        // Refresh system user permissions periodically
+        if (shouldRefresh && token.role === "SYSTEM_USER" && token.systemRoleId) {
+          try {
+            const systemRole = await prisma.systemRole.findUnique({
+              where: { id: token.systemRoleId as string },
+              include: {
+                permissions: {
+                  select: {
+                    id: true,
+                    resource: true,
+                    action: true,
+                  }
+                }
+              }
+            });
+            token.permissions = systemRole?.permissions || [];
+            token.lastRefresh = Date.now();
+          } catch (error) {
+            console.error("Error refreshing permissions:", error);
+          }
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
+        if (token.role === "CLIENT") {
+          console.log("📋 Building session for CLIENT - isShowPrice:", token.isShowPrice);
+        }
         session.user = {
           id: token.id as string,
           name: token.name as string,
@@ -289,6 +345,7 @@ export const auth: AuthOptions = {
           companyId: token.companyId as string,
           companyName: token.companyName as string,
           isDemo: token.isDemo as boolean,
+          isShowPrice: token.isShowPrice as boolean,
         };
       }
       return session;
