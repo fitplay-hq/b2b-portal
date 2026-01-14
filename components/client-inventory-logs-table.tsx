@@ -302,8 +302,8 @@ export function ClientInventoryLogsTable({
                     <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap min-w-[140px]">Product</th>
                     <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap">Change</th>
                     <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap">Stock</th>
-                    <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap">Reason</th>
-                    <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap min-w-[80px]">Action</th>
+                    <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap max-w-[200px]">Reason</th>
+                    <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap min-w-[120px]">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -360,7 +360,7 @@ export function ClientInventoryLogsTable({
                             {log.finalStock}
                           </Badge>
                         </td>
-                        <td className="px-2 py-3 sm:px-4">
+                        <td className="px-2 py-3 sm:px-4 max-w-[200px]">
                           {log.reason ? (
                             <Badge variant={getReasonBadgeColor(log.reason)} className="text-[10px] sm:text-xs px-1.5 py-0.5 whitespace-nowrap">
                               {formatReason(log.reason)}
@@ -370,7 +370,7 @@ export function ClientInventoryLogsTable({
                           )}
                         </td>
                         <td className="px-2 py-3 sm:px-4">
-                          <div className="text-xs sm:text-sm text-muted-foreground max-w-[80px] truncate">
+                          <div className="text-xs sm:text-sm text-muted-foreground max-w-[160px] truncate">
                             {log.action}
                           </div>
                         </td>
