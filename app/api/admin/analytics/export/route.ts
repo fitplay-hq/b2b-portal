@@ -244,7 +244,25 @@ async function exportOrdersData(
 
     const fullShippingAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Address not provided';
 
-    const all_items = [...order.orderItems, ...order.bundleOrderItems];
+    const mergedItemsMap = new Map<string, any>();
+
+        [...order.orderItems, ...order.bundleOrderItems].forEach((item: any) => {
+            const productId = item.product?.id;
+            if (!productId) return;
+
+            if (!mergedItemsMap.has(productId)) {
+                mergedItemsMap.set(productId, {
+                    product: item.product,
+                    quantity: item.quantity,
+                    price: item.price
+                });
+            } else {
+                const existing = mergedItemsMap.get(productId);
+                existing.quantity += item.quantity;
+            }
+        });
+
+        const all_items = Array.from(mergedItemsMap.values());
 
     return {
       'Order ID': order.id,
@@ -252,7 +270,10 @@ async function exportOrdersData(
       'Client Email': order.client?.email || '',
       'Status': order.status,
       'Total Amount': order.totalAmount || 0,
-      'Items Count': (order.orderItems?.length + order?.bundleOrderItem?.length) || 0,
+      'Items Count': all_items.length || 0,
+      'Items Details': all_items?.map((item: any) =>
+        `${item.product?.name || 'Unknown'} (Qty: ${item.quantity}, Price: ${item.price})`
+      ).join('; ') || '',
       'Order Date': new Date(order.createdAt).toLocaleDateString(),
       'Consignee Name': order.consigneeName || '',
       'Consignee Phone': order.consigneePhone || '',
@@ -264,10 +285,6 @@ async function exportOrdersData(
       'Full Shipping Address': fullShippingAddress,
       'Delivery Service': order.deliveryService || '',
       'Mode of Delivery': order.modeOfDelivery || '',
-      'Required By Date': order.requiredByDate ? new Date(order.requiredByDate).toLocaleDateString() : '',
-      'Items Details': all_items?.map((item: any) =>
-        `${item.product?.name || 'Unknown'} (Qty: ${item.quantity}, Price: ₹${item.price})`
-      ).join('; ') || ''
     };
   });
 
@@ -282,6 +299,7 @@ async function exportOrdersData(
     { wch: 12 }, // Status
     { wch: 15 }, // Total Amount
     { wch: 12 }, // Items Count
+    { wch: 50 }, // Items Details
     { wch: 15 }, // Order Date
     { wch: 20 }, // Consignee Name
     { wch: 15 }, // Consignee Phone
@@ -293,8 +311,6 @@ async function exportOrdersData(
     { wch: 35 }, // Full Shipping Address
     { wch: 15 }, // Delivery Service
     { wch: 15 }, // Mode of Delivery
-    { wch: 15 }, // Required By Date
-    { wch: 50 }  // Items Details
   ];
   worksheet['!cols'] = columnWidths;
 
@@ -302,49 +318,142 @@ async function exportOrdersData(
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders');
 
   if (format === 'pdf') {
-    const doc = new jsPDF();
+    // Use landscape orientation for better space utilization
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
 
-    doc.setFontSize(20);
-    doc.text('Orders Report', 20, 20);
+    // Title styling
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Orders Report', 8, 10);
+    
+    // Add export date
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`, 8, 15);
+    doc.setTextColor(0, 0, 0);
 
-    const tableColumns = client ? client?.isShowPrice ? [
+    const showPrice = client ? client.isShowPrice : true;
+    
+    const tableColumns = showPrice ? [
       'Order ID',
       'Client Name',
-      'Order Date',
       'Status',
-      'Total Amount',
-      'Items Count'
+      'Qty',
+      'Items Details',
+      'Date',
+      'Amount',
     ] : [
       'Order ID',
       'Client Name',
-      'Order Date',
       'Status',
-      'Items Count'
-    ] : [
-      'Order ID',
-      'Client Name',
-      'Order Date',
-      'Status',
-      'Total Amount',
-      'Items Count'
+      'Qty',
+      'Items Details',
+      'Date',
     ];
 
-    const tableRows = excelData.map((order: any) => [
-      order['Order ID'],
-      order['Client Name'],
-      order['Order Date'],
-      order['Status'],
-      `${client ? (client.isShowPrice ? `Rs.${order['Total Amount']}` : '') : `Rs.${order['Total Amount']}`}`,
-      order['Items Count'].toString()
-    ]);
+    // Format items details - keep semicolons but make more compact
+    const tableRows = excelData.map((order: any) => {
+      const row = [
+        order['Order ID'],
+        order['Client Name'],
+        order['Status'],
+        order['Items Count'].toString(),
+        order['Items Details'] || '',
+        order['Order Date'],
+      ];
+      if (showPrice) {
+        row.push(`${order['Total Amount']}`);
+      }
+      return row;
+    });
+
+    // A4 landscape: 297mm width, using minimal margins
+    // Fixed widths that total ~285mm
+    const columnStyles: any = showPrice ? {
+      0: { cellWidth: 30, halign: 'left' },      // Order ID
+      1: { cellWidth: 30, halign: 'left' },      // Client Name
+      2: { cellWidth: 28, halign: 'center' },    // Status
+      3: { cellWidth: 12, halign: 'center' },    // Qty
+      4: { cellWidth: 138, halign: 'left' },     // Items Details - fixed large width
+      5: { cellWidth: 22, halign: 'center' },    // Date
+      6: { cellWidth: 22, halign: 'center' }      // Amount
+    } : {
+      0: { cellWidth: 32, halign: 'left' },      // Order ID
+      1: { cellWidth: 34, halign: 'left' },      // Client Name
+      2: { cellWidth: 30, halign: 'center' },    // Status
+      3: { cellWidth: 14, halign: 'center' },    // Qty
+      4: { cellWidth: 150, halign: 'left' },     // Items Details
+      5: { cellWidth: 24, halign: 'center' },    // Date
+    };
 
     autoTable(doc, {
       head: [tableColumns],
       body: tableRows,
-      startY: 30,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [66, 66, 66] }
+      startY: 18,
+      margin: { left: 6, right: 6, top: 8, bottom: 8 },
+      
+      styles: {
+        fontSize: 8,
+        cellPadding: 1.5,
+        valign: 'middle',
+        overflow: 'linebreak',
+        lineColor: [220, 220, 220],
+        lineWidth: 0.1,
+      },
+
+      headStyles: {
+        fillColor: [55, 65, 81],
+        textColor: [255, 255, 255],
+        fontSize: 8,
+        fontStyle: 'bold',
+        halign: 'center',
+        valign: 'middle',
+        cellPadding: 2,
+      },
+
+      bodyStyles: {
+        textColor: [40, 40, 40],
+      },
+
+      alternateRowStyles: {
+        fillColor: [250, 250, 250],
+      },
+
+      columnStyles: columnStyles,
+
+      didParseCell: (data) => {
+        // Style the Items Details column
+        if (data.section === 'body' && data.column.index === 4) {
+          data.cell.styles.fontSize = 7.5;
+          data.cell.styles.valign = 'middle';
+        }
+        
+        // Style status column
+        if (data.section === 'body' && data.column.index === 2) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fontSize = 7.5;
+        }
+      },
+
+      didDrawPage: (data) => {
+        // Add page numbers
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Page ${data.pageNumber} of ${pageCount}`,
+          doc.internal.pageSize.width - 25,
+          doc.internal.pageSize.height - 5
+        );
+      }
     });
+
+
 
     const pdfBuffer = doc.output('arraybuffer');
     const filename = `orders_export_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -678,7 +787,7 @@ if (imageColIndex !== -1) {
             <td>${p.name}</td>
             <td>${p.sku}</td>
             <td>${p.availableStock}</td>
-            ${ client ? (client.isShowPrice ? `<td>₹${p.price}</td>` : '') : `<td>₹${p.price}</td>`}
+            ${ client ? (client.isShowPrice ? `<td>${p.price}</td>` : '') : `<td>${p.price}</td>`}
           </tr>
         `).join('')}
       </tbody>
