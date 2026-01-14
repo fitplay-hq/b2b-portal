@@ -126,7 +126,7 @@ export default function ClientAnalyticsPage() {
   const isShowPrice = session?.user?.isShowPrice ?? false;
   
   const [filters, setFilters] = useState<AnalyticsFilters>({
-    period: '30d'
+    period: 'all'
   });
   
   const [inventoryFilters, setInventoryFilters] = useState({
@@ -198,7 +198,7 @@ export default function ClientAnalyticsPage() {
       ...prev,
       dateFrom: undefined,
       dateTo: undefined,
-      period: '30d'
+      period: 'all'
     }));
   };
 
@@ -207,7 +207,7 @@ export default function ClientAnalyticsPage() {
     setStartDate(undefined);
     setEndDate(undefined);
     setFilters({
-      period: '30d'
+      period: 'all'
     });
   };
 
@@ -296,14 +296,24 @@ export default function ClientAnalyticsPage() {
               <div>
                 <Label className="text-sm font-medium text-gray-700 mb-2 block">Time Period</Label>
                 <Select
-                  value={filters.period || 'custom'}
+                  value={filters.period || 'all'}
                   onValueChange={(value) => {
                     if (value === 'custom') {
                       handleFilterChange('period', undefined);
+                    } else if (value === 'all') {
+                      setFilters(prev => ({
+                        ...prev,
+                        period: 'all',
+                        dateFrom: undefined,
+                        dateTo: undefined
+                      }));
+                      setDateRange({ from: undefined, to: undefined });
+                      setStartDate(undefined);
+                      setEndDate(undefined);
                     } else {
                       setFilters(prev => ({
                         ...prev,
-                        period: value as '7d' | '30d' | '90d',
+                        period: value as '7d' | '30d' | '90d' | 'all',
                         dateFrom: undefined,
                         dateTo: undefined
                       }));
@@ -317,6 +327,7 @@ export default function ClientAnalyticsPage() {
                     <SelectValue placeholder="Select time period" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">All time</SelectItem>
                     <SelectItem value="7d">Last 7 days</SelectItem>
                     <SelectItem value="30d">Last 30 days</SelectItem>
                     <SelectItem value="90d">Last 90 days</SelectItem>

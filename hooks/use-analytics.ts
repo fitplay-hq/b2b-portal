@@ -7,7 +7,7 @@ interface AnalyticsFilters {
   clientId?: string;
   companyId?: string;
   status?: string;
-  period?: '7d' | '30d' | '90d';
+  period?: '7d' | '30d' | '90d' | 'all';
   // Inventory filters
   category?: string;
   stockStatus?: string;
