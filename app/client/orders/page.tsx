@@ -582,41 +582,44 @@ export default function ClientOrderHistory() {
                           <div>
                             <h4 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Order Timeline</h4>
                             <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
-                              {[
-                                { status: "PENDING", label: "Order Placed", description: "Your order has been submitted" },
-                                { status: "APPROVED", label: "Order Approved", description: "Your order has been approved" },
-                                { status: "READY_FOR_DISPATCH", label: "Ready for Dispatch", description: "Your order is packed and ready" },
-                                { status: "DISPATCHED", label: "Order Dispatched", description: "Your order has been dispatched" },
-                                { status: "AT_DESTINATION", label: "At Destination", description: "Your order has reached destination" },
-                                { status: "DELIVERED", label: "Delivered", description: "Your order has been delivered" },
-                                { status: "COMPLETED", label: "Completed", description: "Your order is complete" },
-                              ].filter((timelineItem, index) => {
-                                const currentStatusIndex = [
-                                  "PENDING", "APPROVED", "READY_FOR_DISPATCH", 
-                                  "DISPATCHED", "AT_DESTINATION", "DELIVERED", "COMPLETED"
-                                ].indexOf(order.status);
-                                return index <= currentStatusIndex;
-                              }).map((timelineItem, index, filteredArray) => {
-                                const isCurrent = index === filteredArray.length - 1;
+                              {(() => {
+                                const orderTimeline = [
+                                  { status: "PENDING", label: "Order Placed", description: "Your order has been submitted", timestamp: order.createdAt },
+                                  { status: "APPROVED", label: "Order Approved", description: "Your order has been approved", timestamp: order.updatedAt },
+                                  { status: "READY_FOR_DISPATCH", label: "Ready for Dispatch", description: "Your order is packed and ready", timestamp: order.updatedAt },
+                                  { status: "DISPATCHED", label: "Order Dispatched", description: "Your order has been dispatched", timestamp: order.updatedAt },
+                                  { status: "AT_DESTINATION", label: "At Destination", description: "Your order has reached destination", timestamp: order.updatedAt },
+                                  { status: "DELIVERED", label: "Delivered", description: "Your order has been delivered", timestamp: order.updatedAt },
+                                  { status: "COMPLETED", label: "Completed", description: "Your order is complete", timestamp: order.updatedAt },
+                                ];
+                                const currentStatusIndex = orderTimeline.findIndex(item => item.status === order.status);
+                                
+                                return orderTimeline.slice(0, currentStatusIndex + 1).map((timelineItem, index) => {
+                                  const isCurrent = index === currentStatusIndex;
+                                  const StatusIcon = getStatusIcon(timelineItem.status);
 
-                                return (
-                                  <div key={timelineItem.status} className="flex items-center gap-2 sm:gap-3">
-                                    <div className={`h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 rounded-full flex items-center justify-center text-xs ${
-                                      isCurrent ? 'bg-primary text-primary-foreground' : 'bg-green-100 text-green-600'
-                                    }`}>
-                                      ✓
+                                  return (
+                                    <div key={timelineItem.status} className="flex items-start gap-2 sm:gap-3">
+                                      <div className={`h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 rounded-full flex items-center justify-center mt-1 ${
+                                        isCurrent ? 'bg-primary text-primary-foreground' : 'bg-green-100 text-green-600'
+                                      }`}>
+                                        <StatusIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className={`font-medium text-xs sm:text-sm ${isCurrent ? 'text-primary' : ''}`}>
+                                          {timelineItem.label}
+                                        </p>
+                                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                                          {timelineItem.description}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                          {new Date(timelineItem.timestamp).toLocaleDateString()} {new Date(timelineItem.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                      </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className={`font-medium text-xs sm:text-sm ${isCurrent ? 'text-primary' : ''}`}>
-                                        {timelineItem.label}
-                                      </p>
-                                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                                        {timelineItem.description}
-                                      </p>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                });
+                              })()}
                             </div>
                           </div>
 
