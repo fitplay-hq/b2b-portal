@@ -35,14 +35,14 @@ export async function GET(request: NextRequest) {
         const search = searchParams.get("search");
         const dateFrom = searchParams.get("dateFrom");
         const dateTo = searchParams.get("dateTo");
-        const period = searchParams.get("period") || "30d";
+        const period = searchParams.get("period") || "all";
 
         /* ---------------- DATE FILTER ---------------- */
         const dateFilter: { gte?: Date; lte?: Date } = {};
         if (dateFrom) dateFilter.gte = new Date(dateFrom);
         if (dateTo) dateFilter.lte = new Date(dateTo);
 
-        if (!dateFrom && !dateTo) {
+        if (!dateFrom && !dateTo && period !== "all") {
             const now = new Date();
             const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
             dateFilter.gte = new Date(now.getTime() - days * 86400000);

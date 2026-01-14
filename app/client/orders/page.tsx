@@ -269,7 +269,7 @@ export default function ClientOrderHistory() {
 
         {/* View Toggle */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             <span>Showing {filteredOrders.length} of {orders?.length || 0} orders</span>
           </div>
           <div className="flex gap-2">
@@ -277,17 +277,21 @@ export default function ClientOrderHistory() {
               variant={viewType === "card" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewType("card")}
+              className="text-xs sm:text-sm"
             >
-              <Grid3x3 className="h-4 w-4 mr-2" />
-              Card View
+              <Grid3x3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Card View</span>
+              <span className="sm:hidden">Card</span>
             </Button>
             <Button
               variant={viewType === "table" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewType("table")}
+              className="text-xs sm:text-sm"
             >
-              <Table className="h-4 w-4 mr-2" />
-              Table View
+              <Table className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Table View</span>
+              <span className="sm:hidden">Table</span>
             </Button>
           </div>
         </div>
@@ -324,23 +328,23 @@ export default function ClientOrderHistory() {
                     onOpenChange={() => toggleOrderExpansion(order.id)}
                   >
                     <CollapsibleTrigger asChild>
-                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start justify-between gap-4">
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors p-3 sm:p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2 sm:gap-4">
                           <div className="space-y-2 flex-1 min-w-0">
-                            <div className="flex items-center gap-3">
-                              <CardTitle className="text-lg">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <CardTitle className="text-base sm:text-lg truncate">
                                 {order.id}
                               </CardTitle>
                               <Badge className={getStatusColor(order.status)}>
                                 {formatStatus(order.status)}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
                                 {new Date(order.createdAt).toLocaleDateString()}
                               </span>
-                              <span>•</span>
+                              <span className="hidden sm:inline">•</span>
                               <span className="flex items-center gap-1">
                                 <Package className="h-3 w-3" />
                                 {(() => {
@@ -360,13 +364,13 @@ export default function ClientOrderHistory() {
                               }
                               </span>
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground line-clamp-2">
                               {getStatusDescription(order.status)}
                             </p>
                           </div>
                           
                           {/* Right Side Summary */}
-                          <div className="flex items-center gap-4">
+                          <div className="hidden lg:flex items-center gap-4">
                             <div className="text-right space-y-1">
                               <div className="text-sm font-medium text-muted-foreground">
                                 {(() => {
@@ -440,18 +444,93 @@ export default function ClientOrderHistory() {
                                 <ChevronDown className="h-5 w-5" />
                               )}
                             </div>
-                          </div>
-                        </div>
+                          </div>                          
+                          {/* Mobile-only total items */}
+                          <div className="flex lg:hidden flex-col gap-2 w-full">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-medium text-muted-foreground">
+                                {(() => {
+                                  const totalQuantity = (order.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
+                                    (order.bundleOrderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0);
+                                  return `${totalQuantity} Total Items`;
+                                })()}
+                              </div>
+                              <div className="flex items-center">
+                                {isExpanded ? (
+                                  <ChevronUp className="h-5 w-5" />
+                                ) : (
+                                  <ChevronDown className="h-5 w-5" />
+                                )}
+                              </div>
+                            </div>
+                            {/* Mobile product badges */}
+                            <div className="flex flex-wrap gap-1">
+                              {(() => {
+                                // Collect unique items/bundles to show variety
+                                const itemsToShow: Array<{ type: 'item' | 'bundle', data: any, key: string }> = [];
+                                const seenProductIds = new Set<string>();
+                                
+                                // Add regular items
+                                order.orderItems?.forEach((item) => {
+                                  if (itemsToShow.length < 3 && item.product?.id && !seenProductIds.has(item.product.id)) {
+                                    seenProductIds.add(item.product.id);
+                                    itemsToShow.push({ type: 'item', data: item, key: `item-${item.product.id}` });
+                                  }
+                                });
+                                
+                                // Add bundles (different bundles)
+                                const seenBundleIds = new Set<string>();
+                                order.bundleOrderItems?.forEach((item) => {
+                                  if (itemsToShow.length < 3 && item.bundle?.id && !seenBundleIds.has(item.bundle.id)) {
+                                    seenBundleIds.add(item.bundle.id);
+                                    itemsToShow.push({ type: 'bundle', data: item, key: `bundle-${item.bundle.id}` });
+                                  }
+                                });
+                                
+                                return (
+                                  <>
+                                    {itemsToShow.map((entry) => {
+                                      if (entry.type === 'item') {
+                                        const item = entry.data;
+                                        return (
+                                          <div key={entry.key} className="flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded whitespace-nowrap">
+                                            <span className="font-medium truncate max-w-[120px]">{item.product?.name}</span>
+                                            <span className="text-muted-foreground">×{item.quantity}</span>
+                                          </div>
+                                        );
+                                      } else {
+                                        const item = entry.data;
+                                        return (
+                                          <div key={entry.key} className="flex items-center gap-1 text-xs bg-blue-50 border border-blue-200 px-2 py-1 rounded whitespace-nowrap">
+                                            <Package className="h-3 w-3 text-blue-600" />
+                                            <span className="font-medium truncate max-w-[100px]">
+                                              {item.bundle?.items?.[0]?.product?.name || 'Bundle'}
+                                            </span>
+                                            <span className="text-muted-foreground">×{item.quantity}</span>
+                                          </div>
+                                        );
+                                      }
+                                    })}
+                                    {((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) > 3 && (
+                                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                        +{((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) - 3} more
+                                      </span>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>                        </div>
                       </CardHeader>
                     </CollapsibleTrigger>
 
                     <CollapsibleContent>
-                      <CardContent className="pt-0">
-                        <div className="space-y-4">
+                      <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6 pt-0">
+                        <div className="space-y-3 sm:space-y-4">
                           {/* Order Timeline */}
                           <div>
-                            <h4 className="font-medium mb-3">Order Timeline</h4>
-                            <div className="space-y-3 mb-4">
+                            <h4 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Order Timeline</h4>
+                            <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                               {[
                                 { status: "PENDING", label: "Order Placed", description: "Your order has been submitted" },
                                 { status: "APPROVED", label: "Order Approved", description: "Your order has been approved" },
@@ -470,17 +549,17 @@ export default function ClientOrderHistory() {
                                 const isCurrent = index === filteredArray.length - 1;
 
                                 return (
-                                  <div key={timelineItem.status} className="flex items-center gap-3">
-                                    <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${
+                                  <div key={timelineItem.status} className="flex items-center gap-2 sm:gap-3">
+                                    <div className={`h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 rounded-full flex items-center justify-center text-xs ${
                                       isCurrent ? 'bg-primary text-primary-foreground' : 'bg-green-100 text-green-600'
                                     }`}>
                                       ✓
                                     </div>
-                                    <div className="flex-1">
-                                      <p className={`font-medium text-sm ${isCurrent ? 'text-primary' : ''}`}>
+                                    <div className="flex-1 min-w-0">
+                                      <p className={`font-medium text-xs sm:text-sm ${isCurrent ? 'text-primary' : ''}`}>
                                         {timelineItem.label}
                                       </p>
-                                      <p className="text-xs text-muted-foreground">
+                                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
                                         {timelineItem.description}
                                       </p>
                                     </div>
@@ -492,8 +571,8 @@ export default function ClientOrderHistory() {
 
                           {/* Order Summary */}
                           <div>
-                            <h4 className="font-medium mb-3">Order Details</h4>
-                            <div className="text-sm text-muted-foreground">
+                            <h4 className="text-sm sm:text-base font-medium mb-3">Order Details</h4>
+                            <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
                               <p>Order ID: {order.id}</p>
                               <p>Status: {formatStatus(order.status)}</p>
                               <p>
@@ -511,27 +590,27 @@ export default function ClientOrderHistory() {
 
                           {/* Order Items */}
                           <div>
-                            <h4 className="font-medium mb-3">Order Items</h4>
-                            <div className="space-y-3">
+                            <h4 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Order Items</h4>
+                            <div className="space-y-2 sm:space-y-3">
                               {order.orderItems && order.orderItems.map((item) => (
                                 <div
                                   key={item.product.id}
-                                  className="flex gap-3 rounded-lg bg-muted/40 p-3"
+                                  className="flex gap-2 sm:gap-3 rounded-lg bg-muted/40 p-2 sm:p-3"
                                 >
                                   <ImageWithFallback
                                     src={item.product.images[0]}
                                     alt={item.product.name}
-                                    className="h-16 w-16 rounded object-cover"
+                                    className="h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded object-cover"
                                   />
-                                  <div>
-                                    <p className="font-medium">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-medium text-sm sm:text-base line-clamp-2">
                                       {item.product.name}
                                     </p>
-                                    <p className="text-sm text-muted-foreground">
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
                                       Quantity: {item.quantity}
                                     </p>
                                     {isShowPrice && item.price > 0 && (
-                                      <p className="text-sm">
+                                      <p className="text-xs sm:text-sm">
                                         Price: ₹{item.price.toFixed(2)}
                                       </p>
                                     )}
@@ -555,12 +634,12 @@ export default function ClientOrderHistory() {
                                 return Object.values(bundleGroups).map((group: any, groupIndex) => {
                                   const bundleCount = group.items[0]?.bundle?.numberOfBundles || 1;
                                   return (
-                                    <div key={`bundle-group-${groupIndex}`} className="space-y-3">
+                                    <div key={`bundle-group-${groupIndex}`} className="space-y-2 sm:space-y-3">
                                       {/* Bundle Header */}
-                                      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                                        <Package className="h-4 w-4 text-blue-600" />
-                                        <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
-                                        <span className="text-xs text-blue-600 ml-auto">
+                                      <div className="flex flex-wrap items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                                        <Package className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+                                        <span className="font-medium text-xs sm:text-sm text-blue-900">Bundle {groupIndex + 1}</span>
+                                        <span className="text-xs sm:text-sm text-blue-600 ml-auto">
                                           {group.items.length} item{group.items.length > 1 ? 's' : ''} • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}
                                         </span>
                                       </div>
@@ -569,28 +648,28 @@ export default function ClientOrderHistory() {
                                     {group.items.map((bundleItem: any, itemIndex: number) => {
                                       const perBundleQty = bundleCount > 0 ? bundleItem.quantity / bundleCount : bundleItem.quantity;
                                       return (
-                                      <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex gap-3 rounded-lg border p-3 ml-4">
-                                        <div className="h-16 w-16 rounded overflow-hidden">
+                                      <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3 ml-2 sm:ml-4">
+                                        <div className="h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded overflow-hidden">
                                           <ImageWithFallback
                                             src={bundleItem.product?.images?.[0] || ''}
                                             alt={bundleItem.product?.name || 'Bundle Product'}
                                             className="h-full w-full object-cover"
                                           />
                                         </div>
-                                        <div className="flex-1">
-                                          <p className="font-medium">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="font-medium text-sm sm:text-base line-clamp-2">
                                             {bundleItem.product?.name || 'Bundle Product'}
                                           </p>
-                                          <p className="text-sm text-muted-foreground">
+                                          <p className="text-xs sm:text-sm text-muted-foreground">
                                             SKU: {bundleItem.product?.sku || 'N/A'}
                                           </p>
-                                          <p className="text-xs text-blue-700 font-medium">
-                                            {perBundleQty} per bundle × {bundleCount} bundles = {bundleItem.quantity} total
+                                          <p className="text-xs sm:text-sm text-blue-700 font-medium">
+                                            {perBundleQty} each × {bundleCount} = {bundleItem.quantity} total
                                           </p>
-                                          <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
+                                          <p className="text-xs sm:text-sm text-blue-600 font-medium">Bundle Item</p>
                                         </div>
                                         <div className="text-right">
-                                          <p className="text-sm font-medium">Qty: {perBundleQty} each</p>
+                                          <p className="text-xs sm:text-sm font-medium">Qty: {perBundleQty}</p>
                                         </div>
                                       </div>
                                     );
@@ -610,12 +689,12 @@ export default function ClientOrderHistory() {
 
                           {/* Total Amount */}
                           {isShowPrice && order.totalAmount > 0 && (
-                            <div className="pt-4 border-t">
+                            <div className="pt-3 sm:pt-4 border-t">
                               <div className="flex justify-between items-center">
-                                <span className="font-medium">
+                                <span className="text-sm sm:text-base font-medium">
                                   Total Amount:
                                 </span>
-                                <span className="font-bold text-lg">
+                                <span className="text-base sm:text-lg font-bold">
                                   ₹{order.totalAmount.toFixed(2)}
                                 </span>
                               </div>
@@ -623,12 +702,12 @@ export default function ClientOrderHistory() {
                           )}
 
                           {/* Order Details */}
-                          <div className="grid grid-cols-1 gap-x-4 gap-y-6 pt-4 border-t md:grid-cols-2">
+                          <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:gap-y-6 pt-3 sm:pt-4 border-t md:grid-cols-2">
                             <div>
-                              <h4 className="font-medium mb-2">
+                              <h4 className="text-sm sm:text-base font-medium mb-2">
                                 Delivery Address
                               </h4>
-                              <div className="text-sm text-muted-foreground space-y-1">
+                              <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
                                 {order.consigneeName && (
                                   <p>
                                     <strong>Consignee:</strong>{" "}
@@ -700,8 +779,8 @@ export default function ClientOrderHistory() {
                             </div>
                             {order.note && (
                               <div className="md:col-span-2">
-                                <h4 className="font-medium mb-2">Notes</h4>
-                                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                                <h4 className="text-sm sm:text-base font-medium mb-2">Notes</h4>
+                                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-line">
                                   {order.note}
                                 </p>
                               </div>

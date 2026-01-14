@@ -32,10 +32,12 @@ export default function ClientInventoryLogsPage() {
   const { exportData, exportLoading } = useInventoryExport();
   
   const [filters, setFilters] = useState<ClientInventoryLogsFilters>({
-    period: "30d",
+    period: "all",
   });
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const [advancedFilters, setAdvancedFilters] = useState({
     dateFrom: "",
     dateTo: "",
@@ -50,8 +52,8 @@ export default function ClientInventoryLogsPage() {
   });
 
   // Client-side filtering with useMemo for instant search
-  const logs = useMemo(() => {
-    if (!allLogs) return [];
+  const { logs, pagination } = useMemo(() => {
+    if (!allLogs) return { logs: [], pagination: { page: 1, limit: itemsPerPage, totalLogs: 0, totalPages: 0, hasNext: false, hasPrev: false } };
     
     let filtered = allLogs;
     const lowercasedTerm = searchTerm.toLowerCase();
@@ -72,8 +74,29 @@ export default function ClientInventoryLogsPage() {
       });
     }
 
-    return filtered;
-  }, [allLogs, searchTerm]);
+    // Pagination logic
+    const totalLogs = filtered.length;
+    const totalPages = Math.ceil(totalLogs / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedLogs = filtered.slice(startIndex, endIndex);
+
+    return {
+      logs: paginatedLogs,
+      pagination: {
+        page: currentPage,
+        limit: itemsPerPage,
+        totalLogs,
+        totalPages,
+        hasNext: currentPage < totalPages,
+        hasPrev: currentPage > 1,
+      },
+    };
+  }, [allLogs, searchTerm, currentPage, itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const handleFilterChange = (newFilters: Record<string, string>) => {
     const cleanFilters = Object.fromEntries(
@@ -81,6 +104,7 @@ export default function ClientInventoryLogsPage() {
     );
     
     setAdvancedFilters(prev => ({ ...prev, ...newFilters }));
+    setCurrentPage(1); // Reset to first page on filter change
     
     setFilters(prev => ({
       ...prev,
@@ -90,7 +114,7 @@ export default function ClientInventoryLogsPage() {
 
   const resetFilters = () => {
     setFilters({
-      period: "30d",
+      period: "all",
     });
     setAdvancedFilters({
       dateFrom: "",
@@ -98,6 +122,7 @@ export default function ClientInventoryLogsPage() {
       productId: "",
       reason: "",
     });
+    setCurrentPage(1); // Reset to first page
     setSearchTerm("");
   };
 
@@ -280,7 +305,7 @@ export default function ClientInventoryLogsPage() {
                     </span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    Showing {count} inventory logs (last 30 days)
+                    Showing {count} inventory logs
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-gray-600">
@@ -291,8 +316,10 @@ export default function ClientInventoryLogsPage() {
           )}          <div className="flex-1">
             <ClientInventoryLogsTable
               logs={logs}
-              totalCount={allLogs?.length || 0}
+              totalCount={pagination.totalLogs}
               isLoading={isLoading}
+              pagination={pagination}
+              onPageChange={handlePageChange}
               onSearch={setSearchTerm}
               onImmediateSearch={setSearchTerm}
               onFilterChange={handleFilterChange}

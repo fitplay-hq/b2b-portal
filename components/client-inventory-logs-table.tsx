@@ -25,7 +25,9 @@ import {
   FileText,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { ClientInventoryLogEntry } from "@/data/inventory/client.hooks";
 import { cn } from "@/lib/utils";
@@ -34,6 +36,15 @@ interface ClientInventoryLogsTableProps {
   logs: ClientInventoryLogEntry[];
   totalCount?: number;
   isLoading: boolean;
+  pagination?: {
+    page: number;
+    limit: number;
+    totalLogs: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  onPageChange?: (page: number) => void;
   onSearch?: (search: string) => void;
   onImmediateSearch?: (search: string) => void;
   onFilterChange?: (filters: Record<string, string>) => void;
@@ -60,6 +71,8 @@ export function ClientInventoryLogsTable({
   logs,
   totalCount,
   isLoading,
+  pagination,
+  onPageChange,
   onSearch,
   onImmediateSearch,
   onFilterChange,
@@ -144,16 +157,7 @@ export function ClientInventoryLogsTable({
 
   const getReasonBadgeColor = (reason: string | null) => {
     if (!reason) return "secondary";
-    
-    const lowerReason = reason.toLowerCase();
-    if (lowerReason.includes("sale") || lowerReason.includes("sold")) {
-      return "default";
-    } else if (lowerReason.includes("restock") || lowerReason.includes("add")) {
-      return "secondary";
-    } else if (lowerReason.includes("damaged") || lowerReason.includes("return")) {
-      return "destructive";
-    }
-    return "outline";
+    return "secondary";
   };
 
   const formatReason = (reason: string | null) => {
@@ -285,99 +289,151 @@ export function ClientInventoryLogsTable({
 
         {/* Log count display */}
         <div className="mb-4 text-sm text-muted-foreground">
-          Showing {logs.length} {totalCount ? `of ${totalCount}` : ''} log{logs.length !== 1 ? 's' : ''}
+          Showing {logs.length} {pagination ? `of ${pagination.totalLogs}` : totalCount ? `of ${totalCount}` : ''} log{logs.length !== 1 ? 's' : ''}
         </div>
 
         <div className="rounded-md border">
-          <div className="overflow-x-auto">
-            <div className="min-w-[1000px]">
-              <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left p-4 font-medium">Date & Time</th>
-                  <th className="text-left p-4 font-medium">Product</th>
-                  <th className="text-left p-4 font-medium">Change</th>
-                  <th className="text-left p-4 font-medium">Final Stock</th>
-                  <th className="text-left p-4 font-medium">Reason</th>
-                  <th className="text-left p-4 font-medium">Action</th>
-                  <th className="text-left p-4 font-medium">Remarks</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                      <Package2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <div>No inventory logs found</div>
-                      <div className="text-sm mt-1">
-                        {activeFilters.length > 0 
-                          ? "Try adjusting your filters"
-                          : "Inventory changes will appear here when they occur"
-                        }
-                      </div>
-                    </td>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <table className="min-w-full divide-y divide-border">
+                <thead>
+                  <tr className="bg-muted/50">
+                    <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap">Date</th>
+                    <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap min-w-[140px]">Product</th>
+                    <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap">Change</th>
+                    <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap">Stock</th>
+                    <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap">Reason</th>
+                    <th className="text-left px-2 py-3 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap min-w-[80px]">Action</th>
                   </tr>
-                ) : (
-                  logs.map((log, index) => (
-                    <tr key={`${log.productId}-${log.timestamp}-${index}`} className="border-b hover:bg-muted/30">
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{formatDate(log.timestamp)}</span>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {logs.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-muted-foreground px-4">
+                        <Package2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <div className="text-sm">No inventory logs found</div>
+                        <div className="text-xs mt-1">
+                          {activeFilters.length > 0 
+                            ? "Try adjusting your filters"
+                            : "Inventory changes will appear here when they occur"
+                          }
                         </div>
-                      </td>
-                      <td className="p-4">
-                        <div>
-                          <div className="font-medium">{log.productName}</div>
-                          <div className="text-sm text-muted-foreground">SKU: {log.sku}</div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-mono text-sm">
-                          {formatChange(log)}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <Badge 
-                          variant="outline" 
-                          className={`font-mono ${
-                            log.minStockThreshold && log.finalStock < log.minStockThreshold 
-                              ? "text-red-600 border-red-600" 
-                              : ""
-                          }`}
-                        >
-                          {log.finalStock}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        {log.reason ? (
-                          <Badge variant={getReasonBadgeColor(log.reason)}>
-                            {formatReason(log.reason)}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <div className="text-sm text-muted-foreground max-w-xs truncate">
-                          {log.action}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        {log.remarks ? (
-                          <span className="text-sm text-muted-foreground italic">{log.remarks}</span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
+                  ) : (
+                    logs.map((log, index) => (
+                      <tr key={`${log.productId}-${log.timestamp}-${index}`} className="hover:bg-muted/30">
+                        <td className="px-2 py-3 sm:px-4">
+                          <div className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap">
+                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hidden sm:inline" />
+                            <span>
+                              {new Date(log.timestamp).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-2 py-3 sm:px-4">
+                          <div className="min-w-[140px]">
+                            <div className="font-medium text-xs sm:text-sm leading-tight">{log.productName}</div>
+                            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{log.sku}</div>
+                          </div>
+                        </td>
+                        <td className="px-2 py-3 sm:px-4">
+                          <div className="font-mono text-xs sm:text-sm whitespace-nowrap">
+                            {formatChange(log)}
+                          </div>
+                        </td>
+                        <td className="px-2 py-3 sm:px-4">
+                          <Badge 
+                            variant="outline" 
+                            className={`font-mono text-[10px] sm:text-xs px-1.5 py-0.5 ${
+                              log.minStockThreshold && log.finalStock < log.minStockThreshold 
+                                ? "text-red-600 border-red-600" 
+                                : ""
+                            }`}
+                          >
+                            {log.finalStock}
+                          </Badge>
+                        </td>
+                        <td className="px-2 py-3 sm:px-4">
+                          {log.reason ? (
+                            <Badge variant={getReasonBadgeColor(log.reason)} className="text-[10px] sm:text-xs px-1.5 py-0.5 whitespace-nowrap">
+                              {formatReason(log.reason)}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs sm:text-sm">-</span>
+                          )}
+                        </td>
+                        <td className="px-2 py-3 sm:px-4">
+                          <div className="text-xs sm:text-sm text-muted-foreground max-w-[80px] truncate">
+                            {log.action}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
               </table>
             </div>
           </div>
         </div>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="mt-4 flex justify-end border-t pt-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange?.(pagination.page - 1)}
+                disabled={!pagination.hasPrev}
+                className="h-8"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Previous</span>
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => {
+                  let pageNum;
+                  if (pagination.totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (pagination.page <= 3) {
+                    pageNum = i + 1;
+                  } else if (pagination.page >= pagination.totalPages - 2) {
+                    pageNum = pagination.totalPages - 4 + i;
+                  } else {
+                    pageNum = pagination.page - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={pagination.page === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => onPageChange?.(pageNum)}
+                      className="w-8 h-8 p-0 text-xs"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange?.(pagination.page + 1)}
+                disabled={!pagination.hasNext}
+                className="h-8"
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
