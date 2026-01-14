@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         const dateTo = searchParams.get('dateTo');
         const clientId = searchParams.get('clientId');
         const status = searchParams.get('status');
-        const period = searchParams.get('period') || '30d';
+        const period = searchParams.get('period');
         const search = searchParams.get('search');
         const category = searchParams.get('category');
 
@@ -74,7 +74,7 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, client, status, pe
 
     if (!dateFrom && !dateTo) {
         const now = new Date();
-        const days = period === '7d' ? 7 : period === '30d' ? 30 : 0;
+        const days = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 0;
         if (days > 0) {
             dateFilter.gte = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
         }
@@ -119,27 +119,41 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, client, status, pe
             order.pincode
         ].filter(x => x && x !== 'Address' && x !== 'City' && x !== 'State' && x !== '000000');
 
-        const all_items = [...order.orderItems, ...order.bundleOrderItems];
+        const mergedItemsMap = new Map<string, any>();
+
+        [...order.orderItems, ...order.bundleOrderItems].forEach((item: any) => {
+            const productId = item.product?.id;
+            if (!productId) return;
+
+            if (!mergedItemsMap.has(productId)) {
+                mergedItemsMap.set(productId, {
+                    product: item.product,
+                    quantity: item.quantity,
+                    price: item.price
+                });
+            } else {
+                const existing = mergedItemsMap.get(productId);
+                existing.quantity += item.quantity;
+            }
+        });
+
+        const all_items = Array.from(mergedItemsMap.values());
+
 
         return {
             'Order ID': order.id,
-            'Client Name': order.client?.name || '',
-            'Client Email': order.client?.email || '',
             'Status': order.status,
             ...(client?.isShowPrice ? { 'Total Amount': order.totalAmount || 0 } : {}),
             'Items Count': all_items?.length || 0,
+            'Items Details': all_items
+                .map((i: any) => `${i.product?.name} (Qty: ${i.quantity}${client?.isShowPrice ? `, Price: ${i.price}` : ''})`)
+                .join('; '),
             'Order Date': new Date(order.createdAt).toLocaleDateString(),
             'Consignee Name': order.consigneeName || '',
             'Consignee Phone': order.consigneePhone || '',
             'Consignee Email': order.consigneeEmail || '',
             'Full Shipping Address': addressParts.join(', ') || '',
             'Mode of Delivery': order.modeOfDelivery || '',
-            'Required By Date': order.requiredByDate
-                ? new Date(order.requiredByDate).toLocaleDateString()
-                : '',
-            'Items Details': all_items
-                .map((i: any) => `${i.product?.name} (Qty: ${i.quantity}${client?.isShowPrice ? `, Price: ${i.price}` : ''})`)
-                .join('; ')
         };
     });
 
@@ -153,37 +167,37 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, client, status, pe
 
         const tableColumns = client?.isShowPrice ? [
             'Order ID',
-            'Client Name',
-            'Order Date',
             'Status',
+            'Items Count',
+            'Items Details',
+            'Order Date',
             'Total Amount',
-            'Items Count'
         ] : [
             'Order ID',
-            'Client Name',
-            'Order Date',
             'Status',
-            'Items Count'
+            'Items Count',
+            'Items Details',
+            'Order Date',
         ];
 
         const tableRows = excelData.map((order: any) => {
             if (client?.isShowPrice) {
                 return [
                     order['Order ID'],
-                    order['Client Name'],
-                    order['Order Date'],
                     order['Status'],
-                    `Rs.${order['Total Amount']}`,
-                    order['Items Count'].toString()
+                    order['Items Count'].toString(),
+                    order['Items Details'],
+                    order['Order Date'],
+                    `Rs.${order['Total Amount']}`
                 ];
             }
 
             return [
                 order['Order ID'],
-                order['Client Name'],
-                order['Order Date'],
                 order['Status'],
-                order['Items Count'].toString()
+                order['Items Count'].toString(),
+                order['Items Details'],
+                order['Order Date'],
             ];
         });
 
