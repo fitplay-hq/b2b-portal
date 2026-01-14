@@ -57,6 +57,7 @@ export default function ClientCheckout() {
     "SURFACE"
   );
   const [requiredByDate, setRequiredByDate] = useState<string>("");
+  const [packagingInstructions, setPackagingInstructions] = useState("");
   const [note, setNote] = useState("");
 
   const {
@@ -211,6 +212,7 @@ export default function ClientCheckout() {
         pincode: pincode.trim(),
         modeOfDelivery,
         requiredByDate: dateTimeForPrisma,
+        packagingInstructions: packagingInstructions.trim() || null,
         note: note.trim() || null,
         items: _orderItems,
         bundleOrderItems: _bundleOrderItems,
@@ -476,6 +478,7 @@ export default function ClientCheckout() {
                     onChange={(e) => setRequiredByDate(e.target.value)}
                     placeholder="Select required delivery date"
                     type="date"
+                    min={new Date().toISOString().split('T')[0]}
                     required
                   />
                 </div>
@@ -506,6 +509,8 @@ export default function ClientCheckout() {
                   </Select>
                 </div>
 
+                
+
                 <div className="space-y-2">
                   <Label htmlFor="note">Additional Notes (Optional)</Label>
                   <Textarea
@@ -514,6 +519,17 @@ export default function ClientCheckout() {
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Special delivery instructions, timeline requirements, etc."
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="packagingInstructions">Packaging Instructions (Optional)</Label>
+                  <Textarea
+                    id="packagingInstructions"
+                    name="packagingInstructions"
+                    value={packagingInstructions}
+                    onChange={(e) => setPackagingInstructions(e.target.value)}
+                    placeholder="Specific packaging requirements, handling instructions, etc."
                     rows={3}
                   />
                 </div>

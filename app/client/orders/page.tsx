@@ -328,9 +328,9 @@ export default function ClientOrderHistory() {
                     onOpenChange={() => toggleOrderExpansion(order.id)}
                   >
                     <CollapsibleTrigger asChild>
-                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors p-2 sm:p-4">
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors p-2 sm:p-4 pb-2 sm:pb-3">
                         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2 sm:gap-4">
-                          <div className="space-y-2 flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 grid grid-rows-3 gap-1">
                             <div className="flex items-center gap-2 sm:gap-3">
                               <CardTitle className="text-base sm:text-lg truncate">
                                 {order.id}
@@ -364,15 +364,15 @@ export default function ClientOrderHistory() {
                               }
                               </span>
                             </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2">
+                            <p className="text-sm text-muted-foreground">
                               {getStatusDescription(order.status)}
                             </p>
                           </div>
                           
                           {/* Right Side Summary */}
                           <div className="hidden lg:flex items-center gap-4">
-                            <div className="text-right space-y-1">
-                              <div className="text-sm font-medium text-muted-foreground">
+                            <div className="text-right">
+                              <div className="text-sm font-medium text-muted-foreground mb-1">
                                 {(() => {
                                   const totalQuantity = (order.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
                                     (order.bundleOrderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0);
@@ -380,7 +380,7 @@ export default function ClientOrderHistory() {
                                 })()}
                               </div>
                               {/* Compact product list - Show unique products */}
-                              <div className="flex flex-wrap gap-1 justify-end max-w-[250px]">
+                              <div className="flex flex-col gap-1 justify-end max-w-[350px]">
                                 {(() => {
                                   // Collect unique items/bundles to show variety
                                   const itemsToShow: Array<{ type: 'item' | 'bundle', data: any, key: string }> = [];
@@ -388,7 +388,7 @@ export default function ClientOrderHistory() {
                                   
                                   // Add regular items
                                   order.orderItems?.forEach((item) => {
-                                    if (itemsToShow.length < 2 && item.product?.id && !seenProductIds.has(item.product.id)) {
+                                    if (itemsToShow.length < 3 && item.product?.id && !seenProductIds.has(item.product.id)) {
                                       seenProductIds.add(item.product.id);
                                       itemsToShow.push({ type: 'item', data: item, key: `item-${item.product.id}` });
                                     }
@@ -397,7 +397,7 @@ export default function ClientOrderHistory() {
                                   // Add bundles (different bundles)
                                   const seenBundleIds = new Set<string>();
                                   order.bundleOrderItems?.forEach((item) => {
-                                    if (itemsToShow.length < 2 && item.bundle?.id && !seenBundleIds.has(item.bundle.id)) {
+                                    if (itemsToShow.length < 3 && item.bundle?.id && !seenBundleIds.has(item.bundle.id)) {
                                       seenBundleIds.add(item.bundle.id);
                                       itemsToShow.push({ type: 'bundle', data: item, key: `bundle-${item.bundle.id}` });
                                     }
@@ -409,17 +409,17 @@ export default function ClientOrderHistory() {
                                         if (entry.type === 'item') {
                                           const item = entry.data;
                                           return (
-                                            <div key={entry.key} className="flex items-center gap-1 text-xs bg-muted px-2 py-0.5 rounded whitespace-nowrap">
-                                              <span className="font-medium truncate max-w-[100px]">{item.product?.name}</span>
+                                            <div key={entry.key} className="flex items-center gap-1 text-sm bg-muted px-2 py-0 rounded whitespace-nowrap">
+                                              <span className="font-medium">{item.product?.name}</span>
                                               <span className="text-muted-foreground">×{item.quantity}</span>
                                             </div>
                                           );
                                         } else {
                                           const item = entry.data;
                                           return (
-                                            <div key={entry.key} className="flex items-center gap-1 text-xs bg-blue-50 border border-blue-200 px-2 py-0.5 rounded whitespace-nowrap">
+                                            <div key={entry.key} className="flex items-center gap-1 text-sm bg-blue-50 border border-blue-200 px-2 py-0 rounded whitespace-nowrap">
                                               <Package className="h-3 w-3 text-blue-600" />
-                                              <span className="font-medium truncate max-w-[80px]">
+                                              <span className="font-medium">
                                                 {item.bundle?.items?.[0]?.product?.name || 'Bundle'}
                                               </span>
                                               <span className="text-muted-foreground">×{item.quantity}</span>
@@ -427,9 +427,9 @@ export default function ClientOrderHistory() {
                                           );
                                         }
                                       })}
-                                      {((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) > 2 && (
-                                        <span className="text-xs text-muted-foreground">
-                                          +{((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) - 2} more
+                                      {itemsToShow.length >= 3 && ((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) > itemsToShow.length && (
+                                        <span className="text-sm text-muted-foreground">
+                                          +{((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) - itemsToShow.length} more items
                                         </span>
                                       )}
                                     </>
@@ -464,7 +464,7 @@ export default function ClientOrderHistory() {
                               </div>
                             </div>
                             {/* Mobile product badges */}
-                            <div className="flex flex-wrap gap-1">
+                            <div className="flex flex-col gap-1">
                               {(() => {
                                 // Collect unique items/bundles to show variety
                                 const itemsToShow: Array<{ type: 'item' | 'bundle', data: any, key: string }> = [];
@@ -493,17 +493,17 @@ export default function ClientOrderHistory() {
                                       if (entry.type === 'item') {
                                         const item = entry.data;
                                         return (
-                                          <div key={entry.key} className="flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded whitespace-nowrap">
-                                            <span className="font-medium truncate max-w-[120px]">{item.product?.name}</span>
+                                          <div key={entry.key} className="flex items-center gap-1 text-sm bg-muted px-2 py-0 rounded whitespace-nowrap">
+                                            <span className="font-medium">{item.product?.name}</span>
                                             <span className="text-muted-foreground">×{item.quantity}</span>
                                           </div>
                                         );
                                       } else {
                                         const item = entry.data;
                                         return (
-                                          <div key={entry.key} className="flex items-center gap-1 text-xs bg-blue-50 border border-blue-200 px-2 py-1 rounded whitespace-nowrap">
+                                          <div key={entry.key} className="flex items-center gap-1 text-sm bg-blue-50 border border-blue-200 px-2 py-0 rounded whitespace-nowrap">
                                             <Package className="h-3 w-3 text-blue-600" />
-                                            <span className="font-medium truncate max-w-[100px]">
+                                            <span className="font-medium">
                                               {item.bundle?.items?.[0]?.product?.name || 'Bundle'}
                                             </span>
                                             <span className="text-muted-foreground">×{item.quantity}</span>
@@ -511,9 +511,9 @@ export default function ClientOrderHistory() {
                                         );
                                       }
                                     })}
-                                    {((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) > 3 && (
-                                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                                        +{((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) - 3} more
+                                    {itemsToShow.length >= 3 && ((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) > itemsToShow.length && (
+                                      <span className="text-sm text-muted-foreground bg-muted px-2 py-0 rounded">
+                                        +{((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) - itemsToShow.length} more items
                                       </span>
                                     )}
                                   </>
