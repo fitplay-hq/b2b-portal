@@ -383,7 +383,7 @@ export default function ClientOrderHistory() {
                             <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                {new Date(order.createdAt).toLocaleDateString()}
+                                {new Date(order.createdAt).toLocaleDateString()} , {new Date(order.createdAt).toLocaleTimeString()}
                               </span>
                               <span className="hidden sm:inline">•</span>
                               <span className="flex items-center gap-1">
