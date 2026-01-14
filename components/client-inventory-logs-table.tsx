@@ -328,6 +328,7 @@ export function ClientInventoryLogsTable({
                             <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hidden sm:inline" />
                             <span>
                               {new Date(log.timestamp).toLocaleString('en-US', {
+                                year: 'numeric',
                                 month: 'short',
                                 day: 'numeric',
                                 hour: '2-digit',
