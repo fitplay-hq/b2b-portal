@@ -244,25 +244,30 @@ async function exportOrdersData(
 
     const fullShippingAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Address not provided';
 
-    const mergedItemsMap = new Map<string, any>();
+    // 🔥 MERGE orderItems + bundleOrderItems correctly
+    const mergedItemsMap = new Map<string, {
+      product: any;
+      quantity: number;
+      price: number;
+    }>();
 
-        [...order.orderItems, ...order.bundleOrderItems].forEach((item: any) => {
-            const productId = item.product?.id;
-            if (!productId) return;
+    [...order.orderItems, ...order.bundleOrderItems].forEach((item: any) => {
+      const productId = item.product?.id;
+      if (!productId) return;
 
-            if (!mergedItemsMap.has(productId)) {
-                mergedItemsMap.set(productId, {
-                    product: item.product,
-                    quantity: item.quantity,
-                    price: item.price
-                });
-            } else {
-                const existing = mergedItemsMap.get(productId);
-                existing.quantity += item.quantity;
-            }
+      if (!mergedItemsMap.has(productId)) {
+        mergedItemsMap.set(productId, {
+          product: item.product,
+          quantity: item.quantity,
+          price: item.price
         });
+      } else {
+        const existing = mergedItemsMap.get(productId)!;
+        existing.quantity += item.quantity;
+      }
+    });
 
-        const all_items = Array.from(mergedItemsMap.values());
+    const mergedItems = Array.from(mergedItemsMap.values());
 
     return {
       'Order ID': order.id,
@@ -270,10 +275,17 @@ async function exportOrdersData(
       'Client Email': order.client?.email || '',
       'Status': order.status,
       'Total Amount': order.totalAmount || 0,
-      'Items Count': all_items.length || 0,
-      'Items Details': all_items?.map((item: any) =>
-        `${item.product?.name || 'Unknown'} (Qty: ${item.quantity}, Price: ${item.price})`
-      ).join('; ') || '',
+
+      // ✅ UNIQUE product count (matches UI)
+      'Items Count': mergedItems.reduce((sum, item) => sum + item.quantity, 0),
+
+      // ✅ Each product shown ONCE with summed quantity
+      'Items Details': mergedItems
+        .map(item =>
+          `${item.product.name} (Qty: ${item.quantity}, Price: ${item.price})`
+        )
+        .join('; '),
+
       'Order Date': new Date(order.createdAt).toLocaleDateString(),
       'Consignee Name': order.consigneeName || '',
       'Consignee Phone': order.consigneePhone || '',
@@ -286,6 +298,7 @@ async function exportOrdersData(
       'Delivery Service': order.deliveryService || '',
       'Mode of Delivery': order.modeOfDelivery || '',
     };
+
   });
 
   // Create worksheet
@@ -329,7 +342,7 @@ async function exportOrdersData(
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Orders Report', 8, 10);
-    
+
     // Add export date
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
@@ -338,7 +351,7 @@ async function exportOrdersData(
     doc.setTextColor(0, 0, 0);
 
     const showPrice = client ? client.isShowPrice : true;
-    
+
     const tableColumns = showPrice ? [
       'Order ID',
       'Client Name',
@@ -396,7 +409,7 @@ async function exportOrdersData(
       body: tableRows,
       startY: 18,
       margin: { left: 6, right: 6, top: 8, bottom: 8 },
-      
+
       styles: {
         fontSize: 8,
         cellPadding: 1.5,
@@ -432,7 +445,7 @@ async function exportOrdersData(
           data.cell.styles.fontSize = 7.5;
           data.cell.styles.valign = 'middle';
         }
-        
+
         // Style status column
         if (data.section === 'body' && data.column.index === 2) {
           data.cell.styles.fontStyle = 'bold';
@@ -521,55 +534,55 @@ async function exportInventoryData(
 
 
   const inventoryFilters: any = {};
-const andConditions: any[] = [];
+  const andConditions: any[] = [];
 
-// Date filter
-if (Object.keys(dateFilter).length > 0) {
-  inventoryFilters.createdAt = dateFilter;
-}
+  // Date filter
+  if (Object.keys(dateFilter).length > 0) {
+    inventoryFilters.createdAt = dateFilter;
+  }
 
-// Client / company scope
-if (client) {
-  andConditions.push({
-    OR: [
-      {
-        clients: {
-          some: { clientId: client?.id || ''}
+  // Client / company scope
+  if (client) {
+    andConditions.push({
+      OR: [
+        {
+          clients: {
+            some: { clientId: client?.id || '' }
+          }
         }
-      }
-    ]
-  });
-}
+      ]
+    });
+  }
 
-// Search filter
-if (search && search.trim()) {
-  andConditions.push({
-    OR: [
-      { name: { contains: search.trim(), mode: 'insensitive' } },
-      { sku: { contains: search.trim(), mode: 'insensitive' } },
-      { brand: { contains: search.trim(), mode: 'insensitive' } }
-    ]
-  });
-}
+  // Search filter
+  if (search && search.trim()) {
+    andConditions.push({
+      OR: [
+        { name: { contains: search.trim(), mode: 'insensitive' } },
+        { sku: { contains: search.trim(), mode: 'insensitive' } },
+        { brand: { contains: search.trim(), mode: 'insensitive' } }
+      ]
+    });
+  }
 
-// Attach AND conditions
-if (andConditions.length > 0) {
-  inventoryFilters.AND = andConditions;
-}
+  // Attach AND conditions
+  if (andConditions.length > 0) {
+    inventoryFilters.AND = andConditions;
+  }
 
-// Category filter - filter by category name
-if (category && category.trim()) {
-  inventoryFilters.category = {
-    name: category.trim()
-  };
-}
+  // Category filter - filter by category name
+  if (category && category.trim()) {
+    inventoryFilters.category = {
+      name: category.trim()
+    };
+  }
 
-// SubCategory filter - filter by subcategory name
-if (subCategory && subCategory.trim()) {
-  inventoryFilters.subCategory = {
-    name: subCategory.trim()
-  };
-}
+  // SubCategory filter - filter by subcategory name
+  if (subCategory && subCategory.trim()) {
+    inventoryFilters.subCategory = {
+      name: subCategory.trim()
+    };
+  }
 
   const products = await prisma.product.findMany({
     where: inventoryFilters,
@@ -611,7 +624,7 @@ if (subCategory && subCategory.trim()) {
 
   // Apply sorting based on sortBy parameter
   let sortedProducts = [...filteredProducts];
-  
+
   if (sortBy) {
     switch (sortBy) {
       case "name-asc":
@@ -687,8 +700,8 @@ if (subCategory && subCategory.trim()) {
       'Stock Quantity': stockQuantity,
       ...(client ? {} : { 'Low Stock Threshold': lowThreshold }),
       ...(client && client.isShowPrice ? {
-      'Unit Price': product.price || 0,
-      'Stock Value': stockValue
+        'Unit Price': product.price || 0,
+        'Stock Value': stockValue
       } : {}),
       'Stock Status': computedStockStatus,
       ...(client ? {} : { 'Brand': product.brand || '' }),
@@ -702,34 +715,34 @@ if (subCategory && subCategory.trim()) {
 
   // Add hyperlinks to the Product Image column (Column C)
   const headers = Object.keys(excelData[0]);
-const imageColIndex = headers.indexOf('Product Image');
+  const imageColIndex = headers.indexOf('Product Image');
 
-if (imageColIndex !== -1) {
-  excelData.forEach((_, index) => {
-    const product = sortedProducts[index];
+  if (imageColIndex !== -1) {
+    excelData.forEach((_, index) => {
+      const product = sortedProducts[index];
 
-    let imageUrl = '';
-    if (Array.isArray(product.images)) {
-      imageUrl = product.images[0] || '';
-    } else if (typeof product.images === 'string') {
-      imageUrl = product.images;
-    }
-
-    if (!imageUrl) return;
-
-    const colLetter = colToLetter(imageColIndex);
-    const cellAddress = `${colLetter}${index + 2}`;
-
-    worksheet[cellAddress] = {
-      t: 's',
-      v: 'View Image',
-      l: {
-        Target: imageUrl,
-        Tooltip: 'Click to view product image'
+      let imageUrl = '';
+      if (Array.isArray(product.images)) {
+        imageUrl = product.images[0] || '';
+      } else if (typeof product.images === 'string') {
+        imageUrl = product.images;
       }
-    };
-  });
-}
+
+      if (!imageUrl) return;
+
+      const colLetter = colToLetter(imageColIndex);
+      const cellAddress = `${colLetter}${index + 2}`;
+
+      worksheet[cellAddress] = {
+        t: 's',
+        v: 'View Image',
+        l: {
+          Target: imageUrl,
+          Tooltip: 'Click to view product image'
+        }
+      };
+    });
+  }
 
 
   // Set column widths for better readability
@@ -777,7 +790,7 @@ if (imageColIndex !== -1) {
           <th>Name</th>
           <th>SKU</th>
           <th>Stock</th>
-          ${ client ? (client.isShowPrice ? (console.log("Generating price"), `<th>Price</th>`) : '') : `<th>Price</th>`}
+          ${client ? (client.isShowPrice ? (console.log("Generating price"), `<th>Price</th>`) : '') : `<th>Price</th>`}
         </tr>
       </thead>
       <tbody>
@@ -787,7 +800,7 @@ if (imageColIndex !== -1) {
             <td>${p.name}</td>
             <td>${p.sku}</td>
             <td>${p.availableStock}</td>
-            ${ client ? (client.isShowPrice ? `<td>${p.price}</td>` : '') : `<td>${p.price}</td>`}
+            ${client ? (client.isShowPrice ? `<td>${p.price}</td>` : '') : `<td>${p.price}</td>`}
           </tr>
         `).join('')}
       </tbody>
