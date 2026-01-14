@@ -357,7 +357,6 @@ export default function ClientCheckout() {
                                   <h4 className="font-medium text-sm truncate">{item.product.name}</h4>
                                   <p className="text-xs text-muted-foreground">SKU: {item.product.sku}</p>
                                   {isShowPrice && item.product.price && <p className="text-xs">₹{item.product.price}</p>}
-                                  <p className="text-xs text-blue-700">{item.bundleQuantity} per bundle × {item.bundleCount} bundles = {item.quantity} total</p>
                                 </div>
                                 <div className="text-right shrink-0">
                                   <p className="text-sm font-medium">Qty: {item.bundleQuantity} each</p>
