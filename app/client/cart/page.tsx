@@ -1066,7 +1066,7 @@ export default function ClientCart() {
                                   className="flex justify-between text-sm"
                                 >
                                   <span>{item.product.name}</span>
-                                  <span>Qty: {item.quantity}</span>
+                                  <span>Qty: {item.bundleQuantity} each</span>
                                 </div>
                               ))}
                             </div>
