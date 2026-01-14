@@ -229,9 +229,15 @@ export default function ClientCart() {
       (item) => {
         // If cartItemId is provided (for bundle items), match by cartItemId
         if (cartItemId && item.cartItemId) {
+          // Only remove the specific bundle item with this cartItemId
           return item.cartItemId !== cartItemId;
         }
-        // Otherwise, match by productId (for individual items)
+        // For individual items without cartItemId, match by productId
+        // But don't remove individual items if we're deleting a bundle item
+        if (cartItemId) {
+          return true; // Keep all items that don't have this cartItemId
+        }
+        // Remove individual item by productId (only when no cartItemId provided)
         return item.product.id !== productId;
       }
     );
@@ -426,36 +432,28 @@ export default function ClientCart() {
     );
     
     // First, validate that all items have enough quantity
+    // Check against total already in bundles + what we're trying to add
     for (const item of selectedItems) {
       const bundleQty = bundleQuantities[item.product.id] || 1;
-      const totalBundleItems = bundleQty * inlineBundleCount;
+      const totalNewBundleItems = bundleQty * inlineBundleCount;
       
-      if (item.quantity < totalBundleItems) {
-        toast.error(`Not enough ${item.product.name} in cart. Need ${totalBundleItems}, have ${item.quantity}`);
+      // Calculate total already in bundles for this product
+      const totalInExistingBundles = cartItems
+        .filter(cartItem => cartItem.product.id === item.product.id && cartItem.isBundleItem)
+        .reduce((sum, cartItem) => sum + cartItem.quantity, 0);
+      
+      const totalNeeded = totalInExistingBundles + totalNewBundleItems;
+      
+      if (item.quantity < totalNeeded) {
+        toast.error(`Not enough ${item.product.name}. Need ${totalNeeded} total (${totalInExistingBundles} already in bundles + ${totalNewBundleItems} new), but only have ${item.quantity} in cart`);
         return;
       }
     }
     
     const updatedCart = [...cartItems];
     
-    // Reduce quantities from individual items
-    selectedItems.forEach(item => {
-      const bundleQty = bundleQuantities[item.product.id] || 1;
-      const totalBundleItems = bundleQty * inlineBundleCount;
-      
-      // Find the individual item (not bundle item) in cart and reduce its quantity
-      const cartIndex = updatedCart.findIndex(cartItem => 
-        cartItem.product.id === item.product.id && !cartItem.isBundleItem
-      );
-      if (cartIndex >= 0) {
-        updatedCart[cartIndex].quantity -= totalBundleItems;
-        
-        // If quantity becomes 0, remove the item
-        if (updatedCart[cartIndex].quantity === 0) {
-          updatedCart.splice(cartIndex, 1);
-        }
-      }
-    });
+    // Don't reduce quantities from individual items - keep them as is for visibility
+    // Users want to see total products regardless of bundling
     
     // Add bundle items
     // Generate unique bundle group ID for this bundle
@@ -824,9 +822,9 @@ export default function ClientCart() {
                       {Object.entries(bundleGroups).map(([groupId, items], bundleIndex) => {
                         const bundleCount = items[0]?.bundleCount || 1;
                         return (
-                        <div key={groupId} className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50/30">
+                        <div key={groupId} className="border-2 border-blue-200 rounded-lg p-3 bg-blue-50/30">
                           {/* Bundle Header */}
-                          <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-blue-300">
+                          <div className="flex items-center justify-between mb-2 pb-2 border-b-2 border-blue-300">
                             <div className="flex items-center gap-2">
                               <Package className="h-5 w-5 text-blue-600" />
                               <h4 className="font-semibold text-blue-900">Bundle {bundleIndex + 1}</h4>
@@ -837,11 +835,11 @@ export default function ClientCart() {
                           </div>
 
                           {/* Bundle Items */}
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             {items.map((item) => (
                               <div
                                 key={item.cartItemId || item.product.id}
-                                className="flex gap-4 p-3 border border-blue-200 bg-white rounded-lg"
+                                className="flex gap-3 p-2 border border-blue-200 bg-white rounded-lg"
                               >
                                 <div className="w-16 h-16 flex-shrink-0">
                                   <ImageWithFallback
@@ -868,9 +866,6 @@ export default function ClientCart() {
                                           Price: ₹{item.product.price}
                                         </p>
                                       )}
-                                      <p className="text-xs font-medium text-blue-700">
-                                        {item.bundleQuantity} per bundle × {item.bundleCount} bundles = {item.quantity} total
-                                      </p>
                                     </div>
                                     <Button
                                       variant="ghost"
@@ -882,46 +877,9 @@ export default function ClientCart() {
                                     </Button>
                                   </div>
 
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.cartItemId)}
-                                        disabled={item.quantity <= 1}
-                                      >
-                                        <Minus className="h-3 w-3" />
-                                      </Button>
-                                      <Input
-                                        type="number"
-                                        value={cartInputValues[item.cartItemId || item.product.id] !== undefined ? cartInputValues[item.cartItemId || item.product.id] : item.quantity}
-                                        onChange={(e) => handleCartQuantityChange(item, e.target.value)}
-                                        onBlur={() => validateCartQuantity(item)}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
-                                            validateCartQuantity(item);
-                                            e.currentTarget.blur();
-                                          }
-                                        }}
-                                        className={`w-20 text-center h-8 ${!isCartQuantityValid(item) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                                      />
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.cartItemId)}
-                                        disabled={item.quantity >= item.product.availableStock}
-                                      >
-                                        <Plus className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-
+                                  <div className="flex items-center justify-end">
                                     <div className="text-right">
                                       <p className="font-medium text-sm">Qty: {item.bundleQuantity} each</p>
-                                      {item.product.price && (
-                                        <p className="font-medium text-sm">
-                                          Total: ₹{(item.product.price * item.quantity).toFixed(2)}
-                                        </p>
-                                      )}
                                       <p className="text-xs text-muted-foreground">
                                         Stock: {item.product.availableStock}
                                       </p>
@@ -1107,12 +1065,7 @@ export default function ClientCart() {
                                   key={`${groupId}-${item.product.id}`}
                                   className="flex justify-between text-sm"
                                 >
-                                  <div>
-                                    <span>{item.product.name}</span>
-                                    <div className="text-xs text-muted-foreground">
-                                      {item.bundleQuantity} per bundle × {bundleCount} {bundleCount === 1 ? 'bundle' : 'bundles'} = {item.quantity} total
-                                    </div>
-                                  </div>
+                                  <span>{item.product.name}</span>
                                   <span>Qty: {item.quantity}</span>
                                 </div>
                               ))}
@@ -1126,21 +1079,22 @@ export default function ClientCart() {
                     <div className="flex justify-between font-medium">
                       <span>Total Items</span>
                       <span>
-                        {cartItems.reduce(
-                          (sum, item) => sum + item.quantity,
-                          0
-                        )}
+                        {cartItems
+                          .filter(item => !item.isBundleItem)
+                          .reduce((sum, item) => sum + item.quantity, 0)}
                       </span>
                     </div>
                     {(() => {
-                      const totalAmount = cartItems.reduce(
-                        (sum, item) =>
-                          sum +
-                          (item.product.price
-                            ? item.product.price * item.quantity
-                            : 0),
-                        0
-                      );
+                      const totalAmount = cartItems
+                        .filter(item => !item.isBundleItem)
+                        .reduce(
+                          (sum, item) =>
+                            sum +
+                            (item.product.price
+                              ? item.product.price * item.quantity
+                              : 0),
+                          0
+                        );
                       return totalAmount > 0 ? (
                         <div className="flex justify-between font-medium">
                           <span>Total Amount</span>
