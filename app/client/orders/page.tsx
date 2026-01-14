@@ -379,57 +379,62 @@ export default function ClientOrderHistory() {
                                   return `${totalQuantity} Total Items`;
                                 })()}
                               </div>
-                              {/* Compact product list - Show unique products */}
+                              {/* Compact product list - Show aggregated products with total quantities */}
                               <div className="flex flex-col gap-1 justify-end max-w-[350px]">
                                 {(() => {
-                                  // Collect unique items/bundles to show variety
-                                  const itemsToShow: Array<{ type: 'item' | 'bundle', data: any, key: string }> = [];
-                                  const seenProductIds = new Set<string>();
+                                  // Aggregate products by productId from both orderItems and bundleOrderItems
+                                  const productQuantities = new Map<string, { name: string, totalQty: number }>();
                                   
-                                  // Add regular items
+                                  // Add quantities from regular items
                                   order.orderItems?.forEach((item) => {
-                                    if (itemsToShow.length < 3 && item.product?.id && !seenProductIds.has(item.product.id)) {
-                                      seenProductIds.add(item.product.id);
-                                      itemsToShow.push({ type: 'item', data: item, key: `item-${item.product.id}` });
+                                    if (item.product?.id) {
+                                      const existing = productQuantities.get(item.product.id);
+                                      if (existing) {
+                                        existing.totalQty += item.quantity;
+                                      } else {
+                                        productQuantities.set(item.product.id, {
+                                          name: item.product.name,
+                                          totalQty: item.quantity
+                                        });
+                                      }
                                     }
                                   });
                                   
-                                  // Add bundles (different bundles)
-                                  const seenBundleIds = new Set<string>();
+                                  // Add quantities from bundle items
                                   order.bundleOrderItems?.forEach((item) => {
-                                    if (itemsToShow.length < 3 && item.bundle?.id && !seenBundleIds.has(item.bundle.id)) {
-                                      seenBundleIds.add(item.bundle.id);
-                                      itemsToShow.push({ type: 'bundle', data: item, key: `bundle-${item.bundle.id}` });
+                                    if (item.product?.id) {
+                                      const existing = productQuantities.get(item.product.id);
+                                      if (existing) {
+                                        existing.totalQty += item.quantity;
+                                      } else {
+                                        productQuantities.set(item.product.id, {
+                                          name: item.product.name,
+                                          totalQty: item.quantity
+                                        });
+                                      }
                                     }
                                   });
+                                  
+                                  // Convert to array and show first 3
+                                  const productsArray = Array.from(productQuantities.entries()).map(([id, data]) => ({
+                                    id,
+                                    name: data.name,
+                                    totalQty: data.totalQty
+                                  }));
+                                  
+                                  const itemsToShow = productsArray.slice(0, 3);
                                   
                                   return (
                                     <>
-                                      {itemsToShow.map((entry) => {
-                                        if (entry.type === 'item') {
-                                          const item = entry.data;
-                                          return (
-                                            <div key={entry.key} className="flex items-center gap-1 text-sm bg-muted px-2 py-0 rounded whitespace-nowrap">
-                                              <span className="font-medium">{item.product?.name}</span>
-                                              <span className="text-muted-foreground">×{item.quantity}</span>
-                                            </div>
-                                          );
-                                        } else {
-                                          const item = entry.data;
-                                          return (
-                                            <div key={entry.key} className="flex items-center gap-1 text-sm bg-blue-50 border border-blue-200 px-2 py-0 rounded whitespace-nowrap">
-                                              <Package className="h-3 w-3 text-blue-600" />
-                                              <span className="font-medium">
-                                                {item.bundle?.items?.[0]?.product?.name || 'Bundle'}
-                                              </span>
-                                              <span className="text-muted-foreground">×{item.quantity}</span>
-                                            </div>
-                                          );
-                                        }
-                                      })}
-                                      {itemsToShow.length >= 3 && ((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) > itemsToShow.length && (
+                                      {itemsToShow.map((product) => (
+                                        <div key={product.id} className="flex items-center gap-1 text-sm bg-muted px-2 py-0 rounded whitespace-nowrap">
+                                          <span className="font-medium">{product.name}</span>
+                                          <span className="text-muted-foreground">Qty: {product.totalQty}</span>
+                                        </div>
+                                      ))}
+                                      {productsArray.length > 3 && (
                                         <span className="text-sm text-muted-foreground">
-                                          +{((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) - itemsToShow.length} more items
+                                          +{productsArray.length - 3} more items
                                         </span>
                                       )}
                                     </>
@@ -466,54 +471,59 @@ export default function ClientOrderHistory() {
                             {/* Mobile product badges */}
                             <div className="flex flex-col gap-1">
                               {(() => {
-                                // Collect unique items/bundles to show variety
-                                const itemsToShow: Array<{ type: 'item' | 'bundle', data: any, key: string }> = [];
-                                const seenProductIds = new Set<string>();
+                                // Aggregate products by productId from both orderItems and bundleOrderItems
+                                const productQuantities = new Map<string, { name: string, totalQty: number }>();
                                 
-                                // Add regular items
+                                // Add quantities from regular items
                                 order.orderItems?.forEach((item) => {
-                                  if (itemsToShow.length < 3 && item.product?.id && !seenProductIds.has(item.product.id)) {
-                                    seenProductIds.add(item.product.id);
-                                    itemsToShow.push({ type: 'item', data: item, key: `item-${item.product.id}` });
+                                  if (item.product?.id) {
+                                    const existing = productQuantities.get(item.product.id);
+                                    if (existing) {
+                                      existing.totalQty += item.quantity;
+                                    } else {
+                                      productQuantities.set(item.product.id, {
+                                        name: item.product.name,
+                                        totalQty: item.quantity
+                                      });
+                                    }
                                   }
                                 });
                                 
-                                // Add bundles (different bundles)
-                                const seenBundleIds = new Set<string>();
+                                // Add quantities from bundle items
                                 order.bundleOrderItems?.forEach((item) => {
-                                  if (itemsToShow.length < 3 && item.bundle?.id && !seenBundleIds.has(item.bundle.id)) {
-                                    seenBundleIds.add(item.bundle.id);
-                                    itemsToShow.push({ type: 'bundle', data: item, key: `bundle-${item.bundle.id}` });
+                                  if (item.product?.id) {
+                                    const existing = productQuantities.get(item.product.id);
+                                    if (existing) {
+                                      existing.totalQty += item.quantity;
+                                    } else {
+                                      productQuantities.set(item.product.id, {
+                                        name: item.product.name,
+                                        totalQty: item.quantity
+                                      });
+                                    }
                                   }
                                 });
+                                
+                                // Convert to array and show first 3
+                                const productsArray = Array.from(productQuantities.entries()).map(([id, data]) => ({
+                                  id,
+                                  name: data.name,
+                                  totalQty: data.totalQty
+                                }));
+                                
+                                const itemsToShow = productsArray.slice(0, 3);
                                 
                                 return (
                                   <>
-                                    {itemsToShow.map((entry) => {
-                                      if (entry.type === 'item') {
-                                        const item = entry.data;
-                                        return (
-                                          <div key={entry.key} className="flex items-center gap-1 text-sm bg-muted px-2 py-0 rounded whitespace-nowrap">
-                                            <span className="font-medium">{item.product?.name}</span>
-                                            <span className="text-muted-foreground">×{item.quantity}</span>
-                                          </div>
-                                        );
-                                      } else {
-                                        const item = entry.data;
-                                        return (
-                                          <div key={entry.key} className="flex items-center gap-1 text-sm bg-blue-50 border border-blue-200 px-2 py-0 rounded whitespace-nowrap">
-                                            <Package className="h-3 w-3 text-blue-600" />
-                                            <span className="font-medium">
-                                              {item.bundle?.items?.[0]?.product?.name || 'Bundle'}
-                                            </span>
-                                            <span className="text-muted-foreground">×{item.quantity}</span>
-                                          </div>
-                                        );
-                                      }
-                                    })}
-                                    {itemsToShow.length >= 3 && ((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) > itemsToShow.length && (
+                                    {itemsToShow.map((product) => (
+                                      <div key={product.id} className="flex items-center gap-1 text-sm bg-muted px-2 py-0 rounded whitespace-nowrap">
+                                        <span className="font-medium">{product.name}</span>
+                                        <span className="text-muted-foreground">Qty: {product.totalQty}</span>
+                                      </div>
+                                    ))}
+                                    {productsArray.length > 3 && (
                                       <span className="text-sm text-muted-foreground bg-muted px-2 py-0 rounded">
-                                        +{((order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0)) - itemsToShow.length} more items
+                                        +{productsArray.length - 3} more items
                                       </span>
                                     )}
                                   </>
