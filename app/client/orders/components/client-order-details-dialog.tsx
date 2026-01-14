@@ -340,7 +340,7 @@ export function ClientOrderDetailsDialog({
                         {item.description}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(item.timestamp).toLocaleDateString()}
+                        {new Date(item.timestamp).toLocaleDateString()} {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>

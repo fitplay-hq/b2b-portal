@@ -673,6 +673,11 @@ export default function ClientOrderHistory() {
                                           <p className="text-xs sm:text-sm text-muted-foreground">
                                             SKU: {bundleItem.product?.sku || 'N/A'}
                                           </p>
+                                          {isShowPrice && (bundleItem.price || bundleItem.product?.price) && (
+                                            <p className="text-xs sm:text-sm">
+                                              Price: ₹{(bundleItem.price || bundleItem.product?.price || 0).toFixed(2)}
+                                            </p>
+                                          )}
                                           <p className="text-xs sm:text-sm text-blue-700 font-medium">
                                             {perBundleQty} each × {bundleCount} = {bundleItem.quantity} total
                                           </p>
@@ -715,7 +720,7 @@ export default function ClientOrderHistory() {
                           <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:gap-y-6 pt-3 sm:pt-4 border-t md:grid-cols-2">
                             <div>
                               <h4 className="text-sm sm:text-base font-medium mb-2">
-                                Delivery Address
+                                Delivery Info
                               </h4>
                               <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
                                 {order.consigneeName && (
