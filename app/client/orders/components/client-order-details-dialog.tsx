@@ -215,29 +215,62 @@ export function ClientOrderDetailsDialog({
               Order Items
             </h4>
             <div className="space-y-3">
-              {order.orderItems && order.orderItems.map((item, index) => (
-                <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
-                  <div className="h-12 w-12 rounded overflow-hidden">
-                    <ImageWithFallback
-                      src={item.product.images[0]}
-                      alt={item.product.name}
-                      className="h-full w-full object-cover"
-                    />
+              {(() => {
+                // Aggregate products by productId from both orderItems and bundleOrderItems
+                const productMap = new Map<string, { product: any, totalQty: number, price?: number }>();
+                
+                // Add quantities from regular items
+                order.orderItems?.forEach((item) => {
+                  const existing = productMap.get(item.product.id);
+                  if (existing) {
+                    existing.totalQty += item.quantity;
+                  } else {
+                    productMap.set(item.product.id, {
+                      product: item.product,
+                      totalQty: item.quantity,
+                      price: item.price
+                    });
+                  }
+                });
+                
+                // Add quantities from bundle items
+                order.bundleOrderItems?.forEach((item) => {
+                  const existing = productMap.get(item.product.id);
+                  if (existing) {
+                    existing.totalQty += item.quantity;
+                  } else {
+                    productMap.set(item.product.id, {
+                      product: item.product,
+                      totalQty: item.quantity,
+                      price: item.price || item.product?.price
+                    });
+                  }
+                });
+                
+                return Array.from(productMap.values()).map((data, index) => (
+                  <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
+                    <div className="h-12 w-12 rounded overflow-hidden">
+                      <ImageWithFallback
+                        src={data.product.images[0]}
+                        alt={data.product.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{data.product.name}</p>
+                      <p className="text-sm text-muted-foreground">SKU: {data.product.sku}</p>
+                      {isShowPrice && data.price && data.price > 0 && (
+                        <p className="text-sm">
+                          ₹{data.price.toFixed(2)} each
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-medium">Qty: {data.totalQty}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{item.product.name}</p>
-                    <p className="text-sm text-muted-foreground">SKU: {item.product.sku}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">Qty: {item.quantity}</p>
-                    {isShowPrice && item.price > 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        ₹{item.price.toFixed(2)} each
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ));
+              })()}
               {order.bundleOrderItems && order.bundleOrderItems.length > 0 && (() => {
                 // Group bundleOrderItems by bundle for client dialog
                 const bundleGroups = order.bundleOrderItems.reduce((groups: any, bundleItem) => {
@@ -280,16 +313,15 @@ export function ClientOrderDetailsDialog({
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{bundleItem.product?.name || 'Bundle Product'}</p>
                           <p className="text-sm text-muted-foreground">SKU: {bundleItem.product?.sku || 'N/A'}</p>
-                          <p className="text-xs text-blue-700 font-medium">
-                            {perBundleQty} per bundle × {bundleCount} bundles = {bundleItem.quantity} total
-                          </p>
                           <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">Qty: {perBundleQty}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {isShowPrice && `₹${bundleItem.price?.toFixed(2) || '0.00'} each`}
-                          </p>
+                          <p className="font-medium">Qty: {perBundleQty} each</p>
+                          {isShowPrice && bundleItem.price && bundleItem.price > 0 && (
+                            <p className="text-sm text-muted-foreground">
+                              ₹{bundleItem.price.toFixed(2)} each
+                            </p>
+                          )}
                         </div>
                       </div>
                     );

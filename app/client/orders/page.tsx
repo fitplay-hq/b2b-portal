@@ -643,34 +643,67 @@ export default function ClientOrderHistory() {
                           <div>
                             <h4 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Order Items</h4>
                             <div className="space-y-2 sm:space-y-3">
-                              {order.orderItems && order.orderItems.map((item) => (
-                                <div
-                                  key={item.product.id}
-                                  className="flex gap-2 sm:gap-3 rounded-lg bg-muted/40 p-2 sm:p-3"
-                                >
-                                  <ImageWithFallback
-                                    src={item.product.images[0]}
-                                    alt={item.product.name}
-                                    className="h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded object-cover"
-                                  />
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-medium text-sm sm:text-base line-clamp-2">
-                                      {item.product.name}
-                                    </p>
-                                    <p className="text-xs sm:text-sm text-muted-foreground">
-                                      SKU: {item.product.sku}
-                                    </p>
-                                    <p className="text-xs sm:text-sm text-muted-foreground">
-                                      Quantity: {item.quantity}
-                                    </p>
-                                    {isShowPrice && item.price > 0 && (
-                                      <p className="text-xs sm:text-sm">
-                                        Price: ₹{item.price.toFixed(2)}
+                              {(() => {
+                                // Aggregate products by productId from both orderItems and bundleOrderItems
+                                const productMap = new Map<string, { product: any, totalQty: number, price?: number }>();
+                                
+                                // Add quantities from regular items
+                                order.orderItems?.forEach((item) => {
+                                  const existing = productMap.get(item.product.id);
+                                  if (existing) {
+                                    existing.totalQty += item.quantity;
+                                  } else {
+                                    productMap.set(item.product.id, {
+                                      product: item.product,
+                                      totalQty: item.quantity,
+                                      price: item.price
+                                    });
+                                  }
+                                });
+                                
+                                // Add quantities from bundle items
+                                order.bundleOrderItems?.forEach((item) => {
+                                  const existing = productMap.get(item.product.id);
+                                  if (existing) {
+                                    existing.totalQty += item.quantity;
+                                  } else {
+                                    productMap.set(item.product.id, {
+                                      product: item.product,
+                                      totalQty: item.quantity,
+                                      price: item.price || item.product?.price
+                                    });
+                                  }
+                                });
+                                
+                                return Array.from(productMap.values()).map((data) => (
+                                  <div
+                                    key={data.product.id}
+                                    className="flex gap-2 sm:gap-3 rounded-lg bg-muted/40 p-2 sm:p-3"
+                                  >
+                                    <ImageWithFallback
+                                      src={data.product.images[0]}
+                                      alt={data.product.name}
+                                      className="h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded object-cover"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-medium text-sm sm:text-base line-clamp-2">
+                                        {data.product.name}
                                       </p>
-                                    )}
+                                      <p className="text-xs sm:text-sm text-muted-foreground">
+                                        SKU: {data.product.sku}
+                                      </p>
+                                      {isShowPrice && data.price && data.price > 0 && (
+                                        <p className="text-xs sm:text-sm">
+                                          Price: ₹{data.price.toFixed(2)}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <p className="text-sm sm:text-base font-medium">Qty: {data.totalQty}</p>
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                ));
+                              })()}
                               {order.bundleOrderItems && order.bundleOrderItems.length > 0 && (() => {
                                 // Group bundleOrderItems by bundle
                                 const bundleGroups = order.bundleOrderItems.reduce((groups: any, bundleItem) => {
@@ -722,13 +755,10 @@ export default function ClientOrderHistory() {
                                               Price: ₹{(bundleItem.price || bundleItem.product?.price || 0).toFixed(2)}
                                             </p>
                                           )}
-                                          <p className="text-xs sm:text-sm text-blue-700 font-medium">
-                                            {perBundleQty} each × {bundleCount} = {bundleItem.quantity} total
-                                          </p>
                                           <p className="text-xs sm:text-sm text-blue-600 font-medium">Bundle Item</p>
                                         </div>
                                         <div className="text-right">
-                                          <p className="text-xs sm:text-sm font-medium">Qty: {perBundleQty}</p>
+                                          <p className="text-xs sm:text-sm font-medium">Qty: {perBundleQty} each</p>
                                         </div>
                                       </div>
                                     );
