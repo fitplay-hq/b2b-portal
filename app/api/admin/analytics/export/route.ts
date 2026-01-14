@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
       // Use productDateFrom/productDateTo if available, otherwise fall back to dateFrom/dateTo
       const inventoryDateFrom = productDateFrom || dateFrom;
       const inventoryDateTo = productDateTo || dateTo;
-      return await exportInventoryData(companyId, format, search, client, category, subCategory, inventoryDateFrom, inventoryDateTo, stockStatus, sortBy);
+      return await exportInventoryData(format, search, client, category, subCategory, inventoryDateFrom, inventoryDateTo, stockStatus, sortBy);
     } else {
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
     }
@@ -384,7 +384,6 @@ async function exportOrdersData(
  * Export inventory data as CSV
  */
 async function exportInventoryData(
-  companyId: string | null,
   format: string = 'xlsx',
   search: string | null = null,
   client: any = null,
@@ -395,7 +394,7 @@ async function exportInventoryData(
   stockStatus: string | null = null,
   sortBy: string | null = null
 ) {
-  console.log('📋 Starting inventory export with filters:', { companyId, search, category, sortBy });
+  // console.log('📋 Starting inventory export with filters:', { search, category, sortBy });
 
   const dateFilter: any = {};
   if (dateFrom) dateFilter.gte = new Date(dateFrom);
@@ -411,10 +410,9 @@ if (Object.keys(dateFilter).length > 0) {
 }
 
 // Client / company scope
-if (companyId) {
+if (client) {
   andConditions.push({
     OR: [
-      { companies: { some: { id: companyId } } },
       {
         clients: {
           some: { clientId: client?.id || ''}
