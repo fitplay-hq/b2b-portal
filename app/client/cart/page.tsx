@@ -1058,23 +1058,70 @@ export default function ClientCart() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  {cartItems.map((item) => (
-                    <div
-                      key={item.product.id}
-                      className="flex justify-between text-sm"
-                    >
-                      <div>
-                        <span>{item.product.name}</span>
-                        {item.product.price && (
-                          <div className="text-xs text-muted-foreground">
-                            ₹{item.product.price} x {item.quantity} = ₹
-                            {(item.product.price * item.quantity).toFixed(2)}
+                  {(() => {
+                    // Separate individual items and bundle items
+                    const individualItems = cartItems.filter(item => !item.isBundleItem);
+                    const bundleItems = cartItems.filter(item => item.isBundleItem);
+                    
+                    // Group bundle items by bundleGroupId
+                    const bundleGroups = bundleItems.reduce((groups: { [key: string]: typeof cartItems }, item) => {
+                      const groupId = item.bundleGroupId || 'default';
+                      if (!groups[groupId]) {
+                        groups[groupId] = [];
+                      }
+                      groups[groupId].push(item);
+                      return groups;
+                    }, {});
+
+                    return (
+                      <>
+                        {/* Individual Items */}
+                        {individualItems.map((item) => (
+                          <div
+                            key={item.product.id}
+                            className="flex justify-between text-sm"
+                          >
+                            <div>
+                              <span>{item.product.name}</span>
+                              {item.product.price && (
+                                <div className="text-xs text-muted-foreground">
+                                  ₹{item.product.price} x {item.quantity} = ₹
+                                  {(item.product.price * item.quantity).toFixed(2)}
+                                </div>
+                              )}
+                            </div>
+                            <span>Qty: {item.quantity}</span>
                           </div>
-                        )}
-                      </div>
-                      <span>Qty: {item.quantity}</span>
-                    </div>
-                  ))}
+                        ))}
+                        
+                        {/* Bundle Groups */}
+                        {Object.entries(bundleGroups).map(([groupId, items], bundleIndex) => {
+                          const bundleCount = items[0]?.bundleCount || 1;
+                          return (
+                            <div key={groupId} className="border-l-2 border-blue-500 pl-3 space-y-1">
+                              <div className="text-xs font-medium text-blue-600">
+                                Bundle {bundleIndex + 1} ({bundleCount} {bundleCount === 1 ? 'bundle' : 'bundles'})
+                              </div>
+                              {items.map((item) => (
+                                <div
+                                  key={`${groupId}-${item.product.id}`}
+                                  className="flex justify-between text-sm"
+                                >
+                                  <div>
+                                    <span>{item.product.name}</span>
+                                    <div className="text-xs text-muted-foreground">
+                                      {item.bundleQuantity} per bundle × {bundleCount} {bundleCount === 1 ? 'bundle' : 'bundles'} = {item.quantity} total
+                                    </div>
+                                  </div>
+                                  <span>Qty: {item.quantity}</span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
                   <div className="border-t pt-2">
                     <div className="flex justify-between font-medium">
                       <span>Total Items</span>

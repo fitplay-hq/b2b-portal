@@ -328,7 +328,7 @@ export default function ClientOrderHistory() {
                     onOpenChange={() => toggleOrderExpansion(order.id)}
                   >
                     <CollapsibleTrigger asChild>
-                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors p-3 sm:p-6">
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors p-2 sm:p-4">
                         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2 sm:gap-4">
                           <div className="space-y-2 flex-1 min-w-0">
                             <div className="flex items-center gap-2 sm:gap-3">
@@ -525,7 +525,7 @@ export default function ClientOrderHistory() {
                     </CollapsibleTrigger>
 
                     <CollapsibleContent>
-                      <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6 pt-0">
+                      <CardContent className="px-2 pb-2 sm:px-4 sm:pb-4 pt-0">
                         <div className="space-y-3 sm:space-y-4">
                           {/* Order Timeline */}
                           <div>
