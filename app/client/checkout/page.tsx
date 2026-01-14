@@ -477,7 +477,13 @@ export default function ClientCheckout() {
                     onChange={(e) => setRequiredByDate(e.target.value)}
                     placeholder="Select required delivery date"
                     type="date"
-                    min={new Date().toISOString().split('T')[0]}
+                    min={(() => {
+                      const today = new Date();
+                      const year = today.getFullYear();
+                      const month = String(today.getMonth() + 1).padStart(2, '0');
+                      const day = String(today.getDate()).padStart(2, '0');
+                      return `${year}-${month}-${day}`;
+                    })()}
                     required
                   />
                 </div>
