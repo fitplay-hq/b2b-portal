@@ -389,18 +389,11 @@ export default function ClientOrderHistory() {
                               <span className="flex items-center gap-1">
                                 <Package className="h-3 w-3" />
                                 {(() => {
-                                  const regularItems = order.orderItems?.length || 0;
-                                  // Count unique bundles, not bundleOrderItems
-                                  const uniqueBundles = new Set(order.bundleOrderItems?.map(item => item.bundleId) || []);
-                                  const bundleItems = uniqueBundles.size;
+                                  // Calculate total items from both orderItems and bundleOrderItems
+                                  const totalQty = (order.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
+                                    (order.bundleOrderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0);
                                   
-                                  if (regularItems > 0 && bundleItems > 0) {
-                                    return `${regularItems} item${regularItems !== 1 ? 's' : ''} + ${bundleItems} bundle${bundleItems !== 1 ? 's' : ''}`;
-                                  } else if (bundleItems > 0) {
-                                    return `${bundleItems} bundle${bundleItems !== 1 ? 's' : ''}`;
-                                  } else {
-                                    return `${regularItems} item${regularItems !== 1 ? 's' : ''}`;
-                                  }
+                                  return `${totalQty} item${totalQty !== 1 ? 's' : ''}`;
                                 })()
                               }
                               </span>
