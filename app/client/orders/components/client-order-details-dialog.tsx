@@ -144,9 +144,17 @@ export function ClientOrderDetailsDialog({
       timestamp: order.updatedAt,
       description: "Your order is complete"
     },
+    { 
+      status: "CANCELLED", 
+      label: "Order Cancelled", 
+      timestamp: order.updatedAt,
+      description: "Your order has been cancelled"
+    },
   ];
 
   const currentStatusIndex = orderTimeline.findIndex(item => item.status === order.status);
+  // If status not found in timeline (shouldn't happen), show at least the first item
+  const timelineItemsToShow = currentStatusIndex >= 0 ? orderTimeline.slice(0, currentStatusIndex + 1) : [orderTimeline[0]];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -351,7 +359,7 @@ export function ClientOrderDetailsDialog({
               Order Timeline
             </h4>
             <div className="space-y-3">
-              {orderTimeline.slice(0, currentStatusIndex + 1).map((item, index) => {
+              {timelineItemsToShow.map((item, index) => {
                 const isCompleted = index < currentStatusIndex + 1;
                 const isCurrent = index === currentStatusIndex;
                 const { Icon: TimelineIcon } = getStatusVisuals(item.status);

@@ -584,10 +584,13 @@ export default function ClientOrderHistory() {
                                   { status: "AT_DESTINATION", label: "At Destination", description: "Your order has reached destination", timestamp: order.updatedAt },
                                   { status: "DELIVERED", label: "Delivered", description: "Your order has been delivered", timestamp: order.updatedAt },
                                   { status: "COMPLETED", label: "Completed", description: "Your order is complete", timestamp: order.updatedAt },
+                                  { status: "CANCELLED", label: "Order Cancelled", description: "Your order has been cancelled", timestamp: order.updatedAt },
                                 ];
                                 const currentStatusIndex = orderTimeline.findIndex(item => item.status === order.status);
+                                // If status not found in timeline, show at least the first item
+                                const timelineItemsToShow = currentStatusIndex >= 0 ? orderTimeline.slice(0, currentStatusIndex + 1) : [orderTimeline[0]];
                                 
-                                return orderTimeline.slice(0, currentStatusIndex + 1).map((timelineItem, index) => {
+                                return timelineItemsToShow.map((timelineItem, index) => {
                                   const isCurrent = index === currentStatusIndex;
                                   const StatusIcon = getStatusIcon(timelineItem.status);
 
