@@ -282,7 +282,7 @@ export default function UsersPage() {
                         <span className="hidden sm:inline">•</span>
                         <span className="text-xs">{u.role?.name || '—'}</span>
                         <span className="hidden sm:inline">•</span>
-                        <span className="text-xs">Joined {new Date(u.createdAt).toLocaleDateString()}</span>
+                        <span className="text-xs">Joined {new Date(u.createdAt).toLocaleDateString('en-GB')}</span>
                       </div>
                     </div>
                   </div>

@@ -135,7 +135,7 @@ export default function ClientInventoryLogsPage() {
       activeFilters.push({
         key: 'dateFrom',
         label: 'From Date',
-        value: new Date(advancedFilters.dateFrom).toLocaleDateString(),
+        value: new Date(advancedFilters.dateFrom).toLocaleDateString('en-GB'),
         icon: Calendar
       });
     }
@@ -144,7 +144,7 @@ export default function ClientInventoryLogsPage() {
       activeFilters.push({
         key: 'dateTo',
         label: 'To Date',
-        value: new Date(advancedFilters.dateTo).toLocaleDateString(),
+        value: new Date(advancedFilters.dateTo).toLocaleDateString('en-GB'),
         icon: Calendar
       });
     }

@@ -383,7 +383,7 @@ export default function ClientOrderHistory() {
                             <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                {new Date(order.createdAt).toLocaleDateString()} , {new Date(order.createdAt).toLocaleTimeString()}
+                                {new Date(order.createdAt).toLocaleDateString('en-GB')} , {new Date(order.createdAt).toLocaleTimeString()}
                               </span>
                               <span className="hidden sm:inline">•</span>
                               <span className="flex items-center gap-1">
@@ -686,13 +686,13 @@ export default function ClientOrderHistory() {
                               <p>Status: {formatStatus(order.status)}</p>
                               <p>
                                 Date:{" "}
-                                {new Date(order.createdAt).toLocaleDateString()}
+                                {new Date(order.createdAt).toLocaleDateString('en-GB')}
                               </p>
                               <p>
                                 Required By Date:{" "}
                                 {new Date(
                                   order.requiredByDate
-                                ).toLocaleDateString()}
+                                ).toLocaleDateString('en-GB')}
                               </p>
                             </div>
                           </div>
