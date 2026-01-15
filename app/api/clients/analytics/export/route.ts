@@ -162,7 +162,7 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, client, status, pe
                 )
                 .join('; '),
 
-            'Order Date': new Date(order.createdAt).toLocaleDateString(),
+            'Order Date': new Date(order.createdAt).toLocaleDateString('en-GB'),
             'Consignee Name': order.consigneeName || '',
             'Consignee Phone': order.consigneePhone || '',
             'Consignee Email': order.consigneeEmail || '',
@@ -300,8 +300,8 @@ async function exportInventoryData({ session, client, companyID, format = 'xlsx'
                 'Stock Value': (p.price || 0) * stock
             } : {}),
             'Brand': p.brand || '',
-            'Created Date': new Date(p.createdAt).toLocaleDateString(),
-            'Last Updated': new Date(p.updatedAt).toLocaleDateString()
+            'Created Date': new Date(p.createdAt).toLocaleDateString('en-GB'),
+            'Last Updated': new Date(p.updatedAt).toLocaleDateString('en-GB')
         };
     });
 

@@ -66,7 +66,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {order.client?.company?.name || "Unknown Company"} •{" "}
-                  {new Date(order.createdAt).toLocaleDateString()}
+                  {new Date(order.createdAt).toLocaleDateString('en-GB')}
                 </p>
               </div>
             </div>

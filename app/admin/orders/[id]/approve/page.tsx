@@ -81,7 +81,7 @@ const ApproveOrderPage = () => {
               <div>
                 <CardTitle>Approve Order #{order.id}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(order.createdAt).toLocaleDateString()}
+                  {new Date(order.createdAt).toLocaleDateString('en-GB')}
                 </p>
               </div>
               <Badge>{formatStatus(order.status)}</Badge>

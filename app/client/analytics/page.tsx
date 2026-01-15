@@ -89,7 +89,7 @@ const exportToCSV = (data: any[], filename: string, type: 'orders' | 'inventory'
       order.id,
       order.status,
       order.totalAmount?.toString() || '0',
-      new Date(order.createdAt).toLocaleDateString(),
+      new Date(order.createdAt).toLocaleDateString('en-GB'),
       order.itemCount?.toString() || '0'
     ]);
   } else {

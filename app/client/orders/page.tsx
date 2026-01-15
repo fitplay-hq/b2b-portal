@@ -383,7 +383,7 @@ export default function ClientOrderHistory() {
                             <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                {new Date(order.createdAt).toLocaleDateString()} , {new Date(order.createdAt).toLocaleTimeString()}
+                                {new Date(order.createdAt).toLocaleDateString('en-GB')} , {new Date(order.createdAt).toLocaleTimeString()}
                               </span>
                               <span className="hidden sm:inline">•</span>
                               <span className="flex items-center gap-1">
@@ -651,6 +651,7 @@ export default function ClientOrderHistory() {
                                   const isLast = index === timelineEvents.length - 1;
 
                                   return (
+<<<<<<< Updated upstream
                                     <div key={index} className="relative">
                                       <div className="flex items-start gap-2 sm:gap-3">
                                         <div className={`h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 rounded-full flex items-center justify-center ${timelineItem.color}`}>
@@ -667,6 +668,24 @@ export default function ClientOrderHistory() {
                                             {new Date(timelineItem.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/')}, {new Date(timelineItem.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                                           </p>
                                         </div>
+=======
+                                    <div key={timelineItem.status} className="flex items-start gap-2 sm:gap-3">
+                                      <div className={`h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 rounded-full flex items-center justify-center mt-1 ${
+                                        isCurrent ? 'bg-primary text-primary-foreground' : 'bg-green-100 text-green-600'
+                                      }`}>
+                                        <StatusIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className={`font-medium text-xs sm:text-sm ${isCurrent ? 'text-primary' : ''}`}>
+                                          {timelineItem.label}
+                                        </p>
+                                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                                          {timelineItem.description}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                          {new Date(timelineItem.timestamp).toLocaleDateString('en-GB')} {new Date(timelineItem.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+>>>>>>> Stashed changes
                                       </div>
                                       {!isLast && (
                                         <div className="absolute left-4 sm:left-5 top-8 sm:top-10 w-0.5 bg-gray-200 h-2" />
@@ -686,13 +705,13 @@ export default function ClientOrderHistory() {
                               <p>Status: {formatStatus(order.status)}</p>
                               <p>
                                 Date:{" "}
-                                {new Date(order.createdAt).toLocaleDateString()}
+                                {new Date(order.createdAt).toLocaleDateString('en-GB')}
                               </p>
                               <p>
                                 Required By Date:{" "}
                                 {new Date(
                                   order.requiredByDate
-                                ).toLocaleDateString()}
+                                ).toLocaleDateString('en-GB')}
                               </p>
                             </div>
                           </div>

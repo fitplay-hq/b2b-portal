@@ -84,7 +84,7 @@ export function AdminProductCard({
             )}
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
-                Created: {new Date(product.createdAt).toLocaleDateString()}
+                Created: {new Date(product.createdAt).toLocaleDateString('en-GB')}
               </p>
             </div>
           </div>
