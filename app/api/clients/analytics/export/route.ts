@@ -119,7 +119,11 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, client, status, pe
             order.pincode
         ].filter(x => x && x !== 'Address' && x !== 'City' && x !== 'State' && x !== '000000');
 
-        const mergedItemsMap = new Map<string, any>();
+        const mergedItemsMap = new Map<string, {
+            product: any;
+            quantity: number;
+            price: number;
+        }>();
 
         [...order.orderItems, ...order.bundleOrderItems].forEach((item: any) => {
             const productId = item.product?.id;
@@ -132,22 +136,32 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, client, status, pe
                     price: item.price
                 });
             } else {
-                const existing = mergedItemsMap.get(productId);
+                const existing = mergedItemsMap.get(productId)!;
                 existing.quantity += item.quantity;
             }
         });
 
-        const all_items = Array.from(mergedItemsMap.values());
-
+        const mergedItems = Array.from(mergedItemsMap.values());
 
         return {
             'Order ID': order.id,
             'Status': order.status,
-            ...(client?.isShowPrice ? { 'Total Amount': order.totalAmount || 0 } : {}),
-            'Items Count': all_items?.length || 0,
-            'Items Details': all_items
-                .map((i: any) => `${i.product?.name} (Qty: ${i.quantity}${client?.isShowPrice ? `, Price: ${i.price}` : ''})`)
+
+            ...(client?.isShowPrice
+                ? { 'Total Amount': order.totalAmount || 0 }
+                : {}),
+
+            // ✅ UNIQUE PRODUCTS COUNT (matches order history)
+            'Items Count': mergedItems.reduce((sum, item) => sum + item.quantity, 0),
+
+            // ✅ EACH PRODUCT SHOWN ONCE WITH SUMMED QTY
+            'Items Details': mergedItems
+                .map(i =>
+                    `${i.product?.name} (Qty: ${i.quantity}${client?.isShowPrice ? `, Price: ${i.price}` : ''
+                    })`
+                )
                 .join('; '),
+
             'Order Date': new Date(order.createdAt).toLocaleDateString(),
             'Consignee Name': order.consigneeName || '',
             'Consignee Phone': order.consigneePhone || '',
@@ -155,6 +169,7 @@ async function exportOrdersData({ dateFrom, dateTo, clientId, client, status, pe
             'Full Shipping Address': addressParts.join(', ') || '',
             'Mode of Delivery': order.modeOfDelivery || '',
         };
+
     });
 
     if (format === 'pdf') {
