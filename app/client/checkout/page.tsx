@@ -677,7 +677,9 @@ export default function ClientCheckout() {
                 <div className="flex justify-between font-medium">
                   <span>Total Items</span>
                   <span>
-                    {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+                    {cartItems
+                      .filter(item => !item.isBundleItem)
+                      .reduce((sum, item) => sum + item.quantity, 0)}
                   </span>
                 </div>
                 {(() => {
