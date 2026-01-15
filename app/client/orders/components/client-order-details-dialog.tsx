@@ -194,9 +194,9 @@ export function ClientOrderDetailsDialog({
               </h4>
               <div className="text-sm space-y-1">
                 <p><span className="font-medium">Order ID:</span> {order.id}</p>
-                <p><span className="font-medium">Created:</span> {new Date(order.createdAt).toLocaleDateString()}</p>
-                <p><span className="font-medium">Required By:</span> {new Date(order.requiredByDate).toLocaleDateString()}</p>
-                <p><span className="font-medium">Last Updated:</span> {new Date(order.updatedAt).toLocaleDateString()}</p>
+                <p><span className="font-medium">Created:</span> {new Date(order.createdAt).toLocaleDateString('en-GB')}</p>
+                <p><span className="font-medium">Required By:</span> {new Date(order.requiredByDate).toLocaleDateString('en-GB')}</p>
+                <p><span className="font-medium">Last Updated:</span> {new Date(order.updatedAt).toLocaleDateString('en-GB')}</p>
                 {order.consignmentNumber && (
                   <p><span className="font-medium">AWB:</span> {order.consignmentNumber}</p>
                 )}

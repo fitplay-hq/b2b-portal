@@ -264,8 +264,8 @@ export default function EditUserPage() {
                       <h3 className="font-medium text-gray-900 mb-2">User Information</h3>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p><strong>User ID:</strong> {user.id}</p>
-                        <p><strong>Created:</strong> {new Date(user.createdAt).toLocaleDateString()}</p>
-                        <p><strong>Last Updated:</strong> {new Date(user.updatedAt).toLocaleDateString()}</p>
+                        <p><strong>Created:</strong> {new Date(user.createdAt).toLocaleDateString('en-GB')}</p>
+                        <p><strong>Last Updated:</strong> {new Date(user.updatedAt).toLocaleDateString('en-GB')}</p>
                         <p><strong>Current Role:</strong> {user.role.name}</p>
                       </div>
                     </div>
