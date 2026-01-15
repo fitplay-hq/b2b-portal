@@ -121,6 +121,24 @@ const exportToCSV = (data: any[], filename: string, type: 'orders' | 'inventory'
   }
 };
 
+const CustomTick = (props: any) => {
+  const { x, y, payload } = props;
+  const words = payload.value.split(' ');
+  const lines = [];
+  for (let i = 0; i < words.length; i += 2) {
+    lines.push(words.slice(i, i + 2).join(' '));
+  }
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {lines.map((line, index) => (
+        <text key={index} x={0} y={10 + index * 12} textAnchor="middle" fill="#666" fontSize={10}>
+          {line}
+        </text>
+      ))}
+    </g>
+  );
+};
+
 export default function ClientAnalyticsPage() {
   const { data: session } = useSession();
   const isShowPrice = session?.user?.isShowPrice ?? false;
@@ -244,6 +262,11 @@ export default function ClientAnalyticsPage() {
   const categoryData = analytics?.categoryDistribution ? Object.entries(analytics.categoryDistribution).map(([category, count]) => ({
     name: category.charAt(0).toUpperCase() + category.slice(1),
     value: count as number
+  })) : [];
+
+  const topProductsData = analytics?.topProducts ? analytics.topProducts.slice(0, 5).map(product => ({
+    ...product,
+    name: product.name
   })) : [];
 
   return (
@@ -626,51 +649,60 @@ export default function ClientAnalyticsPage() {
                 </Card>
 
                 {/* Top Products */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="h-5 w-5" />
-                      Top Products Ordered
-                    </CardTitle>
-                    <CardDescription>
-                      Most frequently ordered products
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {analytics?.topProducts?.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={analytics.topProducts.slice(0, 5)} margin={{ bottom: 60, left: 10, right: 10, top: 10 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis 
-                            dataKey="name" 
-                            tick={{ fontSize: 10 }}
-                            interval={0}
-                            angle={-35}
-                            textAnchor="end"
-                            height={80}
-                            width={60}
-                          />
-                          <YAxis tick={{ fontSize: 10 }} />
-                          <Tooltip 
-                            formatter={(value, name) => [
-                              formatNumber(value as number), 
-                              name === 'quantity' ? 'Quantity' : 'Revenue'
-                            ]}
-                            labelStyle={{ fontSize: '12px' }}
-                            contentStyle={{ fontSize: '12px' }}
-                          />
-                          <Legend wrapperStyle={{ fontSize: '12px' }} />
-                          <Bar dataKey="quantity" fill="#8884d8" name="Quantity" />
-                          {isShowPrice && <Bar dataKey="revenue" fill="#82ca9d" name="Revenue ($)" />}
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex items-center justify-center h-[300px] text-gray-500">
-                        No product data available
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+              <Card>
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Package className="h-5 w-5" />
+      Top Products Ordered
+    </CardTitle>
+    <CardDescription>
+      Most frequently ordered products
+    </CardDescription>
+  </CardHeader>
+  <CardContent>
+    {analytics?.topProducts?.length > 0 ? (
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart data={topProductsData} margin={{ bottom: 70, left: 10, right: 10, top: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis 
+            dataKey="name" 
+            tick={<CustomTick />}
+            interval={0}
+            height={60}
+          />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip 
+            formatter={(value, name) => {
+              if (name === 'Quantity') {
+                return [formatNumber(value as number), 'Quantity'];
+              } else {
+                return [formatCurrency(value as number), 'Revenue'];
+              }
+            }}
+            labelStyle={{ fontSize: '12px' }}
+            contentStyle={{ fontSize: '12px' }}
+          />
+          <Legend 
+            wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} 
+            verticalAlign="bottom"
+            align="center"
+            iconType="square"
+            payload={[
+              { value: 'Quantity', type: 'square', color: '#8884d8' },
+              { value: 'Revenue (₹)', type: 'square', color: '#82ca9d' }
+            ]}
+          />
+          <Bar dataKey="quantity" fill="#8884d8" name="Quantity" />
+          {isShowPrice && <Bar dataKey="revenue" fill="#82ca9d" name="Revenue (₹)" />}
+        </BarChart>
+      </ResponsiveContainer>
+    ) : (
+      <div className="flex items-center justify-center h-[300px] text-gray-500">
+        No product data available
+      </div>
+    )}
+  </CardContent>
+</Card>
               </div>
             </TabsContent>
 
@@ -912,40 +944,38 @@ export default function ClientAnalyticsPage() {
 
                 {/* Category Distribution */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="h-5 w-5" />
-                      Product Categories
-                    </CardTitle>
-                    <CardDescription>
-                      Distribution of products by category
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {categoryData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={categoryData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis 
-                            dataKey="name" 
-                            tick={{ fontSize: 12 }}
-                            interval={0}
-                            angle={-45}
-                            textAnchor="end"
-                            height={80}
-                          />
-                          <YAxis />
-                          <Tooltip formatter={(value) => [formatNumber(value as number), 'Count']} />
-                          <Bar dataKey="value" fill="#8884d8" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex items-center justify-center h-[300px] text-gray-500">
-                        No category data available
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Package className="h-5 w-5" />
+      Product Categories
+    </CardTitle>
+    <CardDescription>
+      Distribution of products by category
+    </CardDescription>
+  </CardHeader>
+  <CardContent>
+    {categoryData.length > 0 ? (
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={categoryData} margin={{ bottom: 20, left: 10, right: 10, top: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis 
+            dataKey="name" 
+            tick={<CustomTick />}
+            interval={0}
+            height={40}
+          />
+          <YAxis />
+          <Tooltip formatter={(value) => [formatNumber(value as number), 'Count']} />
+          <Bar dataKey="value" fill="#3b82f6" />
+        </BarChart>
+      </ResponsiveContainer>
+    ) : (
+      <div className="flex items-center justify-center h-[300px] text-gray-500">
+        No category data available
+      </div>
+    )}
+  </CardContent>
+</Card>
               </div>
             </TabsContent>
 
