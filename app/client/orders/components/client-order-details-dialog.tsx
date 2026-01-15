@@ -101,60 +101,75 @@ export function ClientOrderDetailsDialog({
   const { color, Icon } = getStatusVisuals(order.status);
   const statusText = formatStatus(order.status);
 
-  const orderTimeline = [
-    { 
-      status: "PENDING", 
-      label: "Order Placed", 
-      timestamp: order.createdAt,
-      description: "Your order has been submitted and is awaiting review"
-    },
-    { 
-      status: "APPROVED", 
-      label: "Order Approved", 
-      timestamp: order.updatedAt,
-      description: "Your order has been approved and is being prepared"
-    },
-    { 
-      status: "READY_FOR_DISPATCH", 
-      label: "Ready for Dispatch", 
-      timestamp: order.updatedAt,
-      description: "Your order is packed and ready to be dispatched"
-    },
-    { 
-      status: "DISPATCHED", 
-      label: "Order Dispatched", 
-      timestamp: order.updatedAt,
-      description: "Your order has been dispatched and is on its way"
-    },
-    { 
-      status: "AT_DESTINATION", 
-      label: "At Destination", 
-      timestamp: order.updatedAt,
-      description: "Your order has reached the delivery location"
-    },
-    { 
-      status: "DELIVERED", 
-      label: "Delivered", 
-      timestamp: order.updatedAt,
-      description: "Your order has been successfully delivered"
-    },
-    { 
-      status: "COMPLETED", 
-      label: "Completed", 
-      timestamp: order.updatedAt,
-      description: "Your order is complete"
-    },
-    { 
-      status: "CANCELLED", 
-      label: "Order Cancelled", 
-      timestamp: order.updatedAt,
-      description: "Your order has been cancelled"
-    },
-  ];
+  // Build dynamic timeline based on actual events (like admin side)
+  const timelineEvents = [];
+  
+  // Always show order creation
+  timelineEvents.push({
+    label: "Order Created",
+    description: "",
+    timestamp: order.createdAt,
+    icon: CheckCircle,
+    color: "bg-green-100 text-green-600"
+  });
 
-  const currentStatusIndex = orderTimeline.findIndex(item => item.status === order.status);
-  // If status not found in timeline (shouldn't happen), show at least the first item
-  const timelineItemsToShow = currentStatusIndex >= 0 ? orderTimeline.slice(0, currentStatusIndex + 1) : [orderTimeline[0]];
+  // Add status-based events
+  const statusMap: Record<string, { label: string; description: string; icon: any; color: string }> = {
+    APPROVED: {
+      label: "Order Approved",
+      description: "Order has been approved",
+      icon: CheckCircle,
+      color: "bg-blue-100 text-blue-600"
+    },
+    READY_FOR_DISPATCH: {
+      label: "Ready for Dispatch",
+      description: "Order is packed and ready",
+      icon: Download,
+      color: "bg-purple-100 text-purple-600"
+    },
+    DISPATCHED: {
+      label: "Order Dispatched",
+      description: "Order has been dispatched",
+      icon: Package,
+      color: "bg-green-100 text-green-600"
+    },
+    AT_DESTINATION: {
+      label: "At Destination",
+      description: "Order reached delivery location",
+      icon: Building2,
+      color: "bg-green-100 text-green-600"
+    },
+    DELIVERED: {
+      label: "Delivered",
+      description: "Order has been delivered",
+      icon: Building2,
+      color: "bg-green-100 text-green-600"
+    },
+    COMPLETED: {
+      label: "Completed",
+      description: "Order is complete",
+      icon: CheckCircle,
+      color: "bg-green-100 text-green-600"
+    },
+    CANCELLED: {
+      label: "Order Cancelled",
+      description: "Status updated to cancelled",
+      icon: XCircle,
+      color: "bg-red-100 text-red-600"
+    },
+  };
+
+  // Add current status event if not PENDING
+  if (order.status !== "PENDING" && statusMap[order.status]) {
+    const statusInfo = statusMap[order.status];
+    timelineEvents.push({
+      label: statusInfo.label,
+      description: statusInfo.description,
+      timestamp: order.updatedAt,
+      icon: statusInfo.icon,
+      color: statusInfo.color
+    });
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -358,31 +373,32 @@ export function ClientOrderDetailsDialog({
               <Clock className="h-4 w-4" />
               Order Timeline
             </h4>
-            <div className="space-y-3">
-              {timelineItemsToShow.map((item, index) => {
-                const isCompleted = index < currentStatusIndex + 1;
-                const isCurrent = index === currentStatusIndex;
-                const { Icon: TimelineIcon } = getStatusVisuals(item.status);
+            <div className="space-y-4">
+              {timelineEvents.map((event, index) => {
+                const EventIcon = event.icon;
+                const isLast = index === timelineEvents.length - 1;
                 
                 return (
-                  <div key={item.status} className="flex items-start gap-3">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center mt-1 ${
-                      isCurrent ? 'bg-primary text-primary-foreground' : 
-                      isCompleted ? 'bg-green-100 text-green-600' : 'bg-muted'
-                    }`}>
-                      <TimelineIcon className="h-4 w-4" />
+                  <div key={index} className="relative">
+                    <div className="flex items-start gap-4">
+                      <div className={`h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 ${event.color}`}>
+                        <EventIcon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 pt-1">
+                        <p className="font-semibold text-base">
+                          {event.label}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {event.description}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {new Date(event.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/')}, {new Date(event.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className={`font-medium ${isCurrent ? 'text-primary' : ''}`}>
-                        {item.label}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(item.timestamp).toLocaleDateString()} {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
+                    {!isLast && (
+                      <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-gray-200 -mb-4" style={{ height: '1rem' }} />
+                    )}
                   </div>
                 );
               })}

@@ -576,42 +576,101 @@ export default function ClientOrderHistory() {
                             <h4 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Order Timeline</h4>
                             <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                               {(() => {
-                                const orderTimeline = [
-                                  { status: "PENDING", label: "Order Placed", description: "Your order has been submitted", timestamp: order.createdAt },
-                                  { status: "APPROVED", label: "Order Approved", description: "Your order has been approved", timestamp: order.updatedAt },
-                                  { status: "READY_FOR_DISPATCH", label: "Ready for Dispatch", description: "Your order is packed and ready", timestamp: order.updatedAt },
-                                  { status: "DISPATCHED", label: "Order Dispatched", description: "Your order has been dispatched", timestamp: order.updatedAt },
-                                  { status: "AT_DESTINATION", label: "At Destination", description: "Your order has reached destination", timestamp: order.updatedAt },
-                                  { status: "DELIVERED", label: "Delivered", description: "Your order has been delivered", timestamp: order.updatedAt },
-                                  { status: "COMPLETED", label: "Completed", description: "Your order is complete", timestamp: order.updatedAt },
-                                  { status: "CANCELLED", label: "Order Cancelled", description: "Your order has been cancelled", timestamp: order.updatedAt },
-                                ];
-                                const currentStatusIndex = orderTimeline.findIndex(item => item.status === order.status);
-                                // If status not found in timeline, show at least the first item
-                                const timelineItemsToShow = currentStatusIndex >= 0 ? orderTimeline.slice(0, currentStatusIndex + 1) : [orderTimeline[0]];
+                                // Build dynamic timeline based on actual events
+                                const timelineEvents = [];
                                 
-                                return timelineItemsToShow.map((timelineItem, index) => {
-                                  const isCurrent = index === currentStatusIndex;
-                                  const StatusIcon = getStatusIcon(timelineItem.status);
+                                // Always show order creation
+                                timelineEvents.push({
+                                  label: "Order Created",
+                                  description: "",
+                                  timestamp: order.createdAt,
+                                  icon: CheckCircle,
+                                  color: "bg-green-100 text-green-600"
+                                });
+
+                                // Add status-based events
+                                const statusMap: Record<string, { label: string; description: string; icon: any; color: string }> = {
+                                  APPROVED: {
+                                    label: "Order Approved",
+                                    description: "Order has been approved",
+                                    icon: CheckCircle,
+                                    color: "bg-blue-100 text-blue-600"
+                                  },
+                                  READY_FOR_DISPATCH: {
+                                    label: "Ready for Dispatch",
+                                    description: "Order is packed and ready",
+                                    icon: Download,
+                                    color: "bg-purple-100 text-purple-600"
+                                  },
+                                  DISPATCHED: {
+                                    label: "Order Dispatched",
+                                    description: "Order has been dispatched",
+                                    icon: Package,
+                                    color: "bg-green-100 text-green-600"
+                                  },
+                                  AT_DESTINATION: {
+                                    label: "At Destination",
+                                    description: "Order reached delivery location",
+                                    icon: Building2,
+                                    color: "bg-green-100 text-green-600"
+                                  },
+                                  DELIVERED: {
+                                    label: "Delivered",
+                                    description: "Order has been delivered",
+                                    icon: Building2,
+                                    color: "bg-green-100 text-green-600"
+                                  },
+                                  COMPLETED: {
+                                    label: "Completed",
+                                    description: "Order is complete",
+                                    icon: CheckCircle,
+                                    color: "bg-green-100 text-green-600"
+                                  },
+                                  CANCELLED: {
+                                    label: "Order Cancelled",
+                                    description: "Status updated to cancelled",
+                                    icon: XCircle,
+                                    color: "bg-red-100 text-red-600"
+                                  },
+                                };
+
+                                // Add current status event if not PENDING
+                                if (order.status !== "PENDING" && statusMap[order.status]) {
+                                  const statusInfo = statusMap[order.status];
+                                  timelineEvents.push({
+                                    label: statusInfo.label,
+                                    description: statusInfo.description,
+                                    timestamp: order.updatedAt,
+                                    icon: statusInfo.icon,
+                                    color: statusInfo.color
+                                  });
+                                }
+                                
+                                return timelineEvents.map((timelineItem, index) => {
+                                  const TimelineIcon = timelineItem.icon;
+                                  const isLast = index === timelineEvents.length - 1;
 
                                   return (
-                                    <div key={timelineItem.status} className="flex items-start gap-2 sm:gap-3">
-                                      <div className={`h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 rounded-full flex items-center justify-center mt-1 ${
-                                        isCurrent ? 'bg-primary text-primary-foreground' : 'bg-green-100 text-green-600'
-                                      }`}>
-                                        <StatusIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                    <div key={index} className="relative">
+                                      <div className="flex items-start gap-2 sm:gap-3">
+                                        <div className={`h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 rounded-full flex items-center justify-center ${timelineItem.color}`}>
+                                          <TimelineIcon className="h-4 w-4 sm:h-4 sm:w-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0 pt-0.5">
+                                          <p className="font-semibold text-sm sm:text-base">
+                                            {timelineItem.label}
+                                          </p>
+                                          <p className="text-xs sm:text-sm text-muted-foreground">
+                                            {timelineItem.description}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground mt-0.5">
+                                            {new Date(timelineItem.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/')}, {new Date(timelineItem.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                                          </p>
+                                        </div>
                                       </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className={`font-medium text-xs sm:text-sm ${isCurrent ? 'text-primary' : ''}`}>
-                                          {timelineItem.label}
-                                        </p>
-                                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                                          {timelineItem.description}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">
-                                          {new Date(timelineItem.timestamp).toLocaleDateString()} {new Date(timelineItem.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                      </div>
+                                      {!isLast && (
+                                        <div className="absolute left-4 sm:left-5 top-8 sm:top-10 w-0.5 bg-gray-200 h-2" />
+                                      )}
                                     </div>
                                   );
                                 });
