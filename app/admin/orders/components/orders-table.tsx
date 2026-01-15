@@ -116,7 +116,7 @@ export function OrdersTable({
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">
-                      {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                      {new Date(order.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -204,7 +204,7 @@ export function OrdersTable({
                     {formatStatus(order.status)}
                   </Badge>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Last updated: {new Date(order.updatedAt).toLocaleDateString('en-GB')}
+                    Last updated: {new Date(order.updatedAt).toLocaleDateString()}
                   </div>
                 </TableCell>
                 

@@ -149,8 +149,8 @@ export function OrderDetailsDialog({
               </h4>
               <div className="text-sm space-y-1">
                 <p><span className="font-medium">Order ID:</span> {order.id}</p>
-                <p><span className="font-medium">Created:</span> {new Date(order.createdAt).toLocaleDateString('en-GB')}</p>
-                <p><span className="font-medium">Last Updated:</span> {new Date(order.updatedAt).toLocaleDateString('en-GB')}</p>
+                <p><span className="font-medium">Created:</span> {new Date(order.createdAt).toLocaleDateString()}</p>
+                <p><span className="font-medium">Last Updated:</span> {new Date(order.updatedAt).toLocaleDateString()}</p>
                 {order.consignmentNumber && (
                   <p><span className="font-medium">AWB:</span> {order.consignmentNumber}</p>
                 )}
@@ -327,7 +327,7 @@ export function OrderDetailsDialog({
                         {item.label}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(item.timestamp).toLocaleDateString('en-GB')}
+                        {new Date(item.timestamp).toLocaleDateString()}
                       </p>
                     </div>
                   </div>

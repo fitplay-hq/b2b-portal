@@ -194,9 +194,9 @@ export function ClientOrderDetailsDialog({
               </h4>
               <div className="text-sm space-y-1">
                 <p><span className="font-medium">Order ID:</span> {order.id}</p>
-                <p><span className="font-medium">Created:</span> {new Date(order.createdAt).toLocaleDateString('en-GB')}</p>
-                <p><span className="font-medium">Required By:</span> {new Date(order.requiredByDate).toLocaleDateString('en-GB')}</p>
-                <p><span className="font-medium">Last Updated:</span> {new Date(order.updatedAt).toLocaleDateString('en-GB')}</p>
+                <p><span className="font-medium">Created:</span> {new Date(order.createdAt).toLocaleDateString()}</p>
+                <p><span className="font-medium">Required By:</span> {new Date(order.requiredByDate).toLocaleDateString()}</p>
+                <p><span className="font-medium">Last Updated:</span> {new Date(order.updatedAt).toLocaleDateString()}</p>
                 {order.consignmentNumber && (
                   <p><span className="font-medium">AWB:</span> {order.consignmentNumber}</p>
                 )}
@@ -379,7 +379,6 @@ export function ClientOrderDetailsDialog({
                 const isLast = index === timelineEvents.length - 1;
                 
                 return (
-<<<<<<< Updated upstream
                   <div key={index} className="relative">
                     <div className="flex items-start gap-4">
                       <div className={`h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 ${event.color}`}>
@@ -396,25 +395,6 @@ export function ClientOrderDetailsDialog({
                           {new Date(event.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/')}, {new Date(event.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                         </p>
                       </div>
-=======
-                  <div key={item.status} className="flex items-start gap-3">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center mt-1 ${
-                      isCurrent ? 'bg-primary text-primary-foreground' : 
-                      isCompleted ? 'bg-green-100 text-green-600' : 'bg-muted'
-                    }`}>
-                      <TimelineIcon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className={`font-medium ${isCurrent ? 'text-primary' : ''}`}>
-                        {item.label}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(item.timestamp).toLocaleDateString('en-GB')} {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
->>>>>>> Stashed changes
                     </div>
                     {!isLast && (
                       <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-gray-200 -mb-4" style={{ height: '1rem' }} />

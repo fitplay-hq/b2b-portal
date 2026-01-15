@@ -121,7 +121,7 @@ export function CompanyCard({
                     </span>
                     <span className="flex items-center gap-1.5 whitespace-nowrap">
                       <Calendar className="h-3 w-3 flex-shrink-0" />
-                      Created {new Date(company.createdAt).toLocaleDateString('en-GB')}
+                      Created {new Date(company.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>

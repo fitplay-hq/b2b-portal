@@ -168,7 +168,7 @@ async function exportOrdersPDF(
   });
 
   yPosition -= 30;
-  page.drawText(`Generated on: ${new Date().toLocaleDateString('en-GB')}`, {
+  page.drawText(`Generated on: ${new Date().toLocaleDateString()}`, {
     x: margin,
     y: yPosition,
     size: 10,
@@ -240,7 +240,7 @@ async function exportOrdersPDF(
     page.drawText(
       `Amount: Rs.${order.totalAmount || 0} | Date: ${new Date(
         order.createdAt
-      ).toLocaleDateString('en-GB')}`,
+      ).toLocaleDateString()}`,
       {
         x: margin,
         y: yPosition,
@@ -388,7 +388,7 @@ async function exportInventoryPDF(companyId: string | null) {
   });
 
   yPosition -= 30;
-  page.drawText(`Generated on: ${new Date().toLocaleDateString('en-GB')}`, {
+  page.drawText(`Generated on: ${new Date().toLocaleDateString()}`, {
     x: margin,
     y: yPosition,
     size: 10,

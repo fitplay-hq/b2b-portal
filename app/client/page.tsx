@@ -317,7 +317,7 @@ export default function ClientDashboard() {
                     <div className="space-y-1">
                       <p className="font-medium">{order.id}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                        {new Date(order.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <Badge className={getStatusColor(order.status)}>

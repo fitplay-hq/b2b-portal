@@ -56,7 +56,7 @@ export function ClientCard({ client, stats, onDelete }: ClientCardProps) {
             </span>
             <span className="flex items-center gap-1.5">
               <Calendar className="h-3 w-3 flex-shrink-0" />
-              <span className="whitespace-nowrap">Joined {new Date(client.createdAt).toLocaleDateString('en-GB')}</span>
+              <span className="whitespace-nowrap">Joined {new Date(client.createdAt).toLocaleDateString()}</span>
             </span>
           </div>
           <div className="flex items-center gap-3 sm:gap-4 pt-1 text-xs sm:text-sm">

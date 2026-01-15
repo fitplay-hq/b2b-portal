@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
                 case "APPROVED":
                     recipients = [clientEmail, warehouseEmail];
                     subject = `Order ${order.id} Approved`;
-                    reqByDate = order.requiredByDate ? new Date(order.requiredByDate).toLocaleDateString('en-GB') : "N/A";
+                    reqByDate = order.requiredByDate ? new Date(order.requiredByDate).toLocaleDateString() : "N/A";
                     break;
 
                 case "READY_FOR_DISPATCH":
@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
           <p><b>Delivery Reference:</b> ${order.deliveryReference}</p>
           <p><b>Additional Note:</b> ${order.note}</p>
           <p><b>Packaging Instructions:</b> ${order.packagingInstructions}</p>
-          <p><b>Required By:</b> ${new Date(order.requiredByDate).toLocaleDateString('en-GB')}</p>
+          <p><b>Required By:</b> ${new Date(order.requiredByDate).toLocaleDateString()}</p>
 
           <h3>Delivery Address</h3>
           <p>${order.deliveryAddress}, ${order.city}, ${order.state}, ${order.pincode}</p>

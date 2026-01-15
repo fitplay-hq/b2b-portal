@@ -110,7 +110,7 @@ async function exportOrdersPDF({ dateFrom, dateTo, clientId, status, period, ses
 
     page.drawText("Orders Export Report", { x: m, y, size: 20, font: boldFont });
     y -= 25;
-    page.drawText(`Generated on: ${new Date().toLocaleDateString('en-GB')}`, { x: m, y, size: 10, font });
+    page.drawText(`Generated on: ${new Date().toLocaleDateString()}`, { x: m, y, size: 10, font });
     y -= 25;
     page.drawText(`Total Orders: ${orders.length}`, { x: m, y, size: 12, font: boldFont });
     y -= 35;
@@ -134,7 +134,7 @@ async function exportOrdersPDF({ dateFrom, dateTo, clientId, status, period, ses
         y -= lh;
         page.drawText(`Client: ${order.client?.name || "N/A"} | Status: ${order.status}`, { x: m, y, size: 10, font });
         y -= lh;
-        page.drawText(`Amount: Rs${order.totalAmount} | Date: ${new Date(order.createdAt).toLocaleDateString('en-GB')}`, {
+        page.drawText(`Amount: Rs${order.totalAmount} | Date: ${new Date(order.createdAt).toLocaleDateString()}`, {
             x: m, y, size: 10, font
         });
         y -= lh;
@@ -230,7 +230,7 @@ async function exportInventoryPDF({ session, companyID }: any) {
 
     page.drawText("Inventory Export Report", { x: m, y, size: 20, font: boldFont });
     y -= 25;
-    page.drawText(`Generated on: ${new Date().toLocaleDateString('en-GB')}`, { x: m, y, size: 10, font });
+    page.drawText(`Generated on: ${new Date().toLocaleDateString()}`, { x: m, y, size: 10, font });
     y -= 25;
     page.drawText(`Total Products: ${products.length}`, { x: m, y, size: 12, font: boldFont });
     y -= 35;

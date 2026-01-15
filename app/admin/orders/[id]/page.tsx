@@ -93,7 +93,7 @@ const OrderDetailsPage = () => {
               <div>
                 <CardTitle>Order #{order.id}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                  {new Date(order.createdAt).toLocaleDateString()}
                 </p>
               </div>
               <Badge>{formatStatus(order.status)}</Badge>
@@ -110,7 +110,7 @@ const OrderDetailsPage = () => {
               </p>
               <p>
                 <strong>Date:</strong>{" "}
-                {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                {new Date(order.createdAt).toLocaleDateString()}
               </p>
             </div>
             <div>

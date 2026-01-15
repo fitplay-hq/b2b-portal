@@ -102,11 +102,11 @@ const OrderSummary = ({ order }: { order: AdminOrder }) => {
           </span>
           <span className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
-            {new Date(order.createdAt).toLocaleDateString('en-GB')}
+            {new Date(order.createdAt).toLocaleDateString()}
           </span>
           <span className="flex items-center gap-1">
             <CalendarDays className="h-4 w-4" />
-            Updated: {new Date(order.updatedAt).toLocaleDateString('en-GB')}
+            Updated: {new Date(order.updatedAt).toLocaleDateString()}
           </span>
           <span className="flex items-center gap-1">
             <Package className="h-4 w-4" />

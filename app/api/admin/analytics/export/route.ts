@@ -286,7 +286,7 @@ async function exportOrdersData(
         )
         .join('; '),
 
-      'Order Date': new Date(order.createdAt).toLocaleDateString('en-GB'),
+      'Order Date': new Date(order.createdAt).toLocaleDateString(),
       'Consignee Name': order.consigneeName || '',
       'Consignee Phone': order.consigneePhone || '',
       'Consignee Email': order.consigneeEmail || '',
@@ -705,8 +705,8 @@ async function exportInventoryData(
       } : {}),
       'Stock Status': computedStockStatus,
       ...(client ? {} : { 'Brand': product.brand || '' }),
-      'Created Date': new Date(product.createdAt).toLocaleDateString('en-GB'),
-      'Last Updated': new Date(product.updatedAt).toLocaleDateString('en-GB')
+      'Created Date': new Date(product.createdAt).toLocaleDateString(),
+      'Last Updated': new Date(product.updatedAt).toLocaleDateString()
     };
   });
 

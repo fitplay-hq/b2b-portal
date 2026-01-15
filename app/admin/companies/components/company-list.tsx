@@ -162,7 +162,7 @@ export function CompanyList({
                       </span>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      Created {new Date(company.createdAt).toLocaleDateString('en-GB')}
+                      Created {new Date(company.createdAt).toLocaleDateString()}
                     </Badge>
                   </div>
                 </div>

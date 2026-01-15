@@ -114,7 +114,7 @@ export function ClientOrdersTable({ orders, isShowPrice = false }: ClientOrdersT
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
-                            {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                            {new Date(order.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -131,7 +131,7 @@ export function ClientOrdersTable({ orders, isShowPrice = false }: ClientOrdersT
                           </div>
                         )}
                         <div className="text-xs text-muted-foreground">
-                          Required: {new Date(order.requiredByDate).toLocaleDateString('en-GB')}
+                          Required: {new Date(order.requiredByDate).toLocaleDateString()}
                         </div>
                       </TableCell>
                       
