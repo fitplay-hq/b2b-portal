@@ -84,6 +84,11 @@ export default function CreateDispatchOrderPage() {
     SelectedProduct[]
   >([]);
 
+  // Product quantity input values state
+  const [productInputValues, setProductInputValues] = React.useState<{[key: string]: string}>({});
+  const [bundleInputValues, setBundleInputValues] = React.useState<{[key: string]: string}>({});
+  const [bundleCountInputValue, setBundleCountInputValue] = React.useState("1");
+
   // Bundle-related state
   const [showBundleDialog, setShowBundleDialog] = React.useState(false);
   const [bundleProducts, setBundleProducts] = React.useState<SelectedProduct[]>([]);
@@ -173,9 +178,15 @@ export default function CreateDispatchOrderPage() {
       const exists = selectedProducts.some((p) => p.id === product.id);
       if (!exists) {
         setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+        setProductInputValues((prev) => ({ ...prev, [product.id]: "1" }));
       }
     } else {
       setSelectedProducts((prev) => prev.filter((p) => p.id !== product.id));
+      setProductInputValues((prev) => {
+        const updated = { ...prev };
+        delete updated[product.id];
+        return updated;
+      });
     }
   };
 
@@ -187,6 +198,123 @@ export default function CreateDispatchOrderPage() {
 
   const handleRemoveProduct = (productId: string) => {
     setSelectedProducts((prev) => prev.filter((p) => p.id !== productId));
+    setProductInputValues((prev) => {
+      const updated = { ...prev };
+      delete updated[productId];
+      return updated;
+    });
+  };
+
+  const handleProductQuantityChange = (productId: string, value: string) => {
+    setProductInputValues(prev => ({ ...prev, [productId]: value }));
+    
+    // Update cart if valid number
+    if (value === '' || value === '0') {
+      return; // Don't update cart yet
+    }
+    
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      const product = selectedProducts.find(p => p.id === productId);
+      if (product) {
+        const clampedValue = Math.min(numValue, product.availableStock);
+        handleUpdateProduct(productId, clampedValue);
+        
+        // Show toast if exceeded
+        if (numValue > product.availableStock) {
+          toast.error(`Only ${product.availableStock} available for ${product.name}`);
+        }
+      }
+    }
+  };
+
+  const validateProductQuantity = (productId: string) => {
+    const inputValue = productInputValues[productId] || "1";
+    const numValue = parseInt(inputValue) || 1;
+    const product = selectedProducts.find(p => p.id === productId);
+    if (product) {
+      const clampedValue = Math.max(1, Math.min(numValue, product.availableStock));
+      handleUpdateProduct(productId, clampedValue);
+      setProductInputValues(prev => ({ ...prev, [productId]: clampedValue.toString() }));
+    }
+  };
+
+  const isProductQuantityValid = (productId: string) => {
+    const inputValue = productInputValues[productId];
+    if (!inputValue || inputValue === '') return false;
+    const numValue = parseInt(inputValue);
+    const product = selectedProducts.find(p => p.id === productId);
+    return product && !isNaN(numValue) && numValue > 0 && numValue <= product.availableStock;
+  };
+
+  const handleBundleQuantityChange = (productId: string, value: string) => {
+    setBundleInputValues(prev => ({ ...prev, [productId]: value }));
+    
+    // Update bundle quantities if valid number
+    if (value === '' || value === '0') {
+      return; // Don't update yet
+    }
+    
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      const product = selectedProducts.find(p => p.id === productId);
+      if (product) {
+        const clampedValue = Math.min(numValue, product.quantity);
+        setBundleQuantities(prev => ({ ...prev, [productId]: clampedValue }));
+        
+        // Show toast if exceeded
+        if (numValue > product.quantity) {
+          toast.error(`Cannot use more than ${product.quantity} for ${product.name} in bundle`);
+        }
+      }
+    }
+  };
+
+  const validateBundleQuantity = (productId: string) => {
+    const inputValue = bundleInputValues[productId] || "1";
+    const numValue = parseInt(inputValue) || 1;
+    const product = selectedProducts.find(p => p.id === productId);
+    if (product) {
+      const clampedValue = Math.max(1, Math.min(numValue, product.quantity));
+      setBundleQuantities(prev => ({ ...prev, [productId]: clampedValue }));
+      setBundleInputValues(prev => ({ ...prev, [productId]: clampedValue.toString() }));
+    }
+  };
+
+  const isBundleQuantityValid = (productId: string) => {
+    const inputValue = bundleInputValues[productId];
+    if (!inputValue || inputValue === '') return false;
+    const numValue = parseInt(inputValue);
+    const product = selectedProducts.find(p => p.id === productId);
+    return product && !isNaN(numValue) && numValue > 0 && numValue <= product.quantity;
+  };
+
+  const handleBundleCountChange = (value: string) => {
+    setBundleCountInputValue(value);
+    
+    // Update inlineBundleCount if valid number
+    if (value === '' || value === '0') {
+      return; // Don't update yet
+    }
+    
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      setInlineBundleCount(numValue);
+    }
+  };
+
+  const validateBundleCount = () => {
+    const inputValue = bundleCountInputValue || "1";
+    const numValue = parseInt(inputValue) || 1;
+    setInlineBundleCount(numValue);
+    setBundleCountInputValue(numValue.toString());
+  };
+
+  const isBundleCountValid = () => {
+    const inputValue = bundleCountInputValue;
+    if (!inputValue || inputValue === '') return false;
+    const numValue = parseInt(inputValue);
+    return !isNaN(numValue) && numValue > 0;
   };
 
   // Bundle handling functions
@@ -292,6 +420,12 @@ export default function CreateDispatchOrderPage() {
         }
         return prev;
       });
+      setBundleInputValues(prev => {
+        if (!prev[productId] || prev[productId] === '') {
+          return { ...prev, [productId]: "1" };
+        }
+        return prev;
+      });
     } else {
       newSelected.delete(productId);
       // Clean up bundle quantity when unchecked
@@ -300,62 +434,70 @@ export default function CreateDispatchOrderPage() {
         delete updated[productId];
         return updated;
       });
+      setBundleInputValues(prev => {
+        const updated = { ...prev };
+        delete updated[productId];
+        return updated;
+      });
     }
     setSelectedForBundle(newSelected);
   };
 
-  const handleBundleQuantityChange = (productId: string, quantity: number) => {
-    setBundleQuantities(prev => ({ ...prev, [productId]: Math.max(1, quantity) }));
+  const isBundleValid = () => {
+    if (selectedForBundle.size === 0) return false;
+    return Array.from(selectedForBundle).every(productId => isBundleQuantityValid(productId)) && isBundleCountValid();
   };
 
   const addInlineBundle = () => {
-  if (selectedForBundle.size === 0) {
-    toast.error("Select at least one product for the bundle");
-    return;
-  }
-
-  const selectedItems = selectedProducts.filter(
-    p => selectedForBundle.has(p.id) && !p.isBundleItem
-  );
-
-  // 🔒 VALIDATION (same as client)
-  for (const item of selectedItems) {
-    const bundleQty = bundleQuantities[item.id] || 1;
-    const neededNow = bundleQty * inlineBundleCount;
-    const alreadyBundled = getTotalBundledQuantity(item.id);
-    const totalNeeded = alreadyBundled + neededNow;
-
-    if (totalNeeded > item.quantity) {
-      toast.error(
-        `Not enough ${item.name}. Need ${totalNeeded} total (${alreadyBundled} already bundled), but only ${item.quantity} selected`
-      );
+    if (selectedForBundle.size === 0) {
+      toast.error("Select at least one product for the bundle");
       return;
     }
-  }
 
-  const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2)}`;
+    const selectedItems = selectedProducts.filter(
+      p => selectedForBundle.has(p.id) && !p.isBundleItem
+    );
 
-  const bundleItems: SelectedProduct[] = selectedItems.map(item => {
-    const bundleQty = bundleQuantities[item.id] || 1;
-    return {
-      ...item,
-      quantity: bundleQty * inlineBundleCount,
-      bundleProductQuantity: bundleQty,
-      isBundleItem: true,
-      bundleGroupId,
-    };
-  });
+    // 🔒 VALIDATION (same as client)
+    for (const item of selectedItems) {
+      const bundleQty = bundleQuantities[item.id] || 1;
+      const neededNow = bundleQty * inlineBundleCount;
+      const alreadyBundled = getTotalBundledQuantity(item.id);
+      const totalNeeded = alreadyBundled + neededNow;
 
-  setSelectedProducts(prev => [...prev, ...bundleItems]);
+      if (totalNeeded > item.quantity) {
+        toast.error(
+          `Not enough ${item.name}. Need ${totalNeeded} total (${alreadyBundled} already bundled), but only ${item.quantity} selected`
+        );
+        return;
+      }
+    }
 
-  toast.success(`Added ${inlineBundleCount} bundle(s)`);
+    const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}`;
 
-  setSelectedForBundle(new Set());
-  setBundleQuantities({});
-  setInlineBundleCount(1);
-};
+    const bundleItems: SelectedProduct[] = selectedItems.map(item => {
+      const bundleQty = bundleQuantities[item.id] || 1;
+      return {
+        ...item,
+        quantity: bundleQty * inlineBundleCount,
+        bundleProductQuantity: bundleQty,
+        isBundleItem: true,
+        bundleGroupId,
+      };
+    });
+
+    setSelectedProducts(prev => [...prev, ...bundleItems]);
+
+    toast.success(`Added ${inlineBundleCount} bundle(s)`);
+
+    setSelectedForBundle(new Set());
+    setBundleQuantities({});
+    setBundleInputValues({});
+    setInlineBundleCount(1);
+    setBundleCountInputValue("1");
+  };
 
 
 
@@ -985,10 +1127,19 @@ export default function CreateDispatchOrderPage() {
                                       <Label className="text-xs text-muted-foreground">Qty:</Label>
                                       <div className="flex items-center gap-1">
                                         <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
-                                          onClick={() => handleUpdateProduct(product.id, Math.max(1, product.quantity - 1))}>-</Button>
-                                        <Input type="number" min="1" max={product.availableStock} value={product.quantity}
-                                          onChange={(e) => handleUpdateProduct(product.id, Math.min(product.availableStock, parseInt(e.target.value) || 0))}
-                                          className="w-20 h-8 text-xs text-center" />
+                                          onClick={() => handleUpdateProduct(product.id, Math.max(1, product.quantity - 1))}
+                                          disabled={product.quantity <= 1}>-</Button>
+                                        <Input type="number" min="1" max={product.availableStock} 
+                                          value={productInputValues[product.id] !== undefined ? productInputValues[product.id] : product.quantity}
+                                          onChange={(e) => handleProductQuantityChange(product.id, e.target.value)}
+                                          onBlur={() => validateProductQuantity(product.id)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              validateProductQuantity(product.id);
+                                              e.currentTarget.blur();
+                                            }
+                                          }}
+                                          className={`w-24 h-8 text-xs text-center ${!isProductQuantityValid(product.id) ? 'border-red-500 focus-visible:ring-red-500' : ''}`} />
                                         <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
                                           onClick={() => handleUpdateProduct(product.id, Math.min(product.availableStock, product.quantity + 1))}>+</Button>
                                       </div>
@@ -1080,7 +1231,7 @@ export default function CreateDispatchOrderPage() {
                                               onClick={() => handleUpdateProduct(product.id, Math.max(1, product.quantity - 1))}>-</Button>
                                             <Input type="number" min="1" max={product.availableStock} value={product.quantity}
                                               onChange={(e) => handleUpdateProduct(product.id, Math.min(product.availableStock, parseInt(e.target.value) || 0))}
-                                              className="w-16 h-7 text-xs text-center" />
+                                              className="w-20 h-7 text-xs text-center" />
                                             <Button type="button" variant="outline" size="sm" className="h-7 w-7 p-0"
                                               onClick={() => handleUpdateProduct(product.id, Math.min(product.availableStock, product.quantity + 1))}>+</Button>
                                           </div>
@@ -1128,9 +1279,16 @@ export default function CreateDispatchOrderPage() {
                               type="number"
                               min="1"
                               max={item.quantity}
-                              value={bundleQuantities[item.id] || 1}
-                              onChange={(e) => handleBundleQuantityChange(item.id, parseInt(e.target.value) || 1)}
-                              className="w-16 h-8 text-center text-xs"
+                              value={bundleInputValues[item.id] !== undefined ? bundleInputValues[item.id] : (bundleQuantities[item.id] || 1)}
+                              onChange={(e) => handleBundleQuantityChange(item.id, e.target.value)}
+                              onBlur={() => validateBundleQuantity(item.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  validateBundleQuantity(item.id);
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                              className={`w-20 h-8 text-center text-xs ${!isBundleQuantityValid(item.id) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                             />
                           </div>
                         </div>
@@ -1143,9 +1301,16 @@ export default function CreateDispatchOrderPage() {
                           <Input
                             type="number"
                             min="1"
-                            value={inlineBundleCount}
-                            onChange={(e) => setInlineBundleCount(parseInt(e.target.value) || 1)}
-                            className="w-20 h-8 text-center bg-white"
+                            value={bundleCountInputValue}
+                            onChange={(e) => handleBundleCountChange(e.target.value)}
+                            onBlur={() => validateBundleCount()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                validateBundleCount();
+                                e.currentTarget.blur();
+                              }
+                            }}
+                            className={`w-20 h-8 text-center bg-white ${!isBundleCountValid() ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                           />
                         </div>
                         <div className="text-sm text-blue-700">
@@ -1158,11 +1323,11 @@ export default function CreateDispatchOrderPage() {
                       
                       {/* Bundle Actions */}
                       <div className="flex gap-2">
-                        <Button onClick={addInlineBundle} className="bg-blue-600 hover:bg-blue-700 text-white">
+                        <Button onClick={addInlineBundle} className="bg-blue-600 hover:bg-blue-700 text-white" disabled={!isBundleValid()}>
                           <Package className="h-4 w-4 mr-2" />
                           Add Bundle
                         </Button>
-                        <Button variant="outline" onClick={() => { setSelectedForBundle(new Set()); setBundleQuantities({}); setInlineBundleCount(1); }}
+                        <Button variant="outline" onClick={() => { setSelectedForBundle(new Set()); setBundleQuantities({}); setBundleInputValues({}); setInlineBundleCount(1); setBundleCountInputValue("1"); }}
                           className="border-blue-300 text-blue-700 hover:bg-blue-50">
                           Clear Selection
                         </Button>
