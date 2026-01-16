@@ -4,12 +4,10 @@ import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,6 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -102,6 +107,8 @@ export default function CreateDispatchOrderPage() {
     clearError,
   } = usePincodeLookup();
 
+  const [clientSearchOpen, setClientSearchOpen] = React.useState(false);
+  const [clientSearchTerm, setClientSearchTerm] = React.useState("");
   const [showEmailDialog, setShowEmailDialog] = React.useState(false);
   const [createdOrder, setCreatedOrder] = React.useState<CreatedOrder | null>(null);
 
@@ -134,6 +141,18 @@ export default function CreateDispatchOrderPage() {
     },
     [lookupPincode, clearError]
   );
+
+  const filteredClients = React.useMemo(() => {
+    if (!clients) return [];
+    if (!clientSearchTerm.trim()) return clients;
+    
+    const term = clientSearchTerm.toLowerCase().trim();
+    return clients.filter(client => 
+      client.name.toLowerCase().includes(term) ||
+      client.email.toLowerCase().includes(term) ||
+      (client.company?.name || client.companyName || "").toLowerCase().includes(term)
+    );
+  }, [clients, clientSearchTerm]);
 
   const searchResults = React.useMemo(() => {
     if (!products) return [] as Product[];
@@ -468,21 +487,18 @@ export default function CreateDispatchOrderPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2">
-                <Select
-                  value={selectedClientEmail}
-                  onValueChange={setSelectedClientEmail}
-                >
-                  <SelectTrigger className="h-auto min-h-[60px] w-full">
-                    <SelectValue
-                      placeholder={
-                        isClientsLoading
-                          ? "Loading clients..."
-                          : "Select client"
-                      }
+                <Label>Client *</Label>
+                <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={clientSearchOpen}
+                      className="w-full justify-between h-auto min-h-[60px] text-left"
                     >
-                      {selectedClientEmail && clients && (() => {
+                      {selectedClientEmail && clients ? (() => {
                         const selectedClient = clients.find(c => c.email === selectedClientEmail);
-                        if (!selectedClient) return null;
+                        if (!selectedClient) return "Select client";
                         return (
                           <div className="flex flex-col gap-1 py-1.5 text-left w-full pr-4">
                             <div className="font-medium text-sm truncate">{selectedClient.name}</div>
@@ -500,33 +516,52 @@ export default function CreateDispatchOrderPage() {
                             </div>
                           </div>
                         );
-                      })()}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="w-[600px] max-h-[400px] overflow-y-auto scroll-smooth">
-                    {(clients || []).map((c) => (
-                      <SelectItem
-                        key={c.id}
-                        value={c.email}
-                        className="cursor-pointer py-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium text-sm">{c.name}</span>
-                          {(c.company?.name || c.companyName) && (
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Building2 className="h-3.5 w-3.5" />
-                              <span>{c.company?.name || c.companyName}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Mail className="h-3.5 w-3.5" />
-                            <span>{c.email}</span>
-                          </div>
+                      })() : (
+                        <span className="text-muted-foreground">
+                          {isClientsLoading ? "Loading clients..." : "Select client"}
+                        </span>
+                      )}
+                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[600px] p-0" align="start">
+                    <div className="p-2">
+                      <Input
+                        placeholder="Search by client name, company, or email..."
+                        value={clientSearchTerm}
+                        onChange={(e) => setClientSearchTerm(e.target.value)}
+                        className="mb-2"
+                      />
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {filteredClients.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          {clientSearchTerm ? `No clients found matching "${clientSearchTerm}"` : "No clients available"}
                         </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      ) : (
+                        filteredClients.map((client) => (
+                          <div className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <span className="font-medium text-sm">{client.name}</span>
+                                {(client.company?.name || client.companyName) && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Building2 className="h-3.5 w-3.5" />
+                                    <span>{client.company?.name || client.companyName}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Mail className="h-3.5 w-3.5" />
+                                  <span>{client.email}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </CardContent>
           </Card>

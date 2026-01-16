@@ -96,14 +96,26 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
     }
   };
 
-  const metrics = useMemo(() => ({
-    totalOrders: orders.length,
-    pendingOrders: orders.filter((o) => o.status === "PENDING").length,
-    completedOrders: orders.filter((o) => (o.status === 'DELIVERED')).length,
-    totalRevenue: orders
-      .filter((o) => o.status !== "CANCELLED")
-      .reduce((sum, order) => sum + order.totalAmount, 0),
-  }), [orders]);
+  const metrics = useMemo(() => {
+    const nonCancelledOrders = orders.filter((o) => o.status !== "CANCELLED");
+    const totalRevenue = nonCancelledOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    
+    // Debug logging to verify calculation
+    console.log('Total Revenue Calculation:', {
+      totalOrders: orders.length,
+      nonCancelledOrders: nonCancelledOrders.length,
+      cancelledOrders: orders.filter((o) => o.status === "CANCELLED").length,
+      totalRevenue,
+      sampleOrders: nonCancelledOrders.slice(0, 3).map(o => ({ id: o.id, status: o.status, totalAmount: o.totalAmount }))
+    });
+
+    return {
+      totalOrders: orders.length,
+      pendingOrders: orders.filter((o) => o.status === "PENDING").length,
+      completedOrders: orders.filter((o) => (o.status === 'DELIVERED')).length,
+      totalRevenue,
+    };
+  }, [orders]);
 
   return {
     expandedOrders,
