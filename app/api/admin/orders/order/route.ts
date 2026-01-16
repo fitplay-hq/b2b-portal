@@ -2,8 +2,7 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { withPermissions } from "@/lib/auth-middleware";
 import { Resend } from "resend";
-import { Princess_Sofia } from "next/font/google";
-import { updateOrder } from "@/data/order/admin.actions";
+
 const resendApiKey = process.env.RESEND_API_KEY;
 
 if (!resendApiKey) {
@@ -290,186 +289,224 @@ export async function POST(req: NextRequest) {
 
 
       let orderId = "";
+      let attempts = 0;
       while (true) {
         orderId = `FP-${startOrder}${year}-${String(nextSequence).padStart(3, "0")}`;
         const existingOrder = await prisma.order.findUnique({ where: { id: orderId } });
         if (!existingOrder) break;
         nextSequence++;
+        attempts++;
+
+        // Prevent infinite loop
+        if (attempts > 1000) {
+          console.error("Failed to generate unique order ID after 1000 attempts");
+          return NextResponse.json(
+            { error: "Unable to generate unique order ID" },
+            { status: 500 }
+          );
+        }
       }
 
+      // Final validation
+      if (!orderId || orderId.length === 0) {
+        console.error("Order ID generation failed", { startOrder, year, nextSequence });
+        return NextResponse.json(
+          { error: "Order ID generation failed" },
+          { status: 500 }
+        );
+      }
+
+      console.log("Generated order ID:", orderId);
+
       // --------------------------
-      // 🔥 MAIN CHANGE: Use a transaction to create order + update inventory
+      // 🔥 Create order without transaction to avoid serverless timeouts
       // --------------------------
-      const order = await prisma.$transaction(async (tx) => {
 
-        const bundles: any[] = [];
-
-        if (bundleOrderItems.length > 0) {
-          const bundleGroups = bundleOrderItems.reduce((groups: any, item: any) => {
-            const groupId = item.bundleGroupId || "default-bundle";
-
-            if (!groups[groupId]) {
-              groups[groupId] = {
-                items: [],
-                numberOfBundles: item.numberOfBundles ?? 1,
-              };
-            }
-
-            groups[groupId].items.push(item);
-            return groups;
-          }, {});
-
-          for (const groupData of Object.values(bundleGroups) as Array<{ items: any[]; numberOfBundles: number }>) {
-            const newBundle = await tx.bundle.create({
-              data: {
-                numberOfBundles: groupData.numberOfBundles,
-              },
-            });
-
-            bundles.push({
-              bundle: newBundle,
-              items: groupData.items,
-              numberOfBundles: groupData.numberOfBundles,
-            });
+      // Create separate bundles for each bundle group
+      let bundles: any[] = [];
+      if (bundleOrderItems.length > 0) {
+        // Group bundle items by bundleGroupId to create separate bundles
+        const bundleGroups = bundleOrderItems.reduce((groups: any, item: any) => {
+          const groupId = item.bundleGroupId || "default-bundle";
+          if (!groups[groupId]) {
+            groups[groupId] = {
+              items: [],
+              numberOfBundles: item.numberOfBundles ?? 1,
+            };
           }
+          groups[groupId].items.push(item);
+          return groups;
+        }, {});
+
+        // Create a bundle for each group
+        for (const [groupId, groupData] of Object.entries(bundleGroups)) {
+          const { items: groupItems, numberOfBundles: groupNumberOfBundles } = groupData as any;
+
+          const newBundle = await prisma.bundle.create({
+            data: {
+              numberOfBundles: groupNumberOfBundles,
+            },
+          });
+
+          bundles.push({
+            bundle: newBundle,
+            items: groupItems,
+            groupId,
+            numberOfBundles: groupNumberOfBundles,
+          });
         }
+      }
 
+      // Create the main order first
+      const newOrder = await prisma.order.create({
+        data: {
+          id: orderId,
+          clientId: client.id,
+          consigneeName,
+          consigneePhone,
+          consigneeEmail,
+          city,
+          state,
+          pincode,
+          requiredByDate,
+          modeOfDelivery,
+          deliveryAddress,
+          deliveryReference,
+          packagingInstructions,
+          note,
+          totalAmount,
+          numberOfBundles,
+        },
+      });
 
-        // Create order
-        const newOrder = await tx.order.create({
-          data: {
-            id: orderId,
-            clientId: client.id,
-            consigneeName,
-            consigneePhone,
-            consigneeEmail,
-            city,
-            state,
-            pincode,
-            requiredByDate,
-            modeOfDelivery,
-            deliveryAddress,
-            deliveryReference,
-            packagingInstructions,
-            note,
-            totalAmount,
-            orderItems: items.length > 0 ? {
-              create: items.map((item: any) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                price: item.price ?? 0,
-              })),
-            } : undefined,
-            numberOfBundles,
-          },
-          include: {
-            orderItems: true,
-            bundleOrderItems: true
-          },
+      // Create order items
+      if (items.length > 0) {
+        await prisma.orderItem.createMany({
+          data: items.map((item: any) => ({
+            orderId: newOrder.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price ?? 0,
+          })),
         });
+      }
 
-        if (bundles.length > 0) {
-          for (const bundleGroup of bundles) {
-            const { bundle, items } = bundleGroup;
-
-            await tx.bundleOrderItem.createMany({
-              data: items.map((item: any) => ({
-                orderId: orderId,
-                bundleId: bundle.id,
-                productId: item.productId,
-                quantity: item.quantity,
-                price: item.price ?? 0,
-              })),
-            });
-          }
-        }
-
-        if (bundles.length > 0) {
-          for (const bundleGroup of bundles) {
-            const { bundle, items } = bundleGroup;
-
-            await tx.bundleItem.createMany({
-              data: items.map((item: any) => ({
-                bundleId: bundle.id,
-                productId: item.productId,
-                bundleProductQuantity: item.bundleProductQuantity,
-                price: item.price ?? 0,
-              })),
-            });
-          }
-        }
-
-
+      // Create bundle order items for each bundle group
+      if (bundleOrderItems.length > 0 && bundles.length > 0) {
         for (const bundleGroup of bundles) {
-          const { bundle, items, numberOfBundles } = bundleGroup;
+          const { bundle, items: bundleItems } = bundleGroup;
 
-          const bundlePrice =
-            items.reduce((sum: number, item: any) => {
-              return sum + item.bundleProductQuantity * item.price;
-            }, 0) * numberOfBundles;
+          await prisma.bundleOrderItem.createMany({
+            data: bundleItems.map((item: any) => ({
+              orderId: newOrder.id,
+              bundleId: bundle.id,
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price ?? 0,
+            })),
+          });
+        }
+      }
 
-          await tx.bundle.update({
+      // Update each bundle with its price and orderId
+      if (bundles.length > 0) {
+        for (const bundleGroup of bundles) {
+          const { bundle, items: bundleItems, numberOfBundles: groupNumberOfBundles } = bundleGroup;
+
+          // Calculate price for this specific bundle group
+          const thisBundlePrice = bundleItems.reduce((sum: number, item: any) => {
+            return sum + item.bundleProductQuantity * item.price;
+          }, 0);
+
+          await prisma.bundle.update({
             where: { id: bundle.id },
             data: {
               orderId: newOrder.id,
-              price: bundlePrice,
-              numberOfBundles,
+              price: thisBundlePrice,
+              numberOfBundles: groupNumberOfBundles,
             },
           });
         }
+      }
 
+      // Create bundle items separately for each bundle group
+      if (bundleOrderItems.length > 0 && bundles.length > 0) {
+        for (const bundleGroup of bundles) {
+          const { bundle, items: bundleItems } = bundleGroup;
 
-        // Update stock for all items (regular and bundle)
-        const allItemsToUpdate = [
-          ...items.map((item: any) => ({ ...item, type: 'regular' })),
-          ...bundles.flatMap((bundleGroup: any) =>
-            bundleGroup.items.map((item: any) => ({ ...item, type: 'bundle' }))
-          ),
-        ];
-
-        for (const item of allItemsToUpdate) {
-          const itemStock = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { availableStock: true },
-          });
-
-          if (!itemStock) {
-            throw new Error(`Product with ID ${item.productId} not found during stock update`);
+          if (bundleItems.length > 0) {
+            try {
+              await prisma.bundleItem.createMany({
+                data: bundleItems.map((item: any) => ({
+                  bundleId: bundle.id,
+                  productId: item.productId,
+                  bundleProductQuantity: item.bundleProductQuantity,
+                  price: item.price ?? 0,
+                })),
+              });
+            } catch (bundleItemError) {
+              console.error(`Error creating bundle items for bundle ${bundle.id}:`, bundleItemError);
+            }
           }
-
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              availableStock: { decrement: item.quantity },
-              inventoryUpdateReason: "NEW_ORDER",
-              inventoryLogs: {
-                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
-              },
-            },
-          });
         }
+      }
 
-        const updatedProducts = await tx.product.findMany({
-          where: {
-            id: { in: [...itemsId, ...bundleOrderItemsId] },
-          },
-          select: {
-            name: true,
-            availableStock: true,
-            minStockThreshold: true,
+      // --------------------------
+      // 🔥 FIX: Aggregate quantities per product to avoid double stock reduction
+      // A product can appear in both regular items and bundle items
+      // --------------------------
+      const productQuantityMap = new Map<string, number>();
+
+      // Add quantities from regular items
+      for (const item of items) {
+        const currentQty = productQuantityMap.get(item.productId) || 0;
+        productQuantityMap.set(item.productId, currentQty + item.quantity);
+      }
+
+      // Add quantities from bundle items
+      for (const item of bundleOrderItems) {
+        const currentQty = productQuantityMap.get(item.productId) || 0;
+        productQuantityMap.set(item.productId, currentQty + item.quantity);
+      }
+
+      // Update stock for all products (aggregated)
+      for (const [productId, totalQuantity] of productQuantityMap.entries()) {
+        await prisma.product.update({
+          where: { id: productId },
+          data: {
+            availableStock: { decrement: totalQuantity },
+            inventoryUpdateReason: "NEW_ORDER",
+            inventoryLogs: {
+              push: `${new Date().toISOString()} | Removed ${totalQuantity} units | Reason: NEW_ORDER | Order: ${orderId}`,
+            },
           },
         });
+      }
 
-        return {
-          order: newOrder,
-          lowStockProducts: updatedProducts.filter(
-            p => p.minStockThreshold && p.availableStock < p.minStockThreshold
-          ),
-        };
-
+      // Check updated products for stock alerts
+      const updatedProducts = await prisma.product.findMany({
+        where: {
+          id: { in: [...itemsId, ...bundleOrderItemsId] },
+        },
+        select: {
+          name: true,
+          availableStock: true,
+          minStockThreshold: true,
+        },
       });
 
-      const { order: createdOrder, lowStockProducts } = order;
+      const lowStockProducts = updatedProducts.filter(
+        p => p.minStockThreshold && p.availableStock < p.minStockThreshold
+      );
+
+      // Get the complete order with all relations for response
+      const createdOrder = await prisma.order.findUnique({
+        where: { id: newOrder.id },
+        include: {
+          orderItems: true,
+          bundleOrderItems: true,
+        },
+      });
 
       const adminEmail = process.env.ADMIN_EMAIL || "";
       const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
