@@ -290,7 +290,6 @@ async function exportOrdersData(
       'Consignee Name': order.consigneeName || '',
       'Consignee Phone': order.consigneePhone || '',
       'Consignee Email': order.consigneeEmail || '',
-      'Delivery Address': order.deliveryAddress || '',
       'City': order.city || '',
       'State': order.state || '',
       'Pincode': order.pincode || '',
@@ -317,7 +316,6 @@ async function exportOrdersData(
     { wch: 20 }, // Consignee Name
     { wch: 15 }, // Consignee Phone
     { wch: 25 }, // Consignee Email
-    { wch: 25 }, // Delivery Address
     { wch: 15 }, // City
     { wch: 15 }, // State
     { wch: 10 }, // Pincode
