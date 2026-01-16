@@ -111,25 +111,10 @@ const OrderSummary = ({ order }: { order: AdminOrder }) => {
           <span className="flex items-center gap-1">
             <Package className="h-4 w-4" />
             {(() => {
-              const regularItems = order.orderItems?.length || 0;
-              const bundleOrderItems = order.bundleOrderItems || [];
-              
-              if (bundleOrderItems.length > 0) {
-                // Group bundle items by bundle ID to count unique bundles
-                const uniqueBundles = [...new Set(bundleOrderItems.map(item => item.bundleId))];
-                const bundleCount = uniqueBundles.length;
-                
-                if (regularItems > 0) {
-                  return `${regularItems} items + ${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
-                } else {
-                  return `${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
-                }
-              } else if (regularItems > 0) {
-                return `${regularItems} items`;
-              } else {
-                return '0 items';
-              }
-            })()} 
+              const totalQuantity = (order.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
+                (order.bundleOrderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0);
+              return `${totalQuantity} item${totalQuantity !== 1 ? 's' : ''}`;
+            })()}
           </span>
         </div>
       </div>
@@ -274,28 +259,60 @@ const OrderDetails = ({
         <div>
           <h4 className="mb-3 font-medium text-sm sm:text-base">Order Items</h4>
           <div className="space-y-3">
-            {order.orderItems && order.orderItems.map((item) => (
-              <div
-                key={item.product.id}
-                className="flex gap-2 sm:gap-3 rounded-lg bg-muted/40 p-2 sm:p-3"
-              >
-                <ImageWithFallback
-                  src={item.product.images[0]}
-                  alt={item.product.name}
-                  className="h-12 w-12 sm:h-16 sm:w-16 rounded object-cover shrink-0"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm sm:text-base truncate">{item.product.name}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    SKU: {item.product.sku}
-                  </p>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm">
-                    <p>Quantity: {item.quantity}</p>
-                    <p>Price: ₹{item.price.toFixed(2)}</p>
+            {(() => {
+              // Aggregate products by productId from both orderItems and bundleOrderItems
+              const productMap = new Map<string, { product: any, totalQty: number, price?: number }>();
+              
+              // Add quantities from regular items
+              order.orderItems?.forEach((item) => {
+                const existing = productMap.get(item.product.id);
+                if (existing) {
+                  existing.totalQty += item.quantity;
+                } else {
+                  productMap.set(item.product.id, {
+                    product: item.product,
+                    totalQty: item.quantity,
+                    price: item.price
+                  });
+                }
+              });
+              
+              // Add quantities from bundle items
+              order.bundleOrderItems?.forEach((item) => {
+                const existing = productMap.get(item.product.id);
+                if (existing) {
+                  existing.totalQty += item.quantity;
+                } else {
+                  productMap.set(item.product.id, {
+                    product: item.product,
+                    totalQty: item.quantity,
+                    price: item.price || item.product?.price
+                  });
+                }
+              });
+              
+              return Array.from(productMap.values()).map((data) => (
+                <div
+                  key={data.product.id}
+                  className="flex gap-2 sm:gap-3 rounded-lg bg-muted/40 p-2 sm:p-3"
+                >
+                  <ImageWithFallback
+                    src={data.product.images[0]}
+                    alt={data.product.name}
+                    className="h-12 w-12 sm:h-16 sm:w-16 rounded object-cover shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm sm:text-base truncate">{data.product.name}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      SKU: {data.product.sku}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm sm:text-base font-medium">Qty: {data.totalQty}</p>
                   </div>
                 </div>
-              </div>
-            ))}
+              ));
+            })()}
             {order.bundleOrderItems && order.bundleOrderItems.length > 0 && (() => {
               // Group bundleOrderItems by bundle for card view
               const bundleGroups = order.bundleOrderItems.reduce((groups: any, bundleItem) => {
@@ -331,9 +348,6 @@ const OrderDetails = ({
                       (item: any) => item.productId === bundleItem.productId
                     )?.bundleProductQuantity || 1;
                     
-                    // Calculate the correct total
-                    const calculatedTotal = bundleProductQty * numberOfBundles;
-                    
                     return (
                     <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3 ml-2">
                       <div className="h-12 w-12 sm:h-16 sm:w-16 rounded overflow-hidden shrink-0">
@@ -348,10 +362,10 @@ const OrderDetails = ({
                         <p className="text-xs sm:text-sm text-muted-foreground">
                           SKU: {bundleItem.product?.sku || 'N/A'}
                         </p>
-                        <p className="text-xs text-blue-700 font-medium">
-                          {bundleProductQty} per bundle × {numberOfBundles} bundle{numberOfBundles > 1 ? 's' : ''} = {calculatedTotal} total
-                        </p>
                         <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">Qty: {bundleProductQty} each</p>
                       </div>
                     </div>
                     );

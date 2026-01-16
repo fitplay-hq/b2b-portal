@@ -116,14 +116,45 @@ const OrderDetailsPage = () => {
             <div>
               <h3 className="font-semibold mb-2">Order Items</h3>
               <div className="space-y-2">
-                {order.orderItems && order.orderItems.map((item) => (
-                  <div key={item.id} className="flex items-center">
-                    <span className="font-medium">{item.product.name}</span>
-                    <span className="text-sm text-muted-foreground ml-2">
-                      (Qty: {item.quantity})
-                    </span>
-                  </div>
-                ))}
+                {(() => {
+                  // Aggregate products by productId from both orderItems and bundleOrderItems
+                  const productMap = new Map<string, { product: any, totalQty: number }>();
+                  
+                  // Add quantities from regular items
+                  order.orderItems?.forEach((item) => {
+                    const existing = productMap.get(item.product.id);
+                    if (existing) {
+                      existing.totalQty += item.quantity;
+                    } else {
+                      productMap.set(item.product.id, {
+                        product: item.product,
+                        totalQty: item.quantity
+                      });
+                    }
+                  });
+                  
+                  // Add quantities from bundle items
+                  order.bundleOrderItems?.forEach((item) => {
+                    const existing = productMap.get(item.product.id);
+                    if (existing) {
+                      existing.totalQty += item.quantity;
+                    } else {
+                      productMap.set(item.product.id, {
+                        product: item.product,
+                        totalQty: item.quantity
+                      });
+                    }
+                  });
+                  
+                  return Array.from(productMap.values()).map((data) => (
+                    <div key={data.product.id} className="flex items-center">
+                      <span className="font-medium">{data.product.name}</span>
+                      <span className="text-sm text-muted-foreground ml-2">
+                        (Qty: {data.totalQty})
+                      </span>
+                    </div>
+                  ));
+                })()}
                 {order.bundleOrderItems && order.bundleOrderItems.length > 0 && (() => {
                   // Group bundleOrderItems by bundle
                   const bundleGroups = order.bundleOrderItems.reduce((groups: any, bundleItem) => {
@@ -143,15 +174,23 @@ const OrderDetailsPage = () => {
                       <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
                         <Package className="h-4 w-4 text-blue-600" />
                         <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
+                        <span className="text-sm text-blue-600 ml-auto">
+                          {group.items.length} items • {group.bundle?.numberOfBundles || 1} bundles
+                        </span>
                       </div>
-                      {group.items.map((bundleItem: any, itemIndex: number) => (
-                        <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex items-center ml-4">
-                          <span className="font-medium">{bundleItem.product?.name || 'Bundle Product'}</span>
-                          <span className="text-sm text-muted-foreground ml-2">
-                            (Qty: {bundleItem.quantity})
-                          </span>
-                        </div>
-                      ))}
+                      {/* Bundle Items */}
+                      {group.items.map((bundleItem: any, itemIndex: number) => {
+                        const bundleCount = group.bundle?.numberOfBundles || 1;
+                        const perBundleQty = bundleCount > 0 ? bundleItem.quantity / bundleCount : bundleItem.quantity;
+                        return (
+                          <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex items-center ml-4">
+                            <span className="font-medium">{bundleItem.product?.name || 'Bundle Product'}</span>
+                            <span className="text-sm text-muted-foreground ml-2">
+                              (Qty: {perBundleQty} each)
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   ));
                 })()}
