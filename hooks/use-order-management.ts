@@ -97,22 +97,21 @@ export function useOrderManagement(orders: AdminOrder[] = [], mutate: KeyedMutat
   };
 
   const metrics = useMemo(() => {
-    const nonCancelledOrders = orders.filter((o) => o.status !== "CANCELLED");
-    const totalRevenue = nonCancelledOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const allOrders = orders || [];
+    const nonCancelledOrders = allOrders.filter((o) => o.status !== "CANCELLED" && o.totalAmount && o.totalAmount > 0);
+    const totalRevenue = nonCancelledOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
     
-    // Debug logging to verify calculation
-    console.log('Total Revenue Calculation:', {
-      totalOrders: orders.length,
+    console.log('Total Revenue Debug:', {
+      totalOrders: allOrders.length,
       nonCancelledOrders: nonCancelledOrders.length,
-      cancelledOrders: orders.filter((o) => o.status === "CANCELLED").length,
       totalRevenue,
-      sampleOrders: nonCancelledOrders.slice(0, 3).map(o => ({ id: o.id, status: o.status, totalAmount: o.totalAmount }))
+      ordersWithAmount: nonCancelledOrders.map(o => ({ id: o.id, amount: o.totalAmount, status: o.status })).slice(0, 5)
     });
 
     return {
-      totalOrders: orders.length,
-      pendingOrders: orders.filter((o) => o.status === "PENDING").length,
-      completedOrders: orders.filter((o) => (o.status === 'DELIVERED')).length,
+      totalOrders: allOrders.length,
+      pendingOrders: allOrders.filter((o) => o.status === "PENDING").length,
+      completedOrders: allOrders.filter((o) => (o.status === 'DELIVERED')).length,
       totalRevenue,
     };
   }, [orders]);
