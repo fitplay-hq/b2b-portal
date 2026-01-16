@@ -99,7 +99,7 @@ export default function RolesPage() {
         toast.success(`Role "${roleName}" has been deleted successfully.`);
       } else {
         const errorData = await response.json();
-        toast.error(`Failed to delete role: ${errorData.message || "Unknown error"}`);
+        toast.error(`Failed to delete role: ${errorData.error || errorData.message || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error deleting role:", error);

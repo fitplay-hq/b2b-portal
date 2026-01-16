@@ -221,7 +221,7 @@ export async function DELETE(
     // Prevent deletion if role has users assigned
     if (existingRole._count.users > 0) {
       return NextResponse.json(
-        { error: 'Failed to delete role' },
+        { error: 'Failed to delete role because it is already assigned to users' },
         { status: 409 }
       );
     }
