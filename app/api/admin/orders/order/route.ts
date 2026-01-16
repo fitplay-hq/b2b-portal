@@ -452,7 +452,7 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        const updatedProducts = await prisma.product.findMany({
+        const updatedProducts = await tx.product.findMany({
           where: {
             id: { in: [...itemsId, ...bundleOrderItemsId] },
           },
@@ -466,24 +466,22 @@ export async function POST(req: NextRequest) {
         // Send stock alert emails if below threshold
         const adminEmail = process.env.ADMIN_EMAIL || "";
         const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
-        updatedProducts.forEach(async (productData) => {
-          if (productData && productData.minStockThreshold) {
-            if (productData.availableStock < productData.minStockThreshold) {
-              const mail = await resend.emails.send({
-                from: "no-reply@fitplaysolutions.com",
-                to: [adminEmail],
-                cc: ownerEmail,
-                subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
-                html: `<p>Dear Admin,</p>
-<p>The stock for product <strong>${productData.name}</strong> has fallen below the minimum threshold.</p>
-<ul>
-  <li>Current Stock: ${productData.availableStock}</li>
-  <li>Minimum Threshold: ${productData.minStockThreshold}</li>
-</ul>`,
-              });
-            }
-          }
-        });
+        for (const productData of updatedProducts) {
+  if (
+    productData.minStockThreshold &&
+    productData.availableStock < productData.minStockThreshold
+  ) {
+    await resend.emails.send({
+      from: "no-reply@fitplaysolutions.com",
+      to: [adminEmail],
+      cc: ownerEmail,
+      subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
+      html: `<p>Dear Admin,</p>
+             <p>Stock for <strong>${productData.name}</strong> is below threshold.</p>`,
+    });
+  }
+}
+
 
         return newOrder;
       });
