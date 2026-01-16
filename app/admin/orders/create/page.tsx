@@ -203,78 +203,63 @@ export default function CreateDispatchOrderPage() {
     setBundleProducts((prev) => prev.filter((p) => p.id !== productId));
   };
 
+  const getTotalBundledQuantity = (productId: string) => {
+  return selectedProducts
+    .filter(p => p.id === productId && p.isBundleItem)
+    .reduce((sum, p) => sum + p.quantity, 0);
+};
+
+
   const handleAddBundle = () => {
-    if (bundleProducts.length === 0) {
-      toast.error("Select at least one product for the bundle");
+  if (bundleProducts.length === 0) {
+    toast.error("Select at least one product for the bundle");
+    return;
+  }
+
+  // 🔒 VALIDATION (same as client)
+  for (const bp of bundleProducts) {
+    const individual = selectedProducts.find(
+      p => p.id === bp.id && !p.isBundleItem
+    );
+
+    if (!individual) {
+      toast.error(`${bp.name} is not added as an individual product`);
       return;
     }
-    if (bundleProducts.some((p) => !p.quantity || p.quantity <= 0)) {
-      toast.error("Invalid quantities in bundle");
+
+    const alreadyBundled = getTotalBundledQuantity(bp.id);
+    const neededNow = bp.quantity * numberOfBundles;
+    const totalNeeded = alreadyBundled + neededNow;
+
+    if (totalNeeded > individual.quantity) {
+      toast.error(
+        `Not enough ${bp.name}. Need ${totalNeeded} (bundles) but only ${individual.quantity} selected`
+      );
       return;
     }
-    if (numberOfBundles <= 0) {
-      toast.error("Number of bundles must be greater than 0");
-      return;
-    }
+  }
 
-    // Validate that all bundle products exist in selected products with sufficient quantity
-    for (const bundleProduct of bundleProducts) {
-      const totalNeeded = bundleProduct.quantity * numberOfBundles;
-      const selectedProduct = selectedProducts.find(p => p.id === bundleProduct.id && !p.isBundleItem);
-      
-      if (!selectedProduct) {
-        toast.error(`${bundleProduct.name} is not in selected products. Please add it first.`);
-        return;
-      }
-      
-      if (selectedProduct.quantity < totalNeeded) {
-        toast.error(`Insufficient quantity of ${bundleProduct.name}. Need ${totalNeeded}, have ${selectedProduct.quantity}`);
-        return;
-      }
-    }
+  const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
 
-    // Generate unique bundle group ID for this bundle
-    const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const bundleItems: SelectedProduct[] = bundleProducts.map(bp => ({
+    ...bp,
+    quantity: bp.quantity * numberOfBundles,
+    bundleProductQuantity: bp.quantity,
+    isBundleItem: true,
+    bundleGroupId,
+  }));
 
-    // Calculate total quantity needed for each product
-    const bundleItems = bundleProducts.map((product) => ({
-      ...product,
-      quantity: product.quantity * numberOfBundles, // Total quantity needed
-      bundleProductQuantity: product.quantity, // Quantity per bundle
-      isBundleItem: true,
-      bundleGroupId: bundleGroupId,
-    }));
+  setSelectedProducts(prev => [...prev, ...bundleItems]);
 
-    // Reduce quantities from selected products or remove if quantity becomes 0
-    setSelectedProducts((prev) => {
-      const updated = [...prev];
-      
-      bundleProducts.forEach(bundleProduct => {
-        const totalNeeded = bundleProduct.quantity * numberOfBundles;
-        const existingIndex = updated.findIndex(p => p.id === bundleProduct.id && !p.isBundleItem);
-        
-        if (existingIndex >= 0) {
-          updated[existingIndex].quantity -= totalNeeded;
-          
-          // Remove if quantity becomes 0 or negative
-          if (updated[existingIndex].quantity <= 0) {
-            updated.splice(existingIndex, 1);
-          }
-        }
-      });
-      
-      // Add bundle items
-      return [...updated, ...bundleItems];
-    });
+  toast.success(`Added ${numberOfBundles} bundle(s)`);
 
-    toast.success(`Added bundle with ${bundleProducts.length} products × ${numberOfBundles} bundles`);
-
-    // Reset bundle state
-    setBundleProducts([]);
-    setNumberOfBundles(1);
-    setBundleSearchTerm("");
-    setShowBundleDialog(false);
-  };
+  setBundleProducts([]);
+  setNumberOfBundles(1);
+  setBundleSearchTerm("");
+  setShowBundleDialog(false);
+};
 
   // Inline bundle handlers
   const handleBundleSelection = (productId: string, checked: boolean) => {
@@ -305,89 +290,55 @@ export default function CreateDispatchOrderPage() {
   };
 
   const addInlineBundle = () => {
-    if (selectedForBundle.size === 0) {
-      toast.error("Select at least one product for the bundle");
+  if (selectedForBundle.size === 0) {
+    toast.error("Select at least one product for the bundle");
+    return;
+  }
+
+  const selectedItems = selectedProducts.filter(
+    p => selectedForBundle.has(p.id) && !p.isBundleItem
+  );
+
+  // 🔒 VALIDATION (same as client)
+  for (const item of selectedItems) {
+    const bundleQty = bundleQuantities[item.id] || 1;
+    const neededNow = bundleQty * inlineBundleCount;
+    const alreadyBundled = getTotalBundledQuantity(item.id);
+    const totalNeeded = alreadyBundled + neededNow;
+
+    if (totalNeeded > item.quantity) {
+      toast.error(
+        `Not enough ${item.name}. Need ${totalNeeded} total (${alreadyBundled} already bundled), but only ${item.quantity} selected`
+      );
       return;
     }
+  }
 
-    // Get selected products
-    const selectedItems = selectedProducts.filter(p => selectedForBundle.has(p.id) && !p.isBundleItem);
-    
-    console.log('selectedItems:', selectedItems);
-    console.log('bundleQuantities:', bundleQuantities);
-    console.log('inlineBundleCount:', inlineBundleCount);
-    
-    // Validate that all items have sufficient quantity
-    for (const item of selectedItems) {
-      const bundleQty = bundleQuantities[item.id] || 1;
-      const totalBundleItems = bundleQty * inlineBundleCount;
-      
-      console.log(`Item ${item.name}: bundleQty=${bundleQty}, inlineBundleCount=${inlineBundleCount}, totalNeeded=${totalBundleItems}, available=${item.quantity}`);
-      
-      if (item.quantity < totalBundleItems) {
-        toast.error(`Insufficient quantity of ${item.name}. Need ${totalBundleItems}, have ${item.quantity}`);
-        return;
-      }
-    }
+  const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
 
-    // Generate unique bundle group ID
-    const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Create bundle items
-    const bundleItems = selectedItems.map(item => {
-      const bundleQty = bundleQuantities[item.id] || 1;
-      const totalBundleItems = bundleQty * inlineBundleCount;
-      
-      return {
-        ...item,
-        quantity: totalBundleItems,
-        bundleProductQuantity: bundleQty,
-        isBundleItem: true,
-        bundleGroupId: bundleGroupId,
-      };
-    });
+  const bundleItems: SelectedProduct[] = selectedItems.map(item => {
+    const bundleQty = bundleQuantities[item.id] || 1;
+    return {
+      ...item,
+      quantity: bundleQty * inlineBundleCount,
+      bundleProductQuantity: bundleQty,
+      isBundleItem: true,
+      bundleGroupId,
+    };
+  });
 
-    console.log('bundleItems:', bundleItems);
+  setSelectedProducts(prev => [...prev, ...bundleItems]);
 
-    // Create a map of reductions needed
-    const reductionsMap = new Map<string, number>();
-    selectedItems.forEach(item => {
-      const bundleQty = bundleQuantities[item.id] || 1;
-      const totalBundleItems = bundleQty * inlineBundleCount;
-      reductionsMap.set(item.id, totalBundleItems);
-    });
+  toast.success(`Added ${inlineBundleCount} bundle(s)`);
 
-    // Reduce quantities from selected products or remove if quantity becomes 0
-    const updatedProducts = selectedProducts
-      .map(product => {
-        // Only reduce individual (non-bundle) items that are selected
-        if (!product.isBundleItem && reductionsMap.has(product.id)) {
-          const reduction = reductionsMap.get(product.id)!;
-          console.log(`Reducing ${product.name}: currentQty=${product.quantity}, toReduce=${reduction}`);
-          const newQuantity = product.quantity - reduction;
-          console.log(`After reduction: newQty=${newQuantity}`);
-          
-          if (newQuantity <= 0) {
-            console.log('Will remove item as quantity is 0');
-            return null; // Mark for removal
-          }
-          
-          return { ...product, quantity: newQuantity };
-        }
-        return product;
-      })
-      .filter((p): p is SelectedProduct => p !== null); // Remove nulls
+  setSelectedForBundle(new Set());
+  setBundleQuantities({});
+  setInlineBundleCount(1);
+};
 
-    // Add bundle items
-    setSelectedProducts([...updatedProducts, ...bundleItems]);
 
-    toast.success(`Added bundle with ${selectedItems.length} products × ${inlineBundleCount} bundles`);
-
-    // Reset
-    setSelectedForBundle(new Set());
-    setBundleQuantities({});
-    setInlineBundleCount(1);
-  };
 
   const handleCreate = async () => {
     if (!selectedClientEmail) return toast.error("Select a client");
@@ -1054,9 +1005,9 @@ export default function CreateDispatchOrderPage() {
                                               <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">Bundle Item</Badge>
                                             </div>
                                             <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
-                                            <p className="text-xs text-blue-700 font-medium">
+                                            {/* <p className="text-xs text-blue-700 font-medium">
                                               {product.bundleProductQuantity} per bundle × {product.quantity / product.bundleProductQuantity} bundles = {product.quantity} total
-                                            </p>
+                                            </p> */}
                                           </div>
                                           <Button
                                             variant="ghost"
