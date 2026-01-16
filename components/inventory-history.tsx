@@ -15,8 +15,7 @@ export function InventoryHistory({ product }: InventoryHistoryProps) {
   const enhancedLogs = logs.map(log => ({
     ...log,
     productName: product.name,
-    sku: product.sku,
-    currentStock: product.availableStock, // Use the current stock from the product
+    sku: product.sku || '',
   }));
 
   if (error) {
@@ -31,6 +30,14 @@ export function InventoryHistory({ product }: InventoryHistoryProps) {
     <InventoryLogsTable
       logs={enhancedLogs}
       isLoading={isLoading}
+      pagination={{
+        page: 1,
+        limit: logs.length,
+        totalLogs: logs.length,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      }}
       showFilters={false} // Product-specific view doesn't need all filters
       title={`Inventory History - ${product.name}`}
       description={`Complete inventory movement history for ${product.sku}`}
