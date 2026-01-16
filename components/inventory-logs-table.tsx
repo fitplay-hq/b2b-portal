@@ -88,8 +88,15 @@ export function InventoryLogsTable({
     reason: "",
   });
   
-  // Use local filters for display (instant updates), but parent filters control API
-  const displayFilters = localFilters;
+  // Sync local filters with current filters from parent
+  useEffect(() => {
+    if (currentFilters) {
+      setLocalFilters(currentFilters);
+    }
+  }, [currentFilters]);
+  
+  // Use currentFilters for display when available (ensures sync with parent), otherwise localFilters
+  const displayFilters = currentFilters || localFilters;
   const filters = useMemo(() => currentFilters || localFilters, [currentFilters, localFilters]);
 
   const handleSearch = (value: string) => {
@@ -349,6 +356,24 @@ export function InventoryLogsTable({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            )}
+
+            {/* Reset Filters Button */}
+            {showAdvancedFilters && (
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Call parent reset function to clear all filters
+                    onResetFilters?.();
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset Filters
+                </Button>
               </div>
             )}
           </div>
