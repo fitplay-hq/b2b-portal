@@ -288,42 +288,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Total amount cannot be negative" }, { status: 400 });
       }
 
-      // create a bundle only if there are bundle items
-      let bundles: any[] = [];
-
-      if (bundleOrderItems.length > 0) {
-        const bundleGroups = bundleOrderItems.reduce((groups: any, item: any) => {
-          const groupId = item.bundleGroupId || "default-bundle";
-
-          if (!groups[groupId]) {
-            groups[groupId] = {
-              items: [],
-              numberOfBundles: item.numberOfBundles ?? 1,
-            };
-          }
-
-          groups[groupId].items.push(item);
-          return groups;
-        }, {});
-
-        for (const [groupId, groupData] of Object.entries(bundleGroups)) {
-          const { items, numberOfBundles } = groupData as any;
-
-          const newBundle = await prisma.bundle.create({
-            data: {
-              numberOfBundles,
-            },
-          });
-
-          bundles.push({
-            bundle: newBundle,
-            items,
-            numberOfBundles,
-            groupId,
-          });
-        }
-      }
-
 
       let orderId = "";
       while (true) {
@@ -337,6 +301,39 @@ export async function POST(req: NextRequest) {
       // 🔥 MAIN CHANGE: Use a transaction to create order + update inventory
       // --------------------------
       const order = await prisma.$transaction(async (tx) => {
+
+        const bundles: any[] = [];
+
+        if (bundleOrderItems.length > 0) {
+          const bundleGroups = bundleOrderItems.reduce((groups: any, item: any) => {
+            const groupId = item.bundleGroupId || "default-bundle";
+
+            if (!groups[groupId]) {
+              groups[groupId] = {
+                items: [],
+                numberOfBundles: item.numberOfBundles ?? 1,
+              };
+            }
+
+            groups[groupId].items.push(item);
+            return groups;
+          }, {});
+
+          for (const groupData of Object.values(bundleGroups) as Array<{ items: any[]; numberOfBundles: number }>) {
+            const newBundle = await tx.bundle.create({
+              data: {
+                numberOfBundles: groupData.numberOfBundles,
+              },
+            });
+
+            bundles.push({
+              bundle: newBundle,
+              items: groupData.items,
+              numberOfBundles: groupData.numberOfBundles,
+            });
+          }
+        }
+
 
         // Create order
         const newOrder = await tx.order.create({
@@ -425,7 +422,7 @@ export async function POST(req: NextRequest) {
         // Update stock for all items (regular and bundle)
         const allItemsToUpdate = [
           ...items.map((item: any) => ({ ...item, type: 'regular' })),
-          ...bundles.flatMap((bundleGroup: any) => 
+          ...bundles.flatMap((bundleGroup: any) =>
             bundleGroup.items.map((item: any) => ({ ...item, type: 'bundle' }))
           ),
         ];
@@ -446,7 +443,7 @@ export async function POST(req: NextRequest) {
               availableStock: { decrement: item.quantity },
               inventoryUpdateReason: "NEW_ORDER",
               inventoryLogs: {
-          push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
+                push: `${new Date().toISOString()} | Removed ${item.quantity} units | Reason: NEW_ORDER | Updated stock: ${itemStock.availableStock - item.quantity} | Remarks: `,
               },
             },
           });
@@ -463,29 +460,31 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Send stock alert emails if below threshold
-        const adminEmail = process.env.ADMIN_EMAIL || "";
-        const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
-        for (const productData of updatedProducts) {
-  if (
-    productData.minStockThreshold &&
-    productData.availableStock < productData.minStockThreshold
-  ) {
-    await resend.emails.send({
-      from: "no-reply@fitplaysolutions.com",
-      to: [adminEmail],
-      cc: ownerEmail,
-      subject: `Stock Alert: Product ${productData.name} below minimum threshold`,
-      html: `<p>Dear Admin,</p>
-             <p>Stock for <strong>${productData.name}</strong> is below threshold.</p>`,
-    });
-  }
-}
+        return {
+          order: newOrder,
+          lowStockProducts: updatedProducts.filter(
+            p => p.minStockThreshold && p.availableStock < p.minStockThreshold
+          ),
+        };
 
-
-        return newOrder;
       });
-      return NextResponse.json(order);
+
+      const { order: createdOrder, lowStockProducts } = order;
+
+      const adminEmail = process.env.ADMIN_EMAIL || "";
+      const ownerEmail = process.env.OWNER_EMAIL || "vaibhav@fitplaysolutions.com";
+
+      for (const product of lowStockProducts) {
+        await resend.emails.send({
+          from: "no-reply@fitplaysolutions.com",
+          to: [adminEmail],
+          cc: ownerEmail,
+          subject: `Stock Alert: Product ${product.name} below minimum threshold`,
+          html: `<p>Stock for <strong>${product.name}</strong> is below threshold.</p>`,
+        });
+      }
+
+      return NextResponse.json(createdOrder);
     } catch (error) {
       console.error("Error creating order:", error);
       console.error("Error details:", {
