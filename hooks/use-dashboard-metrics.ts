@@ -24,7 +24,7 @@ export function useDashboardMetrics() {
 
     const totalProducts = products.length;
 
-    const lowStockProducts = products.filter((p) => p.availableStock < 50).length;
+    const lowStockProducts = products.filter((p) => p.minStockThreshold && p.availableStock <= p.minStockThreshold && p.availableStock > 0).length;
     const activeClients = clients.length;
 
     const recentOrders = [...orders]

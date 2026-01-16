@@ -392,7 +392,7 @@ export default function AnalyticsPage() {
       ) : (
         <>
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card className="border-l-4 border-l-blue-500">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm">Total Orders</CardTitle>
@@ -429,30 +429,6 @@ export default function AnalyticsPage() {
                   ₹{(data?.overview?.averageOrderValue || 0).toFixed(0)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Per order average</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-orange-500">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm">Total Products</CardTitle>
-                <Package className="h-4 w-4 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl">{data?.overview?.totalProducts || 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">In inventory</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-red-500">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm">Low Stock Items</CardTitle>
-                <AlertCircle className="h-4 w-4 text-red-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl text-red-600">
-                  {data?.overview?.lowStockProducts || 0}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Need attention</p>
               </CardContent>
             </Card>
           </div>
@@ -575,11 +551,19 @@ export default function AnalyticsPage() {
                   <CardDescription>Highest revenue generating clients</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={data?.topClients || []}>
+                  <ResponsiveContainer width="100%" height={320}>
+                    <BarChart data={data?.topClients || []} margin={{ top: 10, right: 15, left: 5, bottom: 30 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="name" stroke="#6b7280" angle={-45} textAnchor="end" height={100} />
-                      <YAxis stroke="#6b7280" />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="#6b7280" 
+                        height={80}
+                        angle={-25}
+                        textAnchor="end"
+                        interval={0}
+                        tick={{ fontSize: 9, fill: '#666' }}
+                      />
+                      <YAxis stroke="#6b7280" width={50} />
                       <Tooltip 
                         contentStyle={{ 
                           backgroundColor: '#fff', 
@@ -827,7 +811,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-3xl text-red-600">
-                  {data?.overview?.lowStockProducts || 0}
+                  {data?.inventoryStatus?.lowStock || 0}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Need attention</p>
               </CardContent>
@@ -929,25 +913,25 @@ export default function AnalyticsPage() {
                 <CardDescription>Products by category</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={340}>
+                <ResponsiveContainer width="100%" height={320}>
                   <BarChart 
                     data={Object.entries(data?.categoryDistribution || {}).map(([category, count]) => ({
-                      category: category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                      category: category.toLowerCase().replace(/([a-z])([A-Z])/g, '$1 $2'),
                       count
                     }))}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 70 }}
+                    margin={{ top: 10, right: 15, left: 5, bottom: 30 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis 
                       dataKey="category" 
                       stroke="#6b7280" 
-                      angle={-35}
+                      height={80}
+                      angle={-25}
                       textAnchor="end"
                       interval={0}
-                      height={70}
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 9, fill: '#666' }}
                     />
-                    <YAxis stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" width={50} />
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: '#fff', 

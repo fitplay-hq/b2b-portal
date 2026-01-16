@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
           ? orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0) / orders.length
           : 0,
         totalProducts: filteredInventory.length,
-        lowStockProducts: filteredInventory.filter(p => p.minStockThreshold ? p.availableStock < p.minStockThreshold : false).length,
+        lowStockProducts: filteredInventory.filter(p => p.minStockThreshold && p.availableStock <= p.minStockThreshold && p.availableStock > 0).length,
       },
 
       inventoryStatus: {
@@ -188,7 +188,7 @@ export async function GET(request: NextRequest) {
         lowStock: filteredInventory.filter(p =>
           p.minStockThreshold !== null &&
           p.availableStock > 0 &&
-          p.availableStock < p.minStockThreshold
+          p.availableStock <= p.minStockThreshold
         ).length,
 
         outOfStock: filteredInventory.filter(p =>

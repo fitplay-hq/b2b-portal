@@ -29,7 +29,7 @@ export function useClientAnalytics() {
     // Product Analytics
     const totalProducts = products?.length || 0;
     const availableProducts = products?.filter((p) => p.availableStock > 0).length || 0;
-    const lowStockProducts = products?.filter((p) => p.availableStock < 10).length || 0;
+    const lowStockProducts = products?.filter((p) => p.minStockThreshold && p.availableStock <= p.minStockThreshold && p.availableStock > 0).length || 0;
 
     // Recent Orders (last 5)
     const recentOrders = orders
