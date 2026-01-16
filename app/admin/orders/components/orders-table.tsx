@@ -151,50 +151,61 @@ export function OrdersTable({
                     <Package className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">
                       {(() => {
-                        const regularItems = order.orderItems?.length || 0;
-                        const bundleOrderItems = order.bundleOrderItems || [];
-                        
-                        if (bundleOrderItems.length > 0) {
-                          // Group bundle items by bundle ID to count unique bundles
-                          const uniqueBundles = [...new Set(bundleOrderItems.map(item => item.bundleId))];
-                          const bundleCount = uniqueBundles.length;
-                          
-                          if (regularItems > 0) {
-                            return `${regularItems} items + ${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
-                          } else {
-                            return `${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
-                          }
-                        } else {
-                          return `${regularItems} items`;
-                        }
-                      })()} 
+                        const totalQuantity = (order.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
+                          (order.bundleOrderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0);
+                        return `${totalQuantity} item${totalQuantity !== 1 ? 's' : ''}`;
+                      })()}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {order.orderItems && order.orderItems.slice(0, 2).map((item, idx) => (
-                      <div key={idx}>
-                        {item.product?.name || 'Unknown Product'} x{item.quantity}
-                      </div>
-                    ))}
-                    {order.bundleOrderItems && order.bundleOrderItems.slice(0, 2)
-                      .map((bundleItem, idx) => {
-                        // Get bundle product quantity from the bundle items
-                        const bundleProductQty = bundleItem.bundle?.items?.find(
-                          (item) => item.productId === bundleItem.productId
-                        )?.bundleProductQuantity || 1;
-                        const numberOfBundles = bundleItem.bundle?.numberOfBundles || 1;
-                        
-                        return (
-                          <div key={`bundle-${idx}`}>
-                            {bundleItem.product?.name || 'Bundle Item'} (Bundle): {bundleProductQty} × {numberOfBundles} = {bundleItem.quantity}
-                          </div>
-                        );
-                      })}
-                    {(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) > 2 && (
-                      <div className="text-muted-foreground">
-                        +{(order.orderItems?.length || 0) + (order.bundleOrderItems?.length || 0) - 2} more items
-                      </div>
-                    )}
+                    {(() => {
+                      // Aggregate products by productId
+                      const productMap = new Map<string, { name: string, totalQty: number }>();
+                      
+                      // Add quantities from regular items
+                      order.orderItems?.forEach((item) => {
+                        const existing = productMap.get(item.product.id);
+                        if (existing) {
+                          existing.totalQty += item.quantity;
+                        } else {
+                          productMap.set(item.product.id, {
+                            name: item.product.name,
+                            totalQty: item.quantity
+                          });
+                        }
+                      });
+                      
+                      // Add quantities from bundle items
+                      order.bundleOrderItems?.forEach((item) => {
+                        const existing = productMap.get(item.product.id);
+                        if (existing) {
+                          existing.totalQty += item.quantity;
+                        } else {
+                          productMap.set(item.product.id, {
+                            name: item.product.name,
+                            totalQty: item.quantity
+                          });
+                        }
+                      });
+                      
+                      const productsArray = Array.from(productMap.values());
+                      const itemsToShow = productsArray.slice(0, 2);
+                      
+                      return (
+                        <>
+                          {itemsToShow.map((product, idx) => (
+                            <div key={idx}>
+                              {product.name} x{product.totalQty}
+                            </div>
+                          ))}
+                          {productsArray.length > 2 && (
+                            <div className="text-muted-foreground">
+                              +{productsArray.length - 2} more items
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </TableCell>
                 
