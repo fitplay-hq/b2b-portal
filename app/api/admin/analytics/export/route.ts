@@ -290,7 +290,6 @@ async function exportOrdersData(
       'Consignee Name': order.consigneeName || '',
       'Consignee Phone': order.consigneePhone || '',
       'Consignee Email': order.consigneeEmail || '',
-      'Delivery Address': order.deliveryAddress || '',
       'City': order.city || '',
       'State': order.state || '',
       'Pincode': order.pincode || '',
@@ -317,7 +316,6 @@ async function exportOrdersData(
     { wch: 20 }, // Consignee Name
     { wch: 15 }, // Consignee Phone
     { wch: 25 }, // Consignee Email
-    { wch: 25 }, // Delivery Address
     { wch: 15 }, // City
     { wch: 15 }, // State
     { wch: 10 }, // Pincode
@@ -672,10 +670,11 @@ async function exportInventoryData(
   // Prepare data for Excel
   const excelData = sortedProducts.map(product => {
     const stockQuantity = product.availableStock;
-    const lowThreshold = product.minStockThreshold || 0;
+    const lowThreshold = product?.minStockThreshold ?? '';
+    
     const computedStockStatus = stockQuantity === 0
       ? 'Out of Stock'
-      : stockQuantity <= lowThreshold
+      : lowThreshold !== '' && stockQuantity <= lowThreshold
         ? 'Low Stock'
         : 'In Stock';
 
@@ -700,7 +699,7 @@ async function exportInventoryData(
       'Stock Quantity': stockQuantity,
       ...(client ? {} : { 'Low Stock Threshold': lowThreshold }),
       ...(client && client.isShowPrice ? {
-        'Unit Price': product.price || 0,
+        'Unit Price': product.price || '',
         'Stock Value': stockValue
       } : {}),
       'Stock Status': computedStockStatus,

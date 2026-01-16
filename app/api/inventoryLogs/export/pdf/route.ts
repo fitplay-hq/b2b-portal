@@ -246,18 +246,53 @@ async function exportInventoryLogsPDF({
 
     let page = pdf.addPage([595.28, 841.89]);
     let y = 800;
-    const margin = 30;
-    const rowHeight = 16;
+    const margin = 20;
+    const rowHeight = 24; // Increased for 2-line product names
+    const cellPadding = 4;
+    const tableWidth = 555;
 
+    // Column positions and widths (reduced spacing)
     const cols = {
-        product: margin,   // 30
-        sku: 180,
-        date: 270,
-        qty: 370,
-        stock: 420,
-        reason: 470        // starts earlier → more width
+        product: { x: margin, width: 120 },
+        sku: { x: margin + 120, width: 80 },
+        date: { x: margin + 200, width: 100 },
+        qty: { x: margin + 300, width: 40 },
+        stock: { x: margin + 340, width: 40 },
+        reason: { x: margin + 380, width: 175 }
     };
 
+    // Helper function to wrap text to multiple lines
+    const wrapText = (text: string, maxWidth: number, fontSize: number): string[] => {
+        const words = text.split(' ');
+        const lines: string[] = [];
+        let currentLine = '';
+        
+        for (const word of words) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+            
+            if (testWidth > maxWidth && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) lines.push(currentLine);
+        return lines.slice(0, 2); // Max 2 lines
+    };
+
+    // Helper function to draw cell borders
+    const drawCellBorders = (page: any, x: number, y: number, width: number, height: number) => {
+        // Left border
+        page.drawLine({ start: { x, y: y + height }, end: { x, y }, thickness: 0.5 });
+        // Right border
+        page.drawLine({ start: { x: x + width, y: y + height }, end: { x: x + width, y }, thickness: 0.5 });
+        // Top border
+        page.drawLine({ start: { x, y: y + height }, end: { x: x + width, y: y + height }, thickness: 0.5 });
+        // Bottom border
+        page.drawLine({ start: { x, y }, end: { x: x + width, y }, thickness: 0.5 });
+    };
 
     // Title
     page.drawText("Inventory Logs Report", {
@@ -266,54 +301,101 @@ async function exportInventoryLogsPDF({
         size: 18,
         font: boldFont
     });
-    y -= 30;
+    y -= 35;
 
-    // Table Header
-    page.drawText("Product", { x: cols.product, y, size: 10, font: boldFont });
-    page.drawText("SKU", { x: cols.sku, y, size: 10, font: boldFont });
-    page.drawText("Date & Time", { x: cols.date, y, size: 10, font: boldFont });
-    page.drawText("Qty", { x: cols.qty, y, size: 10, font: boldFont });
-    page.drawText("Stock", { x: cols.stock, y, size: 10, font: boldFont });
-    page.drawText("Reason", { x: cols.reason, y, size: 10, font: boldFont });
+    const headerHeight = 20;
+    const headerY = y;
 
-    y -= rowHeight;
+    // Draw header row borders
+    drawCellBorders(page, cols.product.x, headerY - headerHeight, cols.product.width, headerHeight);
+    drawCellBorders(page, cols.sku.x, headerY - headerHeight, cols.sku.width, headerHeight);
+    drawCellBorders(page, cols.date.x, headerY - headerHeight, cols.date.width, headerHeight);
+    drawCellBorders(page, cols.qty.x, headerY - headerHeight, cols.qty.width, headerHeight);
+    drawCellBorders(page, cols.stock.x, headerY - headerHeight, cols.stock.width, headerHeight);
+    drawCellBorders(page, cols.reason.x, headerY - headerHeight, cols.reason.width, headerHeight);
 
-    // Divider
-    page.drawLine({
-        start: { x: margin, y },
-        end: { x: 565, y },
-        thickness: 1
-    });
+    // Table Header text
+    page.drawText("Product", { x: cols.product.x + cellPadding, y: headerY - 13, size: 9, font: boldFont });
+    page.drawText("SKU", { x: cols.sku.x + cellPadding, y: headerY - 13, size: 9, font: boldFont });
+    page.drawText("Date & Time", { x: cols.date.x + cellPadding, y: headerY - 13, size: 9, font: boldFont });
+    page.drawText("Qty", { x: cols.qty.x + cellPadding, y: headerY - 13, size: 9, font: boldFont });
+    page.drawText("Stock", { x: cols.stock.x + cellPadding, y: headerY - 13, size: 9, font: boldFont });
+    page.drawText("Reason", { x: cols.reason.x + cellPadding, y: headerY - 13, size: 9, font: boldFont });
 
-    y -= rowHeight;
+    y = headerY - headerHeight;
 
-    const rowFontSize = 7.6;
+    const rowFontSize = 7;
 
     // Table Rows
     for (const log of finalLogs) {
         if (y < 60) {
             page = pdf.addPage([595.28, 841.89]);
             y = 800;
+            
+            // Redraw header on new page
+            const newHeaderY = y;
+            drawCellBorders(page, cols.product.x, newHeaderY - headerHeight, cols.product.width, headerHeight);
+            drawCellBorders(page, cols.sku.x, newHeaderY - headerHeight, cols.sku.width, headerHeight);
+            drawCellBorders(page, cols.date.x, newHeaderY - headerHeight, cols.date.width, headerHeight);
+            drawCellBorders(page, cols.qty.x, newHeaderY - headerHeight, cols.qty.width, headerHeight);
+            drawCellBorders(page, cols.stock.x, newHeaderY - headerHeight, cols.stock.width, headerHeight);
+            drawCellBorders(page, cols.reason.x, newHeaderY - headerHeight, cols.reason.width, headerHeight);
+            
+            page.drawText("Product", { x: cols.product.x + cellPadding, y: newHeaderY - 13, size: 9, font: boldFont });
+            page.drawText("SKU", { x: cols.sku.x + cellPadding, y: newHeaderY - 13, size: 9, font: boldFont });
+            page.drawText("Date & Time", { x: cols.date.x + cellPadding, y: newHeaderY - 13, size: 9, font: boldFont });
+            page.drawText("Qty", { x: cols.qty.x + cellPadding, y: newHeaderY - 13, size: 9, font: boldFont });
+            page.drawText("Stock", { x: cols.stock.x + cellPadding, y: newHeaderY - 13, size: 9, font: boldFont });
+            page.drawText("Reason", { x: cols.reason.x + cellPadding, y: newHeaderY - 13, size: 9, font: boldFont });
+            
+            y = newHeaderY - headerHeight;
         }
 
-        page.drawText(log.productName, { x: cols.product, y, size: rowFontSize, font });
-        page.drawText(log.sku, { x: cols.sku, y, size: rowFontSize, font });
+        const rowY = y;
+
+        // Draw row cell borders
+        drawCellBorders(page, cols.product.x, rowY - rowHeight, cols.product.width, rowHeight);
+        drawCellBorders(page, cols.sku.x, rowY - rowHeight, cols.sku.width, rowHeight);
+        drawCellBorders(page, cols.date.x, rowY - rowHeight, cols.date.width, rowHeight);
+        drawCellBorders(page, cols.qty.x, rowY - rowHeight, cols.qty.width, rowHeight);
+        drawCellBorders(page, cols.stock.x, rowY - rowHeight, cols.stock.width, rowHeight);
+        drawCellBorders(page, cols.reason.x, rowY - rowHeight, cols.reason.width, rowHeight);
+
+        // Product name with text wrapping (max 2 lines)
+        const productLines = wrapText(log.productName, cols.product.width - cellPadding * 2, rowFontSize);
+        productLines.forEach((line, index) => {
+            page.drawText(line, { 
+                x: cols.product.x + cellPadding, 
+                y: rowY - 9 - (index * 9), 
+                size: rowFontSize, 
+                font 
+            });
+        });
+
+        page.drawText(log.sku, { x: cols.sku.x + cellPadding, y: rowY - 9, size: rowFontSize, font });
         page.drawText(
             log.timestamp.toLocaleString(),
-            { x: cols.date, y, size: rowFontSize, font }
+            { x: cols.date.x + cellPadding, y: rowY - 9, size: rowFontSize, font }
         );
         page.drawText(
             `${log.changeDirection === "Added" ? "+" : "-"}${log.changeAmount}`,
-            { x: cols.qty, y, size: rowFontSize, font }
+            { x: cols.qty.x + cellPadding, y: rowY - 9, size: rowFontSize, font }
         );
         page.drawText(
             String(log.finalStock),
-            { x: cols.stock, y, size: rowFontSize, font }
+            { x: cols.stock.x + cellPadding, y: rowY - 9, size: rowFontSize, font }
         );
-        page.drawText(
-            log.reason || "N/A",
-            { x: cols.reason, y, size: rowFontSize, font }
-        );
+        
+        // Reason with text wrapping
+        const reasonLines = wrapText(log.reason || "N/A", cols.reason.width - cellPadding * 2, rowFontSize);
+        reasonLines.forEach((line, index) => {
+            page.drawText(line, { 
+                x: cols.reason.x + cellPadding, 
+                y: rowY - 9 - (index * 9), 
+                size: rowFontSize, 
+                font 
+            });
+        });
 
         y -= rowHeight;
     }
