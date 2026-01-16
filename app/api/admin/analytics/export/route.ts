@@ -670,10 +670,11 @@ async function exportInventoryData(
   // Prepare data for Excel
   const excelData = sortedProducts.map(product => {
     const stockQuantity = product.availableStock;
-    const lowThreshold = product.minStockThreshold || 0;
+    const lowThreshold = product?.minStockThreshold ?? '';
+    
     const computedStockStatus = stockQuantity === 0
       ? 'Out of Stock'
-      : stockQuantity <= lowThreshold
+      : lowThreshold !== '' && stockQuantity <= lowThreshold
         ? 'Low Stock'
         : 'In Stock';
 
@@ -698,7 +699,7 @@ async function exportInventoryData(
       'Stock Quantity': stockQuantity,
       ...(client ? {} : { 'Low Stock Threshold': lowThreshold }),
       ...(client && client.isShowPrice ? {
-        'Unit Price': product.price || 0,
+        'Unit Price': product.price || '',
         'Stock Value': stockValue
       } : {}),
       'Stock Status': computedStockStatus,
