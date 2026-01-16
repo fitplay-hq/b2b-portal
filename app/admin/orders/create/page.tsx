@@ -573,14 +573,14 @@ export default function CreateDispatchOrderPage() {
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 gap-2">
                 <div className="space-y-2">
-                  <Label>Consignee Name</Label>
+                  <Label>Consignee Name *</Label>
                   <Input
                     value={consigneeName}
                     onChange={(e) => setConsigneeName(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Consignee Phone</Label>
+                  <Label>Consignee Phone *</Label>
                   <Input
                     value={consigneePhone}
                     onChange={(e) => {
@@ -667,6 +667,7 @@ export default function CreateDispatchOrderPage() {
                     className="pl-9"
                     value={requiredByDate}
                     onChange={(e) => setRequiredByDate(e.target.value)}
+                    min={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })}
                   />
                 </div>
               </div>
