@@ -357,10 +357,29 @@ export default function CreateDispatchOrderPage() {
       const regularItems = selectedProducts.filter(p => !p.isBundleItem);
       const bundleItems = selectedProducts.filter(p => p.isBundleItem);
 
+      // Calculate bundled quantities per product
+      const bundledQuantityByProduct = new Map<string, number>();
+      for (const bundleItem of bundleItems) {
+        const currentQty = bundledQuantityByProduct.get(bundleItem.id) || 0;
+        bundledQuantityByProduct.set(bundleItem.id, currentQty + bundleItem.quantity);
+      }
+
+      // Adjust regular items by subtracting bundled quantities
+      // This ensures stock is only reduced once for the total quantity
+      const adjustedRegularItems = regularItems
+        .map((item) => {
+          const bundledQty = bundledQuantityByProduct.get(item.id) || 0;
+          const adjustedQty = item.quantity - bundledQty;
+          return { ...item, quantity: adjustedQty };
+        })
+        .filter((item) => item.quantity > 0); // Only include items with remaining quantity
+
       console.log('Order creation data:', {
         selectedProducts,
         regularItems,
+        adjustedRegularItems,
         bundleItems,
+        bundledQuantityByProduct: Object.fromEntries(bundledQuantityByProduct),
         uniqueBundleGroups: [...new Set(bundleItems.map(item => item.bundleGroupId).filter(Boolean))].length
       });
 
@@ -371,7 +390,7 @@ export default function CreateDispatchOrderPage() {
       const order = await createOrder({
         clientEmail: selectedClientEmail,
         deliveryAddress,
-        items: regularItems.map((p) => ({
+        items: adjustedRegularItems.map((p) => ({
           productId: p.id,
           quantity: p.quantity,
           price: p.price ?? 0,

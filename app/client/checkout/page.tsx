@@ -177,25 +177,43 @@ export default function ClientCheckout() {
         return;
       }
 
-      // Prepare order items
-      const _orderItems = cartItems
-        .filter(item => !item.isBundleItem)
-        .map((item) => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-          price: item.price,
-        }));
+      // Get bundle items first to calculate quantities to subtract from regular items
+      const bundleItems = cartItems.filter(item => item.isBundleItem);
+      const regularItems = cartItems.filter(item => !item.isBundleItem);
 
-      const _bundleOrderItems = cartItems
-        .filter(item => item.isBundleItem)
-        .map((item) => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-          price: item.price,
-          bundleProductQuantity: item.bundleQuantity || 1,
-          bundleGroupId: item.bundleGroupId,
-          numberOfBundles: item.bundleCount || 1,
-        }));
+      // Calculate bundled quantities per product
+      const bundledQuantityByProduct = new Map<string, number>();
+      for (const bundleItem of bundleItems) {
+        const productId = bundleItem.product.id;
+        const currentQty = bundledQuantityByProduct.get(productId) || 0;
+        bundledQuantityByProduct.set(productId, currentQty + bundleItem.quantity);
+      }
+
+      // Adjust regular items by subtracting bundled quantities
+      // This ensures stock is only reduced once for the total quantity
+      const adjustedRegularItems = regularItems
+        .map((item) => {
+          const bundledQty = bundledQuantityByProduct.get(item.product.id) || 0;
+          const adjustedQty = item.quantity - bundledQty;
+          return { ...item, quantity: adjustedQty };
+        })
+        .filter((item) => item.quantity > 0); // Only include items with remaining quantity
+
+      // Prepare order items (with adjusted quantities)
+      const _orderItems = adjustedRegularItems.map((item) => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+
+      const _bundleOrderItems = bundleItems.map((item) => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        price: item.price,
+        bundleProductQuantity: item.bundleQuantity || 1,
+        bundleGroupId: item.bundleGroupId,
+        numberOfBundles: item.bundleCount || 1,
+      }));
 
       const dateTimeForPrisma = requiredByDate
         ? new Date(requiredByDate).toISOString()
