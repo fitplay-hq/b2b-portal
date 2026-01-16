@@ -53,7 +53,7 @@ export function OrderFilters({
                     value={status}
                     className="capitalize"
                   >
-                    {status.replace("-", " ").toLowerCase()}
+                    {status === "all" ? "All Statuses" : formatStatus(status)}
                   </SelectItem>
                 ))}
               </SelectContent>
