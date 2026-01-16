@@ -103,7 +103,7 @@ export function OverviewSection({
           <AlertItem
             Icon={AlertCircle}
             title="Low Stock Items"
-            description={`${lowStockProducts} products below 50 units`}
+            description={`${lowStockProducts} products below minimum threshold`}
             color="yellow"
           />
           <AlertItem

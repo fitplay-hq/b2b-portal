@@ -20,7 +20,9 @@ export function useFastDashboardMetrics() {
     const rejectedOrders = orders.filter((o: any) => o.status === 'CANCELLED').length;
 
     const totalProducts = products.length;
-    const lowStockProducts = products.filter((p: any) => p.availableStock < 50).length;
+    const lowStockProducts = products.filter((p: any) => 
+      p.minStockThreshold && p.availableStock <= p.minStockThreshold && p.availableStock > 0
+    ).length;
     const activeClients = clients.length;
 
     // Get recent orders (already sorted by createdAt desc in API)

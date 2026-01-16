@@ -11,12 +11,11 @@ export function useFastDashboardData() {
     isInitialized ? '/api/admin/dashboard' : null,
     fetcher,
     {
-      // Aggressive caching for dashboard data
-      revalidateIfStale: false,
-      revalidateOnFocus: false,
+      // Temporarily enable revalidation to get updated data
+      revalidateIfStale: true,
+      revalidateOnFocus: true,
       revalidateOnReconnect: true,
-      // Cache for 2 minutes
-      dedupingInterval: 2 * 60 * 1000,
+      dedupingInterval: 0, // Disable deduping to force fresh requests
     }
   );
 

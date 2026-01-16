@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Eye, Package, MapPin, User, Calendar, IndianRupee, Mail, Download, FileText } from "lucide-react";
+import { Edit, Eye, Package, MapPin, User, Calendar, IndianRupee, Mail, Download, FileText, Clock, CheckCircle, Building2, XCircle } from "lucide-react";
 import { AdminOrder } from "@/data/order/admin.actions";
 import { formatStatus } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -28,22 +28,51 @@ interface OrdersTableProps {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'PENDING':
-      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80';
-    case 'APPROVED':
-      return 'bg-blue-100 text-blue-800 hover:bg-blue-100/80';
-    case 'READY_FOR_DISPATCH':
-      return 'bg-purple-100 text-purple-800 hover:bg-purple-100/80';
-    case 'DISPATCHED':
-      return 'bg-indigo-100 text-indigo-800 hover:bg-indigo-100/80';
-    case 'AT_DESTINATION':
-      return 'bg-orange-100 text-orange-800 hover:bg-orange-100/80';
-    case 'DELIVERED':
-      return 'bg-green-100 text-green-800 hover:bg-green-100/80';
-    case 'CANCELLED':
-      return 'bg-red-100 text-red-800 hover:bg-red-100/80';
+    case "PENDING":
+      return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80";
+    case "APPROVED":
+      return "bg-blue-100 text-blue-800 hover:bg-blue-100/80";
+    case "READY_FOR_DISPATCH":
+      return "bg-purple-100 text-purple-800 hover:bg-purple-100/80";
+    case "DISPATCHED":
+      return "bg-indigo-100 text-indigo-800 hover:bg-indigo-100/80";
+    case "AT_DESTINATION":
+      return "bg-orange-100 text-orange-800 hover:bg-orange-100/80";
+    case "DELIVERED":
+      return "bg-green-100 text-green-800 hover:bg-green-100/80";
+    case "COMPLETED":
+      return "bg-green-100 text-green-800 hover:bg-green-100/80";
+    case "CANCELLED":
+    case "REJECTED":
+      return "bg-red-100 text-red-800 hover:bg-red-100/80";
+    case "IN_PROGRESS":
+      return "bg-purple-100 text-purple-800 hover:bg-purple-100/80";
     default:
-      return 'bg-gray-100 text-gray-800 hover:bg-gray-100/80';
+      return "bg-gray-100 text-gray-800 hover:bg-gray-100/80";
+  }
+};
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case "PENDING":
+      return Clock;
+    case "APPROVED":
+      return CheckCircle;
+    case "READY_FOR_DISPATCH":
+      return Download;
+    case "DISPATCHED":
+    case "AT_DESTINATION":
+      return Package;
+    case "DELIVERED":
+    case "COMPLETED":
+      return Building2;
+    case "CANCELLED":
+    case "REJECTED":
+      return XCircle;
+    case "IN_PROGRESS":
+      return Package;
+    default:
+      return Clock;
   }
 };
 
@@ -212,6 +241,10 @@ export function OrdersTable({
                 {/* Order Status */}
                 <TableCell>
                   <Badge className={`text-xs ${getStatusColor(order.status)}`}>
+                    {(() => {
+                      const StatusIcon = getStatusIcon(order.status);
+                      return <StatusIcon className="mr-1 h-3 w-3" />;
+                    })()}
                     {formatStatus(order.status)}
                   </Badge>
                   <div className="text-xs text-muted-foreground mt-1">
