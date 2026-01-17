@@ -229,15 +229,22 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
         </nav>
       </div>
 
-      {/* Management Section */}
-      {!isCollapsed && (
-        <div>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Management
-          </h3>
-          <nav className="space-y-1">
-            {/* Clients Unified Collapsible */}
-            {((isAdminUser || (pageAccess.companies || pageAccess.clients)) && (
+      {/* Management Section - Only show if at least one management item is accessible */}
+      {(() => {
+        // Check if any management sections should be visible
+        const showClientsSection = isAdminUser || (pageAccess.companies || pageAccess.clients);
+        const showRolesSection = isAdminUser || pageAccess.roles;
+        const showUsersSection = isAdminUser || pageAccess.users;
+        const hasAnyManagementAccess = showClientsSection || showRolesSection || showUsersSection;
+
+        return hasAnyManagementAccess && !isCollapsed && (
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Management
+            </h3>
+            <nav className="space-y-1">
+              {/* Clients Unified Collapsible */}
+              {showClientsSection && (
             <Collapsible open={companiesOpen} onOpenChange={setCompaniesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -307,10 +314,10 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
                 )}
               </CollapsibleContent>
             </Collapsible>
-            ))}
+            )}
 
-            {/* Role Management Collapsible - Check roles permission */}
-            {(isAdminUser || pageAccess.roles) && (
+              {/* Role Management Collapsible - Check roles permission */}
+              {showRolesSection && (
             <Collapsible open={rolesOpen} onOpenChange={setRolesOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -369,7 +376,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
 
             {/* User Management Collapsible - Check users permission */}
-            {(isAdminUser || pageAccess.users) && (
+            {showUsersSection && (
             <Collapsible open={usersOpen} onOpenChange={setUsersOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -428,16 +435,24 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
             )}
           </nav>
         </div>
-      )}
+        );
+      })()}
 
       {/* Collapsed Management Icons with Dropdowns */}
-      {isCollapsed && (
-        <div className="space-y-1 mt-4">
-          {/* Separator line */}
-          <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
-          
-          {/* Clients Unified Dropdown */}
-          {((isAdminUser || (pageAccess.companies || pageAccess.clients)) && (
+      {(() => {
+        // Check if any management sections should be visible (reuse same logic)
+        const showClientsSection = isAdminUser || (pageAccess.companies || pageAccess.clients);
+        const showRolesSection = isAdminUser || pageAccess.roles;
+        const showUsersSection = isAdminUser || pageAccess.users;
+        const hasAnyManagementAccess = showClientsSection || showRolesSection || showUsersSection;
+
+        return isCollapsed && hasAnyManagementAccess && (
+          <div className="space-y-1 mt-4">
+            {/* Separator line */}
+            <div className="w-8 h-px bg-gray-200 mx-auto mb-2"></div>
+            
+            {/* Clients Unified Dropdown */}
+            {showClientsSection && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -478,10 +493,10 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          ))}
+          )}
 
           {/* Role Management Dropdown - Check roles permission */}
-          {(isAdminUser || pageAccess.roles) && (
+          {showRolesSection && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -519,7 +534,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           )}
 
           {/* User Management Dropdown - Check users permission */}
-          {(isAdminUser || pageAccess.users) && (
+          {showUsersSection && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -556,7 +571,8 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
           </DropdownMenu>
           )}
         </div>
-      )}
+        );
+      })()}
 
 
     </div>

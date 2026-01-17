@@ -237,7 +237,7 @@ export default function EditUserPage() {
                       <Label htmlFor="role">Role *</Label>
                       <Select value={formData.roleId} onValueChange={(value) => handleInputChange("roleId", value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
+                          <SelectValue placeholder={user?.role?.name || "Select a role"} />
                         </SelectTrigger>
                         <SelectContent>
                           {roles.map((role) => (
