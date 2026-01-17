@@ -313,6 +313,9 @@ export function OrderDetailsDialog({
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{data.product.name}</p>
                       <p className="text-sm text-muted-foreground">SKU: {data.product.sku}</p>
+                      {data.price && (
+                        <p className="text-sm text-muted-foreground">Price: ₹{data.price.toLocaleString()} each</p>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-medium">Qty: {data.totalQty}</p>
@@ -366,13 +369,13 @@ export function OrderDetailsDialog({
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{bundleItem.product?.name || 'Bundle Product'}</p>
                           <p className="text-sm text-muted-foreground">SKU: {bundleItem.product?.sku || 'N/A'}</p>
+                          {bundleItem.price && (
+                            <p className="text-sm text-muted-foreground">Price: ₹{bundleItem.price.toLocaleString()} each</p>
+                          )}
                           <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium">Qty: {bundleProductQty} each</p>
-                          <p className="text-sm text-muted-foreground">
-                            ₹{bundleItem.price?.toFixed(2) || '0.00'} each
-                          </p>
                         </div>
                       </div>
                     );

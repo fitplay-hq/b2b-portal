@@ -306,6 +306,11 @@ const OrderDetails = ({
                     <p className="text-xs sm:text-sm text-muted-foreground">
                       SKU: {data.product.sku}
                     </p>
+                    {data.price && (
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        Price: ₹{data.price.toLocaleString()} each
+                      </p>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm sm:text-base font-medium">Qty: {data.totalQty}</p>
@@ -362,6 +367,11 @@ const OrderDetails = ({
                         <p className="text-xs sm:text-sm text-muted-foreground">
                           SKU: {bundleItem.product?.sku || 'N/A'}
                         </p>
+                        {bundleItem.price && (
+                          <p className="text-xs sm:text-sm text-muted-foreground">
+                            Price: ₹{bundleItem.price.toLocaleString()} each
+                          </p>
+                        )}
                         <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
                       </div>
                       <div className="text-right">
