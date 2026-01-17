@@ -682,7 +682,15 @@ export default function CreateDispatchOrderPage() {
                         </div>
                       ) : (
                         filteredClients.map((client) => (
-                          <div className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0">
+                          <div 
+                            key={client.id}
+                            className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                            onClick={() => {
+                              setSelectedClientEmail(client.email);
+                              setClientSearchOpen(false);
+                              setClientSearchTerm("");
+                            }}
+                          >
                             <div className="flex-1">
                               <div className="flex items-center gap-3">
                                 <span className="font-medium text-sm">{client.name}</span>
@@ -1204,38 +1212,28 @@ export default function CreateDispatchOrderPage() {
                                         />
                                       </div>
                                       <div className="flex-1">
-                                        <div className="flex items-start justify-between">
+                                        <div className="flex items-center justify-between">
                                           <div>
                                             <div className="flex items-center gap-2">
                                               <p className="text-sm font-medium">{product.name}</p>
                                               <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">Bundle Item</Badge>
                                             </div>
                                             <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
-                                            {/* <p className="text-xs text-blue-700 font-medium">
-                                              {product.bundleProductQuantity} per bundle × {product.quantity / product.bundleProductQuantity} bundles = {product.quantity} total
-                                            </p> */}
                                           </div>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleRemoveProduct(product.id)}
-                                            className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
-                                          >
-                                            <X className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-2">
-                                          <Label className="text-xs text-muted-foreground">Qty:</Label>
-                                          <div className="flex items-center gap-1">
-                                            <Button type="button" variant="outline" size="sm" className="h-7 w-7 p-0"
-                                              onClick={() => handleUpdateProduct(product.id, Math.max(1, product.quantity - 1))}>-</Button>
-                                            <Input type="number" min="1" max={product.availableStock} value={product.quantity}
-                                              onChange={(e) => handleUpdateProduct(product.id, Math.min(product.availableStock, parseInt(e.target.value) || 0))}
-                                              className="w-20 h-7 text-xs text-center" />
-                                            <Button type="button" variant="outline" size="sm" className="h-7 w-7 p-0"
-                                              onClick={() => handleUpdateProduct(product.id, Math.min(product.availableStock, product.quantity + 1))}>+</Button>
+                                          <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                              <p className="text-xs text-muted-foreground">Qty per bundle</p>
+                                              <p className="text-sm font-semibold text-blue-700">{product.bundleProductQuantity || 1}</p>
+                                            </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleRemoveProduct(product.id)}
+                                              className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
                                           </div>
-                                          <span className="text-xs text-muted-foreground ml-2">Stock: {product.availableStock}</span>
                                         </div>
                                       </div>
                                     </div>
