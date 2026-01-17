@@ -191,8 +191,16 @@ export default function CreateDispatchOrderPage() {
   };
 
   const handleUpdateProduct = (productId: string, quantity: number) => {
+    // Check if this product has bundle commitments
+    const alreadyBundled = getTotalBundledQuantity(productId);
+    if (alreadyBundled > 0 && quantity < alreadyBundled) {
+      toast.error(`Cannot reduce quantity below ${alreadyBundled} - this amount is committed to existing bundles`);
+      return;
+    }
+
+    // Only update individual items, not bundle items
     setSelectedProducts((prev) =>
-      prev.map((p) => (p.id === productId ? { ...p, quantity } : p))
+      prev.map((p) => (p.id === productId && !p.isBundleItem ? { ...p, quantity } : p))
     );
   };
 
@@ -217,10 +225,19 @@ export default function CreateDispatchOrderPage() {
     if (!isNaN(numValue) && numValue > 0) {
       const product = selectedProducts.find(p => p.id === productId);
       if (product) {
-        const clampedValue = Math.min(numValue, product.availableStock);
+        const alreadyBundled = getTotalBundledQuantity(productId);
+        const minAllowed = Math.max(1, alreadyBundled);
+        const clampedValue = Math.max(minAllowed, Math.min(numValue, product.availableStock));
+        
+        if (numValue < alreadyBundled) {
+          toast.error(`Cannot reduce below ${alreadyBundled} - this amount is committed to bundles`);
+          setProductInputValues(prev => ({ ...prev, [productId]: clampedValue.toString() }));
+          return;
+        }
+        
         handleUpdateProduct(productId, clampedValue);
         
-        // Show toast if exceeded
+        // Show toast if exceeded available stock
         if (numValue > product.availableStock) {
           toast.error(`Only ${product.availableStock} available for ${product.name}`);
         }
@@ -233,7 +250,9 @@ export default function CreateDispatchOrderPage() {
     const numValue = parseInt(inputValue) || 1;
     const product = selectedProducts.find(p => p.id === productId);
     if (product) {
-      const clampedValue = Math.max(1, Math.min(numValue, product.availableStock));
+      const alreadyBundled = getTotalBundledQuantity(productId);
+      const minAllowed = Math.max(1, alreadyBundled);
+      const clampedValue = Math.max(minAllowed, Math.min(numValue, product.availableStock));
       handleUpdateProduct(productId, clampedValue);
       setProductInputValues(prev => ({ ...prev, [productId]: clampedValue.toString() }));
     }
@@ -244,7 +263,8 @@ export default function CreateDispatchOrderPage() {
     if (!inputValue || inputValue === '') return false;
     const numValue = parseInt(inputValue);
     const product = selectedProducts.find(p => p.id === productId);
-    return product && !isNaN(numValue) && numValue > 0 && numValue <= product.availableStock;
+    const alreadyBundled = getTotalBundledQuantity(productId);
+    return product && !isNaN(numValue) && numValue >= alreadyBundled && numValue > 0 && numValue <= product.availableStock;
   };
 
   const handleBundleQuantityChange = (productId: string, value: string) => {
@@ -1135,9 +1155,15 @@ export default function CreateDispatchOrderPage() {
                                       <Label className="text-xs text-muted-foreground">Qty:</Label>
                                       <div className="flex items-center gap-1">
                                         <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
-                                          onClick={() => handleUpdateProduct(product.id, Math.max(1, product.quantity - 1))}
-                                          disabled={product.quantity <= 1}>-</Button>
-                                        <Input type="number" min="1" max={product.availableStock} 
+                                          onClick={() => {
+                                            const alreadyBundled = getTotalBundledQuantity(product.id);
+                                            const minQuantity = Math.max(1, alreadyBundled);
+                                            const newQuantity = Math.max(minQuantity, product.quantity - 1);
+                                            handleUpdateProduct(product.id, newQuantity);
+                                            setProductInputValues(prev => ({ ...prev, [product.id]: newQuantity.toString() }));
+                                          }}
+                                          disabled={product.quantity <= Math.max(1, getTotalBundledQuantity(product.id))}>-</Button>
+                                        <Input type="number" min={Math.max(1, getTotalBundledQuantity(product.id))} max={product.availableStock} 
                                           value={productInputValues[product.id] !== undefined ? productInputValues[product.id] : product.quantity}
                                           onChange={(e) => handleProductQuantityChange(product.id, e.target.value)}
                                           onBlur={() => validateProductQuantity(product.id)}
@@ -1149,15 +1175,25 @@ export default function CreateDispatchOrderPage() {
                                           }}
                                           className={`w-24 h-8 text-xs text-center ${!isProductQuantityValid(product.id) ? 'border-red-500 focus-visible:ring-red-500' : ''}`} />
                                         <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
-                                          onClick={() => handleUpdateProduct(product.id, Math.min(product.availableStock, product.quantity + 1))}>+</Button>
+                                          onClick={() => {
+                                            const newQuantity = Math.min(product.availableStock, product.quantity + 1);
+                                            handleUpdateProduct(product.id, newQuantity);
+                                            setProductInputValues(prev => ({ ...prev, [product.id]: newQuantity.toString() }));
+                                          }}>+</Button>
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2 ml-auto">
                                       <div className="flex gap-1">
                                         {[1, 5, 10].map(qty => (
                                           <Button key={qty} type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs"
-                                            onClick={() => handleUpdateProduct(product.id, Math.min(product.availableStock, qty))}
-                                            disabled={qty > product.availableStock}>{qty}</Button>
+                                            onClick={() => {
+                                              const alreadyBundled = getTotalBundledQuantity(product.id);
+                                              const newQuantity = Math.max(alreadyBundled, qty);
+                                              const finalQuantity = Math.min(product.availableStock, newQuantity);
+                                              handleUpdateProduct(product.id, finalQuantity);
+                                              setProductInputValues(prev => ({ ...prev, [product.id]: finalQuantity.toString() }));
+                                            }}
+                                            disabled={qty > product.availableStock || qty < getTotalBundledQuantity(product.id)}>{qty}</Button>
                                         ))}
                                       </div>
                                       <div className="text-xs text-muted-foreground">
@@ -1168,13 +1204,14 @@ export default function CreateDispatchOrderPage() {
 
                                   {/* Bundle Selection Checkbox */}
                                   <div className="flex items-center gap-2 pt-3 mt-3 border-t border-dashed">
-                                    <Checkbox 
+                                    <Checkbox
                                       id={`bundle-${product.id}`}
                                       checked={selectedForBundle.has(product.id)}
                                       onCheckedChange={(checked) => handleBundleSelection(product.id, checked as boolean)}
+                                      disabled={getTotalBundledQuantity(product.id) > 0}
                                     />
-                                    <Label htmlFor={`bundle-${product.id}`} className="text-sm text-muted-foreground cursor-pointer">
-                                      Add to Bundle
+                                    <Label htmlFor={`bundle-${product.id}`} className={`text-sm text-muted-foreground cursor-pointer ${getTotalBundledQuantity(product.id) > 0 ? 'text-gray-400' : ''}`}>
+                                      {getTotalBundledQuantity(product.id) > 0 ? 'Already in bundle' : 'Add to Bundle'}
                                     </Label>
                                   </div>
                                 </div>
