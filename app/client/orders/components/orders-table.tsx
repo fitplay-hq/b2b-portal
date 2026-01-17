@@ -141,22 +141,9 @@ export function ClientOrdersTable({ orders, isShowPrice = false }: ClientOrdersT
                           <Package className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm font-medium">
                             {(() => {
-                              const regularItems = order.orderItems?.length || 0;
-                              const bundleOrderItems = order.bundleOrderItems || [];
-                              
-                              if (bundleOrderItems.length > 0) {
-                                // Group bundle items by bundle ID to count unique bundles
-                                const uniqueBundles = [...new Set(bundleOrderItems.map(item => item.bundleId))];
-                                const bundleCount = uniqueBundles.length;
-                                
-                                if (regularItems > 0) {
-                                  return `${regularItems} items + ${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
-                                } else {
-                                  return `${bundleCount} bundle${bundleCount > 1 ? 's' : ''}`;
-                                }
-                              } else {
-                                return `${regularItems} items`;
-                              }
+                              const totalQuantity = (order.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
+                                (order.bundleOrderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0);
+                              return `${totalQuantity} item${totalQuantity !== 1 ? 's' : ''}`;
                             })()} 
                           </span>
                         </div>
