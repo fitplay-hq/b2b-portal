@@ -189,14 +189,11 @@ export default function InventoryLogsPage() {
     setAdvancedFilters(updatedAdvancedFilters);
     
     // Update main filters state to trigger API call
-    setFilters(prev => {
-      const newFilters = { ...prev };
-      delete newFilters[filterKey as keyof typeof newFilters];
-      return {
-        ...newFilters,
-        page: 1, // Reset to first page
-      };
-    });
+    setFilters(prev => ({
+      ...prev,
+      [filterKey]: '', // Set to empty string to ensure object reference changes
+      page: 1, // Reset to first page
+    }));
   };
 
   const handleExport = async (format: 'xlsx' | 'pdf') => {

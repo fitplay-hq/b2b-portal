@@ -337,11 +337,12 @@ export function InventoryLogsTable({
                 <div>
                   <label className="text-sm font-medium mb-1 block">Reason</label>
                   <Select
+                    key={`reason-${displayFilters.reason || 'all'}`}
                     value={displayFilters.reason || "all"}
                     onValueChange={(value) => {
                       const reasonValue = value === "all" ? "" : value;
-                      handleFilterChange("reason", reasonValue);
-                      handleApplyFilter("reason", reasonValue);
+                      // For dropdown, call parent filter change directly without debouncing
+                      onFilterChange?.({ reason: reasonValue });
                     }}
                   >
                     <SelectTrigger>

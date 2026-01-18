@@ -76,6 +76,7 @@ export function useInventoryLogs(filters?: InventoryLogsFilters) {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
+      dedupingInterval: 0, // Disable deduping to ensure fresh requests
     }
   );
 
