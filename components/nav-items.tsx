@@ -53,7 +53,7 @@ export default function NavItems({ isClient, isCollapsed = false }: NavItemsProp
   
   // INSTANT admin detection - ONLY use cached fast permissions
   const isAdminUser = isAdmin;
-  const { data: session } = useSession();
+  const { data: session ,status} = useSession();
 
 const DEMO_EMAIL = "demo.github@fitplaysolutions.com";
 const isDemoUser =
@@ -76,6 +76,10 @@ const isDemoUser =
   
 
   if (isClient) {
+
+     if (status === "loading") {
+    return null; // or skeleton
+  }
 
      if (isDemoUser) {
     return (
