@@ -17,9 +17,30 @@ export const auth: AuthOptions = {
         password: { label: "Password", type: "password", placeholder: "Enter your password" },
       },
       async authorize(credentials) {
+        
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email and password are required");
         }
+
+        // ✅ DEMO USER LOGIN (BYPASS DB)
+if (
+  credentials.email === "razorpay.demo@fitplaysolutions.com" &&
+  credentials.password === "Test@2026"
+) {
+  console.log("🚀 Demo user login");
+
+  return {
+    id: "demo-client",
+    name: "Demo Client",
+    email: credentials.email,
+    role: "CLIENT",
+    companyId: "demo-company",
+    companyName: "Demo Company",
+    isDemo: true,
+    isShowPrice: true,
+  };
+}
+
         // Special case: Email verification flow
         if (credentials.password === "EMAIL_VERIFIED") {
           console.log("🔓 Email verified login attempt for:", credentials.email);

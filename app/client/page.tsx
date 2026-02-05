@@ -19,10 +19,23 @@ import { useOrders } from "@/data/order/client.hooks";
 import { formatStatus } from "@/lib/utils";
 import { useClientAnalytics } from "@/hooks/use-client-analytics";
 import { ClientChartsSection } from "./components/client-charts-section";
+import { useRouter } from "next/navigation"; 
+import { toast } from "sonner";
+
 
 export default function ClientDashboard() {
   const { data: session, status } = useSession();
+  const router = useRouter()
+    console.log("session data",session)
+    useEffect(()=>{
+      if(session.user.email="razorpay.demo@fitplaysolutions.com"){
+        router.push("/client/products")
+        toast.error("Demo Client have Access Only to Product")
+        
+      }
+    },[])
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
 
   // Use the useOrders hook as requested
   const { orders, isLoading, error } = useOrders();

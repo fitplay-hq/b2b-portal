@@ -1,4 +1,6 @@
 import { Product } from "@/lib/generated/prisma";
+import { useEffect,useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   Card,
   CardContent,
@@ -59,6 +61,12 @@ export function ProductCard({
   onClearCart,
   isShowPrice = false,
 }: ProductCardProps) {
+  const { data: session } = useSession();
+  const[addtocart,setaddtocart] = useState(true);
+  
+  useEffect(()=>{if(session.user.email="razorpay.demo@fitplaysolutions.com"){
+    setaddtocart(false)
+  }},[])
   const isInStock = product.availableStock > 0;
 
   return (
@@ -140,7 +148,7 @@ export function ProductCard({
         ) : (
           <Button
             onClick={() => onAddToCartClick(product)}
-            disabled={!isInStock}
+            disabled={!isInStock || !addtocart}
             className="w-full text-sm h-8"
             size="sm"
           >
