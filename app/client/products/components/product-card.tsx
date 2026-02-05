@@ -68,6 +68,7 @@ export function ProductCard({
     setaddtocart(false)
   }},[])
   const isInStock = product.availableStock > 0;
+  //demo client changes
 
   return (
     <Card className="flex flex-col h-full overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 p-0">
