@@ -19,10 +19,14 @@ import { useOrders } from "@/data/order/client.hooks";
 import { formatStatus } from "@/lib/utils";
 import { useClientAnalytics } from "@/hooks/use-client-analytics";
 import { ClientChartsSection } from "./components/client-charts-section";
+import { useRouter } from "next/navigation";
+
 
 export default function ClientDashboard() {
   const { data: session, status } = useSession();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const router = useRouter();
+
 
   // Use the useOrders hook as requested
   const { orders, isLoading, error } = useOrders();
@@ -31,6 +35,14 @@ export default function ClientDashboard() {
   const { data: analytics, isLoading: analyticsLoading } = useClientAnalytics();
 
   const user = session?.user;
+  const DEMO_EMAIL = "demo.github@fitplaysolutions.com";
+const isDemoUser = user?.email === DEMO_EMAIL;
+
+useEffect(() => {
+  if (status === "authenticated" && isDemoUser) {
+    router.replace("/client/products");
+  }
+}, [status, isDemoUser, router]);
 
   useEffect(() => {
     // Load cart items (keeping this as it's not related to orders)

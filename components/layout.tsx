@@ -137,7 +137,7 @@ export default function Layout({ children, isClient }: LayoutProps) {
 
             {/* Navigation - Scrollable when needed */}
             <div className={`flex-1 overflow-y-auto sidebar-scrollbar transition-all duration-300 ${(sidebarOpen || isMobile) ? 'p-4 pt-6' : 'p-2 pt-4'} min-h-0`}>
-              <NavItems isClient={isClient} isCollapsed={!sidebarOpen && !isMobile} />
+              <NavItems isClient={isClient} isCollapsed={!sidebarOpen && !isMobile}  />
             </div>
 
             {/* User Profile Section */}

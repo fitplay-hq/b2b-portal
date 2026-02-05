@@ -23,7 +23,7 @@ export default function LoginPage() {
 
   // Check if current credentials are demo credentials
   const checkIfDemo = (email: string, password: string) => {
-    const isDemo = email.trim().toLowerCase() === "razorpay.demo@fitplaysolutions.com" && password === "Test@2026";
+    const isDemo = email.trim().toLowerCase() === "demo.github@fitplaysolutions.com" && password === "Demo123";
     setIsDemoUser(isDemo);
     return isDemo;
   };

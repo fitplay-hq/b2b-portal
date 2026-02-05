@@ -9,6 +9,7 @@ import { ImageWithFallback } from "@/components/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Minus, Plus, X } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { $Enums } from "@/lib/generated/prisma";
 
 // Function to convert enum values to human-friendly names
@@ -60,6 +61,11 @@ export function ProductCard({
   isShowPrice = false,
 }: ProductCardProps) {
   const isInStock = product.availableStock > 0;
+   const { data: session, status } = useSession();
+   const user = session?.user;
+  const DEMO_EMAIL = "demo.github@fitplaysolutions.com";
+const isDemoUser = user?.email === DEMO_EMAIL;
+
 
   return (
     <Card className="flex flex-col h-full overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 p-0">
@@ -108,6 +114,7 @@ export function ProductCard({
           </div>
         </div>
       </CardContent>
+      {!isDemoUser && (
       <CardFooter className="p-3 pt-0">
         {cartQuantity > 0 ? (
           <div className="w-full flex items-center gap-2">
@@ -149,6 +156,8 @@ export function ProductCard({
           </Button>
         )}
       </CardFooter>
+      )
+}
     </Card>
   );
 }
