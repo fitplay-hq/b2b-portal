@@ -43,7 +43,7 @@ export default function ClientCheckout() {
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   useEffect(()=>{
-      if(session.user.email="razorpay.demo@fitplaysolutions.com"){
+      if(session.user.email==="razorpay.demo@fitplaysolutions.com"){
         router.push("/client/products")
         toast.error("Demo Client have Access Only to Product")
         

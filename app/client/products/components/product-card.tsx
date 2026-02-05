@@ -64,7 +64,7 @@ export function ProductCard({
   const { data: session } = useSession();
   const[addtocart,setaddtocart] = useState(true);
   
-  useEffect(()=>{if(session.user.email="razorpay.demo@fitplaysolutions.com"){
+  useEffect(()=>{if(session.user.email==="razorpay.demo@fitplaysolutions.com"){
     setaddtocart(false)
   }},[])
   const isInStock = product.availableStock > 0;

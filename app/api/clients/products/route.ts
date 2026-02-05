@@ -17,6 +17,10 @@ export async function GET(req: NextRequest) {
       select: { id: true, companyID: true },
     });
 
+    
+
+   
+
     if (!client || !client.companyID) {
       return NextResponse.json(
         { error: "Client does not belong to any company" },
