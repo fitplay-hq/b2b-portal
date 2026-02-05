@@ -34,7 +34,7 @@ export default function ClientInventoryLogsPage() {
   const { exportData, exportLoading } = useInventoryExport();
   const router = useRouter()
     useEffect(()=>{
-      if(session.user.email==="razorpay.demo@fitplaysolutions.com"){
+      if(session.user.email="razorpay.demo@fitplaysolutions.com"){
         router.push("/client/products")
         toast.error("Demo Client have Access Only to Product")
         
