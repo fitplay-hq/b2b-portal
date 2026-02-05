@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [isDemoUser, setIsDemoUser] = useState(false);
   const router = useRouter();
+  //setup corrections
 
   // Check if current credentials are demo credentials
   const checkIfDemo = (email: string, password: string) => {
