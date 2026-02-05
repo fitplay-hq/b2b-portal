@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageWithFallback } from "@/components/image";
-
 import {
   Trash2,
   Plus,
@@ -42,13 +41,6 @@ export default function ClientCart() {
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartInputValues, setCartInputValues] = useState<{[key: string]: string}>({});
-   useEffect(()=>{
-    if(session.user.email="razorpay.demo@fitplaysolutions.com"){
-      router.push("/client/products")
-      toast.error("Demo Client have Access Only to Product")
-      
-    }
-  },[])
 
   const isShowPrice = session?.user?.isShowPrice ?? false;
 

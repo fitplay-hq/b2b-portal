@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
 import {
   Select,
   SelectContent,
@@ -42,13 +41,6 @@ export default function ClientCheckout() {
   const isShowPrice = session?.user?.isShowPrice ?? false;
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  useEffect(()=>{
-      if(session.user.email="razorpay.demo@fitplaysolutions.com"){
-        router.push("/client/products")
-        toast.error("Demo Client have Access Only to Product")
-        
-      }
-    },[])
 
   // Form state
   const [poNumber, setPONumber] = useState("");

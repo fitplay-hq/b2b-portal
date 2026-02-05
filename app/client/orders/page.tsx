@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useMemo ,useEffect} from "react";
+import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation"; 
-import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -45,16 +43,6 @@ import { ClientOrdersTable } from "./components/orders-table";
 
 export default function ClientOrderHistory() {
   const { data: session } = useSession();
-   const router = useRouter()
-      console.log("session data",session)
-      useEffect(()=>{
-        if(session.user.email="razorpay.demo@fitplaysolutions.com"){
-          router.push("/client/products")
-          toast.error("Demo Client have Access Only to Product")
-          
-        }
-      },[])
-  
   const isShowPrice = session?.user?.isShowPrice ?? false;
   const { orders, isLoading } = useOrders();
   const [searchTerm, setSearchTerm] = useState("");

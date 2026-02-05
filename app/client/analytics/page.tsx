@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Layout from "@/components/layout";
 import { 
@@ -17,8 +17,7 @@ import {
   Calendar as CalendarIcon,
   FileText,
   ChevronDown,
-  BarChart3,
-  Router
+  BarChart3
 } from 'lucide-react';
 import {
   LineChart,
@@ -35,9 +34,6 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { useRouter } from "next/navigation"; 
-import { toast } from "sonner";
-
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -145,15 +141,6 @@ const CustomTick = (props: any) => {
 
 export default function ClientAnalyticsPage() {
   const { data: session } = useSession();
-  const router = useRouter()
-  console.log("session data",session)
-  useEffect(()=>{
-    if(session.user.email="razorpay.demo@fitplaysolutions.com"){
-      router.push("/client/products")
-      toast.error("Demo Client have Access Only to Product")
-      
-    }
-  },[])
   const isShowPrice = session?.user?.isShowPrice ?? false;
   
   const [filters, setFilters] = useState<AnalyticsFilters>({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo,useEffect } from "react";
+import { useState, useMemo } from "react";
 import Layout from "@/components/layout";
 import { ClientInventoryLogsTable } from "@/components/client-inventory-logs-table";
 import { useClientInventoryLogs, ClientInventoryLogsFilters } from "@/data/inventory/client.hooks";
@@ -9,8 +9,6 @@ import { useInventoryExport } from "@/hooks/use-inventory-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { useRouter } from "next/navigation"; 
-import { toast } from "sonner";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -32,14 +30,6 @@ import {
 
 export default function ClientInventoryLogsPage() {
   const { exportData, exportLoading } = useInventoryExport();
-  const router = useRouter()
-    useEffect(()=>{
-      if(session.user.email="razorpay.demo@fitplaysolutions.com"){
-        router.push("/client/products")
-        toast.error("Demo Client have Access Only to Product")
-        
-      }
-    },[])
   
   const [filters, setFilters] = useState<ClientInventoryLogsFilters>({
     period: "all",
