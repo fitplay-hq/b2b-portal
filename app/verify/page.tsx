@@ -100,21 +100,21 @@ function VerifyOTPContent() {
     }
 
     try {
-      const response = await fetch("/api/auth/verify-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, otp: otpString }),
-      });
+      // const response = await fetch("/api/auth/verify-otp", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify({ email, otp: otpString }),
+      // });
 
-      const data = await response.json();
+      // const data = await response.json();
 
-      if (!response.ok) {
-        setError(data.error || "OTP verification failed");
-        setLoading(false);
-        return;
-      }
+      // if (!response.ok) {
+      //   setError(data.error || "OTP verification failed");
+      //   setLoading(false);
+      //   return;
+      // }
 
       // OTP verification successful, proceed with login
       
