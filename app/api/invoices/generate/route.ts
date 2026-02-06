@@ -426,11 +426,7 @@
 import { NextResponse } from "next/server";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
-import fs from "fs";
-import path from "path";
 
-const logoPath = path.join(process.cwd(), "public", "logo_black.png");
-const logoBase64 = fs.readFileSync(logoPath).toString("base64");
 
 function getInvoiceHTML(data: any) {
   const {
@@ -564,13 +560,15 @@ function getInvoiceHTML(data: any) {
 <div class="outer-border">
 
 <!-- Header -->
-<div style="text-align: center; padding: 10px 0;">
-  <img
-    src="data:image/png;base64,${logoBase64}"
-    alt="FITPLAY"
-    style="height: 40px;"
-  />
+<div style="
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  font-family: Arial, Helvetica, sans-serif;
+">
+  FITPLAY
 </div>
+
 
 <div class="sub">TAX INVOICE</div>
 <div class="header-right" style="padding-right: 10px;">ORIGINAL FOR BUYER</div>
