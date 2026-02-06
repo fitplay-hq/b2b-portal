@@ -8,6 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ImageWithFallback } from "@/components/image";
+import { GenerateInvoiceDialog } from "./generate-invoice-dialog";
 import {
   ChevronDown,
   Clock,
@@ -139,6 +140,7 @@ const OrderDetails = ({
   const { actions } = usePermissions();
   const { sendOrderEmail, isSending } = useSendOrderEmail();
   const [isGeneratingLabel, setIsGeneratingLabel] = useState(false);
+    const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
 
   const handleSendEmail = async () => {
     try {
@@ -230,6 +232,11 @@ const OrderDetails = ({
 
   return (
     <CardContent className="pt-0">
+           <GenerateInvoiceDialog
+  order={order}
+  open={isInvoiceDialogOpen}
+  onOpenChange={setIsInvoiceDialogOpen}
+/>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 border-b pb-4">
           {actions.orders.edit && (
@@ -237,6 +244,20 @@ const OrderDetails = ({
               Update Status
             </Button>
           )}
+           <Button
+  variant="outline"
+  size="sm"
+  className="h-8 px-2 text-xs"
+  title="Generate Invoice"
+   onClick={(e) => {
+    e.stopPropagation();
+    
+    setIsInvoiceDialogOpen(true);
+  }}
+>
+  <FileText className="h-3 w-3" />
+  Generate Invoice
+                     </Button>
           {(order.status === "READY_FOR_DISPATCH" ||
             order.status === "DISPATCHED" ||
             order.status === "AT_DESTINATION" ||

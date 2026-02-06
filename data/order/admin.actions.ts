@@ -32,6 +32,14 @@ export interface AdminOrder {
       price: number;
       bundleId: string;
       orderId: string;
+      
+  product: {                     // ✅ ADD THIS
+    id: string;
+    name: string;
+    images: string[];
+    sku: string;
+    price: number;
+  };
       bundle?: {
         id: string;
         price: number;

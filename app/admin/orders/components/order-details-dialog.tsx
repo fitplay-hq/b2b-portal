@@ -488,6 +488,17 @@ export function OrderDetailsDialog({
                 ? "Sending..."
                 : "Send Email"}
             </Button>
+            <Button
+  variant="outline"
+  size="sm"
+  className="h-8 px-2 text-xs"
+  title="Generate Invoice"
+  onClick={() => {
+  
+  }}
+>
+  <FileText className="h-3 w-3" />
+                     </Button>
             
             {actions.orders.edit && (
               <Button

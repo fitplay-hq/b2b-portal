@@ -17,6 +17,7 @@ import { OrderDetailsDialog } from "./order-details-dialog";
 import { useSendOrderEmail } from "@/data/order/admin.hooks";
 import { toast } from "sonner";
 import Link from "next/link";
+import { GenerateInvoiceDialog } from "./generate-invoice-dialog";
 
 interface OrdersTableProps {
   orders: AdminOrder[];
@@ -76,6 +77,7 @@ const getStatusIcon = (status: string) => {
   }
 };
 
+
 export function OrdersTable({ 
   orders, 
   onStatusUpdate, 
@@ -87,6 +89,10 @@ export function OrdersTable({
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { sendOrderEmail, isSending } = useSendOrderEmail();
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
+
+  
+
 
   const handleStatusUpdate = (order: AdminOrder) => {
     if (onStatusUpdate) {
@@ -115,6 +121,13 @@ export function OrdersTable({
   return (
     <div className="rounded-md border">
       <Table>
+
+        <GenerateInvoiceDialog
+  order={selectedOrder}
+  open={isInvoiceDialogOpen}
+  onOpenChange={setIsInvoiceDialogOpen}
+/>
+
         <TableHeader>
           <TableRow>
             <TableHead>Order Created</TableHead>
@@ -305,6 +318,23 @@ export function OrdersTable({
                         </Link>
                       </Button>
                     )}
+                  
+                    <Button
+  variant="outline"
+  size="sm"
+  className="h-8 px-2 text-xs"
+  title="Generate Invoice"
+  onClick={(e) => {
+    e.stopPropagation();
+    setSelectedOrder(order);
+    setIsInvoiceDialogOpen(true);
+  }}
+>
+  <FileText className="h-3 w-3" />
+                     </Button>
+                    
+
+
                   </div>
                 </TableCell>
               </TableRow>
