@@ -32,7 +32,7 @@ export async function generateShippingLabelPDF(order: any): Promise<Buffer> {
 
   const senderName = "FITPLAY INTERNATIONAL LLP";
   const senderAddress = "Wz-251 Shakurpur village near Gufa Mandir, New Delhi - 110034";
-  const senderContact = "Sonu Kumar 9582746425";
+  const senderContact = "Krishna 8090597176";
 
   const pageWidth = page.getWidth();
   const maxTextWidth = 420;
