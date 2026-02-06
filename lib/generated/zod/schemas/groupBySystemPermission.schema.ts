@@ -1,0 +1,13 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { SystemPermissionWhereInputObjectSchema as SystemPermissionWhereInputObjectSchema } from './objects/SystemPermissionWhereInput.schema';
+import { SystemPermissionOrderByWithAggregationInputObjectSchema as SystemPermissionOrderByWithAggregationInputObjectSchema } from './objects/SystemPermissionOrderByWithAggregationInput.schema';
+import { SystemPermissionScalarWhereWithAggregatesInputObjectSchema as SystemPermissionScalarWhereWithAggregatesInputObjectSchema } from './objects/SystemPermissionScalarWhereWithAggregatesInput.schema';
+import { SystemPermissionScalarFieldEnumSchema } from './enums/SystemPermissionScalarFieldEnum.schema';
+import { SystemPermissionCountAggregateInputObjectSchema as SystemPermissionCountAggregateInputObjectSchema } from './objects/SystemPermissionCountAggregateInput.schema';
+import { SystemPermissionMinAggregateInputObjectSchema as SystemPermissionMinAggregateInputObjectSchema } from './objects/SystemPermissionMinAggregateInput.schema';
+import { SystemPermissionMaxAggregateInputObjectSchema as SystemPermissionMaxAggregateInputObjectSchema } from './objects/SystemPermissionMaxAggregateInput.schema';
+
+export const SystemPermissionGroupBySchema: z.ZodType<Prisma.SystemPermissionGroupByArgs> = z.object({ where: SystemPermissionWhereInputObjectSchema.optional(), orderBy: z.union([SystemPermissionOrderByWithAggregationInputObjectSchema, SystemPermissionOrderByWithAggregationInputObjectSchema.array()]).optional(), having: SystemPermissionScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(SystemPermissionScalarFieldEnumSchema), _count: z.union([ z.literal(true), SystemPermissionCountAggregateInputObjectSchema ]).optional(), _min: SystemPermissionMinAggregateInputObjectSchema.optional(), _max: SystemPermissionMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.SystemPermissionGroupByArgs>;
+
+export const SystemPermissionGroupByZodSchema = z.object({ where: SystemPermissionWhereInputObjectSchema.optional(), orderBy: z.union([SystemPermissionOrderByWithAggregationInputObjectSchema, SystemPermissionOrderByWithAggregationInputObjectSchema.array()]).optional(), having: SystemPermissionScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(SystemPermissionScalarFieldEnumSchema), _count: z.union([ z.literal(true), SystemPermissionCountAggregateInputObjectSchema ]).optional(), _min: SystemPermissionMinAggregateInputObjectSchema.optional(), _max: SystemPermissionMaxAggregateInputObjectSchema.optional() }).strict();

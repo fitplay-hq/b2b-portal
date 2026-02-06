@@ -1,0 +1,13 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { LoginTokenWhereInputObjectSchema as LoginTokenWhereInputObjectSchema } from './objects/LoginTokenWhereInput.schema';
+import { LoginTokenOrderByWithAggregationInputObjectSchema as LoginTokenOrderByWithAggregationInputObjectSchema } from './objects/LoginTokenOrderByWithAggregationInput.schema';
+import { LoginTokenScalarWhereWithAggregatesInputObjectSchema as LoginTokenScalarWhereWithAggregatesInputObjectSchema } from './objects/LoginTokenScalarWhereWithAggregatesInput.schema';
+import { LoginTokenScalarFieldEnumSchema } from './enums/LoginTokenScalarFieldEnum.schema';
+import { LoginTokenCountAggregateInputObjectSchema as LoginTokenCountAggregateInputObjectSchema } from './objects/LoginTokenCountAggregateInput.schema';
+import { LoginTokenMinAggregateInputObjectSchema as LoginTokenMinAggregateInputObjectSchema } from './objects/LoginTokenMinAggregateInput.schema';
+import { LoginTokenMaxAggregateInputObjectSchema as LoginTokenMaxAggregateInputObjectSchema } from './objects/LoginTokenMaxAggregateInput.schema';
+
+export const LoginTokenGroupBySchema: z.ZodType<Prisma.LoginTokenGroupByArgs> = z.object({ where: LoginTokenWhereInputObjectSchema.optional(), orderBy: z.union([LoginTokenOrderByWithAggregationInputObjectSchema, LoginTokenOrderByWithAggregationInputObjectSchema.array()]).optional(), having: LoginTokenScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(LoginTokenScalarFieldEnumSchema), _count: z.union([ z.literal(true), LoginTokenCountAggregateInputObjectSchema ]).optional(), _min: LoginTokenMinAggregateInputObjectSchema.optional(), _max: LoginTokenMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.LoginTokenGroupByArgs>;
+
+export const LoginTokenGroupByZodSchema = z.object({ where: LoginTokenWhereInputObjectSchema.optional(), orderBy: z.union([LoginTokenOrderByWithAggregationInputObjectSchema, LoginTokenOrderByWithAggregationInputObjectSchema.array()]).optional(), having: LoginTokenScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(LoginTokenScalarFieldEnumSchema), _count: z.union([ z.literal(true), LoginTokenCountAggregateInputObjectSchema ]).optional(), _min: LoginTokenMinAggregateInputObjectSchema.optional(), _max: LoginTokenMaxAggregateInputObjectSchema.optional() }).strict();

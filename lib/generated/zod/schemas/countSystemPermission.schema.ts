@@ -1,0 +1,10 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { SystemPermissionOrderByWithRelationInputObjectSchema as SystemPermissionOrderByWithRelationInputObjectSchema } from './objects/SystemPermissionOrderByWithRelationInput.schema';
+import { SystemPermissionWhereInputObjectSchema as SystemPermissionWhereInputObjectSchema } from './objects/SystemPermissionWhereInput.schema';
+import { SystemPermissionWhereUniqueInputObjectSchema as SystemPermissionWhereUniqueInputObjectSchema } from './objects/SystemPermissionWhereUniqueInput.schema';
+import { SystemPermissionCountAggregateInputObjectSchema as SystemPermissionCountAggregateInputObjectSchema } from './objects/SystemPermissionCountAggregateInput.schema';
+
+export const SystemPermissionCountSchema: z.ZodType<Prisma.SystemPermissionCountArgs> = z.object({ orderBy: z.union([SystemPermissionOrderByWithRelationInputObjectSchema, SystemPermissionOrderByWithRelationInputObjectSchema.array()]).optional(), where: SystemPermissionWhereInputObjectSchema.optional(), cursor: SystemPermissionWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), select: z.union([ z.literal(true), SystemPermissionCountAggregateInputObjectSchema ]).optional() }).strict() as unknown as z.ZodType<Prisma.SystemPermissionCountArgs>;
+
+export const SystemPermissionCountZodSchema = z.object({ orderBy: z.union([SystemPermissionOrderByWithRelationInputObjectSchema, SystemPermissionOrderByWithRelationInputObjectSchema.array()]).optional(), where: SystemPermissionWhereInputObjectSchema.optional(), cursor: SystemPermissionWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), select: z.union([ z.literal(true), SystemPermissionCountAggregateInputObjectSchema ]).optional() }).strict();

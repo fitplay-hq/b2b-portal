@@ -1,0 +1,15 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { BundleItemWhereInputObjectSchema as BundleItemWhereInputObjectSchema } from './objects/BundleItemWhereInput.schema';
+import { BundleItemOrderByWithAggregationInputObjectSchema as BundleItemOrderByWithAggregationInputObjectSchema } from './objects/BundleItemOrderByWithAggregationInput.schema';
+import { BundleItemScalarWhereWithAggregatesInputObjectSchema as BundleItemScalarWhereWithAggregatesInputObjectSchema } from './objects/BundleItemScalarWhereWithAggregatesInput.schema';
+import { BundleItemScalarFieldEnumSchema } from './enums/BundleItemScalarFieldEnum.schema';
+import { BundleItemCountAggregateInputObjectSchema as BundleItemCountAggregateInputObjectSchema } from './objects/BundleItemCountAggregateInput.schema';
+import { BundleItemMinAggregateInputObjectSchema as BundleItemMinAggregateInputObjectSchema } from './objects/BundleItemMinAggregateInput.schema';
+import { BundleItemMaxAggregateInputObjectSchema as BundleItemMaxAggregateInputObjectSchema } from './objects/BundleItemMaxAggregateInput.schema';
+import { BundleItemAvgAggregateInputObjectSchema as BundleItemAvgAggregateInputObjectSchema } from './objects/BundleItemAvgAggregateInput.schema';
+import { BundleItemSumAggregateInputObjectSchema as BundleItemSumAggregateInputObjectSchema } from './objects/BundleItemSumAggregateInput.schema';
+
+export const BundleItemGroupBySchema: z.ZodType<Prisma.BundleItemGroupByArgs> = z.object({ where: BundleItemWhereInputObjectSchema.optional(), orderBy: z.union([BundleItemOrderByWithAggregationInputObjectSchema, BundleItemOrderByWithAggregationInputObjectSchema.array()]).optional(), having: BundleItemScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(BundleItemScalarFieldEnumSchema), _count: z.union([ z.literal(true), BundleItemCountAggregateInputObjectSchema ]).optional(), _min: BundleItemMinAggregateInputObjectSchema.optional(), _max: BundleItemMaxAggregateInputObjectSchema.optional(), _avg: BundleItemAvgAggregateInputObjectSchema.optional(), _sum: BundleItemSumAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.BundleItemGroupByArgs>;
+
+export const BundleItemGroupByZodSchema = z.object({ where: BundleItemWhereInputObjectSchema.optional(), orderBy: z.union([BundleItemOrderByWithAggregationInputObjectSchema, BundleItemOrderByWithAggregationInputObjectSchema.array()]).optional(), having: BundleItemScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(BundleItemScalarFieldEnumSchema), _count: z.union([ z.literal(true), BundleItemCountAggregateInputObjectSchema ]).optional(), _min: BundleItemMinAggregateInputObjectSchema.optional(), _max: BundleItemMaxAggregateInputObjectSchema.optional(), _avg: BundleItemAvgAggregateInputObjectSchema.optional(), _sum: BundleItemSumAggregateInputObjectSchema.optional() }).strict();

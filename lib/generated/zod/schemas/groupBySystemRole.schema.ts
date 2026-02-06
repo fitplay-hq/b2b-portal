@@ -1,0 +1,13 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { SystemRoleWhereInputObjectSchema as SystemRoleWhereInputObjectSchema } from './objects/SystemRoleWhereInput.schema';
+import { SystemRoleOrderByWithAggregationInputObjectSchema as SystemRoleOrderByWithAggregationInputObjectSchema } from './objects/SystemRoleOrderByWithAggregationInput.schema';
+import { SystemRoleScalarWhereWithAggregatesInputObjectSchema as SystemRoleScalarWhereWithAggregatesInputObjectSchema } from './objects/SystemRoleScalarWhereWithAggregatesInput.schema';
+import { SystemRoleScalarFieldEnumSchema } from './enums/SystemRoleScalarFieldEnum.schema';
+import { SystemRoleCountAggregateInputObjectSchema as SystemRoleCountAggregateInputObjectSchema } from './objects/SystemRoleCountAggregateInput.schema';
+import { SystemRoleMinAggregateInputObjectSchema as SystemRoleMinAggregateInputObjectSchema } from './objects/SystemRoleMinAggregateInput.schema';
+import { SystemRoleMaxAggregateInputObjectSchema as SystemRoleMaxAggregateInputObjectSchema } from './objects/SystemRoleMaxAggregateInput.schema';
+
+export const SystemRoleGroupBySchema: z.ZodType<Prisma.SystemRoleGroupByArgs> = z.object({ where: SystemRoleWhereInputObjectSchema.optional(), orderBy: z.union([SystemRoleOrderByWithAggregationInputObjectSchema, SystemRoleOrderByWithAggregationInputObjectSchema.array()]).optional(), having: SystemRoleScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(SystemRoleScalarFieldEnumSchema), _count: z.union([ z.literal(true), SystemRoleCountAggregateInputObjectSchema ]).optional(), _min: SystemRoleMinAggregateInputObjectSchema.optional(), _max: SystemRoleMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.SystemRoleGroupByArgs>;
+
+export const SystemRoleGroupByZodSchema = z.object({ where: SystemRoleWhereInputObjectSchema.optional(), orderBy: z.union([SystemRoleOrderByWithAggregationInputObjectSchema, SystemRoleOrderByWithAggregationInputObjectSchema.array()]).optional(), having: SystemRoleScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(SystemRoleScalarFieldEnumSchema), _count: z.union([ z.literal(true), SystemRoleCountAggregateInputObjectSchema ]).optional(), _min: SystemRoleMinAggregateInputObjectSchema.optional(), _max: SystemRoleMaxAggregateInputObjectSchema.optional() }).strict();

@@ -1,0 +1,12 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { SystemRoleOrderByWithRelationInputObjectSchema as SystemRoleOrderByWithRelationInputObjectSchema } from './objects/SystemRoleOrderByWithRelationInput.schema';
+import { SystemRoleWhereInputObjectSchema as SystemRoleWhereInputObjectSchema } from './objects/SystemRoleWhereInput.schema';
+import { SystemRoleWhereUniqueInputObjectSchema as SystemRoleWhereUniqueInputObjectSchema } from './objects/SystemRoleWhereUniqueInput.schema';
+import { SystemRoleCountAggregateInputObjectSchema as SystemRoleCountAggregateInputObjectSchema } from './objects/SystemRoleCountAggregateInput.schema';
+import { SystemRoleMinAggregateInputObjectSchema as SystemRoleMinAggregateInputObjectSchema } from './objects/SystemRoleMinAggregateInput.schema';
+import { SystemRoleMaxAggregateInputObjectSchema as SystemRoleMaxAggregateInputObjectSchema } from './objects/SystemRoleMaxAggregateInput.schema';
+
+export const SystemRoleAggregateSchema: z.ZodType<Prisma.SystemRoleAggregateArgs> = z.object({ orderBy: z.union([SystemRoleOrderByWithRelationInputObjectSchema, SystemRoleOrderByWithRelationInputObjectSchema.array()]).optional(), where: SystemRoleWhereInputObjectSchema.optional(), cursor: SystemRoleWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), SystemRoleCountAggregateInputObjectSchema ]).optional(), _min: SystemRoleMinAggregateInputObjectSchema.optional(), _max: SystemRoleMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.SystemRoleAggregateArgs>;
+
+export const SystemRoleAggregateZodSchema = z.object({ orderBy: z.union([SystemRoleOrderByWithRelationInputObjectSchema, SystemRoleOrderByWithRelationInputObjectSchema.array()]).optional(), where: SystemRoleWhereInputObjectSchema.optional(), cursor: SystemRoleWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), SystemRoleCountAggregateInputObjectSchema ]).optional(), _min: SystemRoleMinAggregateInputObjectSchema.optional(), _max: SystemRoleMaxAggregateInputObjectSchema.optional() }).strict();

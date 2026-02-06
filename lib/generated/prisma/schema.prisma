@@ -1,0 +1,321 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+generator zod {
+  provider = "prisma-zod-generator"
+  output   = "../lib/generated/zod"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  name      String   @default("admin")
+  email     String   @unique
+  password  String
+  role      Role?    @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt()
+}
+
+model Company {
+  id        String    @id @default(uuid())
+  name      String    @db.VarChar(50)
+  address   String    @db.VarChar(100)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+  clients   Client[]
+}
+
+model Client {
+  id          String          @id @default(uuid())
+  name        String          @db.VarChar(50)
+  email       String          @unique
+  password    String
+  phone       String          @unique
+  company     Company?        @relation(fields: [companyID], references: [id])
+  companyID   String?
+  companyName String?
+  isShowPrice Boolean         @default(false)
+  address     String          @db.VarChar(100)
+  role        Role            @default(CLIENT)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  orders      Order[]
+  products    ClientProduct[] // Client-specific product access
+}
+
+model ProductCategory {
+  id            String        @id @default(uuid())
+  name          String        @unique @db.VarChar(50)
+  displayName   String        @db.VarChar(100)
+  description   String?       @db.VarChar(255)
+  shortCode     String        @unique @db.VarChar(10) // For SKU generation
+  isActive      Boolean       @default(true)
+  sortOrder     Int           @default(0) // For custom ordering
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  products      Product[] // One-to-many relation
+  subCategories SubCategory[]
+}
+
+model Product {
+  id                    String            @id @default(uuid())
+  name                  String            @db.VarChar(50)
+  images                String[]
+  price                 Int?
+  sku                   String            @unique @db.VarChar(100)
+  availableStock        Int
+  minStockThreshold     Int?
+  inventoryUpdateReason Reason?
+  inventoryLogs         String[]
+  description           String
+  categories            Category? // Keep enum for backward compatibility, now optional
+  categoryId            String? // New relation to ProductCategory table
+  category              ProductCategory?  @relation(fields: [categoryId], references: [id])
+  subCategory           SubCategory?      @relation(fields: [subCategoryId], references: [id])
+  subCategoryId         String?
+  avgRating             Float?
+  noOfReviews           Int?
+  brand                 String?           @db.VarChar(30)
+  companies             Company[]
+  clients               ClientProduct[] // Client-specific product access
+  orderItems            OrderItem[]
+  bundleOrderItems      BundleOrderItem[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  bundleItems           BundleItem[]
+}
+
+model SubCategory {
+  id         String          @id @default(uuid())
+  name       String
+  categoryId String
+  shortCode  String          @unique @db.VarChar(10) // For SKU generation
+  category   ProductCategory @relation(fields: [categoryId], references: [id])
+  products   Product[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+model Order {
+  id                    String            @id @default(uuid())
+  totalAmount           Float
+  consigneeName         String            @default("Name")
+  consigneePhone        String            @default("0000000000")
+  consigneeEmail        String            @default("email@example.com")
+  consignmentNumber     String?
+  deliveryService       String?
+  deliveryAddress       String            @default("Address")
+  city                  String            @default("City")
+  state                 String            @default("State")
+  pincode               String            @default("000000")
+  modeOfDelivery        Modes             @default(SURFACE)
+  requiredByDate        DateTime
+  deliveryReference     String?
+  packagingInstructions String?
+  note                  String?
+  shippingLabelUrl      String?
+  isMailSent            Boolean           @default(false)
+  status                Status            @default(PENDING)
+  client                Client?           @relation(fields: [clientId], references: [id])
+  clientId              String?
+  orderItems            OrderItem[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  emails                OrderEmail[]
+  bundleOrderItems      BundleOrderItem[]
+  bundles               Bundle[]
+  numberOfBundles       Int?
+}
+
+model OrderEmail {
+  id        String    @id @default(uuid())
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  purpose   Status // APPROVED, DISPATCHED, etc.
+  isSent    Boolean   @default(false)
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([orderId, purpose])
+}
+
+model BundleOrderItem {
+  id          String       @id @default(uuid())
+  bundleId    String
+  bundle      Bundle       @relation(fields: [bundleId], references: [id])
+  order       Order        @relation(fields: [orderId], references: [id])
+  orderId     String
+  product     Product      @relation(fields: [productId], references: [id])
+  productId   String
+  quantity    Int          @default(1)
+  price       Float // snapshot of product price at purchase time
+  bundleItems BundleItem[]
+}
+
+model BundleItem {
+  id                    String            @id @default(uuid())
+  bundleId              String
+  bundle                Bundle            @relation(fields: [bundleId], references: [id])
+  product               Product           @relation(fields: [productId], references: [id])
+  productId             String
+  bundleProductQuantity Int               @default(1)
+  price                 Float // snapshot of product price at purchase time
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  bundleOrderItems      BundleOrderItem[]
+}
+
+model Bundle {
+  id               String            @id @default(uuid())
+  orderId          String?
+  order            Order?            @relation(fields: [orderId], references: [id])
+  price            Float?
+  numberOfBundles  Int?
+  items            BundleItem[]
+  bundleOrderItems BundleOrderItem[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int     @default(1)
+  price     Float // snapshot of product price at purchase time
+}
+
+model ResetToken {
+  id         String   @id @default(uuid())
+  identifier String
+  password   String
+  token      String   @unique
+  userId     String?
+  userType   Role?
+  expires    DateTime
+  createdAt  DateTime @default(now())
+}
+
+model LoginToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  identifier String
+  password   String
+  userId     String?
+  userType   Role?
+  createdAt  DateTime @default(now())
+  expires    DateTime
+}
+
+// Client-specific product access relationship
+model ClientProduct {
+  id        String   @id @default(uuid())
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId  String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, productId]) // Prevent duplicate client-product relationships
+}
+
+enum Category {
+  stationery
+  accessories
+  funAndStickers
+  drinkware
+  apparel
+  travelAndTech
+  books
+  welcomeKit
+  newcategory
+  consumables
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  CANCELLED
+  READY_FOR_DISPATCH
+  DISPATCHED
+  AT_DESTINATION
+  DELIVERED
+}
+
+enum Modes {
+  AIR
+  SURFACE
+  HAND_DELIVERY
+}
+
+enum Reason {
+  NEW_PURCHASE
+  PHYSICAL_STOCK_CHECK
+  RETURN_FROM_PREVIOUS_DISPATCH
+  NEW_ORDER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+  SYSTEM_USER
+}
+
+// Role Management System Models
+model SystemRole {
+  id          String             @id @default(uuid())
+  name        String             @unique @db.VarChar(50)
+  description String?            @db.VarChar(255)
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  permissions SystemPermission[]
+  users       SystemUser[]
+}
+
+model SystemPermission {
+  id          String       @id @default(uuid())
+  resource    String       @db.VarChar(50) // e.g., "users", "roles", "products", "orders", "clients", "companies"
+  action      String       @db.VarChar(20) // e.g., "create", "read", "update", "delete"
+  description String?      @db.VarChar(255)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  roles       SystemRole[]
+
+  @@unique([resource, action])
+}
+
+model SystemUser {
+  id        String     @id @default(uuid())
+  name      String     @db.VarChar(100)
+  email     String     @unique
+  password  String
+  isActive  Boolean    @default(true)
+  role      SystemRole @relation(fields: [roleId], references: [id])
+  roleId    String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}

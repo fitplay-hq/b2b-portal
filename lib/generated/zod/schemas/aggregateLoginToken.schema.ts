@@ -1,0 +1,12 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { LoginTokenOrderByWithRelationInputObjectSchema as LoginTokenOrderByWithRelationInputObjectSchema } from './objects/LoginTokenOrderByWithRelationInput.schema';
+import { LoginTokenWhereInputObjectSchema as LoginTokenWhereInputObjectSchema } from './objects/LoginTokenWhereInput.schema';
+import { LoginTokenWhereUniqueInputObjectSchema as LoginTokenWhereUniqueInputObjectSchema } from './objects/LoginTokenWhereUniqueInput.schema';
+import { LoginTokenCountAggregateInputObjectSchema as LoginTokenCountAggregateInputObjectSchema } from './objects/LoginTokenCountAggregateInput.schema';
+import { LoginTokenMinAggregateInputObjectSchema as LoginTokenMinAggregateInputObjectSchema } from './objects/LoginTokenMinAggregateInput.schema';
+import { LoginTokenMaxAggregateInputObjectSchema as LoginTokenMaxAggregateInputObjectSchema } from './objects/LoginTokenMaxAggregateInput.schema';
+
+export const LoginTokenAggregateSchema: z.ZodType<Prisma.LoginTokenAggregateArgs> = z.object({ orderBy: z.union([LoginTokenOrderByWithRelationInputObjectSchema, LoginTokenOrderByWithRelationInputObjectSchema.array()]).optional(), where: LoginTokenWhereInputObjectSchema.optional(), cursor: LoginTokenWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), LoginTokenCountAggregateInputObjectSchema ]).optional(), _min: LoginTokenMinAggregateInputObjectSchema.optional(), _max: LoginTokenMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.LoginTokenAggregateArgs>;
+
+export const LoginTokenAggregateZodSchema = z.object({ orderBy: z.union([LoginTokenOrderByWithRelationInputObjectSchema, LoginTokenOrderByWithRelationInputObjectSchema.array()]).optional(), where: LoginTokenWhereInputObjectSchema.optional(), cursor: LoginTokenWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), LoginTokenCountAggregateInputObjectSchema ]).optional(), _min: LoginTokenMinAggregateInputObjectSchema.optional(), _max: LoginTokenMaxAggregateInputObjectSchema.optional() }).strict();

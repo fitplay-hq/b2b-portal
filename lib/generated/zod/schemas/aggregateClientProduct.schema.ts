@@ -1,0 +1,12 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { ClientProductOrderByWithRelationInputObjectSchema as ClientProductOrderByWithRelationInputObjectSchema } from './objects/ClientProductOrderByWithRelationInput.schema';
+import { ClientProductWhereInputObjectSchema as ClientProductWhereInputObjectSchema } from './objects/ClientProductWhereInput.schema';
+import { ClientProductWhereUniqueInputObjectSchema as ClientProductWhereUniqueInputObjectSchema } from './objects/ClientProductWhereUniqueInput.schema';
+import { ClientProductCountAggregateInputObjectSchema as ClientProductCountAggregateInputObjectSchema } from './objects/ClientProductCountAggregateInput.schema';
+import { ClientProductMinAggregateInputObjectSchema as ClientProductMinAggregateInputObjectSchema } from './objects/ClientProductMinAggregateInput.schema';
+import { ClientProductMaxAggregateInputObjectSchema as ClientProductMaxAggregateInputObjectSchema } from './objects/ClientProductMaxAggregateInput.schema';
+
+export const ClientProductAggregateSchema: z.ZodType<Prisma.ClientProductAggregateArgs> = z.object({ orderBy: z.union([ClientProductOrderByWithRelationInputObjectSchema, ClientProductOrderByWithRelationInputObjectSchema.array()]).optional(), where: ClientProductWhereInputObjectSchema.optional(), cursor: ClientProductWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), ClientProductCountAggregateInputObjectSchema ]).optional(), _min: ClientProductMinAggregateInputObjectSchema.optional(), _max: ClientProductMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.ClientProductAggregateArgs>;
+
+export const ClientProductAggregateZodSchema = z.object({ orderBy: z.union([ClientProductOrderByWithRelationInputObjectSchema, ClientProductOrderByWithRelationInputObjectSchema.array()]).optional(), where: ClientProductWhereInputObjectSchema.optional(), cursor: ClientProductWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), ClientProductCountAggregateInputObjectSchema ]).optional(), _min: ClientProductMinAggregateInputObjectSchema.optional(), _max: ClientProductMaxAggregateInputObjectSchema.optional() }).strict();

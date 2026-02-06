@@ -1,0 +1,12 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { ResetTokenOrderByWithRelationInputObjectSchema as ResetTokenOrderByWithRelationInputObjectSchema } from './objects/ResetTokenOrderByWithRelationInput.schema';
+import { ResetTokenWhereInputObjectSchema as ResetTokenWhereInputObjectSchema } from './objects/ResetTokenWhereInput.schema';
+import { ResetTokenWhereUniqueInputObjectSchema as ResetTokenWhereUniqueInputObjectSchema } from './objects/ResetTokenWhereUniqueInput.schema';
+import { ResetTokenCountAggregateInputObjectSchema as ResetTokenCountAggregateInputObjectSchema } from './objects/ResetTokenCountAggregateInput.schema';
+import { ResetTokenMinAggregateInputObjectSchema as ResetTokenMinAggregateInputObjectSchema } from './objects/ResetTokenMinAggregateInput.schema';
+import { ResetTokenMaxAggregateInputObjectSchema as ResetTokenMaxAggregateInputObjectSchema } from './objects/ResetTokenMaxAggregateInput.schema';
+
+export const ResetTokenAggregateSchema: z.ZodType<Prisma.ResetTokenAggregateArgs> = z.object({ orderBy: z.union([ResetTokenOrderByWithRelationInputObjectSchema, ResetTokenOrderByWithRelationInputObjectSchema.array()]).optional(), where: ResetTokenWhereInputObjectSchema.optional(), cursor: ResetTokenWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), ResetTokenCountAggregateInputObjectSchema ]).optional(), _min: ResetTokenMinAggregateInputObjectSchema.optional(), _max: ResetTokenMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.ResetTokenAggregateArgs>;
+
+export const ResetTokenAggregateZodSchema = z.object({ orderBy: z.union([ResetTokenOrderByWithRelationInputObjectSchema, ResetTokenOrderByWithRelationInputObjectSchema.array()]).optional(), where: ResetTokenWhereInputObjectSchema.optional(), cursor: ResetTokenWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), ResetTokenCountAggregateInputObjectSchema ]).optional(), _min: ResetTokenMinAggregateInputObjectSchema.optional(), _max: ResetTokenMaxAggregateInputObjectSchema.optional() }).strict();

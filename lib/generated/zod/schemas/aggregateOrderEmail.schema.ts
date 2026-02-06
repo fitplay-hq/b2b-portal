@@ -1,0 +1,12 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { OrderEmailOrderByWithRelationInputObjectSchema as OrderEmailOrderByWithRelationInputObjectSchema } from './objects/OrderEmailOrderByWithRelationInput.schema';
+import { OrderEmailWhereInputObjectSchema as OrderEmailWhereInputObjectSchema } from './objects/OrderEmailWhereInput.schema';
+import { OrderEmailWhereUniqueInputObjectSchema as OrderEmailWhereUniqueInputObjectSchema } from './objects/OrderEmailWhereUniqueInput.schema';
+import { OrderEmailCountAggregateInputObjectSchema as OrderEmailCountAggregateInputObjectSchema } from './objects/OrderEmailCountAggregateInput.schema';
+import { OrderEmailMinAggregateInputObjectSchema as OrderEmailMinAggregateInputObjectSchema } from './objects/OrderEmailMinAggregateInput.schema';
+import { OrderEmailMaxAggregateInputObjectSchema as OrderEmailMaxAggregateInputObjectSchema } from './objects/OrderEmailMaxAggregateInput.schema';
+
+export const OrderEmailAggregateSchema: z.ZodType<Prisma.OrderEmailAggregateArgs> = z.object({ orderBy: z.union([OrderEmailOrderByWithRelationInputObjectSchema, OrderEmailOrderByWithRelationInputObjectSchema.array()]).optional(), where: OrderEmailWhereInputObjectSchema.optional(), cursor: OrderEmailWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), OrderEmailCountAggregateInputObjectSchema ]).optional(), _min: OrderEmailMinAggregateInputObjectSchema.optional(), _max: OrderEmailMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.OrderEmailAggregateArgs>;
+
+export const OrderEmailAggregateZodSchema = z.object({ orderBy: z.union([OrderEmailOrderByWithRelationInputObjectSchema, OrderEmailOrderByWithRelationInputObjectSchema.array()]).optional(), where: OrderEmailWhereInputObjectSchema.optional(), cursor: OrderEmailWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), OrderEmailCountAggregateInputObjectSchema ]).optional(), _min: OrderEmailMinAggregateInputObjectSchema.optional(), _max: OrderEmailMaxAggregateInputObjectSchema.optional() }).strict();

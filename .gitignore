@@ -41,7 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 b2b-milestones.md
-lib/generated/
+# allow generated prisma + zod files
+!lib/generated/**
+
 
 prisma/generated
 

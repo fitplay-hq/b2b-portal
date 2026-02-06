@@ -1,0 +1,14 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { BundleItemOrderByWithRelationInputObjectSchema as BundleItemOrderByWithRelationInputObjectSchema } from './objects/BundleItemOrderByWithRelationInput.schema';
+import { BundleItemWhereInputObjectSchema as BundleItemWhereInputObjectSchema } from './objects/BundleItemWhereInput.schema';
+import { BundleItemWhereUniqueInputObjectSchema as BundleItemWhereUniqueInputObjectSchema } from './objects/BundleItemWhereUniqueInput.schema';
+import { BundleItemCountAggregateInputObjectSchema as BundleItemCountAggregateInputObjectSchema } from './objects/BundleItemCountAggregateInput.schema';
+import { BundleItemMinAggregateInputObjectSchema as BundleItemMinAggregateInputObjectSchema } from './objects/BundleItemMinAggregateInput.schema';
+import { BundleItemMaxAggregateInputObjectSchema as BundleItemMaxAggregateInputObjectSchema } from './objects/BundleItemMaxAggregateInput.schema';
+import { BundleItemAvgAggregateInputObjectSchema as BundleItemAvgAggregateInputObjectSchema } from './objects/BundleItemAvgAggregateInput.schema';
+import { BundleItemSumAggregateInputObjectSchema as BundleItemSumAggregateInputObjectSchema } from './objects/BundleItemSumAggregateInput.schema';
+
+export const BundleItemAggregateSchema: z.ZodType<Prisma.BundleItemAggregateArgs> = z.object({ orderBy: z.union([BundleItemOrderByWithRelationInputObjectSchema, BundleItemOrderByWithRelationInputObjectSchema.array()]).optional(), where: BundleItemWhereInputObjectSchema.optional(), cursor: BundleItemWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), BundleItemCountAggregateInputObjectSchema ]).optional(), _min: BundleItemMinAggregateInputObjectSchema.optional(), _max: BundleItemMaxAggregateInputObjectSchema.optional(), _avg: BundleItemAvgAggregateInputObjectSchema.optional(), _sum: BundleItemSumAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.BundleItemAggregateArgs>;
+
+export const BundleItemAggregateZodSchema = z.object({ orderBy: z.union([BundleItemOrderByWithRelationInputObjectSchema, BundleItemOrderByWithRelationInputObjectSchema.array()]).optional(), where: BundleItemWhereInputObjectSchema.optional(), cursor: BundleItemWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), BundleItemCountAggregateInputObjectSchema ]).optional(), _min: BundleItemMinAggregateInputObjectSchema.optional(), _max: BundleItemMaxAggregateInputObjectSchema.optional(), _avg: BundleItemAvgAggregateInputObjectSchema.optional(), _sum: BundleItemSumAggregateInputObjectSchema.optional() }).strict();

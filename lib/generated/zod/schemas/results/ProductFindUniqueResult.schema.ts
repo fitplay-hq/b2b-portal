@@ -1,0 +1,28 @@
+import * as z from 'zod';
+export const ProductFindUniqueResultSchema = z.nullable(z.object({
+  id: z.string(),
+  name: z.string(),
+  images: z.array(z.string()),
+  price: z.number().int().optional(),
+  sku: z.string(),
+  availableStock: z.number().int(),
+  minStockThreshold: z.number().int().optional(),
+  inventoryUpdateReason: z.unknown().optional(),
+  inventoryLogs: z.array(z.string()),
+  description: z.string(),
+  categories: z.unknown().optional(),
+  categoryId: z.string().optional(),
+  category: z.unknown().optional(),
+  subCategory: z.unknown().optional(),
+  subCategoryId: z.string().optional(),
+  avgRating: z.number().optional(),
+  noOfReviews: z.number().int().optional(),
+  brand: z.string().optional(),
+  companies: z.array(z.unknown()),
+  clients: z.array(z.unknown()),
+  orderItems: z.array(z.unknown()),
+  bundleOrderItems: z.array(z.unknown()),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  bundleItems: z.array(z.unknown())
+}));

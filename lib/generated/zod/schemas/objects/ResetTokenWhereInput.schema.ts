@@ -1,0 +1,23 @@
+import * as z from 'zod';
+import type { Prisma } from '../../../prisma';
+import { StringFilterObjectSchema as StringFilterObjectSchema } from './StringFilter.schema';
+import { StringNullableFilterObjectSchema as StringNullableFilterObjectSchema } from './StringNullableFilter.schema';
+import { EnumRoleNullableFilterObjectSchema as EnumRoleNullableFilterObjectSchema } from './EnumRoleNullableFilter.schema';
+import { RoleSchema } from '../enums/Role.schema';
+import { DateTimeFilterObjectSchema as DateTimeFilterObjectSchema } from './DateTimeFilter.schema'
+
+const resettokenwhereinputSchema = z.object({
+  AND: z.union([z.lazy(() => ResetTokenWhereInputObjectSchema), z.lazy(() => ResetTokenWhereInputObjectSchema).array()]).optional(),
+  OR: z.lazy(() => ResetTokenWhereInputObjectSchema).array().optional(),
+  NOT: z.union([z.lazy(() => ResetTokenWhereInputObjectSchema), z.lazy(() => ResetTokenWhereInputObjectSchema).array()]).optional(),
+  id: z.union([z.lazy(() => StringFilterObjectSchema), z.string()]).optional(),
+  identifier: z.union([z.lazy(() => StringFilterObjectSchema), z.string()]).optional(),
+  password: z.union([z.lazy(() => StringFilterObjectSchema), z.string()]).optional(),
+  token: z.union([z.lazy(() => StringFilterObjectSchema), z.string()]).optional(),
+  userId: z.union([z.lazy(() => StringNullableFilterObjectSchema), z.string()]).optional().nullable(),
+  userType: z.union([z.lazy(() => EnumRoleNullableFilterObjectSchema), RoleSchema]).optional().nullable(),
+  expires: z.union([z.lazy(() => DateTimeFilterObjectSchema), z.coerce.date()]).optional(),
+  createdAt: z.union([z.lazy(() => DateTimeFilterObjectSchema), z.coerce.date()]).optional()
+}).strict();
+export const ResetTokenWhereInputObjectSchema: z.ZodType<Prisma.ResetTokenWhereInput> = resettokenwhereinputSchema as unknown as z.ZodType<Prisma.ResetTokenWhereInput>;
+export const ResetTokenWhereInputObjectZodSchema = resettokenwhereinputSchema;

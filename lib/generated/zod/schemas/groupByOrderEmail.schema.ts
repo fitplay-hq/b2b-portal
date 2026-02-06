@@ -1,0 +1,13 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { OrderEmailWhereInputObjectSchema as OrderEmailWhereInputObjectSchema } from './objects/OrderEmailWhereInput.schema';
+import { OrderEmailOrderByWithAggregationInputObjectSchema as OrderEmailOrderByWithAggregationInputObjectSchema } from './objects/OrderEmailOrderByWithAggregationInput.schema';
+import { OrderEmailScalarWhereWithAggregatesInputObjectSchema as OrderEmailScalarWhereWithAggregatesInputObjectSchema } from './objects/OrderEmailScalarWhereWithAggregatesInput.schema';
+import { OrderEmailScalarFieldEnumSchema } from './enums/OrderEmailScalarFieldEnum.schema';
+import { OrderEmailCountAggregateInputObjectSchema as OrderEmailCountAggregateInputObjectSchema } from './objects/OrderEmailCountAggregateInput.schema';
+import { OrderEmailMinAggregateInputObjectSchema as OrderEmailMinAggregateInputObjectSchema } from './objects/OrderEmailMinAggregateInput.schema';
+import { OrderEmailMaxAggregateInputObjectSchema as OrderEmailMaxAggregateInputObjectSchema } from './objects/OrderEmailMaxAggregateInput.schema';
+
+export const OrderEmailGroupBySchema: z.ZodType<Prisma.OrderEmailGroupByArgs> = z.object({ where: OrderEmailWhereInputObjectSchema.optional(), orderBy: z.union([OrderEmailOrderByWithAggregationInputObjectSchema, OrderEmailOrderByWithAggregationInputObjectSchema.array()]).optional(), having: OrderEmailScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(OrderEmailScalarFieldEnumSchema), _count: z.union([ z.literal(true), OrderEmailCountAggregateInputObjectSchema ]).optional(), _min: OrderEmailMinAggregateInputObjectSchema.optional(), _max: OrderEmailMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.OrderEmailGroupByArgs>;
+
+export const OrderEmailGroupByZodSchema = z.object({ where: OrderEmailWhereInputObjectSchema.optional(), orderBy: z.union([OrderEmailOrderByWithAggregationInputObjectSchema, OrderEmailOrderByWithAggregationInputObjectSchema.array()]).optional(), having: OrderEmailScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(OrderEmailScalarFieldEnumSchema), _count: z.union([ z.literal(true), OrderEmailCountAggregateInputObjectSchema ]).optional(), _min: OrderEmailMinAggregateInputObjectSchema.optional(), _max: OrderEmailMaxAggregateInputObjectSchema.optional() }).strict();

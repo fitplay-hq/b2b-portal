@@ -1,0 +1,12 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { SystemUserOrderByWithRelationInputObjectSchema as SystemUserOrderByWithRelationInputObjectSchema } from './objects/SystemUserOrderByWithRelationInput.schema';
+import { SystemUserWhereInputObjectSchema as SystemUserWhereInputObjectSchema } from './objects/SystemUserWhereInput.schema';
+import { SystemUserWhereUniqueInputObjectSchema as SystemUserWhereUniqueInputObjectSchema } from './objects/SystemUserWhereUniqueInput.schema';
+import { SystemUserCountAggregateInputObjectSchema as SystemUserCountAggregateInputObjectSchema } from './objects/SystemUserCountAggregateInput.schema';
+import { SystemUserMinAggregateInputObjectSchema as SystemUserMinAggregateInputObjectSchema } from './objects/SystemUserMinAggregateInput.schema';
+import { SystemUserMaxAggregateInputObjectSchema as SystemUserMaxAggregateInputObjectSchema } from './objects/SystemUserMaxAggregateInput.schema';
+
+export const SystemUserAggregateSchema: z.ZodType<Prisma.SystemUserAggregateArgs> = z.object({ orderBy: z.union([SystemUserOrderByWithRelationInputObjectSchema, SystemUserOrderByWithRelationInputObjectSchema.array()]).optional(), where: SystemUserWhereInputObjectSchema.optional(), cursor: SystemUserWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), SystemUserCountAggregateInputObjectSchema ]).optional(), _min: SystemUserMinAggregateInputObjectSchema.optional(), _max: SystemUserMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.SystemUserAggregateArgs>;
+
+export const SystemUserAggregateZodSchema = z.object({ orderBy: z.union([SystemUserOrderByWithRelationInputObjectSchema, SystemUserOrderByWithRelationInputObjectSchema.array()]).optional(), where: SystemUserWhereInputObjectSchema.optional(), cursor: SystemUserWhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), _count: z.union([ z.literal(true), SystemUserCountAggregateInputObjectSchema ]).optional(), _min: SystemUserMinAggregateInputObjectSchema.optional(), _max: SystemUserMaxAggregateInputObjectSchema.optional() }).strict();

@@ -1,0 +1,13 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { ResetTokenWhereInputObjectSchema as ResetTokenWhereInputObjectSchema } from './objects/ResetTokenWhereInput.schema';
+import { ResetTokenOrderByWithAggregationInputObjectSchema as ResetTokenOrderByWithAggregationInputObjectSchema } from './objects/ResetTokenOrderByWithAggregationInput.schema';
+import { ResetTokenScalarWhereWithAggregatesInputObjectSchema as ResetTokenScalarWhereWithAggregatesInputObjectSchema } from './objects/ResetTokenScalarWhereWithAggregatesInput.schema';
+import { ResetTokenScalarFieldEnumSchema } from './enums/ResetTokenScalarFieldEnum.schema';
+import { ResetTokenCountAggregateInputObjectSchema as ResetTokenCountAggregateInputObjectSchema } from './objects/ResetTokenCountAggregateInput.schema';
+import { ResetTokenMinAggregateInputObjectSchema as ResetTokenMinAggregateInputObjectSchema } from './objects/ResetTokenMinAggregateInput.schema';
+import { ResetTokenMaxAggregateInputObjectSchema as ResetTokenMaxAggregateInputObjectSchema } from './objects/ResetTokenMaxAggregateInput.schema';
+
+export const ResetTokenGroupBySchema: z.ZodType<Prisma.ResetTokenGroupByArgs> = z.object({ where: ResetTokenWhereInputObjectSchema.optional(), orderBy: z.union([ResetTokenOrderByWithAggregationInputObjectSchema, ResetTokenOrderByWithAggregationInputObjectSchema.array()]).optional(), having: ResetTokenScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(ResetTokenScalarFieldEnumSchema), _count: z.union([ z.literal(true), ResetTokenCountAggregateInputObjectSchema ]).optional(), _min: ResetTokenMinAggregateInputObjectSchema.optional(), _max: ResetTokenMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.ResetTokenGroupByArgs>;
+
+export const ResetTokenGroupByZodSchema = z.object({ where: ResetTokenWhereInputObjectSchema.optional(), orderBy: z.union([ResetTokenOrderByWithAggregationInputObjectSchema, ResetTokenOrderByWithAggregationInputObjectSchema.array()]).optional(), having: ResetTokenScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(ResetTokenScalarFieldEnumSchema), _count: z.union([ z.literal(true), ResetTokenCountAggregateInputObjectSchema ]).optional(), _min: ResetTokenMinAggregateInputObjectSchema.optional(), _max: ResetTokenMaxAggregateInputObjectSchema.optional() }).strict();

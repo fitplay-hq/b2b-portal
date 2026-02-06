@@ -1,0 +1,13 @@
+import type { Prisma } from '../../prisma';
+import * as z from 'zod';
+import { SystemUserWhereInputObjectSchema as SystemUserWhereInputObjectSchema } from './objects/SystemUserWhereInput.schema';
+import { SystemUserOrderByWithAggregationInputObjectSchema as SystemUserOrderByWithAggregationInputObjectSchema } from './objects/SystemUserOrderByWithAggregationInput.schema';
+import { SystemUserScalarWhereWithAggregatesInputObjectSchema as SystemUserScalarWhereWithAggregatesInputObjectSchema } from './objects/SystemUserScalarWhereWithAggregatesInput.schema';
+import { SystemUserScalarFieldEnumSchema } from './enums/SystemUserScalarFieldEnum.schema';
+import { SystemUserCountAggregateInputObjectSchema as SystemUserCountAggregateInputObjectSchema } from './objects/SystemUserCountAggregateInput.schema';
+import { SystemUserMinAggregateInputObjectSchema as SystemUserMinAggregateInputObjectSchema } from './objects/SystemUserMinAggregateInput.schema';
+import { SystemUserMaxAggregateInputObjectSchema as SystemUserMaxAggregateInputObjectSchema } from './objects/SystemUserMaxAggregateInput.schema';
+
+export const SystemUserGroupBySchema: z.ZodType<Prisma.SystemUserGroupByArgs> = z.object({ where: SystemUserWhereInputObjectSchema.optional(), orderBy: z.union([SystemUserOrderByWithAggregationInputObjectSchema, SystemUserOrderByWithAggregationInputObjectSchema.array()]).optional(), having: SystemUserScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(SystemUserScalarFieldEnumSchema), _count: z.union([ z.literal(true), SystemUserCountAggregateInputObjectSchema ]).optional(), _min: SystemUserMinAggregateInputObjectSchema.optional(), _max: SystemUserMaxAggregateInputObjectSchema.optional() }).strict() as unknown as z.ZodType<Prisma.SystemUserGroupByArgs>;
+
+export const SystemUserGroupByZodSchema = z.object({ where: SystemUserWhereInputObjectSchema.optional(), orderBy: z.union([SystemUserOrderByWithAggregationInputObjectSchema, SystemUserOrderByWithAggregationInputObjectSchema.array()]).optional(), having: SystemUserScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(SystemUserScalarFieldEnumSchema), _count: z.union([ z.literal(true), SystemUserCountAggregateInputObjectSchema ]).optional(), _min: SystemUserMinAggregateInputObjectSchema.optional(), _max: SystemUserMaxAggregateInputObjectSchema.optional() }).strict();
