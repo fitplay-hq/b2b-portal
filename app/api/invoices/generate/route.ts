@@ -426,9 +426,13 @@
 
 import { NextResponse } from "next/server";
 import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+import chromium from "@sparticuz/chromium-min";
+
 import fs from "fs";
 import path from "path";
+
+export const runtime = "nodejs";
+
 
 const logoPath = path.join(process.cwd(), "public", "logo_black.png");
 const logoBase64 = fs.readFileSync(logoPath).toString("base64");
@@ -807,10 +811,12 @@ export async function POST(req: Request) {
     const data = await req.json();
 
     const browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: true,
-    });
+  args: chromium.args,
+  executablePath: await chromium.executablePath(),
+  headless: true,
+});
+
+
 
     const page = await browser.newPage();
 
