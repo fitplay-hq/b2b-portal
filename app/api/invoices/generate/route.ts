@@ -424,15 +424,22 @@
 // }
 
 
-import { NextResponse } from "next/server";
-import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium-min";
 
+
+
+
+
+import { NextResponse } from "next/server";
+import chromium from "@sparticuz/chromium-min";
+import puppeteerCore from "puppeteer-core";
+import puppeteer from "puppeteer";
 import fs from "fs";
 import path from "path";
 
-export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
+const remoteExecutablePath =
+  "https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar";
 
 const logoPath = path.join(process.cwd(), "public", "logo_black.png");
 const logoBase64 = fs.readFileSync(logoPath).toString("base64");
@@ -806,18 +813,26 @@ SUBJECT TO HARYANA JURISDICTION
 `;
 }
 
+async function getBrowser() {
+  // if (process.env.VERCEL_ENV === "production") {
+    return await puppeteerCore.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(remoteExecutablePath),
+      headless: true,
+    });
+  // } else {
+  //   return await puppeteer.launch({
+  //     args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  //     headless: true,
+  //   });
+  // }
+}
+
 export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    const browser = await puppeteer.launch({
-  args: chromium.args,
-  executablePath: await chromium.executablePath(),
-  headless: true,
-});
-
-
-
+    const browser = await getBrowser();
     const page = await browser.newPage();
 
     const html = getInvoiceHTML(data);
