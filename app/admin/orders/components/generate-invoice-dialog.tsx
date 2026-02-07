@@ -37,11 +37,19 @@ const handlePdfGeneration = async (formData: any,Setgenerating:any) => {
     };
 
     const dispatch = {
-      deliveryNote: formData.deliveryNote,
-      paymentTerms: formData.paymentTerms,
-      destination: formData.destination,
-      deliveryAddress :formData.deliveryAddress
-    };
+  deliveryNote: formData.deliveryNote,
+  paymentTerms: formData.paymentTerms,
+  supplierRef: formData.supplierRef,
+  otherRef: formData.otherRef,
+  buyerOrderNo: formData.buyerOrderNo,
+  buyerOrderDate: formData.dated,
+  dispatchDocNo: formData.dispatchDocNo,
+  deliveryNoteDate: formData.deliveryNoteDate,
+  dispatchedThrough: formData.dispatchedThrough,
+  destination: formData.destination,
+  deliveryAddress: formData.deliveryAddress,
+};
+
 
     const items = formData.items.map((i: any) => ({
       name: i.name,
