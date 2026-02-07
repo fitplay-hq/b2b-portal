@@ -809,76 +809,76 @@ async function exportInventoryData(
   `;
   }
 
-  if (format === 'pdf') {
-    try {
-      const html = generateInventoryHTML(sortedProducts);
+  // if (format === 'pdf') {
+  //   try {
+  //     const html = generateInventoryHTML(sortedProducts);
 
-      const puppeteer = await import("puppeteer-core");
-      let executablePath: string;
-      let browserArgs: string[];
+  //     const puppeteer = await import("puppeteer-core");
+  //     let executablePath: string;
+  //     let browserArgs: string[];
 
-      // Separate logic for production and development
-      if (process.env.NODE_ENV === 'production') {
-        const chromium = (await import('@sparticuz/chromium-min')).default;
+  //     // Separate logic for production and development
+  //     if (process.env.NODE_ENV === 'production') {
+  //       const chromium = (await import('@sparticuz/chromium-min')).default;
 
-        // Download and get Chromium executable path for production
-        executablePath = await chromium.executablePath(
-          'https://mf4mefwxnbqrp4a6.public.blob.vercel-storage.com/chromium-pack.tar'
-        );
-        browserArgs = chromium.args;
-      } else {
-        executablePath = getLocalChromePath();
-        browserArgs = [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu'
-        ];
-      }
+  //       // Download and get Chromium executable path for production
+  //       executablePath = await chromium.executablePath(
+  //         'https://mf4mefwxnbqrp4a6.public.blob.vercel-storage.com/chromium-pack.tar'
+  //       );
+  //       browserArgs = chromium.args;
+  //     } else {
+  //       executablePath = getLocalChromePath();
+  //       browserArgs = [
+  //         '--no-sandbox',
+  //         '--disable-setuid-sandbox',
+  //         '--disable-dev-shm-usage',
+  //         '--disable-gpu'
+  //       ];
+  //     }
 
-      const browser = await puppeteer.launch({
-        args: browserArgs,
-        executablePath: executablePath,
-        headless: true,
-      });
+  //     const browser = await puppeteer.launch({
+  //       args: browserArgs,
+  //       executablePath: executablePath,
+  //       headless: true,
+  //     });
 
-      const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+  //     const page = await browser.newPage();
+  //     await page.setContent(html, { waitUntil: 'networkidle0' });
 
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20px',
-          bottom: '20px',
-          left: '20px',
-          right: '20px',
-        },
-      });
+  //     const pdfBuffer = await page.pdf({
+  //       format: 'A4',
+  //       printBackground: true,
+  //       margin: {
+  //         top: '20px',
+  //         bottom: '20px',
+  //         left: '20px',
+  //         right: '20px',
+  //       },
+  //     });
 
-      await browser.close();
+  //     await browser.close();
 
-      return new NextResponse(Buffer.from(pdfBuffer), {
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename=inventory_${Date.now()}.pdf`,
-        },
-      });
+  //     return new NextResponse(Buffer.from(pdfBuffer), {
+  //       headers: {
+  //         'Content-Type': 'application/pdf',
+  //         'Content-Disposition': `attachment; filename=inventory_${Date.now()}.pdf`,
+  //       },
+  //     });
 
-    } catch (error) {
-      logError('INVENTORY_PDF_FLOW', error);
-      return NextResponse.json(
-        {
-          error: 'Inventory PDF generation failed',
-          details:
-            error instanceof Error
-              ? error.message
-              : 'Unknown PDF error',
-        },
-        { status: 500 }
-      );
-    }
-  }
+  //   } catch (error) {
+  //     logError('INVENTORY_PDF_FLOW', error);
+  //     return NextResponse.json(
+  //       {
+  //         error: 'Inventory PDF generation failed',
+  //         details:
+  //           error instanceof Error
+  //             ? error.message
+  //             : 'Unknown PDF error',
+  //       },
+  //       { status: 500 }
+  //     );
+  //   }
+  // }
 
   // Generate Excel buffer
   const excelBuffer = XLSX.write(workbook, {

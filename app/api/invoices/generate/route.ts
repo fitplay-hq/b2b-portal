@@ -423,10 +423,15 @@
 //   }
 // }
 
+
 import { NextResponse } from "next/server";
 import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium-min";
+import chromium from "@sparticuz/chromium";
+import fs from "fs";
+import path from "path";
 
+const logoPath = path.join(process.cwd(), "public", "logo_black.png");
+const logoBase64 = fs.readFileSync(logoPath).toString("base64");
 
 function getInvoiceHTML(data: any) {
   const {
@@ -549,9 +554,6 @@ function getInvoiceHTML(data: any) {
     padding: 8px 0;
     font-size: 9px;
   }
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
 </style>
 </head>
 
@@ -560,15 +562,13 @@ function getInvoiceHTML(data: any) {
 <div class="outer-border">
 
 <!-- Header -->
-<div style="
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: 2px;
-  font-family: Arial, Helvetica, sans-serif;
-">
-  FITPLAY
+<div style="text-align: center; padding: 10px 0;">
+  <img
+    src="data:image/png;base64,${logoBase64}"
+    alt="FITPLAY"
+    style="height: 40px;"
+  />
 </div>
-
 
 <div class="sub">TAX INVOICE</div>
 <div class="header-right" style="padding-right: 10px;">ORIGINAL FOR BUYER</div>
@@ -775,7 +775,7 @@ ${Array(Math.max(0, 6 - items.length))
   <div>A/c No: <span style="padding-left: 80px;">43255749616</span></div>
   <div>Branch & IFSC Code: <span style="padding-left: 15px;">SME MG Road Gurgaon & SBIN0004402</span></div>
   <div>Branch Code: <span style="padding-left: 15px;">4402</span></div>
-  <div>Swift Code: <span style="padding-left: 15px;"></span></div>
+   <div>Swift Code: <span style="padding-left: 15px;"></span></div>
   
   <div>Company's PAN: <span style="padding-left: 38px;">AAGFF7116E</span></div>
   <div style="padding-top: 8px; font-size: 8px; font-style: italic;">
@@ -818,7 +818,7 @@ export async function POST(req: Request) {
 
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const pdfBuffer = await page.pdf({
+    const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
       margin: {
@@ -831,23 +831,17 @@ export async function POST(req: Request) {
 
     await browser.close();
 
-    return new NextResponse(Buffer.from(pdfBuffer), {
-      status: 200,
+    return new NextResponse(Buffer.from(pdf), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename=invoice-${data.invoiceNumber}.pdf`,
       },
     });
   } catch (error) {
-    console.error("Invoice PDF Generation Error:", error);
+    console.error(error);
     return NextResponse.json(
-      { 
-        error: "Failed to generate invoice", 
-        details: error instanceof Error ? error.message : "Unknown error" 
-      },
+      { error: "Failed to generate invoice" },
       { status: 500 }
     );
   }
 }
-
-
