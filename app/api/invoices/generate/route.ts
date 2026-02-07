@@ -684,7 +684,7 @@ function getInvoiceHTML(data: any) {
   <th style="width: 7%;">CGST Amt</th>
   <th style="width: 7%;">SGST Amt</th>
   <th style="width: 7%;">IGST Amt</th>
-  <th style="width: 10%;">Taxable Value</th>
+  <th style="width: 20%;">Taxable Value</th>
 </tr>
 </thead>
 <tbody>
@@ -694,10 +694,10 @@ ${items
 <tr>
   <td class="center">${i + 1}</td>
   <td>${item.name}</td>
-  <td class="center">${item.hsn || '3923'}</td>
+  <td class="center">${item.hsn || ''}</td>
   <td class="center">${item.qty}</td>
   <td class="right">${item.rate.toFixed(2)}</td>
-  <td class="center">-</td>
+
   <td class="center">${item.taxPercent}%</td>
   <td class="right">0.00</td>
   <td class="right">0.00</td>
@@ -820,10 +820,10 @@ async function getBrowser() {
       headless: true,
     });
   // } else {
-  //   return await puppeteer.launch({
-  //     args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  //     headless: true,
-  //   });
+    // return await puppeteer.launch({
+    //   args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    //   headless: true,
+    // });
   // }
 }
 

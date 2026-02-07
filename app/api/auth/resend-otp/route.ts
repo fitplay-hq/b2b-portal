@@ -63,50 +63,50 @@ export async function PATCH(req: NextRequest) {
         const verifyOtp = otp;
 
         // Send OTP via email using Resend
-        // await resend.emails.send({
-        //     from: verificationMail,
-        //     to: email,
-        //     subject: "Resend OTP for login",
-        //     html: `
-        //         <!DOCTYPE html>
-        //         <html>
-        //         <head>
-        //             <meta charset="utf-8">
-        //             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        //             <title>Verify your Fitplay B2b portal account</title>
-        //         </head>
-        //         <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
-        //             <div style="max-width: 600px; margin: 0 auto; background-color: white;">
+        await resend.emails.send({
+            from: verificationMail,
+            to: email,
+            subject: "Resend OTP for login",
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Verify your Fitplay B2b portal account</title>
+                </head>
+                <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
+                    <div style="max-width: 600px; margin: 0 auto; background-color: white;">
                         
-        //                 <!-- Content -->
-        //                 <div style="padding: 40px 30px; background-color: white;">
+                        <!-- Content -->
+                        <div style="padding: 40px 30px; background-color: white;">
                             
-        //                     <p style="font-size: 16px; color: #4B5563; margin-bottom: 30px; line-height: 1.6;">
-        //                         To complete your login process use the following One-Time Password (OTP):
-        //                     </p>
+                            <p style="font-size: 16px; color: #4B5563; margin-bottom: 30px; line-height: 1.6;">
+                                To complete your login process use the following One-Time Password (OTP):
+                            </p>
 
-        //                     <div style="text-align: center; margin-bottom: 30px;">
-        //                         <span style="display: inline-block; padding: 15px 25px; font-size: 24px; letter-spacing: 4px; background-color: #E0F2FE; color: #0369A1; border-radius: 8px; font-weight: bold; user-select: all;">${verifyOtp}</span>
-        //                     </div>
-        //                     <p style="font-size: 16px; color: #4B5563; margin-bottom: 30px; line-height: 1.6;">
-        //                         This OTP is valid for the next 60 minutes. Please do not share it with anyone.
-        //                     </p>
-        //                 </div>
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <span style="display: inline-block; padding: 15px 25px; font-size: 24px; letter-spacing: 4px; background-color: #E0F2FE; color: #0369A1; border-radius: 8px; font-weight: bold; user-select: all;">${verifyOtp}</span>
+                            </div>
+                            <p style="font-size: 16px; color: #4B5563; margin-bottom: 30px; line-height: 1.6;">
+                                This OTP is valid for the next 60 minutes. Please do not share it with anyone.
+                            </p>
+                        </div>
 
-        //                 <!-- Footer -->
-        //                 <div style="background-color: #F9FAFB; padding: 30px; text-align: center; border-top: 1px solid #E5E7EB;">
-        //                     <p style="font-size: 14px; color: #6B7280; margin: 0 0 10px 0;">
-        //                         If it wasn't you who requested this, please keep your mail safe and ignore this email.
-        //                     </p>
-        //                     <p style="font-size: 10px; color: #D1D5DB; margin: 10px 0 0 0;">
-        //                         This email was sent to ${email}
-        //                     </p>
-        //                 </div>
-        //             </div>
-        //         </body>
-        //         </html>
-        //         `,
-        // });
+                        <!-- Footer -->
+                        <div style="background-color: #F9FAFB; padding: 30px; text-align: center; border-top: 1px solid #E5E7EB;">
+                            <p style="font-size: 14px; color: #6B7280; margin: 0 0 10px 0;">
+                                If it wasn't you who requested this, please keep your mail safe and ignore this email.
+                            </p>
+                            <p style="font-size: 10px; color: #D1D5DB; margin: 10px 0 0 0;">
+                                This email was sent to ${email}
+                            </p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                `,
+        });
 
         return NextResponse.json(
             { message: "OTP resent successfully" },
