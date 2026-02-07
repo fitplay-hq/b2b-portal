@@ -680,7 +680,6 @@ function getInvoiceHTML(data: any) {
   <th style="width: 7%;">HSN</th>
   <th style="width: 6%;">Qty</th>
   <th style="width: 8%;">Price/Unit</th>
-  <th style="width: 8%;">per</th>
   <th style="width: 8%;">Tax Rate</th>
   <th style="width: 7%;">CGST Amt</th>
   <th style="width: 7%;">SGST Amt</th>

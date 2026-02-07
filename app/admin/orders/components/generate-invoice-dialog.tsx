@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AdminOrder } from "@/data/order/admin.actions";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+
 
 interface Props {
   order: AdminOrder | null;
@@ -20,8 +22,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-const handlePdfGeneration = async (formData: any) => {
+const handlePdfGeneration = async (formData: any,Setgenerating:any) => {
+  
   try {
+    Setgenerating(true)
+    
     const invoiceNumber = formData.invoiceNumber;
     const invoiceDate = formData.invoiceDate;
 
@@ -85,9 +90,14 @@ const handlePdfGeneration = async (formData: any) => {
     a.remove();
 
     window.URL.revokeObjectURL(url);
+    Setgenerating(false)
+    toast.success("PDF Genarated Successfully");
+    
   } catch (error) {
     console.error(error);
-    alert("Failed to generate invoice");
+     Setgenerating(false)
+     toast.error("Failed to Generate Pdf")
+   
   }
 };
 
@@ -122,7 +132,7 @@ export function GenerateInvoiceDialog({ order, open, onOpenChange }: Props) {
 
 
 
-
+  const [generating,Setgenerating] = useState(false);
   const invoiceNumberRef = useRef<HTMLInputElement>(null);
   const invoiceDateRef = useRef<HTMLInputElement>(null);
   const sellerNameRef = useRef<HTMLInputElement>(null);
@@ -155,12 +165,13 @@ export function GenerateInvoiceDialog({ order, open, onOpenChange }: Props) {
   }>({});
 
   const collectFormData = () => {
+    Setgenerating(true)
     const items = invoiceItems.map((item) => ({
       name: itemRefs.current[item.id]?.name?.value || item.name,
       qty: parseFloat(itemRefs.current[item.id]?.qty?.value || String(item.qty)),
       rate: parseFloat(itemRefs.current[item.id]?.rate?.value || String(item.rate)),
       taxPercent: parseFloat(itemRefs.current[item.id]?.taxPercent?.value || "18"),
-      hsn: parseFloat(itemRefs.current[item.id]?.hsn?.value || "18"),
+      hsn: parseFloat(itemRefs.current[item.id]?.hsn?.value || ""),
     }));
 
     return {
@@ -388,10 +399,12 @@ export function GenerateInvoiceDialog({ order, open, onOpenChange }: Props) {
           </Button>
           <Button
             onClick={() => {
-              handlePdfGeneration(collectFormData());
+              handlePdfGeneration(collectFormData(),Setgenerating);
             }}
           >
-            Generate PDF
+           {
+            generating ? "Generating...": "Genarate Pdf"
+           }
           </Button>
         </div>
       </DialogContent>

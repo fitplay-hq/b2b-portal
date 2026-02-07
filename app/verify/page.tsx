@@ -250,30 +250,30 @@ function VerifyOTPContent() {
     }
   };
 
-  const resendOTP = async () => {
-    if (countdown > 0) return;
+  // const resendOTP = async () => {
+  //   if (countdown > 0) return;
     
-    try {
-      const response = await fetch('/api/auth/resend-otp', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
+  //   try {
+  //     const response = await fetch('/api/auth/resend-otp', {
+  //       method: 'PATCH',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({ email }),
+  //     });
 
-      if (response.ok) {
-        setCountdown(60);
-        toast.success('OTP resent successfully!');
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.error || 'Failed to resend OTP. Please try again.');
-      }
-    } catch (error) {
-      console.error('Resend error:', error);
-      toast.error('An error occurred while resending OTP.');
-    }
-  };
+  //     if (response.ok) {
+  //       setCountdown(60);
+  //       toast.success('OTP resent successfully!');
+  //     } else {
+  //       const errorData = await response.json();
+  //       toast.error(errorData.error || 'Failed to resend OTP. Please try again.');
+  //     }
+  //   } catch (error) {
+  //     console.error('Resend error:', error);
+  //     toast.error('An error occurred while resending OTP.');
+  //   }
+  // };
 
   if (!email) {
     return (
