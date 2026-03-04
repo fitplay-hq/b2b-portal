@@ -319,3 +319,126 @@ model SystemUser {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
+
+// ==========================================
+// Order Management (OM) Models
+// ==========================================
+
+model OMClient {
+  id        String            @id @default(uuid())
+  name      String            @db.VarChar(100)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  pos       OMPurchaseOrder[]
+}
+
+model OMDeliveryLocation {
+  id        String            @id @default(uuid())
+  name      String            @db.VarChar(100)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  pos       OMPurchaseOrder[]
+}
+
+model OMPurchaseOrder {
+  id               String                @id @default(uuid())
+  client           OMClient              @relation(fields: [clientId], references: [id])
+  clientId         String
+  deliveryLocation OMDeliveryLocation    @relation(fields: [locationId], references: [id])
+  locationId       String
+  estimateNumber   String                @unique
+  estimateDate     DateTime
+  poNumber         String                @unique
+  poDate           DateTime
+  poReceivedDate   DateTime
+  status           OMPoStatus            @default(CONFIRMED)
+  totalGst         Float                 @default(0)
+  grandTotal       Float                 @default(0)
+  items            OMPurchaseOrderItem[]
+  dispatchOrders   OMDispatchOrder[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+}
+
+model OMProduct {
+  id                 String                @id @default(uuid())
+  name               String                @db.VarChar(100)
+  sku                String?               @unique @db.VarChar(100)
+  description        String?               @db.VarChar(255)
+  price              Float?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  purchaseOrderItems OMPurchaseOrderItem[]
+}
+
+model OMPurchaseOrderItem {
+  id              String                @id @default(uuid())
+  purchaseOrder   OMPurchaseOrder       @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderId String
+  product         OMProduct             @relation(fields: [productId], references: [id])
+  productId       String
+  quantity        Int
+  rate            Float
+  amount          Float
+  gstPercentage   Float
+  gstAmount       Float
+  totalAmount     Float
+  dispatchItems   OMDispatchOrderItem[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+}
+
+model OMLogisticsPartner {
+  id             String            @id @default(uuid())
+  name           String            @db.VarChar(100)
+  dispatchOrders OMDispatchOrder[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model OMDispatchOrder {
+  id                   String                @id @default(uuid())
+  purchaseOrder        OMPurchaseOrder       @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId      String
+  invoiceNumber        String                @unique
+  invoiceDate          DateTime
+  logisticsPartner     OMLogisticsPartner    @relation(fields: [logisticsPartnerId], references: [id])
+  logisticsPartnerId   String
+  docketNumber         String
+  expectedDeliveryDate DateTime
+  status               OMDispatchStatus      @default(CREATED)
+  items                OMDispatchOrderItem[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+}
+
+model OMDispatchOrderItem {
+  id                  String              @id @default(uuid())
+  dispatchOrder       OMDispatchOrder     @relation(fields: [dispatchOrderId], references: [id], onDelete: Cascade)
+  dispatchOrderId     String
+  purchaseOrderItem   OMPurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id])
+  purchaseOrderItemId String
+  quantity            Int
+  rate                Float
+  amount              Float
+  gstPercentage       Float
+  gstAmount           Float
+  totalAmount         Float
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+}
+
+enum OMPoStatus {
+  DRAFT
+  CONFIRMED
+  PARTIALLY_DISPATCHED
+  FULLY_DISPATCHED
+  CLOSED
+}
+
+enum OMDispatchStatus {
+  CREATED
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
