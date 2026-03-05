@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { useFastPermissions } from "@/contexts/fast-permission-context";
 import {
   BarChart3,
-  History,  
+  History,
   Package,
   Package2,
   ShoppingCart,
@@ -19,6 +19,12 @@ import {
   UserCog,
   Archive,
   TrendingUp,
+  ClipboardList,
+  Truck,
+  CircleUser,
+  Box,
+  MapPin,
+  ChevronLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -41,77 +47,74 @@ interface NavItemsProps {
   isCollapsed?: boolean;
 }
 
-export default function NavItems({ isClient, isCollapsed = false }: NavItemsProps) {
+export default function NavItems({
+  isClient,
+  isCollapsed = false,
+}: NavItemsProps) {
   const pathname = usePathname();
-  
+
   // ONLY use fast permissions - never wait for session
-  const { 
-    pageAccess, 
-    actions, 
-    isAdmin
-  } = useFastPermissions();
-  
+  const { pageAccess, actions, isAdmin } = useFastPermissions();
+
   // INSTANT admin detection - ONLY use cached fast permissions
   const isAdminUser = isAdmin;
-  const { data: session ,status} = useSession();
+  const { data: session, status } = useSession();
 
-const DEMO_EMAIL = "demo.github@fitplaysolutions.com";
-const isDemoUser =
-  session?.user?.email?.toLowerCase() === DEMO_EMAIL;
+  const DEMO_EMAIL = "demo.github@fitplaysolutions.com";
+  const isDemoUser = session?.user?.email?.toLowerCase() === DEMO_EMAIL;
 
-  
-
-  
   // Simplified nav state - no need for complex caching here since permissions are already cached
   const [companiesOpen, setCompaniesOpen] = useState(
-    pathname.startsWith("/admin/companies") || pathname.startsWith("/admin/companies-clients") || pathname.startsWith("/admin/clients")
+    pathname.startsWith("/admin/companies") ||
+      pathname.startsWith("/admin/companies-clients") ||
+      pathname.startsWith("/admin/clients"),
   );
   const [rolesOpen, setRolesOpen] = useState(
-    pathname.startsWith("/admin/roles")
+    pathname.startsWith("/admin/roles"),
   );
   const [usersOpen, setUsersOpen] = useState(
-    pathname.startsWith("/admin/users")
+    pathname.startsWith("/admin/users"),
   );
 
-  
-
   if (isClient) {
+    if (status === "loading") {
+      return null; // or skeleton
+    }
 
-     if (status === "loading") {
-    return null; // or skeleton
-  }
-
-     if (isDemoUser) {
-    return (
-      <nav className="space-y-1">
-        {/* Products */}
-        <Link
-          href="/client/products"
-          className={cn(
-            "flex items-center rounded-lg transition-all duration-200 text-sm font-medium group relative",
-            isCollapsed ? "px-2 py-2.5 justify-center" : "gap-3 px-3 py-2.5",
-            pathname === "/client/products"
-              ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-          )}
-          title={isCollapsed ? "Products" : undefined}
-        >
-          <Package className="h-4 w-4 flex-shrink-0" />
-          {!isCollapsed && <span>Products</span>}
-        </Link>
+    if (isDemoUser) {
+      return (
+        <nav className="space-y-1">
+          {/* Products */}
+          <Link
+            href="/client/products"
+            className={cn(
+              "flex items-center rounded-lg transition-all duration-200 text-sm font-medium group relative",
+              isCollapsed ? "px-2 py-2.5 justify-center" : "gap-3 px-3 py-2.5",
+              pathname === "/client/products"
+                ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
+            )}
+            title={isCollapsed ? "Products" : undefined}
+          >
+            <Package className="h-4 w-4 shrink-0" />
+            {!isCollapsed && <span>Products</span>}
+          </Link>
         </nav>
-        )
-      }
+      );
+    }
 
     const clientNavItems = [
       { href: "/client", label: "Dashboard", icon: BarChart3 },
       { href: "/client/products", label: "Products", icon: Package },
       { href: "/client/cart", label: "Cart", icon: ShoppingCart },
       { href: "/client/orders", label: "Order History", icon: History },
-      { href: "/client/inventory-logs", label: "Inventory Logs", icon: Archive },
+      {
+        href: "/client/inventory-logs",
+        label: "Inventory Logs",
+        icon: Archive,
+      },
       { href: "/client/analytics", label: "Analytics", icon: TrendingUp },
     ];
-
 
     return (
       <nav className="space-y-1">
@@ -125,10 +128,12 @@ const isDemoUser =
               href={item.href}
               className={cn(
                 "flex items-center rounded-lg transition-all duration-200 text-sm font-medium group relative",
-                isCollapsed ? "px-2 py-2.5 justify-center" : "gap-3 px-3 py-2.5",
+                isCollapsed
+                  ? "px-2 py-2.5 justify-center"
+                  : "gap-3 px-3 py-2.5",
                 isActive
                   ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
               )}
               title={isCollapsed ? item.label : undefined}
               onClick={(e) => {
@@ -137,7 +142,7 @@ const isDemoUser =
                 }
               }}
             >
-              <Icon className="h-4 w-4 flex-shrink-0" />
+              <Icon className="h-4 w-4 shrink-0" />
               {!isCollapsed && <span>{item.label}</span>}
               {isCollapsed && (
                 <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
@@ -230,10 +235,12 @@ const isDemoUser =
                 href={item.href}
                 className={cn(
                   "flex items-center rounded-lg transition-all duration-200 text-sm font-medium group relative",
-                  isCollapsed ? "px-2 py-2.5 justify-center" : "gap-3 px-3 py-2.5",
+                  isCollapsed
+                    ? "px-2 py-2.5 justify-center"
+                    : "gap-3 px-3 py-2.5",
                   isActive
                     ? `${item.bgColor} ${item.color} shadow-sm`
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
                 )}
                 title={isCollapsed ? item.label : undefined}
                 onClick={(e) => {
@@ -242,10 +249,14 @@ const isDemoUser =
                   }
                 }}
               >
-                <Icon className={cn(
-                  "h-4 w-4 transition-colors flex-shrink-0",
-                  isActive ? item.color : "text-gray-400 group-hover:text-gray-600"
-                )} />
+                <Icon
+                  className={cn(
+                    "h-4 w-4 transition-colors shrink-0",
+                    isActive
+                      ? item.color
+                      : "text-gray-400 group-hover:text-gray-600",
+                  )}
+                />
                 {!isCollapsed && (
                   <>
                     <span>{item.label}</span>
