@@ -158,65 +158,204 @@ export default function NavItems({
 
   // INSTANT sidebar loading - never show loading skeleton or cause re-renders
   // Show navigation immediately and persistently across page changes
-  
+
   // Professional Admin Navigation with stable permission filtering
   const allAdminNavItems = [
-    { 
-      href: "/admin", 
-      label: "Dashboard", 
+    {
+      href: "/admin",
+      label: "Dashboard",
       icon: BarChart3,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
-      permission: null // Always accessible
+      permission: null, // Always accessible
     },
-    { 
-      href: "/admin/products", 
-      label: "Products", 
+    {
+      href: "/admin/products",
+      label: "Products",
       icon: Package2,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
-      permission: 'products' // Simplified permission check
+      permission: "products", // Simplified permission check
     },
-    { 
-      href: "/admin/inventory-logs", 
-      label: "Inventory Logs", 
+    {
+      href: "/admin/inventory-logs",
+      label: "Inventory Logs",
       icon: Archive,
       color: "text-amber-600",
       bgColor: "bg-amber-50",
-      permission: 'inventory' // Simplified permission check
+      permission: "inventory", // Simplified permission check
     },
-    { 
-      href: "/admin/orders", 
-      label: "Orders", 
+    {
+      href: "/admin/orders",
+      label: "Orders",
       icon: ShoppingCart,
       color: "text-green-600",
       bgColor: "bg-green-50",
-      permission: 'orders' // Simplified permission check
+      permission: "orders", // Simplified permission check
     },
-    { 
-      href: "/admin/analytics", 
-      label: "Analytics", 
+    {
+      href: "/admin/analytics",
+      label: "Analytics",
       icon: TrendingUp,
       color: "text-pink-600",
       bgColor: "bg-pink-50",
-      permission: 'analytics' // Simplified permission check
+      permission: "analytics", // Simplified permission check
+    },
+  ];
+
+  const orderManagementItems = [
+    {
+      href: "/admin/order-management",
+      label: "Dashboard",
+      icon: BarChart3,
+      color: "text-slate-600",
+      bgColor: "bg-slate-50",
+    },
+    {
+      href: "/admin/order-management/purchase-orders",
+      label: "Purchase Orders",
+      icon: ClipboardList,
+      color: "text-slate-600",
+      bgColor: "bg-slate-50",
+    },
+    {
+      href: "/admin/order-management/dispatches",
+      label: "Dispatches",
+      icon: Truck,
+      color: "text-slate-600",
+      bgColor: "bg-slate-50",
+    },
+    {
+      href: "/admin/order-management/clients",
+      label: "Clients",
+      icon: CircleUser,
+      color: "text-slate-600",
+      bgColor: "bg-slate-50",
+    },
+    {
+      href: "/admin/order-management/items",
+      label: "Items",
+      icon: Box,
+      color: "text-slate-600",
+      bgColor: "bg-slate-50",
+    },
+    {
+      href: "/admin/order-management/logistics-partners",
+      label: "Logistics Partners",
+      icon: MapPin,
+      color: "text-slate-600",
+      bgColor: "bg-slate-50",
     },
   ];
 
   // STABLE display strategy - prevent flashing and ensure smooth transitions
-  const adminNavItems = allAdminNavItems.filter(item => {
+  const adminNavItems = allAdminNavItems.filter((item) => {
     if (!item.permission) return true; // Always show dashboard
-    
+
     // For admins, always show immediately (never changes)
     if (isAdminUser) return true;
-    
+
     // For non-admins: Only show if explicitly has permission
     // Fast permissions provide instant results, no loading state needed
     return pageAccess[item.permission] === true;
   });
 
+  const isOMRoute = pathname.startsWith("/admin/order-management");
+
+  if (isOMRoute) {
+    return (
+      <div
+        className={cn(
+          "transition-all duration-300",
+          isCollapsed ? "space-y-2" : "space-y-6",
+        )}
+      >
+        <Link
+          href="/admin"
+          className={cn(
+            "flex items-center rounded-lg transition-all duration-200 text-sm font-medium group relative text-gray-500 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 mb-4",
+            isCollapsed
+              ? "px-2 py-2.5 justify-center"
+              : "gap-3 px-3 py-2.5 bg-transparent hover:bg-gray-100",
+          )}
+          title={isCollapsed ? "Back to Admin" : undefined}
+        >
+          <ChevronLeft className="h-4 w-4 shrink-0 transition-transform" />
+          {!isCollapsed && <span>Back to Admin</span>}
+          {isCollapsed && (
+            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+              Back to Admin
+            </div>
+          )}
+        </Link>
+        <div>
+          {!isCollapsed && (
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Order Management
+            </h3>
+          )}
+          <nav className="space-y-1">
+            {orderManagementItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center rounded-lg transition-all duration-200 text-sm font-medium group relative",
+                    isCollapsed
+                      ? "px-2 py-2.5 justify-center"
+                      : "gap-3 px-3 py-2.5",
+                    isActive
+                      ? `${item.bgColor} ${item.color} shadow-sm`
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
+                  )}
+                  title={isCollapsed ? item.label : undefined}
+                  onClick={(e) => {
+                    if (isCollapsed) {
+                      e.stopPropagation();
+                    }
+                  }}
+                >
+                  <Icon
+                    className={cn(
+                      "h-4 w-4 transition-colors shrink-0",
+                      isActive
+                        ? item.color
+                        : "text-gray-400 group-hover:text-gray-600",
+                    )}
+                  />
+                  {!isCollapsed && (
+                    <>
+                      <span>{item.label}</span>
+                      {isActive && (
+                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-current"></div>
+                      )}
+                    </>
+                  )}
+                  {isCollapsed && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                      {item.label}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={cn("transition-all duration-300", isCollapsed ? "space-y-2" : "space-y-6")}>
+    <div
+      className={cn(
+        "transition-all duration-300",
+        isCollapsed ? "space-y-2" : "space-y-6",
+      )}
+    >
       {/* Main Navigation */}
       <div>
         {!isCollapsed && (
