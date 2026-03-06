@@ -366,6 +366,8 @@ model OMProduct {
   sku                String?               @unique @db.VarChar(100)
   description        String?               @db.VarChar(255)
   price              Float?
+  defaultGstPct      Float                 @default(18)
+  category           String?               @db.VarChar(100)
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   purchaseOrderItems OMPurchaseOrderItem[]
