@@ -18,8 +18,27 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search") || "";
+    const sortBy = searchParams.get("sortBy") || "name";
+    const sortOrder = searchParams.get("sortOrder") || "asc";
+
+    const allowedSortFields = ["name", "defaultMode", "createdAt", "updatedAt"];
+    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "name";
+    const safeSortOrder = sortOrder === "desc" ? "desc" : "asc";
+
     const logisticsPartners = await prisma.oMLogisticsPartner.findMany({
-      orderBy: { name: "asc" },
+      where: search
+        ? {
+            OR: [
+              { name: { contains: search, mode: "insensitive" } },
+              { defaultMode: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : undefined,
+      orderBy: {
+        [safeSortBy]: safeSortOrder,
+      },
     });
 
     return NextResponse.json(logisticsPartners);
