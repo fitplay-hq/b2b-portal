@@ -16,16 +16,43 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Package, TrendingUp, Truck } from "lucide-react";
-import {
-  omDispatches,
-  omPurchaseOrders,
-  OMDispatch,
-} from "../../_mock/omMockData";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 export default function OMDispatchDetail() {
   const params = useParams();
   const id = params.id as string;
-  const dispatch = omDispatches.find((d) => d.id === id);
+  const [dispatch, setDispatch] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchDispatch = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/om/dispatch-orders/${id}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setDispatch(data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load dispatch details");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (id) fetchDispatch();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <Layout isClient={false}>
+        <div className="flex h-[50vh] items-center justify-center">
+          <p className="text-muted-foreground">Loading dispatch details...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   if (!dispatch) {
     return (
@@ -43,22 +70,32 @@ export default function OMDispatchDetail() {
     );
   }
 
-  const po = omPurchaseOrders.find((p) => p.id === dispatch.poId);
+  const po = dispatch.purchaseOrder;
 
-  const getStatusVariant = (status: OMDispatch["status"]) => {
+  const getStatusVariant = (status: string) => {
     switch (status) {
-      case "Created":
+      case "CREATED":
         return "secondary";
-      case "Dispatched":
+      case "DISPATCHED":
         return "default";
-      case "Delivered":
+      case "DELIVERED":
         return "default";
-      case "Cancelled":
+      case "CANCELLED":
         return "destructive";
       default:
         return "secondary";
     }
   };
+
+  const totalQty =
+    dispatch.items?.reduce((sum: number, i: any) => sum + i.quantity, 0) || 0;
+  const grandTotal =
+    dispatch.items?.reduce((sum: number, i: any) => sum + i.totalAmount, 0) ||
+    0;
+  const subtotal =
+    dispatch.items?.reduce((sum: number, i: any) => sum + i.amount, 0) || 0;
+  const totalGst =
+    dispatch.items?.reduce((sum: number, i: any) => sum + i.gstAmount, 0) || 0;
 
   return (
     <Layout isClient={false}>
@@ -77,7 +114,7 @@ export default function OMDispatchDetail() {
                 {dispatch.invoiceNumber}
               </h3>
               <p className="text-sm text-muted-foreground">
-                PO: {dispatch.poNumber}
+                PO: {po?.poNumber || "N/A"}
               </p>
             </div>
           </div>
@@ -99,9 +136,7 @@ export default function OMDispatchDetail() {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {dispatch.totalDispatchQty}
-              </div>
+              <div className="text-2xl font-bold">{totalQty}</div>
               <p className="text-xs text-muted-foreground">Items dispatched</p>
             </CardContent>
           </Card>
@@ -115,7 +150,7 @@ export default function OMDispatchDetail() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ₹{dispatch.grandTotal.toLocaleString("en-IN")}
+                ₹{grandTotal.toLocaleString("en-IN")}
               </div>
               <p className="text-xs text-muted-foreground">
                 Total invoice value
@@ -132,10 +167,10 @@ export default function OMDispatchDetail() {
             </CardHeader>
             <CardContent>
               <div className="text-lg font-bold">
-                {dispatch.logisticsPartnerName}
+                {dispatch.logisticsPartner?.name || "Custom/Direct"}
               </div>
               <p className="text-xs text-muted-foreground font-mono">
-                {dispatch.trackingNumber}
+                {dispatch.docketNumber || "N/A"}
               </p>
             </CardContent>
           </Card>
@@ -150,7 +185,7 @@ export default function OMDispatchDetail() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Client</p>
-                <p className="font-medium">{dispatch.clientName}</p>
+                <p className="font-medium">{po?.client?.name || "Unknown"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Invoice Date</p>
@@ -170,7 +205,9 @@ export default function OMDispatchDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Tracking Number</p>
-                <p className="font-mono text-sm">{dispatch.trackingNumber}</p>
+                <p className="font-mono text-sm">
+                  {dispatch.docketNumber || "N/A"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Created At</p>
@@ -197,12 +234,12 @@ export default function OMDispatchDetail() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="font-medium">{po.estimateNumber}</p>
+                  <p className="font-medium">{po.estimateNumber || "N/A"}</p>
                   <p className="text-sm text-muted-foreground">
                     PO: {po.poNumber}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Location: {po.deliveryLocation}
+                    Location: {po.deliveryLocation?.name || "Self-Pickup"}
                   </p>
                 </div>
                 <Link href={`/admin/order-management/purchase-orders/${po.id}`}>
@@ -232,13 +269,13 @@ export default function OMDispatchDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {dispatch.lineItems.map((item) => (
+                {(dispatch.items || []).map((item: any) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">
-                      {item.itemName}
+                      {item.purchaseOrderItem?.product?.name || "Custom Item"}
                     </TableCell>
                     <TableCell className="text-right">
-                      {item.dispatchQty}
+                      {item.quantity}
                     </TableCell>
                     <TableCell className="text-right">
                       ₹{item.rate.toLocaleString("en-IN")}
@@ -247,7 +284,7 @@ export default function OMDispatchDetail() {
                       ₹{item.amount.toLocaleString("en-IN")}
                     </TableCell>
                     <TableCell className="text-right">
-                      {item.gstPercent}%
+                      {item.gstPercentage}%
                     </TableCell>
                     <TableCell className="text-right">
                       ₹{item.gstAmount.toLocaleString("en-IN")}
@@ -266,19 +303,19 @@ export default function OMDispatchDetail() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
                 <span className="font-medium">
-                  ₹{dispatch.subtotal.toLocaleString("en-IN")}
+                  ₹{subtotal.toLocaleString("en-IN")}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total GST:</span>
                 <span className="font-medium">
-                  ₹{dispatch.totalGst.toLocaleString("en-IN")}
+                  ₹{totalGst.toLocaleString("en-IN")}
                 </span>
               </div>
               <div className="flex justify-between pt-2 border-t">
                 <span className="font-semibold">Grand Total:</span>
                 <span className="font-semibold text-lg">
-                  ₹{dispatch.grandTotal.toLocaleString("en-IN")}
+                  ₹{grandTotal.toLocaleString("en-IN")}
                 </span>
               </div>
             </div>

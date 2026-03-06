@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,8 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, Save } from "lucide-react";
-import { omClients, omItems } from "../../_mock/omMockData";
+import { Plus, Trash2, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -35,12 +32,12 @@ import {
 
 interface LineItem {
   tempId: string;
-  itemId: string;
+  productId: string;
   itemName: string;
   quantity: number;
   rate: number;
   amount: number;
-  gstPercent: number;
+  gstPercentage: number;
   gstAmount: number;
   totalAmount: number;
 }
@@ -50,23 +47,20 @@ export default function OMCreatePurchaseOrder() {
 
   // Form state
   const [clientId, setClientId] = useState("");
-  const [deliveryLocation, setDeliveryLocation] = useState("");
-  const [deliveryLocations] = useState([
-    "Mumbai",
-    "Delhi",
-    "Bangalore",
-    "Noida",
-    "Chennai",
-    "Pune",
-    "Hyderabad",
-    "Kolkata",
-  ]);
+  const [locationId, setLocationId] = useState("");
   const [estimateNumber, setEstimateNumber] = useState("");
   const [estimateDate, setEstimateDate] = useState("");
   const [poNumber, setPoNumber] = useState("");
   const [poDate, setPoDate] = useState("");
   const [poReceivedDate, setPoReceivedDate] = useState("");
-  const [status, setStatus] = useState<"Draft" | "Confirmed">("Confirmed");
+  const [status, setStatus] = useState<"DRAFT" | "CONFIRMED">("CONFIRMED");
+
+  // Master data
+  const [clients, setClients] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Line items
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
@@ -75,25 +69,52 @@ export default function OMCreatePurchaseOrder() {
   // New client dialog
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
   const [newClientName, setNewClientName] = useState("");
+  const [isAddingClient, setIsAddingClient] = useState(false);
 
   // New location dialog
   const [showNewLocationDialog, setShowNewLocationDialog] = useState(false);
   const [newLocationName, setNewLocationName] = useState("");
+  const [isAddingLocation, setIsAddingLocation] = useState(false);
 
   // New item dialog
   const [showNewItemDialog, setShowNewItemDialog] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemRate, setNewItemRate] = useState("");
+  const [isAddingItem, setIsAddingItem] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsDataLoading(true);
+      try {
+        const [clientsRes, locationsRes, productsRes] = await Promise.all([
+          fetch("/api/admin/om/clients"),
+          fetch("/api/admin/om/delivery-locations"),
+          fetch("/api/admin/om/products"),
+        ]);
+
+        if (clientsRes.ok) setClients(await clientsRes.json());
+        if (locationsRes.ok) setLocations(await locationsRes.json());
+        if (productsRes.ok) setProducts(await productsRes.json());
+      } catch (err) {
+        console.error("Error fetching master data:", err);
+        toast.error("Failed to load form data");
+      } finally {
+        setIsDataLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const addLineItem = () => {
     const newItem: LineItem = {
       tempId: `temp-${nextTempId}`,
-      itemId: "",
+      productId: "",
       itemName: "",
       quantity: 1,
       rate: 0,
       amount: 0,
-      gstPercent: 18,
+      gstPercentage: 18,
       gstAmount: 0,
       totalAmount: 0,
     };
@@ -117,18 +138,18 @@ export default function OMCreatePurchaseOrder() {
         const updated = { ...item, [field]: value };
 
         // Handle item selection
-        if (field === "itemId") {
-          const selectedItem = omItems.find((i) => i.id === value);
-          if (selectedItem) {
-            updated.itemName = selectedItem.name;
-            updated.rate = selectedItem.defaultRate || 0;
-            updated.gstPercent = selectedItem.defaultGst;
+        if (field === "productId") {
+          const selectedProduct = products.find((p) => p.id === value);
+          if (selectedProduct) {
+            updated.itemName = selectedProduct.name;
+            updated.rate = selectedProduct.price || 0;
+            updated.gstPercentage = selectedProduct.defaultGstPct || 18;
           }
         }
 
         // Recalculate amounts
         updated.amount = updated.quantity * updated.rate;
-        updated.gstAmount = (updated.amount * updated.gstPercent) / 100;
+        updated.gstAmount = (updated.amount * updated.gstPercentage) / 100;
         updated.totalAmount = updated.amount + updated.gstAmount;
 
         return updated;
@@ -142,58 +163,147 @@ export default function OMCreatePurchaseOrder() {
   const totalGst = lineItems.reduce((sum, item) => sum + item.gstAmount, 0);
   const grandTotal = subtotal + totalGst;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
-    if (!clientId || !estimateNumber || !poNumber || lineItems.length === 0) {
+    if (
+      !clientId ||
+      !locationId ||
+      !estimateNumber ||
+      !poNumber ||
+      lineItems.length === 0
+    ) {
       toast.error("Please fill all required fields and add at least one item");
       return;
     }
 
     if (
       lineItems.some(
-        (item) => !item.itemId || item.quantity <= 0 || item.rate <= 0,
+        (item) => !item.productId || item.quantity <= 0 || item.rate <= 0,
       )
     ) {
       toast.error("Please complete all line item details");
       return;
     }
 
-    // In a real app, this would save to backend
-    toast.success("Purchase Order created successfully");
-    router.push("/admin/order-management/purchase-orders");
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        clientId,
+        locationId,
+        estimateNumber,
+        estimateDate,
+        poNumber,
+        poDate,
+        poReceivedDate,
+        status,
+        items: lineItems.map(({ tempId, itemName, ...rest }) => rest),
+      };
+
+      const res = await fetch("/api/admin/om/purchase-orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast.success("Purchase Order created successfully");
+        router.push("/admin/order-management/purchase-orders");
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to create PO");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error creating Purchase Order");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleAddNewClient = () => {
+  const handleAddNewClient = async () => {
     if (!newClientName.trim()) {
       toast.error("Please enter client name");
       return;
     }
-    toast.success("Client added successfully (mock)");
-    setShowNewClientDialog(false);
-    setNewClientName("");
+    setIsAddingClient(true);
+    try {
+      const res = await fetch("/api/admin/om/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newClientName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setClients([...clients, data.data]);
+        setClientId(data.id);
+        toast.success("Client added successfully");
+        setShowNewClientDialog(false);
+        setNewClientName("");
+      }
+    } catch (err) {
+      toast.error("Failed to add client");
+    } finally {
+      setIsAddingClient(false);
+    }
   };
 
-  const handleAddNewLocation = () => {
+  const handleAddNewLocation = async () => {
     if (!newLocationName.trim()) {
       toast.error("Please enter location name");
       return;
     }
-    toast.success("Location added successfully (mock)");
-    setShowNewLocationDialog(false);
-    setNewLocationName("");
+    setIsAddingLocation(true);
+    try {
+      const res = await fetch("/api/admin/om/delivery-locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newLocationName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLocations([...locations, data.data]);
+        setLocationId(data.id);
+        toast.success("Location added successfully");
+        setShowNewLocationDialog(false);
+        setNewLocationName("");
+      }
+    } catch (err) {
+      toast.error("Failed to add location");
+    } finally {
+      setIsAddingLocation(false);
+    }
   };
 
-  const handleAddNewItem = () => {
+  const handleAddNewItem = async () => {
     if (!newItemName.trim()) {
       toast.error("Please enter item name");
       return;
     }
-    toast.success("Item added successfully (mock)");
-    setShowNewItemDialog(false);
-    setNewItemName("");
-    setNewItemRate("");
+    setIsAddingItem(true);
+    try {
+      const res = await fetch("/api/admin/om/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newItemName,
+          price: newItemRate ? parseFloat(newItemRate) : undefined,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProducts([...products, data.data]);
+        toast.success("Item added successfully");
+        setShowNewItemDialog(false);
+        setNewItemName("");
+        setNewItemRate("");
+      }
+    } catch (err) {
+      toast.error("Failed to add item");
+    } finally {
+      setIsAddingItem(false);
+    }
   };
 
   return (
@@ -209,12 +319,20 @@ export default function OMCreatePurchaseOrder() {
               <div className="space-y-2">
                 <Label>Client Name *</Label>
                 <div className="flex gap-2">
-                  <Select value={clientId} onValueChange={setClientId}>
+                  <Select
+                    value={clientId}
+                    onValueChange={setClientId}
+                    disabled={isDataLoading}
+                  >
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select client" />
+                      <SelectValue
+                        placeholder={
+                          isDataLoading ? "Loading clients..." : "Select client"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {omClients.map((client) => (
+                      {clients.map((client) => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.name}
                         </SelectItem>
@@ -243,7 +361,14 @@ export default function OMCreatePurchaseOrder() {
                             placeholder="Enter client name"
                           />
                         </div>
-                        <Button type="button" onClick={handleAddNewClient}>
+                        <Button
+                          type="button"
+                          onClick={handleAddNewClient}
+                          disabled={isAddingClient}
+                        >
+                          {isAddingClient && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
                           Add Client
                         </Button>
                       </div>
@@ -256,16 +381,23 @@ export default function OMCreatePurchaseOrder() {
                 <Label>Delivery Location *</Label>
                 <div className="flex gap-2">
                   <Select
-                    value={deliveryLocation}
-                    onValueChange={setDeliveryLocation}
+                    value={locationId}
+                    onValueChange={setLocationId}
+                    disabled={isDataLoading}
                   >
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select location" />
+                      <SelectValue
+                        placeholder={
+                          isDataLoading
+                            ? "Loading locations..."
+                            : "Select location"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {deliveryLocations.map((location) => (
-                        <SelectItem key={location} value={location}>
-                          {location}
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -292,7 +424,14 @@ export default function OMCreatePurchaseOrder() {
                             placeholder="Enter location name"
                           />
                         </div>
-                        <Button type="button" onClick={handleAddNewLocation}>
+                        <Button
+                          type="button"
+                          onClick={handleAddNewLocation}
+                          disabled={isAddingLocation}
+                        >
+                          {isAddingLocation && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
                           Add Location
                         </Button>
                       </div>
@@ -347,19 +486,23 @@ export default function OMCreatePurchaseOrder() {
               </div>
 
               <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={status}
-                  onValueChange={(val: "Draft" | "Confirmed") => setStatus(val)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Draft">Draft</SelectItem>
-                    <SelectItem value="Confirmed">Confirmed</SelectItem>
-                  </SelectContent>
-                </Select>
+                <p className="text-sm font-medium mb-1.5">Status</p>
+                <div className="flex bg-muted p-1 rounded-md">
+                  <button
+                    type="button"
+                    onClick={() => setStatus("DRAFT")}
+                    className={`flex-1 text-xs py-1.5 rounded-sm transition-all ${status === "DRAFT" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                  >
+                    Draft
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatus("CONFIRMED")}
+                    className={`flex-1 text-xs py-1.5 rounded-sm transition-all ${status === "CONFIRMED" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                  >
+                    Confirmed
+                  </button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -405,18 +548,18 @@ export default function OMCreatePurchaseOrder() {
                         <TableCell>
                           <div className="flex gap-2">
                             <Select
-                              value={item.itemId}
+                              value={item.productId}
                               onValueChange={(val) =>
-                                updateLineItem(item.tempId, "itemId", val)
+                                updateLineItem(item.tempId, "productId", val)
                               }
                             >
                               <SelectTrigger className="min-w-[180px]">
                                 <SelectValue placeholder="Select item" />
                               </SelectTrigger>
                               <SelectContent>
-                                {omItems.map((omItem) => (
-                                  <SelectItem key={omItem.id} value={omItem.id}>
-                                    {omItem.name}
+                                {products.map((p) => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    {p.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -459,7 +602,11 @@ export default function OMCreatePurchaseOrder() {
                                   <Button
                                     type="button"
                                     onClick={handleAddNewItem}
+                                    disabled={isAddingItem}
                                   >
+                                    {isAddingItem && (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    )}
                                     Add Item
                                   </Button>
                                 </div>
@@ -500,16 +647,17 @@ export default function OMCreatePurchaseOrder() {
                           ₹
                           {item.amount.toLocaleString("en-IN", {
                             minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
                           })}
                         </TableCell>
                         <TableCell>
                           <Select
-                            value={item.gstPercent.toString()}
+                            value={item.gstPercentage.toString()}
                             onValueChange={(val) =>
                               updateLineItem(
                                 item.tempId,
-                                "gstPercent",
-                                parseInt(val),
+                                "gstPercentage",
+                                parseFloat(val),
                               )
                             }
                           >
@@ -528,12 +676,14 @@ export default function OMCreatePurchaseOrder() {
                           ₹
                           {item.gstAmount.toLocaleString("en-IN", {
                             minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
                           })}
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           ₹
                           {item.totalAmount.toLocaleString("en-IN", {
                             minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
                           })}
                         </TableCell>
                         <TableCell>
@@ -572,6 +722,7 @@ export default function OMCreatePurchaseOrder() {
                   ₹
                   {subtotal.toLocaleString("en-IN", {
                     minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}
                 </span>
               </div>
@@ -581,6 +732,7 @@ export default function OMCreatePurchaseOrder() {
                   ₹
                   {totalGst.toLocaleString("en-IN", {
                     minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}
                 </span>
               </div>
@@ -590,6 +742,7 @@ export default function OMCreatePurchaseOrder() {
                   ₹
                   {grandTotal.toLocaleString("en-IN", {
                     minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}
                 </span>
               </div>
@@ -608,9 +761,13 @@ export default function OMCreatePurchaseOrder() {
           >
             Cancel
           </Button>
-          <Button type="submit">
-            <Save className="h-4 w-4 mr-2" />
-            Create Purchase Order
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {isSubmitting ? "Creating..." : "Create Purchase Order"}
           </Button>
         </div>
       </form>

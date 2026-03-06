@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,8 +22,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Eye, FileDown, FileSpreadsheet } from "lucide-react";
-import { omDispatches, omClients, OMDispatch } from "../_mock/omMockData";
+import {
+  Plus,
+  Search,
+  Eye,
+  FileDown,
+  FileSpreadsheet,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -36,36 +43,98 @@ export default function OMDispatchesList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
+  const [dispatches, setDispatches] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Filter dispatches
-  const filteredDispatches = omDispatches.filter((dispatch) => {
+  const fetchClients = async () => {
+    try {
+      const res = await fetch("/api/admin/om/clients");
+      if (res.ok) {
+        const data = await res.json();
+        setClients(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch clients", err);
+    }
+  };
+
+  const fetchDispatches = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.append("status", statusFilter);
+      // Backend route doesn't explicitly support clientId filter in dispatch-orders API yet,
+      // but we can filter client-side or use purchaseOrderId if needed.
+      // For now we'll filter client-side for consistency with the PO list.
+
+      const res = await fetch(`/api/admin/om/dispatch-orders?limit=100`);
+      if (res.ok) {
+        const data = await res.json();
+        setDispatches(data.data);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load dispatches");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  useEffect(() => {
+    fetchDispatches();
+  }, [statusFilter]);
+
+  // Filter dispatches client-side
+  const filteredDispatches = dispatches.filter((dispatch) => {
+    const clientName = dispatch.purchaseOrder?.client?.name || "Unknown";
+    const poNumber = dispatch.purchaseOrder?.poNumber || "N/A";
+
     const matchesSearch =
       dispatch.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      dispatch.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      dispatch.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      dispatch.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (dispatch.docketNumber || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" || dispatch.status === statusFilter;
     const matchesClient =
-      clientFilter === "all" || dispatch.clientId === clientFilter;
+      clientFilter === "all" ||
+      dispatch.purchaseOrder?.clientId === clientFilter;
 
-    return matchesSearch && matchesStatus && matchesClient;
+    return matchesSearch && matchesClient;
   });
 
-  const getStatusVariant = (status: OMDispatch["status"]) => {
+  const getStatusVariant = (status: string) => {
     switch (status) {
-      case "Created":
+      case "CREATED":
         return "secondary";
-      case "Dispatched":
+      case "DISPATCHED":
         return "default";
-      case "Delivered":
+      case "DELIVERED":
         return "default";
-      case "Cancelled":
+      case "CANCELLED":
         return "destructive";
       default:
         return "secondary";
     }
+  };
+
+  const getTotalQty = (dispatch: any) => {
+    return (
+      dispatch.items?.reduce((sum: number, i: any) => sum + i.quantity, 0) || 0
+    );
+  };
+
+  const getGrandTotal = (dispatch: any) => {
+    return (
+      dispatch.items?.reduce((sum: number, i: any) => sum + i.totalAmount, 0) ||
+      0
+    );
   };
 
   // Export to CSV/Excel
@@ -84,17 +153,19 @@ export default function OMDispatchesList() {
     ];
 
     const rows = filteredDispatches.map((dispatch) => {
+      const totalQty = getTotalQty(dispatch);
+      const grandTotal = getGrandTotal(dispatch);
       return [
         dispatch.invoiceNumber,
-        dispatch.poNumber,
-        dispatch.clientName,
-        dispatch.totalDispatchQty,
-        dispatch.logisticsPartnerName,
-        dispatch.trackingNumber,
+        dispatch.purchaseOrder?.poNumber || "N/A",
+        dispatch.purchaseOrder?.client?.name || "Unknown",
+        totalQty,
+        dispatch.logisticsPartner?.name || "N/A",
+        dispatch.docketNumber || "N/A",
         new Date(dispatch.invoiceDate).toLocaleDateString("en-IN"),
         new Date(dispatch.expectedDeliveryDate).toLocaleDateString("en-IN"),
         dispatch.status,
-        dispatch.grandTotal,
+        grandTotal,
       ];
     });
 
@@ -131,12 +202,14 @@ ${"=".repeat(120)}
 `;
 
     filteredDispatches.forEach((dispatch) => {
+      const totalQty = getTotalQty(dispatch);
+      const grandTotal = getGrandTotal(dispatch);
       pdfContent += `
-Invoice: ${dispatch.invoiceNumber} | PO: ${dispatch.poNumber} | Client: ${dispatch.clientName}
+Invoice: ${dispatch.invoiceNumber} | PO: ${dispatch.purchaseOrder?.poNumber || "N/A"} | Client: ${dispatch.purchaseOrder?.client?.name || "Unknown"}
 Status: ${dispatch.status} | Date: ${new Date(dispatch.invoiceDate).toLocaleDateString("en-IN")}
-Quantity: ${dispatch.totalDispatchQty} | Courier: ${dispatch.logisticsPartnerName}
-Tracking: ${dispatch.trackingNumber} | Expected Delivery: ${new Date(dispatch.expectedDeliveryDate).toLocaleDateString("en-IN")}
-Total Value: ₹${dispatch.grandTotal.toLocaleString("en-IN")}
+Quantity: ${totalQty} | Courier: ${dispatch.logisticsPartner?.name || "N/A"}
+Tracking: ${dispatch.docketNumber || "N/A"} | Expected Delivery: ${new Date(dispatch.expectedDeliveryDate).toLocaleDateString("en-IN")}
+Total Value: ₹${grandTotal.toLocaleString("en-IN")}
 ${"-".repeat(120)}
 `;
     });
@@ -219,7 +292,8 @@ ${"-".repeat(120)}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Clients</SelectItem>
-                  {omClients.map((client) => (
+                  <SelectItem value="all">All Clients</SelectItem>
+                  {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
                     </SelectItem>
@@ -233,10 +307,10 @@ ${"-".repeat(120)}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Created">Created</SelectItem>
-                  <SelectItem value="Dispatched">Dispatched</SelectItem>
-                  <SelectItem value="Delivered">Delivered</SelectItem>
-                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  <SelectItem value="CREATED">Created</SelectItem>
+                  <SelectItem value="DISPATCHED">Dispatched</SelectItem>
+                  <SelectItem value="DELIVERED">Delivered</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -276,14 +350,20 @@ ${"-".repeat(120)}
                       <TableCell className="font-medium">
                         {dispatch.invoiceNumber}
                       </TableCell>
-                      <TableCell>{dispatch.poNumber}</TableCell>
-                      <TableCell>{dispatch.clientName}</TableCell>
-                      <TableCell className="text-right">
-                        {dispatch.totalDispatchQty}
+                      <TableCell>
+                        {dispatch.purchaseOrder?.poNumber || "N/A"}
                       </TableCell>
-                      <TableCell>{dispatch.logisticsPartnerName}</TableCell>
+                      <TableCell>
+                        {dispatch.purchaseOrder?.client?.name || "Unknown"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {getTotalQty(dispatch)}
+                      </TableCell>
+                      <TableCell>
+                        {dispatch.logisticsPartner?.name || "N/A"}
+                      </TableCell>
                       <TableCell className="font-mono text-sm">
-                        {dispatch.trackingNumber}
+                        {dispatch.docketNumber || "N/A"}
                       </TableCell>
                       <TableCell>
                         {new Date(dispatch.invoiceDate).toLocaleDateString(

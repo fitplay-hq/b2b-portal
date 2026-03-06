@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,12 +30,6 @@ import {
   FileDown,
   FileSpreadsheet,
 } from "lucide-react";
-import {
-  omPurchaseOrders,
-  omClients,
-  getTotalDispatchedForPO,
-  OMPurchaseOrder,
-} from "../_mock/omMockData";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -48,32 +42,95 @@ export default function OMPurchaseOrdersList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [meta, setMeta] = useState<any>(null);
 
-  // Filter purchase orders
-  const filteredPOs = omPurchaseOrders.filter((po) => {
+  const fetchClients = async () => {
+    try {
+      const res = await fetch("/api/admin/om/clients");
+      if (res.ok) {
+        const data = await res.json();
+        setClients(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch clients", err);
+    }
+  };
+
+  const fetchPurchaseOrders = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.append("status", statusFilter);
+      if (clientFilter !== "all") params.append("clientId", clientFilter);
+      // For global search, we might still want to filter client-side if the API doesn't support 'q' here,
+      // but let's assume we can filter the result for now or use the search API if needed.
+      // The current route.ts for purchase-orders doesn't have a 'q' param, so we'll filter client-side for 'searchTerm'.
+
+      const res = await fetch(
+        `/api/admin/om/purchase-orders?${params.toString()}`,
+      );
+      if (res.ok) {
+        const result = await res.json();
+        setPurchaseOrders(result.data);
+        setMeta(result.meta);
+      }
+    } catch (err) {
+      console.error("Failed to fetch POs", err);
+      toast.error("Failed to load purchase orders");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  useEffect(() => {
+    fetchPurchaseOrders();
+  }, [statusFilter, clientFilter]);
+
+  // Filter purchase orders client-side for search term
+  const filteredPOs = purchaseOrders.filter((po) => {
+    const clientName = po.client?.name || "Unknown";
     const matchesSearch =
       po.estimateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      po.clientName.toLowerCase().includes(searchTerm.toLowerCase());
+      clientName.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || po.status === statusFilter;
-    const matchesClient =
-      clientFilter === "all" || po.clientId === clientFilter;
-
-    return matchesSearch && matchesStatus && matchesClient;
+    return matchesSearch;
   });
 
-  const getStatusVariant = (status: OMPurchaseOrder["status"]) => {
+  const getTotalDispatchedForPO = (po: any) => {
+    return (
+      po.dispatchOrders?.reduce((sum: number, d: any) => {
+        const dispatchQty =
+          d.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0;
+        return sum + dispatchQty;
+      }, 0) || 0
+    );
+  };
+
+  const getTotalOrderedForPO = (po: any) => {
+    return (
+      po.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0
+    );
+  };
+
+  const getStatusVariant = (status: string) => {
     switch (status) {
-      case "Draft":
+      case "DRAFT":
         return "secondary";
-      case "Confirmed":
+      case "CONFIRMED":
         return "default";
-      case "Partially Dispatched":
+      case "PARTIALLY_DISPATCHED":
         return "outline";
-      case "Fully Dispatched":
+      case "FULLY_DISPATCHED":
         return "default";
-      case "Closed":
+      case "CLOSED":
         return "secondary";
       default:
         return "secondary";
@@ -95,14 +152,15 @@ export default function OMPurchaseOrdersList() {
     ];
 
     const rows = filteredPOs.map((po) => {
-      const dispatched = getTotalDispatchedForPO(po.id);
-      const remaining = po.totalQuantity - dispatched;
+      const dispatched = getTotalDispatchedForPO(po);
+      const totalOrdered = getTotalOrderedForPO(po);
+      const remaining = totalOrdered - dispatched;
 
       return [
         po.estimateNumber,
         po.poNumber,
-        po.clientName,
-        po.totalQuantity,
+        po.client?.name || "Unknown",
+        totalOrdered,
         dispatched,
         remaining,
         po.grandTotal,
@@ -145,13 +203,14 @@ ${"=".repeat(120)}
 `;
 
     filteredPOs.forEach((po) => {
-      const dispatched = getTotalDispatchedForPO(po.id);
-      const remaining = po.totalQuantity - dispatched;
+      const dispatched = getTotalDispatchedForPO(po);
+      const totalOrdered = getTotalOrderedForPO(po);
+      const remaining = totalOrdered - dispatched;
 
       pdfContent += `
-Estimate: ${po.estimateNumber} | PO: ${po.poNumber} | Client: ${po.clientName}
+Estimate: ${po.estimateNumber} | PO: ${po.poNumber} | Client: ${po.client?.name || "Unknown"}
 Status: ${po.status} | Date: ${new Date(po.poDate).toLocaleDateString("en-IN")}
-Ordered: ${po.totalQuantity} | Dispatched: ${dispatched} | Remaining: ${remaining}
+Ordered: ${totalOrdered} | Dispatched: ${dispatched} | Remaining: ${remaining}
 Total Value: ₹${po.grandTotal.toLocaleString("en-IN")}
 ${"-".repeat(120)}
 `;
@@ -235,7 +294,7 @@ ${"-".repeat(120)}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Clients</SelectItem>
-                  {omClients.map((client) => (
+                  {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
                     </SelectItem>
@@ -249,15 +308,15 @@ ${"-".repeat(120)}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Draft">Draft</SelectItem>
-                  <SelectItem value="Confirmed">Confirmed</SelectItem>
-                  <SelectItem value="Partially Dispatched">
+                  <SelectItem value="DRAFT">Draft</SelectItem>
+                  <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                  <SelectItem value="PARTIALLY_DISPATCHED">
                     Partially Dispatched
                   </SelectItem>
-                  <SelectItem value="Fully Dispatched">
+                  <SelectItem value="FULLY_DISPATCHED">
                     Fully Dispatched
                   </SelectItem>
-                  <SelectItem value="Closed">Closed</SelectItem>
+                  <SelectItem value="CLOSED">Closed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -293,8 +352,9 @@ ${"-".repeat(120)}
                   </TableRow>
                 ) : (
                   filteredPOs.map((po) => {
-                    const dispatched = getTotalDispatchedForPO(po.id);
-                    const remaining = po.totalQuantity - dispatched;
+                    const dispatched = getTotalDispatchedForPO(po);
+                    const totalOrdered = getTotalOrderedForPO(po);
+                    const remaining = totalOrdered - dispatched;
 
                     return (
                       <TableRow key={po.id}>
@@ -302,9 +362,9 @@ ${"-".repeat(120)}
                           {po.estimateNumber}
                         </TableCell>
                         <TableCell>{po.poNumber}</TableCell>
-                        <TableCell>{po.clientName}</TableCell>
+                        <TableCell>{po.client?.name || "Unknown"}</TableCell>
                         <TableCell className="text-right">
-                          {po.totalQuantity}
+                          {totalOrdered}
                         </TableCell>
                         <TableCell className="text-right">
                           {dispatched}

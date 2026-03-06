@@ -16,6 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   ArrowLeft,
   Edit,
   Plus,
@@ -23,25 +29,43 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
-import {
-  omPurchaseOrders,
-  getDispatchesForPO,
-  getDispatchedQuantity,
-  getRemainingQuantity,
-  getTotalDispatchedForPO,
-  OMPurchaseOrder,
-} from "../../_mock/omMockData";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 export default function OMPurchaseOrderDetail() {
   const params = useParams();
   const id = params.id as string;
-  const po = omPurchaseOrders.find((p) => p.id === id);
+  const [po, setPO] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchPO = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/om/purchase-orders/${id}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setPO(data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load purchase order");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (id) fetchPO();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <Layout isClient={false}>
+        <div className="flex h-[50vh] items-center justify-center">
+          <p className="text-muted-foreground">Loading purchase order...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   if (!po) {
     return (
@@ -61,25 +85,34 @@ export default function OMPurchaseOrderDetail() {
     );
   }
 
-  const dispatches = getDispatchesForPO(po.id);
-  const totalDispatched = getTotalDispatchedForPO(po.id);
-  const totalRemaining = po.totalQuantity - totalDispatched;
+  const dispatches = po.dispatchOrders || [];
+  const totalQuantity =
+    po.items?.reduce((sum: number, i: any) => sum + i.quantity, 0) || 0;
+
+  const totalDispatched =
+    po.dispatchOrders?.reduce((sum: number, d: any) => {
+      return (
+        sum + (d.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0)
+      );
+    }, 0) || 0;
+
+  const totalRemaining = totalQuantity - totalDispatched;
   const fulfillmentPercent =
-    po.totalQuantity > 0
-      ? ((totalDispatched / po.totalQuantity) * 100).toFixed(1)
+    totalQuantity > 0
+      ? ((totalDispatched / totalQuantity) * 100).toFixed(1)
       : "0";
 
-  const getStatusVariant = (status: OMPurchaseOrder["status"]) => {
+  const getStatusVariant = (status: string) => {
     switch (status) {
-      case "Draft":
+      case "DRAFT":
         return "secondary";
-      case "Confirmed":
+      case "CONFIRMED":
         return "default";
-      case "Partially Dispatched":
+      case "PARTIALLY_DISPATCHED":
         return "outline";
-      case "Fully Dispatched":
+      case "FULLY_DISPATCHED":
         return "default";
-      case "Closed":
+      case "CLOSED":
         return "secondary";
       default:
         return "secondary";
@@ -183,13 +216,15 @@ export default function OMPurchaseOrderDetail() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Client</p>
-                <p className="font-medium">{po.clientName}</p>
+                <p className="font-medium">{po.client?.name || "Unknown"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
                   Delivery Location
                 </p>
-                <p className="font-medium">{po.deliveryLocation}</p>
+                <p className="font-medium">
+                  {po.deliveryLocation?.name || "Self-Pickup/Hub"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
@@ -238,14 +273,18 @@ export default function OMPurchaseOrderDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {po.lineItems.map((item) => {
-                  const dispatched = getDispatchedQuantity(po.id, item.id);
+                {(po.items || []).map((item: any) => {
+                  const dispatched =
+                    item.dispatchItems?.reduce(
+                      (sum: number, di: any) => sum + di.quantity,
+                      0,
+                    ) || 0;
                   const remaining = item.quantity - dispatched;
 
                   return (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">
-                        {item.itemName}
+                        {item.product?.name || "Custom Item"}
                       </TableCell>
                       <TableCell className="text-right">
                         {item.quantity}
@@ -266,7 +305,7 @@ export default function OMPurchaseOrderDetail() {
                         ₹{item.rate.toLocaleString("en-IN")}
                       </TableCell>
                       <TableCell className="text-right">
-                        {item.gstPercent}%
+                        {item.gstPercentage}%
                       </TableCell>
                       <TableCell className="text-right">
                         ₹{item.totalAmount.toLocaleString("en-IN")}
@@ -314,120 +353,143 @@ export default function OMPurchaseOrderDetail() {
               </div>
             ) : (
               <Accordion type="single" collapsible className="w-full">
-                {dispatches.map((dispatch, index) => (
-                  <AccordionItem key={dispatch.id} value={dispatch.id}>
-                    <AccordionTrigger>
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <p className="font-medium">
-                              {dispatch.invoiceNumber}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(
-                                dispatch.invoiceDate,
-                              ).toLocaleDateString("en-IN")}
-                            </p>
+                {dispatches.map((dispatch: any, index: number) => {
+                  const totalDispatchQty =
+                    dispatch.items?.reduce(
+                      (sum: number, i: any) => sum + i.quantity,
+                      0,
+                    ) || 0;
+                  const grandTotalValue =
+                    dispatch.items?.reduce(
+                      (sum: number, i: any) => sum + i.totalAmount,
+                      0,
+                    ) || 0;
+
+                  return (
+                    <AccordionItem key={dispatch.id} value={dispatch.id}>
+                      <AccordionTrigger>
+                        <div className="flex items-center justify-between w-full pr-4">
+                          <div className="flex items-center gap-4">
+                            <div>
+                              <p className="font-medium">
+                                {dispatch.invoiceNumber}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(
+                                  dispatch.invoiceDate,
+                                ).toLocaleDateString("en-IN")}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-6">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Qty</p>
-                            <p className="font-medium">
-                              {dispatch.totalDispatchQty}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">
-                              Value
-                            </p>
-                            <p className="font-medium">
-                              ₹{dispatch.grandTotal.toLocaleString("en-IN")}
-                            </p>
-                          </div>
-                          <Badge>{dispatch.status}</Badge>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="pt-4 space-y-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">
-                              Logistics Partner
-                            </p>
-                            <p className="font-medium">
-                              {dispatch.logisticsPartnerName}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">
-                              Tracking Number
-                            </p>
-                            <p className="font-medium">
-                              {dispatch.trackingNumber}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">
-                              Expected Delivery
-                            </p>
-                            <p className="font-medium">
-                              {new Date(
-                                dispatch.expectedDeliveryDate,
-                              ).toLocaleDateString("en-IN")}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Status</p>
+                          <div className="flex items-center gap-6">
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Qty
+                              </p>
+                              <p className="font-medium">{totalDispatchQty}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Value
+                              </p>
+                              <p className="font-medium">
+                                ₹{grandTotalValue.toLocaleString("en-IN")}
+                              </p>
+                            </div>
                             <Badge>{dispatch.status}</Badge>
                           </div>
                         </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="pt-4 space-y-4">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">
+                                Logistics Partner
+                              </p>
+                              <p className="font-medium">
+                                {dispatch.logisticsPartner?.name ||
+                                  "Custom/Direct"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">
+                                Tracking Number
+                              </p>
+                              <p className="font-medium">
+                                {dispatch.docketNumber || "N/A"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">
+                                Expected Delivery
+                              </p>
+                              <p className="font-medium">
+                                {dispatch.expectedDeliveryDate
+                                  ? new Date(
+                                      dispatch.expectedDeliveryDate,
+                                    ).toLocaleDateString("en-IN")
+                                  : "N/A"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Status</p>
+                              <Badge>{dispatch.status}</Badge>
+                            </div>
+                          </div>
 
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Item</TableHead>
-                              <TableHead className="text-right">
-                                Dispatched Qty
-                              </TableHead>
-                              <TableHead className="text-right">Rate</TableHead>
-                              <TableHead className="text-right">
-                                Total
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {dispatch.lineItems.map((item) => (
-                              <TableRow key={item.id}>
-                                <TableCell>{item.itemName}</TableCell>
-                                <TableCell className="text-right">
-                                  {item.dispatchQty}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  ₹{item.rate.toLocaleString("en-IN")}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  ₹{item.totalAmount.toLocaleString("en-IN")}
-                                </TableCell>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Item</TableHead>
+                                <TableHead className="text-right">
+                                  Dispatched Qty
+                                </TableHead>
+                                <TableHead className="text-right">
+                                  Rate
+                                </TableHead>
+                                <TableHead className="text-right">
+                                  Total
+                                </TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                              {(dispatch.items || []).map((item: any) => {
+                                // Find item name from PO items if possible, though it's technically in dispatchOrderItem
+                                // For now we'll just say "Item" or fetch more detail if needed.
+                                return (
+                                  <TableRow key={item.id}>
+                                    <TableCell>Item Details</TableCell>
+                                    <TableCell className="text-right">
+                                      {item.quantity}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      ₹{item.rate.toLocaleString("en-IN")}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      ₹
+                                      {item.totalAmount.toLocaleString("en-IN")}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
 
-                        <div className="flex justify-end">
-                          <Link
-                            href={`/admin/order-management/dispatches/${dispatch.id}`}
-                          >
-                            <Button variant="outline" size="sm">
-                              View Full Details
-                            </Button>
-                          </Link>
+                          <div className="flex justify-end">
+                            <Link
+                              href={`/admin/order-management/dispatches/${dispatch.id}`}
+                            >
+                              <Button variant="outline" size="sm">
+                                View Full Details
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
               </Accordion>
             )}
           </CardContent>

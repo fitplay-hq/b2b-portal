@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,20 +34,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Plus, Search, Pencil, Trash2, Truck } from "lucide-react";
-import {
-  omLogisticsPartners,
-  type OMLogisticsPartner,
-} from "../_mock/omMockData";
+import { Plus, Search, Pencil, Trash2, Truck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OMLogisticsPartners() {
-  const [partners, setPartners] =
-    useState<OMLogisticsPartner[]>(omLogisticsPartners);
+  const [partners, setPartners] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingPartner, setEditingPartner] =
-    useState<OMLogisticsPartner | null>(null);
+  const [editingPartner, setEditingPartner] = useState<any | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -56,6 +52,26 @@ export default function OMLogisticsPartners() {
     email: "",
     defaultMode: "Surface" as "Air" | "Surface" | "Road",
   });
+
+  const fetchPartners = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/admin/om/logistics-partners");
+      if (res.ok) {
+        const data = await res.json();
+        setPartners(data);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load logistics partners");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPartners();
+  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -68,57 +84,84 @@ export default function OMLogisticsPartners() {
     setEditingPartner(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    if (editingPartner) {
-      // Update existing partner
-      setPartners(
-        partners.map((partner) =>
-          partner.id === editingPartner.id
-            ? { ...partner, ...formData }
-            : partner,
-        ),
-      );
-      toast.success("Logistics partner updated successfully");
-    } else {
-      // Add new partner
-      const newPartner: OMLogisticsPartner = {
-        id: `OM-LOG-${String(partners.length + 1).padStart(3, "0")}`,
-        ...formData,
-      };
-      setPartners([...partners, newPartner]);
-      toast.success("Logistics partner added successfully");
+    try {
+      const url = editingPartner
+        ? `/api/admin/om/logistics-partners/${editingPartner.id}`
+        : "/api/admin/om/logistics-partners";
+
+      const method = editingPartner ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        toast.success(
+          `Partner ${editingPartner ? "updated" : "added"} successfully`,
+        );
+        setIsAddDialogOpen(false);
+        resetForm();
+        fetchPartners();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Something went wrong");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save client");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsAddDialogOpen(false);
-    resetForm();
   };
 
-  const handleEdit = (partner: OMLogisticsPartner) => {
+  const handleEdit = (partner: any) => {
     setEditingPartner(partner);
     setFormData({
       name: partner.name,
-      contactPerson: partner.contactPerson,
-      phone: partner.phone,
-      email: partner.email,
-      defaultMode: partner.defaultMode,
+      contactPerson: partner.contactPerson || "",
+      phone: partner.phone || "",
+      email: partner.email || "",
+      defaultMode: partner.defaultMode || "Surface",
     });
     setIsAddDialogOpen(true);
   };
 
-  const handleDelete = (partnerId: string) => {
+  const handleDelete = async (partnerId: string) => {
     if (confirm("Are you sure you want to delete this logistics partner?")) {
-      setPartners(partners.filter((p) => p.id !== partnerId));
-      toast.success("Logistics partner deleted successfully");
+      try {
+        const res = await fetch(
+          `/api/admin/om/logistics-partners/${partnerId}`,
+          {
+            method: "DELETE",
+          },
+        );
+
+        if (res.ok) {
+          toast.success("Logistics partner deleted successfully");
+          fetchPartners();
+        } else {
+          toast.error("Failed to delete partner");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Error deleting partner");
+      }
     }
   };
 
   const filteredPartners = partners.filter(
     (partner) =>
       partner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      partner.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      partner.email.toLowerCase().includes(searchQuery.toLowerCase()),
+      (partner.contactPerson || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (partner.email || "").toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -243,7 +286,10 @@ export default function OMLogisticsPartners() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     {editingPartner ? "Update" : "Add"} Partner
                   </Button>
                 </div>
@@ -286,7 +332,14 @@ export default function OMLogisticsPartners() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPartners.length === 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        Loading partners...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredPartners.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={7}
@@ -298,7 +351,7 @@ export default function OMLogisticsPartners() {
                   ) : (
                     filteredPartners.map((partner) => (
                       <TableRow key={partner.id}>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium text-xs truncate max-w-[100px]">
                           {partner.id}
                         </TableCell>
                         <TableCell>
@@ -307,9 +360,9 @@ export default function OMLogisticsPartners() {
                             <span className="font-medium">{partner.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{partner.contactPerson}</TableCell>
-                        <TableCell>{partner.phone}</TableCell>
-                        <TableCell>{partner.email}</TableCell>
+                        <TableCell>{partner.contactPerson || "-"}</TableCell>
+                        <TableCell>{partner.phone || "-"}</TableCell>
+                        <TableCell>{partner.email || "-"}</TableCell>
                         <TableCell>
                           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
                             {partner.defaultMode}

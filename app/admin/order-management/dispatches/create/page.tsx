@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Layout from "@/components/layout";
@@ -22,13 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Save, AlertCircle } from "lucide-react";
-import {
-  omPurchaseOrders,
-  omLogisticsPartners,
-  getDispatchedQuantity,
-  getRemainingQuantity,
-} from "../../_mock/omMockData";
+import { Plus, Save, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -42,13 +34,13 @@ import {
 interface DispatchLineItem {
   tempId: string;
   poLineItemId: string;
-  itemId: string;
+  productId: string;
   itemName: string;
   remainingQty: number;
   dispatchQty: number;
   rate: number;
   amount: number;
-  gstPercent: number;
+  gstPercentage: number;
   gstAmount: number;
   totalAmount: number;
 }
@@ -65,58 +57,108 @@ function CreateDispatchForm() {
   const [logisticsPartnerId, setLogisticsPartnerId] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState("");
-  const [status, setStatus] = useState<"Created" | "Dispatched">("Dispatched");
+  const [status, setStatus] = useState<"CREATED" | "DISPATCHED">("DISPATCHED");
+
+  // Master data
+  const [availablePOs, setAvailablePOs] = useState<any[]>([]);
+  const [logisticsPartners, setLogisticsPartners] = useState<any[]>([]);
+  const [isLoadingMaster, setIsLoadingMaster] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Line items
   const [lineItems, setLineItems] = useState<DispatchLineItem[]>([]);
-  const [nextTempId, setNextTempId] = useState(1);
+  const [nextId, setNextId] = useState(1);
 
-  // Selected PO details
-  const selectedPO = poId
-    ? omPurchaseOrders.find((po) => po.id === poId)
-    : null;
+  // Selected PO full details
+  const [selectedPO, setSelectedPO] = useState<any | null>(null);
+  const [isLoadingPoDetail, setIsLoadingPoDetail] = useState(false);
 
   // New logistics partner dialog
   const [showNewLogisticsDialog, setShowNewLogisticsDialog] = useState(false);
   const [newLogisticsName, setNewLogisticsName] = useState("");
+  const [isAddingLogistics, setIsAddingLogistics] = useState(false);
 
-  // When PO is selected, populate available items
   useEffect(() => {
-    if (selectedPO) {
-      const availableItems = selectedPO.lineItems
-        .map((item) => {
-          const remaining = getRemainingQuantity(
-            selectedPO.id,
-            item.id,
-            item.quantity,
-          );
-          return {
-            ...item,
-            remaining,
-          };
-        })
-        .filter((item) => item.remaining > 0);
+    const fetchMaster = async () => {
+      setIsLoadingMaster(true);
+      try {
+        const [posRes, logisticsRes] = await Promise.all([
+          fetch("/api/admin/om/purchase-orders?status=active"),
+          fetch("/api/admin/om/logistics-partners"),
+        ]);
 
-      // Initialize line items with available items
-      const newLineItems: DispatchLineItem[] = availableItems.map((item) => ({
-        tempId: `temp-${nextTempId + availableItems.indexOf(item)}`,
-        poLineItemId: item.id,
-        itemId: item.itemId,
-        itemName: item.itemName,
-        remainingQty: item.remaining,
-        dispatchQty: 0,
-        rate: item.rate,
-        amount: 0,
-        gstPercent: item.gstPercent,
-        gstAmount: 0,
-        totalAmount: 0,
-      }));
+        if (posRes.ok) setAvailablePOs(await posRes.json());
+        if (logisticsRes.ok) setLogisticsPartners(await logisticsRes.json());
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load form data");
+      } finally {
+        setIsLoadingMaster(false);
+      }
+    };
+    fetchMaster();
+  }, []);
 
-      setLineItems(newLineItems);
-      setNextTempId(nextTempId + availableItems.length);
-    } else {
+  // When PO is selected, fetch full details with items and calculate remaining
+  useEffect(() => {
+    if (!poId) {
+      setSelectedPO(null);
       setLineItems([]);
+      return;
     }
+
+    const fetchPoDetail = async () => {
+      setIsLoadingPoDetail(true);
+      try {
+        const res = await fetch(`/api/admin/om/purchase-orders/${poId}`);
+        if (res.ok) {
+          const po = await res.json();
+          setSelectedPO(po);
+
+          // Calculate remaining quantity for each item
+          const items = po.items
+            .map((item: any) => {
+              const totalDispatched =
+                item.dispatchItems?.reduce(
+                  (sum: number, di: any) => sum + di.quantity,
+                  0,
+                ) || 0;
+              const remaining = item.quantity - totalDispatched;
+              return {
+                ...item,
+                remainingQty: remaining,
+              };
+            })
+            .filter((i: any) => i.remainingQty > 0);
+
+          // Initialize dispatch line items
+          const newLineItems: DispatchLineItem[] = items.map(
+            (item: any, index: number) => ({
+              tempId: `dispatch-${index}`,
+              poLineItemId: item.id,
+              productId: item.productId,
+              itemName: item.product?.name || "Unknown Item",
+              remainingQty: item.remainingQty,
+              dispatchQty: 0,
+              rate: item.rate,
+              amount: 0,
+              gstPercentage: item.gstPercentage,
+              gstAmount: 0,
+              totalAmount: 0,
+            }),
+          );
+
+          setLineItems(newLineItems);
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load PO details");
+      } finally {
+        setIsLoadingPoDetail(false);
+      }
+    };
+
+    fetchPoDetail();
   }, [poId]);
 
   const updateLineItem = (
@@ -147,7 +189,7 @@ function CreateDispatchForm() {
 
         // Recalculate amounts
         updated.amount = updated.dispatchQty * updated.rate;
-        updated.gstAmount = (updated.amount * updated.gstPercent) / 100;
+        updated.gstAmount = (updated.amount * updated.gstPercentage) / 100;
         updated.totalAmount = updated.amount + updated.gstAmount;
 
         return updated;
@@ -164,17 +206,7 @@ function CreateDispatchForm() {
   const totalGst = lineItems.reduce((sum, item) => sum + item.gstAmount, 0);
   const grandTotal = subtotal + totalGst;
 
-  // Get POs with remaining quantity
-  const availablePOs = omPurchaseOrders.filter((po) => {
-    if (po.status === "Closed") return false;
-    const totalOrdered = po.totalQuantity;
-    const dispatched = po.lineItems.reduce((sum, item) => {
-      return sum + getDispatchedQuantity(po.id, item.id);
-    }, 0);
-    return totalOrdered > dispatched;
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
@@ -194,24 +226,67 @@ function CreateDispatchForm() {
       return;
     }
 
-    if (lineItems.some((item) => item.dispatchQty > item.remainingQty)) {
-      toast.error("Dispatch quantity cannot exceed remaining quantity");
-      return;
-    }
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        purchaseOrderId: poId,
+        invoiceNumber,
+        invoiceDate,
+        logisticsPartnerId,
+        docketNumber: trackingNumber,
+        expectedDeliveryDate,
+        status,
+        items: lineItems
+          .filter((item) => item.dispatchQty > 0)
+          .map(({ tempId, itemName, remainingQty, ...rest }) => rest),
+      };
 
-    // In a real app, this would save to backend
-    toast.success("Dispatch created successfully");
-    router.push("/admin/order-management/dispatches");
+      const res = await fetch("/api/admin/om/dispatch-orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast.success("Dispatch created successfully");
+        router.push("/admin/order-management/dispatches");
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to create dispatch");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error creating dispatch");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleAddNewLogistics = () => {
+  const handleAddNewLogistics = async () => {
     if (!newLogisticsName.trim()) {
       toast.error("Please enter logistics partner name");
       return;
     }
-    toast.success("Logistics partner added successfully (mock)");
-    setShowNewLogisticsDialog(false);
-    setNewLogisticsName("");
+    setIsAddingLogistics(true);
+    try {
+      const res = await fetch("/api/admin/om/logistics-partners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newLogisticsName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLogisticsPartners([...logisticsPartners, data.data]);
+        setLogisticsPartnerId(data.id);
+        toast.success("Logistics partner added successfully");
+        setShowNewLogisticsDialog(false);
+        setNewLogisticsName("");
+      }
+    } catch (err) {
+      toast.error("Failed to add partner");
+    } finally {
+      setIsAddingLogistics(false);
+    }
   };
 
   return (
@@ -224,21 +299,26 @@ function CreateDispatchForm() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Purchase Order *</Label>
-            <Select value={poId} onValueChange={setPoId}>
+            <Select
+              value={poId}
+              onValueChange={setPoId}
+              disabled={isLoadingMaster}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Select PO with remaining quantity" />
+                <SelectValue
+                  placeholder={
+                    isLoadingMaster
+                      ? "Loading active POs..."
+                      : "Select PO with remaining quantity"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {availablePOs.map((po) => {
-                  const dispatched = po.lineItems.reduce((sum, item) => {
-                    return sum + getDispatchedQuantity(po.id, item.id);
-                  }, 0);
-                  const remaining = po.totalQuantity - dispatched;
-
                   return (
                     <SelectItem key={po.id} value={po.id}>
-                      {po.estimateNumber} - {po.poNumber} (Remaining:{" "}
-                      {remaining})
+                      {po.estimateNumber} - {po.poNumber} (Ordered:{" "}
+                      {po.totalQuantity})
                     </SelectItem>
                   );
                 })}
@@ -246,16 +326,23 @@ function CreateDispatchForm() {
             </Select>
           </div>
 
-          {selectedPO && (
+          {isLoadingPoDetail && (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-2">Loading PO details...</span>
+            </div>
+          )}
+          {selectedPO && !isLoadingPoDetail && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <div className="space-y-1">
                   <p>
-                    <strong>Client:</strong> {selectedPO.clientName}
+                    <strong>Client:</strong> {selectedPO.client?.name}
                   </p>
                   <p>
-                    <strong>Location:</strong> {selectedPO.deliveryLocation}
+                    <strong>Location:</strong>{" "}
+                    {selectedPO.deliveryLocation?.name}
                   </p>
                   <p>
                     <strong>PO Number:</strong> {selectedPO.poNumber}
@@ -288,14 +375,22 @@ function CreateDispatchForm() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lineItems.length === 0 ? (
+                {isLoadingPoDetail ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                      Loading items...
+                    </TableCell>
+                  </TableRow>
+                ) : lineItems.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={8}
                       className="text-center py-8 text-muted-foreground"
                     >
-                      No items available for dispatch (all items fully
-                      dispatched)
+                      {selectedPO
+                        ? "No items available for dispatch (all items fully dispatched)"
+                        : "Select a Purchase Order to view items"}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -333,7 +428,7 @@ function CreateDispatchForm() {
                         })}
                       </TableCell>
                       <TableCell className="text-right">
-                        {item.gstPercent}%
+                        {item.gstPercentage}%
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         ₹
@@ -405,9 +500,9 @@ function CreateDispatchForm() {
                       <SelectValue placeholder="Select logistics partner" />
                     </SelectTrigger>
                     <SelectContent>
-                      {omLogisticsPartners.map((partner) => (
+                      {logisticsPartners.map((partner) => (
                         <SelectItem key={partner.id} value={partner.id}>
-                          {partner.name} ({partner.defaultMode})
+                          {partner.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -436,7 +531,14 @@ function CreateDispatchForm() {
                             placeholder="Enter partner name"
                           />
                         </div>
-                        <Button type="button" onClick={handleAddNewLogistics}>
+                        <Button
+                          type="button"
+                          onClick={handleAddNewLogistics}
+                          disabled={isAddingLogistics}
+                        >
+                          {isAddingLogistics && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
                           Add Partner
                         </Button>
                       </div>
@@ -467,7 +569,7 @@ function CreateDispatchForm() {
                 <Label>Dispatch Status</Label>
                 <Select
                   value={status}
-                  onValueChange={(val: "Created" | "Dispatched") =>
+                  onValueChange={(val: "CREATED" | "DISPATCHED") =>
                     setStatus(val)
                   }
                 >
@@ -475,8 +577,8 @@ function CreateDispatchForm() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Created">Created</SelectItem>
-                    <SelectItem value="Dispatched">Dispatched</SelectItem>
+                    <SelectItem value="CREATED">Created</SelectItem>
+                    <SelectItem value="DISPATCHED">Dispatched</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -540,9 +642,16 @@ function CreateDispatchForm() {
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={!selectedPO || totalDispatchQty === 0}>
-          <Save className="h-4 w-4 mr-2" />
-          Create Dispatch
+        <Button
+          type="submit"
+          disabled={!selectedPO || totalDispatchQty === 0 || isSubmitting}
+        >
+          {isSubmitting ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
+          {isSubmitting ? "Creating..." : "Create Dispatch"}
         </Button>
       </div>
     </form>

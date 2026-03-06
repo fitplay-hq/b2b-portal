@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,15 +28,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
-import { omClients, type OMClient } from "../_mock/omMockData";
+import { Plus, Search, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OMClients() {
-  const [clients, setClients] = useState<OMClient[]>(omClients);
+  const [clients, setClients] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<OMClient | null>(null);
+  const [editingClient, setEditingClient] = useState<any | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -47,6 +48,26 @@ export default function OMClients() {
     gstNumber: "",
     notes: "",
   });
+
+  const fetchClients = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/admin/om/clients");
+      if (res.ok) {
+        const data = await res.json();
+        setClients(data);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load clients");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -61,58 +82,86 @@ export default function OMClients() {
     setEditingClient(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    if (editingClient) {
-      // Update existing client
-      setClients(
-        clients.map((client) =>
-          client.id === editingClient.id ? { ...client, ...formData } : client,
-        ),
-      );
-      toast.success("Client updated successfully");
-    } else {
-      // Add new client
-      const newClient: OMClient = {
-        id: `OM-CLI-${String(clients.length + 1).padStart(3, "0")}`,
-        ...formData,
-      };
-      setClients([...clients, newClient]);
-      toast.success("Client added successfully");
+    try {
+      const url = editingClient
+        ? `/api/admin/om/clients/${editingClient.id}`
+        : "/api/admin/om/clients";
+
+      const method = editingClient ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        toast.success(
+          `Client ${editingClient ? "updated" : "added"} successfully`,
+        );
+        setIsAddDialogOpen(false);
+        resetForm();
+        fetchClients();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Something went wrong");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save client");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsAddDialogOpen(false);
-    resetForm();
   };
 
-  const handleEdit = (client: OMClient) => {
+  const handleEdit = (client: any) => {
     setEditingClient(client);
     setFormData({
       name: client.name,
-      contactPerson: client.contactPerson,
-      email: client.email,
-      phone: client.phone,
-      billingAddress: client.billingAddress,
-      gstNumber: client.gstNumber,
-      notes: client.notes,
+      contactPerson: client.contactPerson || "",
+      email: client.email || "",
+      phone: client.phone || "",
+      billingAddress: client.billingAddress || "",
+      gstNumber: client.gstNumber || "",
+      notes: client.notes || "",
     });
     setIsAddDialogOpen(true);
   };
 
-  const handleDelete = (clientId: string) => {
+  const handleDelete = async (clientId: string) => {
     if (confirm("Are you sure you want to delete this client?")) {
-      setClients(clients.filter((c) => c.id !== clientId));
-      toast.success("Client deleted successfully");
+      try {
+        const res = await fetch(`/api/admin/om/clients/${clientId}`, {
+          method: "DELETE",
+        });
+
+        if (res.ok) {
+          toast.success("Client deleted successfully");
+          fetchClients();
+        } else {
+          toast.error("Failed to delete client");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Error deleting client");
+      }
     }
   };
 
   const filteredClients = clients.filter(
     (client) =>
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.gstNumber.toLowerCase().includes(searchQuery.toLowerCase()),
+      (client.contactPerson || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (client.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (client.gstNumber || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -256,7 +305,10 @@ export default function OMClients() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     {editingClient ? "Update" : "Add"} Client
                   </Button>
                 </div>
@@ -299,7 +351,14 @@ export default function OMClients() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredClients.length === 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        Loading clients...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredClients.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={7}
@@ -311,13 +370,13 @@ export default function OMClients() {
                   ) : (
                     filteredClients.map((client) => (
                       <TableRow key={client.id}>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium text-xs truncate max-w-[100px]">
                           {client.id}
                         </TableCell>
                         <TableCell>{client.name}</TableCell>
-                        <TableCell>{client.contactPerson}</TableCell>
-                        <TableCell>{client.email}</TableCell>
-                        <TableCell>{client.phone}</TableCell>
+                        <TableCell>{client.contactPerson || "-"}</TableCell>
+                        <TableCell>{client.email || "-"}</TableCell>
+                        <TableCell>{client.phone || "-"}</TableCell>
                         <TableCell>{client.gstNumber || "-"}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">

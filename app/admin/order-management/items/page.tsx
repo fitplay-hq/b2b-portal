@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,15 +35,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
-import { omItems, type OMItem } from "../_mock/omMockData";
+import { Plus, Search, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OMItems() {
-  const [items, setItems] = useState<OMItem[]>(omItems);
+  const [items, setItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<OMItem | null>(null);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -53,6 +54,26 @@ export default function OMItems() {
     category: "",
     description: "",
   });
+
+  const fetchItems = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/admin/om/products");
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load items");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -66,75 +87,86 @@ export default function OMItems() {
     setEditingItem(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    if (editingItem) {
-      // Update existing item
-      setItems(
-        items.map((item) =>
-          item.id === editingItem.id
-            ? {
-                ...item,
-                name: formData.name,
-                sku: formData.sku || undefined,
-                defaultRate: formData.defaultRate
-                  ? parseFloat(formData.defaultRate)
-                  : undefined,
-                defaultGst: parseFloat(formData.defaultGst),
-                category: formData.category || undefined,
-                description: formData.description || undefined,
-              }
-            : item,
-        ),
-      );
-      toast.success("Item updated successfully");
-    } else {
-      // Add new item
-      const newItem: OMItem = {
-        id: `OM-ITM-${String(items.length + 1).padStart(3, "0")}`,
-        name: formData.name,
-        sku: formData.sku || undefined,
-        defaultRate: formData.defaultRate
-          ? parseFloat(formData.defaultRate)
-          : undefined,
-        defaultGst: parseFloat(formData.defaultGst),
-        category: formData.category || undefined,
-        description: formData.description || undefined,
-      };
-      setItems([...items, newItem]);
-      toast.success("Item added successfully");
+    const payload = {
+      ...formData,
+      defaultRate: formData.defaultRate
+        ? parseFloat(formData.defaultRate)
+        : undefined,
+      defaultGst: parseFloat(formData.defaultGst),
+    };
+
+    try {
+      const url = editingItem
+        ? `/api/admin/om/products/${editingItem.id}`
+        : "/api/admin/om/products";
+
+      const method = editingItem ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast.success(`Item ${editingItem ? "updated" : "added"} successfully`);
+        setIsAddDialogOpen(false);
+        resetForm();
+        fetchItems();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Something went wrong");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save item");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsAddDialogOpen(false);
-    resetForm();
   };
 
-  const handleEdit = (item: OMItem) => {
+  const handleEdit = (item: any) => {
     setEditingItem(item);
     setFormData({
       name: item.name,
       sku: item.sku || "",
       defaultRate: item.defaultRate?.toString() || "",
-      defaultGst: item.defaultGst.toString(),
+      defaultGst: item.defaultGst?.toString() || "18",
       category: item.category || "",
       description: item.description || "",
     });
     setIsAddDialogOpen(true);
   };
 
-  const handleDelete = (itemId: string) => {
+  const handleDelete = async (itemId: string) => {
     if (confirm("Are you sure you want to delete this item?")) {
-      setItems(items.filter((i) => i.id !== itemId));
-      toast.success("Item deleted successfully");
+      try {
+        const res = await fetch(`/api/admin/om/products/${itemId}`, {
+          method: "DELETE",
+        });
+
+        if (res.ok) {
+          toast.success("Item deleted successfully");
+          fetchItems();
+        } else {
+          toast.error("Failed to delete item");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Error deleting item");
+      }
     }
   };
 
   const filteredItems = items.filter(
     (item) =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category?.toLowerCase().includes(searchQuery.toLowerCase()),
+      (item.sku || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.category || "").toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -267,7 +299,10 @@ export default function OMItems() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     {editingItem ? "Update" : "Add"} Item
                   </Button>
                 </div>
@@ -310,7 +345,14 @@ export default function OMItems() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredItems.length === 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        Loading items...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredItems.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={7}
@@ -322,7 +364,9 @@ export default function OMItems() {
                   ) : (
                     filteredItems.map((item) => (
                       <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.id}</TableCell>
+                        <TableCell className="font-medium text-xs truncate max-w-[100px]">
+                          {item.id}
+                        </TableCell>
                         <TableCell>
                           <div>
                             <div className="font-medium">{item.name}</div>
