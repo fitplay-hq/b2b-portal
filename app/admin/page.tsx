@@ -13,7 +13,7 @@ export default function AdminDashboardPage() {
   const { metrics, isLoading, error } = useFastDashboardMetrics();
 
   const WelcomeHeader = () => (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 sm:p-6">
+    <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg p-4 sm:p-6">
       <h1 className="text-xl sm:text-2xl font-bold mb-2">Fitplay B2B Management</h1>
       <p className="text-sm sm:text-base text-muted-foreground">
         Monitor orders, manage products, and oversee client relationships
