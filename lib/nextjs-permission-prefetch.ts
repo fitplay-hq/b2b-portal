@@ -58,10 +58,12 @@ export class NextJSPermissionPrefetcher {
     if (!this.router) return;
 
     try {
-      const apiEndpoints: string[] = [`/api/admin/permissions`];
-
-      if (userId) apiEndpoints.push(`/api/admin/users/${userId}`);
-      if (roleId) apiEndpoints.push(`/api/admin/roles/${roleId}`);
+      // Prefetch permission-related API calls
+      const apiEndpoints = [
+        `/api/admin/permissions`,
+        `/api/admin/users/${userId}`,
+        `/api/admin/roles/${roleId}`,
+      ];
 
       // Use fetch with cache for API prefetching
       await Promise.allSettled(
@@ -70,7 +72,8 @@ export class NextJSPermissionPrefetcher {
             await fetch(endpoint, {
               method: 'GET',
               headers: { 'Content-Type': 'application/json' },
-              cache: 'no-store',
+              // Use cache to speed up subsequent requests
+              cache: 'force-cache',
             });
           } catch (error) {
             // Ignore prefetch errors

@@ -7,24 +7,18 @@ import { RESOURCES } from "@/lib/utils";
 // GET /api/admin/users/[id] - Get user by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Await params for Next.js 15+ compatibility
     const { id } = await params;
 
     // Check permissions - only ADMIN should access users
-    const permissionCheck = await checkPermission(RESOURCES.USERS, "view");
+    const permissionCheck = await checkPermission(RESOURCES.USERS, 'view');
     if (!permissionCheck.success) {
       return NextResponse.json(
-        {
-          error:
-            permissionCheck.error || "Unauthorized - Admin access required",
-        },
-        {
-          status:
-            permissionCheck.error === "Authentication required" ? 401 : 403,
-        },
+        { error: permissionCheck.error || "Unauthorized - Admin access required" },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
       );
     }
 
@@ -33,10 +27,10 @@ export async function GET(
       include: {
         role: {
           include: {
-            permissions: true,
-          },
-        },
-      },
+            permissions: true
+          }
+        }
+      }
     });
 
     if (!user) {
@@ -48,15 +42,14 @@ export async function GET(
       name: user.name,
       email: user.email,
       isActive: user.isActive,
-      roleId: user.roleId,
       role: {
         id: user.role.id,
         name: user.role.name,
         description: user.role.description,
-        permissions: user.role.permissions,
+        permissions: user.role.permissions
       },
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      updatedAt: user.updatedAt
     };
 
     return NextResponse.json(userResponse);
@@ -64,7 +57,7 @@ export async function GET(
     console.error("Error fetching user:", error);
     return NextResponse.json(
       { error: "Failed to fetch user" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -72,24 +65,18 @@ export async function GET(
 // PUT /api/admin/users/[id] - Update user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Await params for Next.js 15+ compatibility
     const { id } = await params;
 
     // Check permissions - only ADMIN should update users
-    const permissionCheck = await checkPermission(RESOURCES.USERS, "update");
+    const permissionCheck = await checkPermission(RESOURCES.USERS, 'update');
     if (!permissionCheck.success) {
       return NextResponse.json(
-        {
-          error:
-            permissionCheck.error || "Unauthorized - Admin access required",
-        },
-        {
-          status:
-            permissionCheck.error === "Authentication required" ? 401 : 403,
-        },
+        { error: permissionCheck.error || "Unauthorized - Admin access required" },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
       );
     }
 
@@ -98,7 +85,7 @@ export async function PUT(
 
     // Check if user exists
     const existingUser = await prisma.systemUser.findUnique({
-      where: { id },
+      where: { id }
     });
 
     if (!existingUser) {
@@ -108,13 +95,13 @@ export async function PUT(
     // Check if email is already taken by another user
     if (email && email !== existingUser.email) {
       const emailExists = await prisma.systemUser.findUnique({
-        where: { email },
+        where: { email }
       });
 
       if (emailExists) {
         return NextResponse.json(
           { error: "Email already exists" },
-          { status: 409 },
+          { status: 409 }
         );
       }
     }
@@ -122,13 +109,13 @@ export async function PUT(
     // Verify role exists if roleId is provided
     if (roleId) {
       const role = await prisma.systemRole.findUnique({
-        where: { id: roleId },
+        where: { id: roleId }
       });
 
       if (!role) {
         return NextResponse.json(
           { error: "Selected role does not exist" },
-          { status: 400 },
+          { status: 400 }
         );
       }
     }
@@ -138,8 +125,8 @@ export async function PUT(
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (roleId) updateData.roleId = roleId;
-    if (typeof isActive === "boolean") updateData.isActive = isActive;
-
+    if (typeof isActive === 'boolean') updateData.isActive = isActive;
+    
     // Hash password if provided
     if (password) {
       updateData.password = await hash(password, 12);
@@ -152,10 +139,10 @@ export async function PUT(
       include: {
         role: {
           include: {
-            permissions: true,
-          },
-        },
-      },
+            permissions: true
+          }
+        }
+      }
     });
 
     // Return user without password
@@ -167,10 +154,10 @@ export async function PUT(
       role: {
         id: updatedUser.role.id,
         name: updatedUser.role.name,
-        description: updatedUser.role.description,
+        description: updatedUser.role.description
       },
       createdAt: updatedUser.createdAt,
-      updatedAt: updatedUser.updatedAt,
+      updatedAt: updatedUser.updatedAt
     };
 
     return NextResponse.json(userResponse);
@@ -178,7 +165,7 @@ export async function PUT(
     console.error("Error updating user:", error);
     return NextResponse.json(
       { error: "Failed to update user" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -186,7 +173,7 @@ export async function PUT(
 // DELETE /api/admin/users/[id] - Delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Await params for Next.js 15+ compatibility
@@ -196,38 +183,33 @@ export async function DELETE(
     if (!id) {
       return NextResponse.json(
         { error: "User ID is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     console.log("DELETE user request - ID:", id);
 
     // Check permissions - only ADMIN should delete users
-    const permissionCheck = await checkPermission(RESOURCES.USERS, "delete");
+    const permissionCheck = await checkPermission(RESOURCES.USERS, 'delete');
     if (!permissionCheck.success) {
       return NextResponse.json(
-        {
-          error:
-            permissionCheck.error || "Unauthorized - Admin access required",
-        },
-        {
-          status:
-            permissionCheck.error === "Authentication required" ? 401 : 403,
-        },
+        { error: permissionCheck.error || "Unauthorized - Admin access required" },
+        { status: permissionCheck.error === 'Authentication required' ? 401 : 403 }
       );
     }
 
-    // Get current user from permissionCheck to prevent self-deletion
-    if (permissionCheck.user?.id === id) {
+    // Get current user session to prevent self-deletion
+    const session = permissionCheck.session;
+    if (session?.user?.id === id) {
       return NextResponse.json(
         { error: "Cannot delete your own account" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // Check if user exists
     const existingUser = await prisma.systemUser.findUnique({
-      where: { id },
+      where: { id }
     });
 
     if (!existingUser) {
@@ -238,7 +220,7 @@ export async function DELETE(
 
     // Delete user
     await prisma.systemUser.delete({
-      where: { id },
+      where: { id }
     });
 
     return NextResponse.json({ message: "User deleted successfully" });
@@ -248,13 +230,13 @@ export async function DELETE(
     console.error("Error details:", {
       message: (error as Error).message,
       stack: (error as Error).stack,
-      userId: "unknown",
+      userId: id
     });
-
+    
     // Return generic error message to frontend
     return NextResponse.json(
       { error: "Failed to delete user" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

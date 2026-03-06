@@ -1,4 +1,4 @@
-import Head from "next/head";
+import Head from 'next/head';
 
 interface PerformanceHeadProps {
   userRole?: string;
@@ -8,34 +8,24 @@ interface PerformanceHeadProps {
 /**
  * Performance-optimized Head component with resource hints
  */
-export function PerformanceHead({
-  userRole,
-  hasPermissions,
-}: PerformanceHeadProps) {
+export function PerformanceHead({ userRole, hasPermissions }: PerformanceHeadProps) {
   return (
     <Head>
       {/* Critical resource hints */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link
-        rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossOrigin="anonymous"
-      />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link rel="dns-prefetch" href="https://api.uploadthing.com" />
-
+      
       {/* Preload critical CSS */}
       <link
         rel="preload"
         href="/globals.css"
         as="style"
-        onLoad={(e) => {
-          e.currentTarget.onload = null;
-          e.currentTarget.rel = "stylesheet";
-        }}
+        onLoad="this.onload=null;this.rel='stylesheet'"
       />
-
+      
       {/* Prefetch based on user role */}
-      {userRole === "ADMIN" && (
+      {userRole === 'ADMIN' && (
         <>
           <link rel="prefetch" href="/admin/users" />
           <link rel="prefetch" href="/admin/roles" />
@@ -43,7 +33,7 @@ export function PerformanceHead({
           <link rel="prefetch" href="/api/admin/roles" />
         </>
       )}
-
+      
       {hasPermissions && (
         <>
           <link rel="prefetch" href="/admin/products" />
@@ -52,7 +42,7 @@ export function PerformanceHead({
           <link rel="prefetch" href="/admin/companies" />
         </>
       )}
-
+      
       {/* Service Worker registration */}
       <script
         dangerouslySetInnerHTML={{
@@ -68,17 +58,17 @@ export function PerformanceHead({
                   });
               });
             }
-          `,
+          `
         }}
       />
-
+      
       {/* Critical performance hints */}
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-
+      
       {/* Prefetch DNS for external resources */}
       <meta httpEquiv="x-dns-prefetch-control" content="on" />
-
+      
       {/* Preload key fonts */}
       <link
         rel="preload"
@@ -87,13 +77,13 @@ export function PerformanceHead({
         type="font/woff2"
         crossOrigin="anonymous"
       />
-
+      
       {/* Performance timing API */}
       <script
         dangerouslySetInnerHTML={{
           __html: `
             window.performance && window.performance.mark && window.performance.mark('layout-start');
-          `,
+          `
         }}
       />
     </Head>
@@ -124,7 +114,7 @@ export function DynamicPerformanceHead() {
                 }
               }
             }
-          `,
+          `
         }}
       />
     </Head>
