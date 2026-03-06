@@ -31,11 +31,18 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { formatStatus } from "@/lib/utils";
+import type {
+  OMPurchaseOrder,
+  OMPurchaseOrderItem,
+  OMDispatchOrder,
+  OMDispatchOrderItem,
+} from "@/types/order-management";
 
 export default function OMPurchaseOrderDetail() {
   const params = useParams();
   const id = params.id as string;
-  const [po, setPO] = useState<any>(null);
+  const [po, setPO] = useState<OMPurchaseOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchPO = async () => {
@@ -87,12 +94,19 @@ export default function OMPurchaseOrderDetail() {
 
   const dispatches = po.dispatchOrders || [];
   const totalQuantity =
-    po.items?.reduce((sum: number, i: any) => sum + i.quantity, 0) || 0;
+    po.items?.reduce(
+      (sum: number, i: OMPurchaseOrderItem) => sum + i.quantity,
+      0,
+    ) || 0;
 
   const totalDispatched =
     po.dispatchOrders?.reduce((sum: number, d: any) => {
       return (
-        sum + (d.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0)
+        sum +
+        (d.items?.reduce(
+          (s: number, i: any) => s + Number(i.quantity || 0),
+          0,
+        ) || 0)
       );
     }, 0) || 0;
 
@@ -102,20 +116,35 @@ export default function OMPurchaseOrderDetail() {
       ? ((totalDispatched / totalQuantity) * 100).toFixed(1)
       : "0";
 
-  const getStatusVariant = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "DRAFT":
-        return "secondary";
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
       case "CONFIRMED":
-        return "default";
+        return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
       case "PARTIALLY_DISPATCHED":
-        return "outline";
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
       case "FULLY_DISPATCHED":
-        return "default";
+        return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
       case "CLOSED":
-        return "secondary";
+        return "bg-slate-100 text-slate-800 hover:bg-slate-100 border-transparent";
       default:
-        return "secondary";
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
+    }
+  };
+
+  const getDispatchStatusColor = (status: string) => {
+    switch (status) {
+      case "CREATED":
+        return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
+      case "DISPATCHED":
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
+      case "DELIVERED":
+        return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
+      case "CANCELLED":
+        return "bg-red-100 text-red-800 hover:bg-red-100 border-transparent";
+      default:
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
     }
   };
 
@@ -228,7 +257,9 @@ export default function OMPurchaseOrderDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
-                <Badge variant={getStatusVariant(po.status)}>{po.status}</Badge>
+                <Badge className={getStatusColor(po.status)}>
+                  {formatStatus(po.status)}
+                </Badge>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Estimate Date</p>
@@ -273,12 +304,13 @@ export default function OMPurchaseOrderDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(po.items || []).map((item: any) => {
-                  const dispatched =
+                {(po.items || []).map((item: OMPurchaseOrderItem) => {
+                  const dispatched = Number(
                     item.dispatchItems?.reduce(
-                      (sum: number, di: any) => sum + di.quantity,
+                      (sum: number, di: any) => sum + (di.quantity || 0),
                       0,
-                    ) || 0;
+                    ) || 0,
+                  );
                   const remaining = item.quantity - dispatched;
 
                   return (
@@ -322,19 +354,38 @@ export default function OMPurchaseOrderDetail() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
                 <span className="font-medium">
-                  ₹{po.subtotal.toLocaleString("en-IN")}
+                  ₹
+                  {(
+                    po.subtotal ??
+                    po.items?.reduce(
+                      (sum: number, item: OMPurchaseOrderItem) =>
+                        sum + item.quantity * item.rate,
+                      0,
+                    ) ??
+                    0
+                  ).toLocaleString("en-IN")}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total GST:</span>
                 <span className="font-medium">
-                  ₹{po.totalGst.toLocaleString("en-IN")}
+                  ₹
+                  {(
+                    po.totalGst ??
+                    po.items?.reduce(
+                      (sum: number, item: OMPurchaseOrderItem) =>
+                        sum +
+                        (item.quantity * item.rate * item.gstPercentage) / 100,
+                      0,
+                    ) ??
+                    0
+                  ).toLocaleString("en-IN")}
                 </span>
               </div>
               <div className="flex justify-between pt-2 border-t">
                 <span className="font-semibold">Grand Total:</span>
                 <span className="font-semibold text-lg">
-                  ₹{po.grandTotal.toLocaleString("en-IN")}
+                  ₹{(po.grandTotal ?? 0).toLocaleString("en-IN")}
                 </span>
               </div>
             </div>
@@ -353,15 +404,16 @@ export default function OMPurchaseOrderDetail() {
               </div>
             ) : (
               <Accordion type="single" collapsible className="w-full">
-                {dispatches.map((dispatch: any, index: number) => {
+                {dispatches.map((dispatch: OMDispatchOrder, index: number) => {
                   const totalDispatchQty =
                     dispatch.items?.reduce(
-                      (sum: number, i: any) => sum + i.quantity,
+                      (sum: number, i: OMDispatchOrderItem) => sum + i.quantity,
                       0,
                     ) || 0;
                   const grandTotalValue =
                     dispatch.items?.reduce(
-                      (sum: number, i: any) => sum + i.totalAmount,
+                      (sum: number, i: OMDispatchOrderItem) =>
+                        sum + i.totalAmount,
                       0,
                     ) || 0;
 
@@ -396,7 +448,13 @@ export default function OMPurchaseOrderDetail() {
                                 ₹{grandTotalValue.toLocaleString("en-IN")}
                               </p>
                             </div>
-                            <Badge>{dispatch.status}</Badge>
+                            <Badge
+                              className={getDispatchStatusColor(
+                                dispatch.status,
+                              )}
+                            >
+                              {formatStatus(dispatch.status)}
+                            </Badge>
                           </div>
                         </div>
                       </AccordionTrigger>
@@ -434,7 +492,13 @@ export default function OMPurchaseOrderDetail() {
                             </div>
                             <div>
                               <p className="text-muted-foreground">Status</p>
-                              <Badge>{dispatch.status}</Badge>
+                              <Badge
+                                className={getDispatchStatusColor(
+                                  dispatch.status,
+                                )}
+                              >
+                                {formatStatus(dispatch.status)}
+                              </Badge>
                             </div>
                           </div>
 
@@ -454,25 +518,29 @@ export default function OMPurchaseOrderDetail() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {(dispatch.items || []).map((item: any) => {
-                                // Find item name from PO items if possible, though it's technically in dispatchOrderItem
-                                // For now we'll just say "Item" or fetch more detail if needed.
-                                return (
-                                  <TableRow key={item.id}>
-                                    <TableCell>Item Details</TableCell>
-                                    <TableCell className="text-right">
-                                      {item.quantity}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      ₹{item.rate.toLocaleString("en-IN")}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      ₹
-                                      {item.totalAmount.toLocaleString("en-IN")}
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
+                              {(dispatch.items || []).map(
+                                (item: OMDispatchOrderItem) => {
+                                  // Find item name from PO items if possible, though it's technically in dispatchOrderItem
+                                  // For now we'll just say "Item" or fetch more detail if needed.
+                                  return (
+                                    <TableRow key={item.id}>
+                                      <TableCell>Item Details</TableCell>
+                                      <TableCell className="text-right">
+                                        {item.quantity}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        ₹{item.rate.toLocaleString("en-IN")}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        ₹
+                                        {item.totalAmount.toLocaleString(
+                                          "en-IN",
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                },
+                              )}
                             </TableBody>
                           </Table>
 

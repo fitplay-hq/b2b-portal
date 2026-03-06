@@ -56,7 +56,7 @@ export class SidebarPrefetcher {
         };
 
         // Store in all cache layers for instant sidebar access
-        await this.storeInAllCaches(userId, roleId, sidebarData);
+        await this.storeInAllCaches(userId, roleId, sidebarData, session.user.role);
       }
 
       // 2. For admins, prefetch all navigation items
@@ -69,7 +69,7 @@ export class SidebarPrefetcher {
           timestamp: Date.now(),
         };
 
-        await this.storeInAllCaches(userId, roleId, adminSidebarData);
+        await this.storeInAllCaches(userId, roleId || "admin", adminSidebarData, session.user.role);
       }
 
       // Sidebar data prefetched successfully
@@ -85,6 +85,7 @@ export class SidebarPrefetcher {
     userId: string,
     roleId: string,
     data: SidebarPrefetchData,
+    userRole?: string,
   ): Promise<void> {
     // 1. Permanent storage (survives browser restart)
     permanentPermissionStorage.storeUserPermissions(
@@ -107,7 +108,7 @@ export class SidebarPrefetcher {
     }
 
     // 4. Prefetch actual navigation API if needed
-    await this.prefetchNavigationAPI(userId, roleId);
+    await this.prefetchNavigationAPI(userId, roleId, userRole);
   }
 
   /**
@@ -156,13 +157,17 @@ export class SidebarPrefetcher {
   private async prefetchNavigationAPI(
     userId: string,
     roleId: string,
+    userRole?: string,
   ): Promise<void> {
     try {
-      const apiEndpoints = [
-        `/api/admin/permissions`,
-        `/api/admin/users/${userId}`,
-        `/api/admin/roles/${roleId}`,
-      ];
+      const apiEndpoints: string[] = [`/api/admin/permissions`];
+
+      // Only prefetch user/role endpoints for SystemUser users
+      // ADMIN users exist in the Admin table, not SystemUser, so these would 404
+      if (userRole !== "ADMIN") {
+        if (userId) apiEndpoints.push(`/api/admin/users/${userId}`);
+        if (roleId) apiEndpoints.push(`/api/admin/roles/${roleId}`);
+      }
 
       // Prefetch in background (don't block sidebar rendering)
       Promise.allSettled(
@@ -171,8 +176,7 @@ export class SidebarPrefetcher {
             await fetch(endpoint, {
               method: "GET",
               headers: { "Content-Type": "application/json" },
-              // Use cache for faster subsequent requests
-              cache: "force-cache",
+              cache: "no-store",
             });
           } catch (error) {
             // Ignore prefetch errors

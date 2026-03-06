@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/components/layout";
@@ -22,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Trash2, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateForApi } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +32,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import type {
+  OMPoStatus,
+  OMClient,
+  OMDeliveryLocation,
+  OMProduct,
+  OMPurchaseOrderItem,
+} from "@/types/order-management";
 
 interface LineItem {
   tempId: string;
@@ -56,12 +66,12 @@ export default function OMEditPurchaseOrder() {
   const [poNumber, setPoNumber] = useState("");
   const [poDate, setPoDate] = useState("");
   const [poReceivedDate, setPoReceivedDate] = useState("");
-  const [status, setStatus] = useState<any>("CONFIRMED");
+  const [status, setStatus] = useState<OMPoStatus>("CONFIRMED");
 
   // Master data
-  const [clients, setClients] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [clients, setClients] = useState<OMClient[]>([]);
+  const [locations, setLocations] = useState<OMDeliveryLocation[]>([]);
+  const [products, setProducts] = useState<OMProduct[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -110,7 +120,7 @@ export default function OMEditPurchaseOrder() {
 
           if (poData.items) {
             setLineItems(
-              poData.items.map((item: any, idx: number) => ({
+              poData.items.map((item: OMPurchaseOrderItem, idx: number) => ({
                 tempId: `existing-${idx}`,
                 id: item.id,
                 productId: item.productId,
@@ -160,7 +170,7 @@ export default function OMEditPurchaseOrder() {
   const updateLineItem = (
     tempId: string,
     field: keyof LineItem,
-    value: any,
+    value: string | number,
   ) => {
     setLineItems(
       lineItems.map((item) => {
@@ -211,10 +221,10 @@ export default function OMEditPurchaseOrder() {
         clientId,
         locationId,
         estimateNumber,
-        estimateDate,
+        estimateDate: formatDateForApi(estimateDate),
         poNumber,
-        poDate,
-        poReceivedDate,
+        poDate: formatDateForApi(poDate),
+        poReceivedDate: formatDateForApi(poReceivedDate),
         status,
         items: lineItems.map(({ tempId, itemName, ...rest }) => rest),
       };
@@ -522,14 +532,14 @@ export default function OMEditPurchaseOrder() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[200px]">Item</TableHead>
-                    <TableHead className="w-[100px]">Qty</TableHead>
-                    <TableHead className="w-[120px]">Rate</TableHead>
-                    <TableHead className="w-[120px]">Amount</TableHead>
-                    <TableHead className="w-[100px]">GST %</TableHead>
-                    <TableHead className="w-[120px]">GST Amt</TableHead>
-                    <TableHead className="w-[120px]">Total</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="min-w-50">Item</TableHead>
+                    <TableHead className="w-25">Qty</TableHead>
+                    <TableHead className="w-25">Rate</TableHead>
+                    <TableHead className="w-25">Amount</TableHead>
+                    <TableHead className="w-25">GST %</TableHead>
+                    <TableHead className="w-25">GST Amt</TableHead>
+                    <TableHead className="w-25">Total</TableHead>
+                    <TableHead className="w-12.5"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -553,7 +563,7 @@ export default function OMEditPurchaseOrder() {
                                 updateLineItem(item.tempId, "productId", val)
                               }
                             >
-                              <SelectTrigger className="min-w-[180px]">
+                              <SelectTrigger className="min-w-45">
                                 <SelectValue placeholder="Select item" />
                               </SelectTrigger>
                               <SelectContent>

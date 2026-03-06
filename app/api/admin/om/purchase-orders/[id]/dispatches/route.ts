@@ -6,9 +6,10 @@ import { handleApiError } from "@/lib/api-errors";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(RESOURCES.ORDERS, "view");
     if (!permissionCheck.success) {
       return NextResponse.json(
@@ -21,7 +22,7 @@ export async function GET(
     }
 
     const purchaseOrder = await prisma.oMPurchaseOrder.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { id: true },
     });
 
@@ -33,7 +34,7 @@ export async function GET(
     }
 
     const dispatches = await prisma.oMDispatchOrder.findMany({
-      where: { purchaseOrderId: params.id },
+      where: { purchaseOrderId: id },
       include: {
         logisticsPartner: true,
         items: {

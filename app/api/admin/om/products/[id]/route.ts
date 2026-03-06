@@ -7,9 +7,10 @@ import { OMProductUpdateSchema } from "@/lib/validations/om";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(RESOURCES.PRODUCTS, "update");
     if (!permissionCheck.success) {
       return NextResponse.json(
@@ -25,7 +26,7 @@ export async function PATCH(
     const validatedData = OMProductUpdateSchema.parse(body);
 
     const product = await prisma.oMProduct.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
     });
 
@@ -40,9 +41,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(RESOURCES.PRODUCTS, "delete");
     if (!permissionCheck.success) {
       return NextResponse.json(
@@ -54,14 +56,33 @@ export async function DELETE(
       );
     }
 
-    await prisma.oMProduct.delete({
-      where: { id: params.id },
-    });
-
-    return NextResponse.json(
-      { message: "Product deleted successfully" },
-      { status: 200 },
-    );
+    // Try hard delete first, or check for references
+    try {
+      await prisma.oMProduct.delete({
+        where: { id },
+      });
+      return NextResponse.json(
+        { message: "Product deleted successfully" },
+        { status: 200 },
+      );
+    } catch (dbError: any) {
+      // P2003 or P2014 are reference errors in Prisma
+      if (dbError.code === "P2003" || dbError.code === "P2014") {
+        await prisma.oMProduct.update({
+          where: { id },
+          data: { isActive: false },
+        });
+        return NextResponse.json(
+          {
+            message:
+              "Product is referenced in historical orders. It has been archived instead of deleted.",
+            archived: true,
+          },
+          { status: 200 },
+        );
+      }
+      throw dbError;
+    }
   } catch (error: unknown) {
     return handleApiError(error);
   }

@@ -29,23 +29,34 @@ import {
   Edit,
   FileDown,
   FileSpreadsheet,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatStatus } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type {
+  OMPurchaseOrder,
+  OMPurchaseOrderItem,
+  OMDispatchOrder,
+  OMDispatchOrderItem,
+  OMClient,
+  OMPaginationMeta,
+} from "@/types/order-management";
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 
 export default function OMPurchaseOrdersList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
-  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>([]);
+  const [clients, setClients] = useState<OMClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [meta, setMeta] = useState<any>(null);
+  const [meta, setMeta] = useState<OMPaginationMeta | null>(null);
 
   const fetchClients = async () => {
     try {
@@ -104,36 +115,76 @@ export default function OMPurchaseOrdersList() {
     return matchesSearch;
   });
 
-  const getTotalDispatchedForPO = (po: any) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handleDelete = (id: string) => {
+    setDeleteId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const onConfirmDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/om/purchase-orders/${deleteId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast.success("Purchase order deleted successfully");
+        fetchPurchaseOrders();
+        setIsDeleteDialogOpen(false);
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to delete purchase order");
+      }
+    } catch (err) {
+      console.error("Error deleting PO:", err);
+      toast.error("An error occurred while deleting the purchase order");
+    } finally {
+      setIsDeleting(false);
+      setDeleteId(null);
+    }
+  };
+
+  const getTotalDispatchedForPO = (po: OMPurchaseOrder) => {
     return (
-      po.dispatchOrders?.reduce((sum: number, d: any) => {
+      po.dispatchOrders?.reduce((sum: number, d: OMDispatchOrder) => {
         const dispatchQty =
-          d.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0;
+          d.items?.reduce(
+            (s: number, i: OMDispatchOrderItem) => s + i.quantity,
+            0,
+          ) || 0;
         return sum + dispatchQty;
       }, 0) || 0
     );
   };
 
-  const getTotalOrderedForPO = (po: any) => {
+  const getTotalOrderedForPO = (po: OMPurchaseOrder) => {
     return (
-      po.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0
+      po.items?.reduce(
+        (sum: number, item: OMPurchaseOrderItem) => sum + item.quantity,
+        0,
+      ) || 0
     );
   };
 
-  const getStatusVariant = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "DRAFT":
-        return "secondary";
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
       case "CONFIRMED":
-        return "default";
+        return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
       case "PARTIALLY_DISPATCHED":
-        return "outline";
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
       case "FULLY_DISPATCHED":
-        return "default";
+        return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
       case "CLOSED":
-        return "secondary";
+        return "bg-slate-100 text-slate-800 hover:bg-slate-100 border-transparent";
       default:
-        return "secondary";
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
     }
   };
 
@@ -191,45 +242,94 @@ export default function OMPurchaseOrdersList() {
   };
 
   // Export to PDF
-  const exportToPDF = () => {
-    // Create a simple text-based PDF content
-    let pdfContent = `
-PURCHASE ORDERS REPORT
-Generated: ${new Date().toLocaleString("en-IN")}
-Total Records: ${filteredPOs.length}
+  const exportToPDF = async () => {
+    const jsPDF = (await import("jspdf")).default;
+    const autoTable = (await import("jspdf-autotable")).default;
 
-${"=".repeat(120)}
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
+    });
 
-`;
+    // Title
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Purchase Orders Report", 8, 10);
 
-    filteredPOs.forEach((po) => {
+    // Subtitle
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      `Generated: ${new Date().toLocaleString("en-IN")} | Total Records: ${filteredPOs.length}`,
+      8,
+      15,
+    );
+    doc.setTextColor(0, 0, 0);
+
+    const tableColumns = [
+      "Estimate Number",
+      "PO Number",
+      "Client",
+      "Total Ordered",
+      "Dispatched",
+      "Remaining",
+      "Total Value",
+      "Status",
+      "PO Date",
+    ];
+
+    const tableRows = filteredPOs.map((po) => {
       const dispatched = getTotalDispatchedForPO(po);
       const totalOrdered = getTotalOrderedForPO(po);
       const remaining = totalOrdered - dispatched;
-
-      pdfContent += `
-Estimate: ${po.estimateNumber} | PO: ${po.poNumber} | Client: ${po.client?.name || "Unknown"}
-Status: ${po.status} | Date: ${new Date(po.poDate).toLocaleDateString("en-IN")}
-Ordered: ${totalOrdered} | Dispatched: ${dispatched} | Remaining: ${remaining}
-Total Value: ₹${po.grandTotal.toLocaleString("en-IN")}
-${"-".repeat(120)}
-`;
+      return [
+        po.estimateNumber,
+        po.poNumber,
+        po.client?.name || "Unknown",
+        totalOrdered.toString(),
+        dispatched.toString(),
+        remaining.toString(),
+        `₹${po.grandTotal.toLocaleString("en-IN")}`,
+        po.status,
+        new Date(po.poDate).toLocaleDateString("en-IN"),
+      ];
     });
 
-    const blob = new Blob([pdfContent], { type: "text/plain;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `purchase_orders_${new Date().toISOString().split("T")[0]}.txt`,
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    autoTable(doc, {
+      head: [tableColumns],
+      body: tableRows,
+      startY: 18,
+      margin: { left: 6, right: 6, top: 8, bottom: 8 },
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 1.5,
+        valign: "middle",
+        overflow: "linebreak",
+      },
+      headStyles: {
+        fillColor: [55, 65, 81],
+        textColor: [255, 255, 255],
+        fontSize: 8,
+        fontStyle: "bold",
+        halign: "center",
+      },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      didDrawPage: (data) => {
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Page ${data.pageNumber} of ${pageCount}`,
+          doc.internal.pageSize.width - 25,
+          doc.internal.pageSize.height - 5,
+        );
+      },
+    });
 
-    toast.success("Purchase Orders exported to PDF format");
+    doc.save(`purchase_orders_${new Date().toISOString().split("T")[0]}.pdf`);
+    toast.success("Purchase Orders exported to PDF");
   };
 
   return (
@@ -288,37 +388,39 @@ ${"-".repeat(120)}
                 />
               </div>
 
-              <Select value={clientFilter} onValueChange={setClientFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by Client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Clients</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={clientFilter} onValueChange={setClientFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Clients</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                  <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                  <SelectItem value="PARTIALLY_DISPATCHED">
-                    Partially Dispatched
-                  </SelectItem>
-                  <SelectItem value="FULLY_DISPATCHED">
-                    Fully Dispatched
-                  </SelectItem>
-                  <SelectItem value="CLOSED">Closed</SelectItem>
-                </SelectContent>
-              </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="DRAFT">Draft</SelectItem>
+                    <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                    <SelectItem value="PARTIALLY_DISPATCHED">
+                      Partially Dispatched
+                    </SelectItem>
+                    <SelectItem value="FULLY_DISPATCHED">
+                      Fully Dispatched
+                    </SelectItem>
+                    <SelectItem value="CLOSED">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -376,8 +478,8 @@ ${"-".repeat(120)}
                           ₹{po.grandTotal.toLocaleString("en-IN")}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusVariant(po.status)}>
-                            {po.status}
+                          <Badge className={getStatusColor(po.status)}>
+                            {formatStatus(po.status)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -396,6 +498,15 @@ ${"-".repeat(120)}
                                 <Edit className="h-4 w-4" />
                               </Button>
                             </Link>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(po.id)}
+                              className="text-destructive hover:text-destructive"
+                              title="Delete Purchase Order"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -406,6 +517,15 @@ ${"-".repeat(120)}
             </Table>
           </CardContent>
         </Card>
+
+        <DeleteConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={onConfirmDelete}
+          isLoading={isDeleting}
+          title="Delete Purchase Order"
+          description="Are you sure you want to delete this purchase order? This action cannot be undone."
+        />
       </div>
     </Layout>
   );

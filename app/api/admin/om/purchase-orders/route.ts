@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       poNumber,
       poDate,
       poReceivedDate,
+      status,
       items,
     } = validatedData;
 
@@ -105,6 +106,7 @@ export async function POST(req: NextRequest) {
           poNumber,
           poDate: new Date(poDate),
           poReceivedDate: new Date(poReceivedDate),
+          status,
           totalGst,
           grandTotal,
           items: {
@@ -160,7 +162,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (status) {
-      whereClause.status = status;
+      if (status === "active") {
+        whereClause.status = {
+          in: ["CONFIRMED", "PARTIALLY_DISPATCHED"],
+        };
+      } else {
+        whereClause.status = status;
+      }
     }
 
     if (startDate || endDate) {

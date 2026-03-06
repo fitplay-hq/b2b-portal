@@ -35,8 +35,7 @@ export const OMProductCreateSchema = z.object({
     .number()
     .min(0, "GST percentage must be positive")
     .default(18)
-    .optional()
-    .nullable(),
+    .optional(),
   category: z.string().max(100).optional().nullable(),
 });
 
@@ -89,6 +88,7 @@ export const OMPurchaseOrderCreateSchema = z.object({
   poReceivedDate: z
     .string()
     .datetime({ message: "Invalid PO Received Date format" }),
+  status: z.enum(["DRAFT", "CONFIRMED"]).optional().default("CONFIRMED"),
   items: z
     .array(OMPurchaseOrderItemCreateSchema)
     .min(1, "At least one item is required for the PO"),
@@ -99,9 +99,7 @@ export const OMPurchaseOrderUpdateSchema =
 
 // --- OMDispatchOrderItem Validation ---
 export const OMDispatchOrderItemCreateSchema = z.object({
-  purchaseOrderItemId: z
-    .string()
-    .min(1, "Purchase Order Item ID is required"),
+  purchaseOrderItemId: z.string().min(1, "Purchase Order Item ID is required"),
   quantity: z.number().int().min(1, "Dispatch quantity must be at least 1"),
   rate: z.number().min(0, "Rate must be a non-negative number"),
   gstPercentage: z.number().min(0, "GST percentage must be non-negative"),
@@ -111,16 +109,16 @@ export const OMDispatchOrderItemCreateSchema = z.object({
 export const OMDispatchOrderCreateSchema = z.object({
   purchaseOrderId: z.string().min(1, "Purchase Order ID is required"),
   invoiceNumber: z.string().min(1, "Invoice Number is required"),
-  invoiceDate: z
-    .string()
-    .datetime({ message: "Invalid Invoice Date format" }),
-  logisticsPartnerId: z
-    .string()
-    .min(1, "Logistics Partner ID is required"),
+  invoiceDate: z.string().datetime({ message: "Invalid Invoice Date format" }),
+  logisticsPartnerId: z.string().min(1, "Logistics Partner ID is required"),
   docketNumber: z.string().min(1, "Docket Number is required"),
   expectedDeliveryDate: z
     .string()
     .datetime({ message: "Invalid Expected Delivery Date format" }),
+  status: z
+    .enum(["CREATED", "DISPATCHED", "DELIVERED", "CANCELLED"])
+    .optional()
+    .default("CREATED"),
   items: z
     .array(OMDispatchOrderItemCreateSchema)
     .min(1, "At least one dispatch item is required"),

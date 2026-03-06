@@ -7,9 +7,10 @@ import { OMClientUpdateSchema } from "@/lib/validations/om";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(RESOURCES.CLIENTS, "update");
     if (!permissionCheck.success) {
       return NextResponse.json(
@@ -25,7 +26,7 @@ export async function PATCH(
     const validatedData = OMClientUpdateSchema.parse(body);
 
     const client = await prisma.oMClient.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
     });
 
@@ -40,9 +41,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(RESOURCES.CLIENTS, "delete");
     if (!permissionCheck.success) {
       return NextResponse.json(
@@ -54,8 +56,19 @@ export async function DELETE(
       );
     }
 
+    const poCount = await prisma.oMPurchaseOrder.count({
+      where: { clientId: id },
+    });
+
+    if (poCount > 0) {
+      return NextResponse.json(
+        { error: "Cannot delete client with active purchase orders" },
+        { status: 400 },
+      );
+    }
+
     await prisma.oMClient.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json(

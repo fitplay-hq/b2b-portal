@@ -7,9 +7,10 @@ import { OMLogisticsPartnerUpdateSchema } from "@/lib/validations/om";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(
       RESOURCES.COMPANIES,
       "update",
@@ -28,7 +29,7 @@ export async function PATCH(
     const validatedData = OMLogisticsPartnerUpdateSchema.parse(body);
 
     const logisticsPartner = await prisma.oMLogisticsPartner.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
     });
 
@@ -46,9 +47,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(
       RESOURCES.COMPANIES,
       "delete",
@@ -64,7 +66,7 @@ export async function DELETE(
     }
 
     await prisma.oMLogisticsPartner.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json(

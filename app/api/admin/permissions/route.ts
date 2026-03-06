@@ -8,13 +8,18 @@ export async function GET() {
   try {
     const permissionCheck = await checkPermission(RESOURCES.USERS, "view");
     if (!permissionCheck.success) {
-      return NextResponse.json(
+      const authErrorResponse = NextResponse.json(
         { error: permissionCheck.error || "Unauthorized" },
         {
           status:
             permissionCheck.error === "Authentication required" ? 401 : 403,
         },
       );
+      authErrorResponse.headers.set(
+        "Cache-Control",
+        "no-cache, no-store, must-revalidate",
+      );
+      return authErrorResponse;
     }
 
     const permissions = await prisma.systemPermission.findMany({
@@ -76,9 +81,14 @@ export async function GET() {
     return response;
   } catch (error) {
     console.error("Error fetching permissions:", error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
     );
+    errorResponse.headers.set(
+      "Cache-Control",
+      "no-cache, no-store, must-revalidate",
+    );
+    return errorResponse;
   }
 }

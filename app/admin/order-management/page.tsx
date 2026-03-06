@@ -37,6 +37,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import type {
+  OMDashboardPO,
+  OMDashboardDispatch,
+  OMClientSummary,
+  OMItemSummary,
+  OMPurchaseOrder,
+  OMPurchaseOrderItem,
+  OMDispatchOrder,
+  OMDispatchOrderItem,
+} from "@/types/order-management";
 
 // Maps raw DB enum values to display labels
 const PO_STATUS_LABELS: Record<string, string> = {
@@ -84,8 +94,8 @@ const getDispatchStatusClass = (status: string) => {
 export default function OMDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [omPurchaseOrders, setPurchaseOrders] = useState<any[]>([]);
-  const [omDispatches, setDispatches] = useState<any[]>([]);
+  const [omPurchaseOrders, setPurchaseOrders] = useState<OMDashboardPO[]>([]);
+  const [omDispatches, setDispatches] = useState<OMDashboardDispatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async (query: string = "") => {
@@ -97,7 +107,7 @@ export default function OMDashboard() {
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
 
-      const pos = data.results.map((po: any) => ({
+      const pos: OMDashboardPO[] = data.results.map((po: OMPurchaseOrder) => ({
         id: po.id,
         clientId: po.clientId,
         clientName: po.client?.name || "Unknown",
@@ -109,17 +119,19 @@ export default function OMDashboard() {
         poReceivedDate: po.poReceivedDate,
         totalQuantity:
           po.items?.reduce(
-            (sum: number, item: any) => sum + item.quantity,
+            (sum: number, item: OMPurchaseOrderItem) => sum + item.quantity,
             0,
           ) || 0,
         subtotal:
-          po.items?.reduce((sum: number, item: any) => sum + item.amount, 0) ||
-          0,
+          po.items?.reduce(
+            (sum: number, item: OMPurchaseOrderItem) => sum + item.amount,
+            0,
+          ) || 0,
         totalGst: po.totalGst,
         grandTotal: po.grandTotal,
         status: po.status,
         lineItems:
-          po.items?.map((item: any) => ({
+          po.items?.map((item: OMPurchaseOrderItem) => ({
             id: item.id,
             itemId: item.productId,
             itemName: item.product?.name || "Unknown",
@@ -132,9 +144,9 @@ export default function OMDashboard() {
           })) || [],
       }));
 
-      const dispatches: any[] = [];
-      data.results.forEach((po: any) => {
-        po.dispatchOrders?.forEach((d: any) => {
+      const dispatches: OMDashboardDispatch[] = [];
+      data.results.forEach((po: OMPurchaseOrder) => {
+        po.dispatchOrders?.forEach((d: OMDispatchOrder) => {
           dispatches.push({
             id: d.id,
             poId: po.id,
@@ -143,15 +155,18 @@ export default function OMDashboard() {
             clientName: po.client?.name || "Unknown",
             invoiceNumber: d.invoiceNumber,
             totalDispatchQty:
-              d.items?.reduce((sum: number, i: any) => sum + i.quantity, 0) ||
-              0,
+              d.items?.reduce(
+                (sum: number, i: OMDispatchOrderItem) => sum + i.quantity,
+                0,
+              ) || 0,
             logisticsPartnerName:
               d.logisticsPartner?.name || "Logistics Partner",
             status: d.status,
             lineItems:
-              d.items?.map((i: any) => ({
+              d.items?.map((i: OMDispatchOrderItem) => ({
                 poLineItemId: i.purchaseOrderItemId,
                 dispatchQty: i.quantity,
+                itemName: i.purchaseOrderItem?.product?.name || "Unknown",
               })) || [],
           });
         });
@@ -219,15 +234,15 @@ export default function OMDashboard() {
       acc[po.clientId].value += po.grandTotal;
       return acc;
     },
-    {} as Record<string, any>,
+    {} as Record<string, OMClientSummary>,
   );
 
-  const clientSummaryArray = Object.values(clientSummary) as any[];
+  const clientSummaryArray = Object.values(clientSummary);
 
   // Item summary
   const itemSummary = omPurchaseOrders.reduce(
     (acc, po) => {
-      po.lineItems.forEach((item) => {
+      po.lineItems.forEach((item: OMDashboardPO["lineItems"][number]) => {
         if (!acc[item.itemId]) {
           acc[item.itemId] = {
             itemName: item.itemName,
@@ -251,10 +266,10 @@ export default function OMDashboard() {
       });
       return acc;
     },
-    {} as Record<string, any>,
+    {} as Record<string, OMItemSummary>,
   );
 
-  const itemSummaryArray = Object.values(itemSummary) as any[];
+  const itemSummaryArray = Object.values(itemSummary);
 
   // Status breakdown — uses SCREAMING_SNAKE_CASE to match Prisma enum values
   const statusBreakdown = [
@@ -319,30 +334,32 @@ export default function OMDashboard() {
   }
 
   // Filter results based on search query
-  const searchResults: any = {
+  const searchResults = {
     pos: omPurchaseOrders.filter(
-      (po: any) =>
+      (po) =>
         po.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         po.estimateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         po.poNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         po.deliveryLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        po.lineItems.some((item: any) =>
+        po.lineItems.some((item) =>
           item.itemName.toLowerCase().includes(searchQuery.toLowerCase()),
         ),
     ),
     dispatches: omDispatches.filter(
-      (d: any) =>
+      (d) =>
         d.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         d.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         d.poNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.lineItems.some((item: any) =>
-          item.itemName.toLowerCase().includes(searchQuery.toLowerCase()),
+        d.lineItems.some((item) =>
+          (item.itemName ?? "")
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()),
         ),
     ),
-    clients: clientSummaryArray.filter((c: any) =>
+    clients: clientSummaryArray.filter((c) =>
       c.clientName.toLowerCase().includes(searchQuery.toLowerCase()),
     ),
-    items: itemSummaryArray.filter((i: any) =>
+    items: itemSummaryArray.filter((i) =>
       i.itemName.toLowerCase().includes(searchQuery.toLowerCase()),
     ),
   };
@@ -354,15 +371,15 @@ export default function OMDashboard() {
           totalPOs: searchResults.pos.length,
           totalDispatches: searchResults.dispatches.length,
           totalOrdered: searchResults.pos.reduce(
-            (sum: number, po: any) => sum + po.totalQuantity,
+            (sum: number, po) => sum + po.totalQuantity,
             0,
           ),
           totalDispatched: searchResults.pos.reduce(
-            (sum: number, po: any) => sum + getTotalDispatchedForPO(po.id),
+            (sum: number, po) => sum + getTotalDispatchedForPO(po.id),
             0,
           ),
           totalValue: searchResults.pos.reduce(
-            (sum: number, po: any) => sum + po.grandTotal,
+            (sum: number, po) => sum + po.grandTotal,
             0,
           ),
         }
@@ -416,7 +433,9 @@ export default function OMDashboard() {
         {isSearching && searchQuery && (
           <Card>
             <CardHeader>
-              <CardTitle>Search Results for "{searchQuery}"</CardTitle>
+              <CardTitle>
+                Search Results for &quot;{searchQuery}&quot;
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {searchSummary && (
@@ -485,7 +504,7 @@ export default function OMDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {searchResults.pos.map((po: any) => {
+                        {searchResults.pos.map((po) => {
                           const dispatched = getTotalDispatchedForPO(po.id);
                           const remaining = po.totalQuantity - dispatched;
                           return (
@@ -547,7 +566,7 @@ export default function OMDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {searchResults.dispatches.map((dispatch: any) => (
+                        {searchResults.dispatches.map((dispatch) => (
                           <TableRow key={dispatch.id}>
                             <TableCell className="font-medium">
                               {dispatch.invoiceNumber}
@@ -566,7 +585,7 @@ export default function OMDashboard() {
                                   dispatch.status,
                                 )}
                               >
-                                {dispatch.status.charAt(0) +
+                                {dispatch.status.charAt(0).toUpperCase() +
                                   dispatch.status.slice(1).toLowerCase()}
                               </Badge>
                             </TableCell>
@@ -711,7 +730,7 @@ export default function OMDashboard() {
                 searchResults.clients.length === 0 &&
                 searchResults.items.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
-                    No results found for "{searchQuery}"
+                    No results found for &quot;{searchQuery}&quot;
                   </div>
                 )}
             </CardContent>
@@ -858,15 +877,14 @@ export default function OMDashboard() {
                     <BarChart data={clientSummaryArray}>
                       <XAxis
                         dataKey="clientName"
-                        angle={-45}
-                        textAnchor="end"
-                        height={80}
+                        tickMargin={10}
+                        height={60}
                         fontSize={12}
                       />
                       <YAxis />
                       <Tooltip
-                        formatter={(value: number) =>
-                          `₹${value.toLocaleString("en-IN")}`
+                        formatter={(value: number | undefined) =>
+                          value ? `₹${value.toLocaleString("en-IN")}` : "₹0"
                         }
                       />
                       <Bar dataKey="value" fill="#3b82f6" />
@@ -895,7 +913,7 @@ export default function OMDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {clientSummaryArray.map((client: any, index: number) => {
+                    {clientSummaryArray.map((client, index: number) => {
                       const fulfillment =
                         client.ordered > 0
                           ? (
@@ -959,7 +977,7 @@ export default function OMDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {itemSummaryArray.map((item: any, index: number) => {
+                    {itemSummaryArray.map((item, index: number) => {
                       const fulfillment =
                         item.ordered > 0
                           ? ((item.dispatched / item.ordered) * 100).toFixed(1)

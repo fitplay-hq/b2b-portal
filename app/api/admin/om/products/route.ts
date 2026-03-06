@@ -33,15 +33,16 @@ export async function GET(req: NextRequest) {
     const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "name";
     const safeSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
+    const whereClause: any = { isActive: true };
+    if (search) {
+      whereClause.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { sku: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
     const products = await prisma.oMProduct.findMany({
-      where: search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { sku: { contains: search, mode: "insensitive" } },
-            ],
-          }
-        : undefined,
+      where: whereClause,
       orderBy: {
         [safeSortBy]: safeSortOrder,
       },

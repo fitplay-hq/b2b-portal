@@ -218,6 +218,13 @@ export default function NavItems({
       bgColor: "bg-slate-50",
     },
     {
+      href: "/admin/order-management/clients",
+      label: "Clients",
+      icon: CircleUser,
+      color: "text-slate-600",
+      bgColor: "bg-slate-50",
+    },
+    {
       href: "/admin/order-management/purchase-orders",
       label: "Purchase Orders",
       icon: ClipboardList,
@@ -228,13 +235,6 @@ export default function NavItems({
       href: "/admin/order-management/dispatches",
       label: "Dispatches",
       icon: Truck,
-      color: "text-slate-600",
-      bgColor: "bg-slate-50",
-    },
-    {
-      href: "/admin/order-management/clients",
-      label: "Clients",
-      icon: CircleUser,
       color: "text-slate-600",
       bgColor: "bg-slate-50",
     },

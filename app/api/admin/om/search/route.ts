@@ -61,9 +61,22 @@ export async function GET(req: NextRequest) {
             dispatchItems: true,
           },
         },
-        dispatchOrders: true,
+        dispatchOrders: {
+          include: {
+            logisticsPartner: true,
+            items: {
+              include: {
+                purchaseOrderItem: {
+                  include: {
+                    product: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
-      take: query ? 20 : 50,
+      take: query ? 50 : 100,
       orderBy: { createdAt: "desc" },
     });
 

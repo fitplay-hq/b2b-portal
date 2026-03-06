@@ -28,23 +28,30 @@ import {
   Eye,
   FileDown,
   FileSpreadsheet,
-  ChevronLeft,
-  ChevronRight,
+  Trash2,
+  Edit,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatStatus } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type {
+  OMDispatchOrder,
+  OMDispatchOrderItem,
+  OMClient,
+} from "@/types/order-management";
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 
 export default function OMDispatchesList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
-  const [dispatches, setDispatches] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [dispatches, setDispatches] = useState<OMDispatchOrder[]>([]);
+  const [clients, setClients] = useState<OMClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchClients = async () => {
@@ -109,31 +116,70 @@ export default function OMDispatchesList() {
     return matchesSearch && matchesClient;
   });
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case "CREATED":
-        return "secondary";
-      case "DISPATCHED":
-        return "default";
-      case "DELIVERED":
-        return "default";
-      case "CANCELLED":
-        return "destructive";
-      default:
-        return "secondary";
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handleDelete = (id: string) => {
+    setDeleteId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const onConfirmDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/om/dispatch-orders/${deleteId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast.success("Dispatch order deleted successfully");
+        fetchDispatches();
+        setIsDeleteDialogOpen(false);
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to delete dispatch order");
+      }
+    } catch (err) {
+      console.error("Error deleting Dispatch:", err);
+      toast.error("An error occurred while deleting the dispatch order");
+    } finally {
+      setIsDeleting(false);
+      setDeleteId(null);
     }
   };
 
-  const getTotalQty = (dispatch: any) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "CREATED":
+        return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
+      case "DISPATCHED":
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
+      case "DELIVERED":
+        return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
+      case "CANCELLED":
+        return "bg-red-100 text-red-800 hover:bg-red-100 border-transparent";
+      default:
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
+    }
+  };
+
+  const getTotalQty = (dispatch: OMDispatchOrder) => {
     return (
-      dispatch.items?.reduce((sum: number, i: any) => sum + i.quantity, 0) || 0
+      dispatch.items?.reduce(
+        (sum: number, i: OMDispatchOrderItem) => sum + i.quantity,
+        0,
+      ) || 0
     );
   };
 
-  const getGrandTotal = (dispatch: any) => {
+  const getGrandTotal = (dispatch: OMDispatchOrder) => {
     return (
-      dispatch.items?.reduce((sum: number, i: any) => sum + i.totalAmount, 0) ||
-      0
+      dispatch.items?.reduce(
+        (sum: number, i: OMDispatchOrderItem) => sum + i.totalAmount,
+        0,
+      ) || 0
     );
   };
 
@@ -191,43 +237,95 @@ export default function OMDispatchesList() {
   };
 
   // Export to PDF
-  const exportToPDF = () => {
-    let pdfContent = `
-DISPATCHES REPORT
-Generated: ${new Date().toLocaleString("en-IN")}
-Total Records: ${filteredDispatches.length}
+  const exportToPDF = async () => {
+    const jsPDF = (await import("jspdf")).default;
+    const autoTable = (await import("jspdf-autotable")).default;
 
-${"=".repeat(120)}
-
-`;
-
-    filteredDispatches.forEach((dispatch) => {
-      const totalQty = getTotalQty(dispatch);
-      const grandTotal = getGrandTotal(dispatch);
-      pdfContent += `
-Invoice: ${dispatch.invoiceNumber} | PO: ${dispatch.purchaseOrder?.poNumber || "N/A"} | Client: ${dispatch.purchaseOrder?.client?.name || "Unknown"}
-Status: ${dispatch.status} | Date: ${new Date(dispatch.invoiceDate).toLocaleDateString("en-IN")}
-Quantity: ${totalQty} | Courier: ${dispatch.logisticsPartner?.name || "N/A"}
-Tracking: ${dispatch.docketNumber || "N/A"} | Expected Delivery: ${new Date(dispatch.expectedDeliveryDate).toLocaleDateString("en-IN")}
-Total Value: ₹${grandTotal.toLocaleString("en-IN")}
-${"-".repeat(120)}
-`;
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
     });
 
-    const blob = new Blob([pdfContent], { type: "text/plain;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `dispatches_${new Date().toISOString().split("T")[0]}.txt`,
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Title
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Dispatches Report", 8, 10);
 
-    toast.success("Dispatches exported to PDF format");
+    // Subtitle
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      `Generated: ${new Date().toLocaleString("en-IN")} | Total Records: ${filteredDispatches.length}`,
+      8,
+      15,
+    );
+    doc.setTextColor(0, 0, 0);
+
+    const tableColumns = [
+      "Invoice Number",
+      "PO Number",
+      "Client",
+      "Total Qty",
+      "Courier",
+      "Tracking Number",
+      "Dispatch Date",
+      "Expected Delivery",
+      "Status",
+      "Total Value",
+    ];
+
+    const tableRows = filteredDispatches.map((dispatch) => {
+      const totalQty = getTotalQty(dispatch);
+      const grandTotal = getGrandTotal(dispatch);
+      return [
+        dispatch.invoiceNumber,
+        dispatch.purchaseOrder?.poNumber || "N/A",
+        dispatch.purchaseOrder?.client?.name || "Unknown",
+        totalQty.toString(),
+        dispatch.logisticsPartner?.name || "N/A",
+        dispatch.docketNumber || "N/A",
+        new Date(dispatch.invoiceDate).toLocaleDateString("en-IN"),
+        new Date(dispatch.expectedDeliveryDate).toLocaleDateString("en-IN"),
+        dispatch.status,
+        `₹${grandTotal.toLocaleString("en-IN")}`,
+      ];
+    });
+
+    autoTable(doc, {
+      head: [tableColumns],
+      body: tableRows,
+      startY: 18,
+      margin: { left: 6, right: 6, top: 8, bottom: 8 },
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 1.5,
+        valign: "middle",
+        overflow: "linebreak",
+      },
+      headStyles: {
+        fillColor: [55, 65, 81],
+        textColor: [255, 255, 255],
+        fontSize: 8,
+        fontStyle: "bold",
+        halign: "center",
+      },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      didDrawPage: (data) => {
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Page ${data.pageNumber} of ${pageCount}`,
+          doc.internal.pageSize.width - 25,
+          doc.internal.pageSize.height - 5,
+        );
+      },
+    });
+
+    doc.save(`dispatches_${new Date().toISOString().split("T")[0]}.pdf`);
+    toast.success("Dispatches exported to PDF");
   };
 
   return (
@@ -286,33 +384,34 @@ ${"-".repeat(120)}
                 />
               </div>
 
-              <Select value={clientFilter} onValueChange={setClientFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by Client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Clients</SelectItem>
-                  <SelectItem value="all">All Clients</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={clientFilter} onValueChange={setClientFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Clients</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="CREATED">Created</SelectItem>
-                  <SelectItem value="DISPATCHED">Dispatched</SelectItem>
-                  <SelectItem value="DELIVERED">Delivered</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="CREATED">Created</SelectItem>
+                    <SelectItem value="DISPATCHED">Dispatched</SelectItem>
+                    <SelectItem value="DELIVERED">Delivered</SelectItem>
+                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -371,18 +470,44 @@ ${"-".repeat(120)}
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getStatusVariant(dispatch.status)}>
-                          {dispatch.status}
+                        <Badge className={getStatusColor(dispatch.status)}>
+                          {formatStatus(dispatch.status)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link
-                          href={`/admin/order-management/dispatches/${dispatch.id}`}
-                        >
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/order-management/dispatches/${dispatch.id}`}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="View Dispatch"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Link
+                            href={`/admin/order-management/dispatches/${dispatch.id}/edit`}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Edit Dispatch"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(dispatch.id)}
+                            className="text-destructive hover:text-destructive"
+                            title="Delete Dispatch"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        </Link>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -391,6 +516,15 @@ ${"-".repeat(120)}
             </Table>
           </CardContent>
         </Card>
+
+        <DeleteConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={onConfirmDelete}
+          isLoading={isDeleting}
+          title="Delete Dispatch"
+          description="Are you sure you want to delete this dispatch? This action cannot be undone."
+        />
       </div>
     </Layout>
   );

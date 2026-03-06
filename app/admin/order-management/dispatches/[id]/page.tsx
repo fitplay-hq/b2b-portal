@@ -18,11 +18,16 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Package, TrendingUp, Truck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { formatStatus } from "@/lib/utils";
+import type {
+  OMDispatchOrder,
+  OMDispatchOrderItem,
+} from "@/types/order-management";
 
 export default function OMDispatchDetail() {
   const params = useParams();
   const id = params.id as string;
-  const [dispatch, setDispatch] = useState<any>(null);
+  const [dispatch, setDispatch] = useState<OMDispatchOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchDispatch = async () => {
@@ -60,7 +65,7 @@ export default function OMDispatchDetail() {
         <div className="text-center py-12">
           <h3 className="text-lg font-semibold mb-2">Dispatch Not Found</h3>
           <p className="text-muted-foreground mb-4">
-            The dispatch you're looking for doesn't exist.
+            The dispatch you&apos;re looking for doesn&apos;t exist.
           </p>
           <Link href="/admin/order-management/dispatches">
             <Button>Back to Dispatches</Button>
@@ -72,30 +77,41 @@ export default function OMDispatchDetail() {
 
   const po = dispatch.purchaseOrder;
 
-  const getStatusVariant = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "CREATED":
-        return "secondary";
+        return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
       case "DISPATCHED":
-        return "default";
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
       case "DELIVERED":
-        return "default";
+        return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
       case "CANCELLED":
-        return "destructive";
+        return "bg-red-100 text-red-800 hover:bg-red-100 border-transparent";
       default:
-        return "secondary";
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
     }
   };
 
   const totalQty =
-    dispatch.items?.reduce((sum: number, i: any) => sum + i.quantity, 0) || 0;
+    dispatch.items?.reduce(
+      (sum: number, i: OMDispatchOrderItem) => sum + i.quantity,
+      0,
+    ) || 0;
   const grandTotal =
-    dispatch.items?.reduce((sum: number, i: any) => sum + i.totalAmount, 0) ||
-    0;
+    dispatch.items?.reduce(
+      (sum: number, i: OMDispatchOrderItem) => sum + i.totalAmount,
+      0,
+    ) || 0;
   const subtotal =
-    dispatch.items?.reduce((sum: number, i: any) => sum + i.amount, 0) || 0;
+    dispatch.items?.reduce(
+      (sum: number, i: OMDispatchOrderItem) => sum + i.amount,
+      0,
+    ) || 0;
   const totalGst =
-    dispatch.items?.reduce((sum: number, i: any) => sum + i.gstAmount, 0) || 0;
+    dispatch.items?.reduce(
+      (sum: number, i: OMDispatchOrderItem) => sum + i.gstAmount,
+      0,
+    ) || 0;
 
   return (
     <Layout isClient={false}>
@@ -119,10 +135,9 @@ export default function OMDispatchDetail() {
             </div>
           </div>
           <Badge
-            variant={getStatusVariant(dispatch.status)}
-            className="text-sm px-3 py-1"
+            className={`text-sm px-3 py-1 ${getStatusColor(dispatch.status)}`}
           >
-            {dispatch.status}
+            {formatStatus(dispatch.status)}
           </Badge>
         </div>
 
@@ -198,9 +213,11 @@ export default function OMDispatchDetail() {
                   Expected Delivery
                 </p>
                 <p className="font-medium">
-                  {new Date(dispatch.expectedDeliveryDate).toLocaleDateString(
-                    "en-IN",
-                  )}
+                  {dispatch.expectedDeliveryDate
+                    ? new Date(
+                        dispatch.expectedDeliveryDate,
+                      ).toLocaleDateString("en-IN")
+                    : "N/A"}
                 </p>
               </div>
               <div>
@@ -212,13 +229,15 @@ export default function OMDispatchDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Created At</p>
                 <p className="font-medium">
-                  {new Date(dispatch.createdAt).toLocaleString("en-IN")}
+                  {dispatch.createdAt
+                    ? new Date(dispatch.createdAt).toLocaleString("en-IN")
+                    : "N/A"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
-                <Badge variant={getStatusVariant(dispatch.status)}>
-                  {dispatch.status}
+                <Badge className={getStatusColor(dispatch.status)}>
+                  {formatStatus(dispatch.status)}
                 </Badge>
               </div>
             </div>
@@ -269,7 +288,7 @@ export default function OMDispatchDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(dispatch.items || []).map((item: any) => (
+                {(dispatch.items || []).map((item: OMDispatchOrderItem) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">
                       {item.purchaseOrderItem?.product?.name || "Custom Item"}

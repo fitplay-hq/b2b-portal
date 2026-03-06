@@ -7,9 +7,10 @@ import { OMDeliveryLocationUpdateSchema } from "@/lib/validations/om";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(RESOURCES.ORDERS, "update");
     if (!permissionCheck.success) {
       return NextResponse.json(
@@ -25,7 +26,7 @@ export async function PATCH(
     const validatedData = OMDeliveryLocationUpdateSchema.parse(body);
 
     const location = await prisma.oMDeliveryLocation.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
     });
 
@@ -40,9 +41,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(RESOURCES.ORDERS, "delete");
     if (!permissionCheck.success) {
       return NextResponse.json(
@@ -55,7 +57,7 @@ export async function DELETE(
     }
 
     await prisma.oMDeliveryLocation.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json(

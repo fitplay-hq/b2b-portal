@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,13 +54,13 @@ interface DispatchLineItem {
   totalAmount: number;
 }
 
-function CreateDispatchForm() {
+function EditDispatchForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const preSelectedPoId = searchParams.get("poId");
+  const params = useParams();
+  const id = params.id as string;
 
   // Form state
-  const [poId, setPoId] = useState(preSelectedPoId || "");
+  const [poId, setPoId] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
   const [logisticsPartnerId, setLogisticsPartnerId] = useState("");
@@ -77,10 +77,10 @@ function CreateDispatchForm() {
   >([]);
   const [isLoadingMaster, setIsLoadingMaster] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingDispatch, setIsLoadingDispatch] = useState(true);
 
   // Line items
   const [lineItems, setLineItems] = useState<DispatchLineItem[]>([]);
-  const [nextId, setNextId] = useState(1);
 
   // Selected PO full details
   const [selectedPO, setSelectedPO] = useState<OMPurchaseOrder | null>(null);
@@ -91,6 +91,7 @@ function CreateDispatchForm() {
   const [newLogisticsName, setNewLogisticsName] = useState("");
   const [isAddingLogistics, setIsAddingLogistics] = useState(false);
 
+  // Fetch Logistics Partners & Available POs
   useEffect(() => {
     const fetchMaster = async () => {
       setIsLoadingMaster(true);
@@ -114,7 +115,7 @@ function CreateDispatchForm() {
         }
       } catch (err) {
         console.error(err);
-        toast.error("Failed to load form data");
+        toast.error("Failed to load Master data");
       } finally {
         setIsLoadingMaster(false);
       }
@@ -122,74 +123,138 @@ function CreateDispatchForm() {
     fetchMaster();
   }, []);
 
-  // When PO is selected, fetch full details with items and calculate remaining
+  // Fetch Existing Dispatch Order
   useEffect(() => {
-    if (!poId) {
-      setSelectedPO(null);
-      setLineItems([]);
-      return;
-    }
+    if (!id) return;
 
-    const fetchPoDetail = async () => {
-      setIsLoadingPoDetail(true);
+    const fetchDispatch = async () => {
+      setIsLoadingDispatch(true);
       try {
-        const res = await fetch(`/api/admin/om/purchase-orders/${poId}`);
+        const res = await fetch(`/api/admin/om/dispatch-orders/${id}`);
         if (res.ok) {
-          const po = await res.json();
-          setSelectedPO(po);
+          const dispatch = await res.json();
+          setPoId(dispatch.purchaseOrderId || "");
+          setInvoiceNumber(dispatch.invoiceNumber || "");
+          setInvoiceDate(
+            dispatch.invoiceDate
+              ? new Date(dispatch.invoiceDate).toISOString().split("T")[0]
+              : "",
+          );
+          setLogisticsPartnerId(dispatch.logisticsPartnerId || "");
+          setTrackingNumber(dispatch.docketNumber || "");
+          setExpectedDeliveryDate(
+            dispatch.expectedDeliveryDate
+              ? new Date(dispatch.expectedDeliveryDate)
+                  .toISOString()
+                  .split("T")[0]
+              : "",
+          );
+          setStatus(dispatch.status || "DISPATCHED");
 
-          // Calculate remaining quantity for each item
-          const items = po.items
-            .map((item: OMPurchaseOrderItem) => {
-              const totalDispatched =
-                item.dispatchItems?.reduce(
-                  (sum: number, di: { quantity: number }) =>
-                    sum + (di.quantity || 0),
-                  0,
-                ) || 0;
-              const remaining = Number(item.quantity) - Number(totalDispatched);
-              return {
-                ...item,
-                remainingQty: remaining,
-              };
-            })
-            .filter(
-              (i: OMPurchaseOrderItem & { remainingQty: number }) =>
-                i.remainingQty > 0,
-            );
+          if (dispatch.purchaseOrderId) {
+            await fetchPoDetail(dispatch.purchaseOrderId, dispatch.items);
+          }
+        } else {
+          toast.error("Failed to load dispatch details");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load dispatch details");
+      } finally {
+        setIsLoadingDispatch(false);
+      }
+    };
 
-          // Initialize dispatch line items
-          const newLineItems: DispatchLineItem[] = items.map(
+    fetchDispatch();
+  }, [id]);
+
+  const fetchPoDetail = async (
+    fetchPoId: string,
+    dispatchItems: OMDispatchOrderItem[] = [],
+  ) => {
+    setIsLoadingPoDetail(true);
+    try {
+      const res = await fetch(`/api/admin/om/purchase-orders/${fetchPoId}`);
+      if (res.ok) {
+        const po = await res.json();
+        setSelectedPO(po);
+
+        // Calculate remaining quantity for each item
+        const items = po.items
+          .map((item: OMPurchaseOrderItem) => {
+            // Find if this item was in the current dispatch we are editing
+            const currentDispatchItemQty =
+              dispatchItems.find(
+                (di: OMDispatchOrderItem) => di.purchaseOrderItemId === item.id,
+              )?.quantity || 0;
+
+            const totalDispatched =
+              item.dispatchItems?.reduce(
+                (sum: number, di: { quantity: number }) =>
+                  sum + (di.quantity || 0),
+                0,
+              ) || 0;
+
+            // The true remaining is (Total PO Qty) - (Total Dispatched *except* what was in this specific dispatch)
+            // Or simpler: (Total PO Qty - Total Dispatched) + (What was in this dispatch)
+            const remaining =
+              Number(item.quantity) -
+              Number(totalDispatched) +
+              Number(currentDispatchItemQty);
+
+            return {
+              ...item,
+              remainingQty: remaining,
+              currentDispatchItemQty: Number(currentDispatchItemQty),
+            };
+          })
+          .filter(
             (
-              item: OMPurchaseOrderItem & { remainingQty: number },
-              index: number,
-            ) => ({
+              i: OMPurchaseOrderItem & {
+                remainingQty: number;
+                currentDispatchItemQty: number;
+              },
+            ) => i.remainingQty > 0 || i.currentDispatchItemQty > 0,
+          );
+
+        // Initialize dispatch line items
+        const newLineItems: DispatchLineItem[] = items.map(
+          (
+            item: OMPurchaseOrderItem & {
+              remainingQty: number;
+              currentDispatchItemQty: number;
+            },
+            index: number,
+          ) => {
+            const qty = item.currentDispatchItemQty;
+            const amt = qty * item.rate;
+            const gst = (amt * item.gstPercentage) / 100;
+
+            return {
               tempId: `dispatch-${index}`,
               poLineItemId: item.id,
               productId: item.productId,
               itemName: item.product?.name || "Unknown Item",
               remainingQty: item.remainingQty,
-              dispatchQty: 0,
+              dispatchQty: qty,
               rate: item.rate,
-              amount: 0,
+              amount: amt,
               gstPercentage: item.gstPercentage,
-              gstAmount: 0,
-              totalAmount: 0,
-            }),
-          );
+              gstAmount: gst,
+              totalAmount: amt + gst,
+            };
+          },
+        );
 
-          setLineItems(newLineItems);
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to load PO details");
-      } finally {
-        setIsLoadingPoDetail(false);
+        setLineItems(newLineItems);
       }
-    };
-
-    fetchPoDetail();
-  }, [poId]);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load PO details");
+    } finally {
+      setIsLoadingPoDetail(false);
+    }
+  };
 
   const updateLineItem = (
     tempId: string,
@@ -258,15 +323,6 @@ function CreateDispatchForm() {
 
     setIsSubmitting(true);
     try {
-      const processedItems = lineItems
-        .filter((item) => item.dispatchQty > 0)
-        .map(({ poLineItemId, dispatchQty, rate, gstPercentage }) => ({
-          purchaseOrderItemId: poLineItemId,
-          quantity: dispatchQty,
-          rate,
-          gstPercentage,
-        }));
-
       const payload = {
         purchaseOrderId: poId,
         invoiceNumber,
@@ -275,25 +331,27 @@ function CreateDispatchForm() {
         docketNumber: trackingNumber,
         expectedDeliveryDate: formatDateForApi(expectedDeliveryDate),
         status,
-        items: processedItems,
+        items: lineItems
+          .filter((item) => item.dispatchQty > 0)
+          .map(({ tempId, itemName, remainingQty, ...rest }) => rest),
       };
 
-      const res = await fetch("/api/admin/om/dispatch-orders", {
-        method: "POST",
+      const res = await fetch(`/api/admin/om/dispatch-orders/${id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (res.ok) {
-        toast.success("Dispatch created successfully");
+        toast.success("Dispatch updated successfully");
         router.push("/admin/order-management/dispatches");
       } else {
         const err = await res.json();
-        toast.error(err.error || "Failed to create dispatch");
+        toast.error(err.error || "Failed to update dispatch");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Error creating dispatch");
+      toast.error("Error updating dispatch");
     } finally {
       setIsSubmitting(false);
     }
@@ -320,47 +378,47 @@ function CreateDispatchForm() {
         setNewLogisticsName("");
       }
     } catch (err) {
+      console.error(err);
       toast.error("Failed to add partner");
     } finally {
       setIsAddingLogistics(false);
     }
   };
 
+  if (isLoadingDispatch) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading Dispatch Data...</span>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Select PO */}
       <Card>
         <CardHeader>
-          <CardTitle>Select Purchase Order</CardTitle>
+          <CardTitle>Purchase Order Reference</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Purchase Order *</Label>
-            <Select
-              value={poId}
-              onValueChange={setPoId}
-              disabled={isLoadingMaster}
-            >
+            <Select value={poId} disabled={true}>
               <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    isLoadingMaster
-                      ? "Loading active POs..."
-                      : "Select PO with remaining quantity"
-                  }
-                />
+                <SelectValue placeholder={"PO Selected"} />
               </SelectTrigger>
               <SelectContent>
-                {availablePOs.map((po) => {
-                  return (
-                    <SelectItem key={po.id} value={po.id}>
-                      {po.client?.name || "Unknown Client"} - {po.poNumber}{" "}
-                      (Ordered: {po.totalQuantity})
-                    </SelectItem>
-                  );
-                })}
+                <SelectItem value={poId}>
+                  {selectedPO
+                    ? `${selectedPO.estimateNumber} - ${selectedPO.poNumber} (Ordered: ${selectedPO.totalQuantity})`
+                    : "Loading..."}
+                </SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              PO cannot be changed once dispatch is created.
+            </p>
           </div>
 
           {isLoadingPoDetail && (
@@ -402,7 +460,7 @@ function CreateDispatchForm() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Item Name</TableHead>
-                  <TableHead className="text-right">Remaining Qty</TableHead>
+                  <TableHead className="text-right">Max Allowed Qty</TableHead>
                   <TableHead className="w-37.5">Dispatch Qty</TableHead>
                   <TableHead className="text-right">Rate</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
@@ -426,7 +484,7 @@ function CreateDispatchForm() {
                       className="text-center py-8 text-muted-foreground"
                     >
                       {selectedPO
-                        ? "No items available for dispatch (all items fully dispatched)"
+                        ? "No items available for dispatch"
                         : "Select a Purchase Order to view items"}
                     </TableCell>
                   </TableRow>
@@ -444,7 +502,7 @@ function CreateDispatchForm() {
                           type="number"
                           min="0"
                           max={item.remainingQty}
-                          value={item.dispatchQty || ""}
+                          value={item.dispatchQty}
                           onChange={(e) =>
                             updateLineItem(
                               item.tempId,
@@ -690,19 +748,27 @@ function CreateDispatchForm() {
           ) : (
             <Save className="h-4 w-4 mr-2" />
           )}
-          {isSubmitting ? "Creating..." : "Create Dispatch"}
+          {isSubmitting ? "Updating..." : "Update Dispatch"}
         </Button>
       </div>
     </form>
   );
 }
 
-export default function OMCreateDispatch() {
+export default function OMEditDispatch() {
   return (
     <Layout isClient={false}>
-      <Suspense fallback={<div>Loading form...</div>}>
-        <CreateDispatchForm />
-      </Suspense>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Edit Dispatch Order</h1>
+          <p className="text-muted-foreground">
+            Update dispatch and tracking details
+          </p>
+        </div>
+        <Suspense fallback={<div>Loading form...</div>}>
+          <EditDispatchForm />
+        </Suspense>
+      </div>
     </Layout>
   );
 }

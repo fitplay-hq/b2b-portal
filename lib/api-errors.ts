@@ -7,15 +7,24 @@ export function handleApiError(error: unknown) {
 
   if (error instanceof ZodError) {
     return NextResponse.json(
-      { error: "Validation failed", details: error.errors },
+      { error: "Validation failed", details: error.issues },
       { status: 400 },
     );
   }
 
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    switch (error.code) {
+  // Check for Prisma errors more robustly (instanceof can fail with HMR/bundling)
+  const isPrismaError =
+    error instanceof Prisma.PrismaClientKnownRequestError ||
+    (typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as any).constructor.name === "PrismaClientKnownRequestError");
+
+  if (isPrismaError) {
+    const prismaError = error as any;
+    switch (prismaError.code) {
       case "P2002":
-        const target = error.meta?.target as string[];
+        const target = prismaError.meta?.target as string[];
         return NextResponse.json(
           {
             error: `A record with this ${target ? target.join(", ") : "value"} already exists.`,

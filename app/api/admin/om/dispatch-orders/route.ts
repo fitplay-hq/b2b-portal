@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       logisticsPartnerId,
       docketNumber,
       expectedDeliveryDate,
+      status,
       items,
     } = validatedData;
 
@@ -135,6 +136,7 @@ export async function POST(req: NextRequest) {
           logisticsPartnerId,
           docketNumber,
           expectedDeliveryDate: new Date(expectedDeliveryDate),
+          status,
           items: {
             create: processedItems,
           },
@@ -159,8 +161,7 @@ export async function POST(req: NextRequest) {
       );
 
       const fullyDispatched = purchaseOrder.items.every(
-        (poItem) =>
-          (updatedDispatchMap.get(poItem.id) ?? 0) >= poItem.quantity,
+        (poItem) => (updatedDispatchMap.get(poItem.id) ?? 0) >= poItem.quantity,
       );
 
       const newStatus: OMPoStatus = fullyDispatched

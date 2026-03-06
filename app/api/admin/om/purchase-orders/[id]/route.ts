@@ -6,9 +6,10 @@ import { handleApiError } from "@/lib/api-errors";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(RESOURCES.ORDERS, "view");
     if (!permissionCheck.success) {
       return NextResponse.json(
@@ -21,7 +22,7 @@ export async function GET(
     }
 
     const purchaseOrder = await prisma.oMPurchaseOrder.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         client: true,
         deliveryLocation: true,
@@ -55,9 +56,10 @@ export async function GET(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(RESOURCES.ORDERS, "delete");
     if (!permissionCheck.success) {
       return NextResponse.json(
@@ -70,7 +72,7 @@ export async function DELETE(
     }
 
     const dispatchesCount = await prisma.oMDispatchOrder.count({
-      where: { purchaseOrderId: params.id },
+      where: { purchaseOrderId: id },
     });
 
     if (dispatchesCount > 0) {
@@ -81,7 +83,7 @@ export async function DELETE(
     }
 
     await prisma.oMPurchaseOrder.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({
@@ -95,9 +97,10 @@ export async function DELETE(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const permissionCheck = await checkPermission(RESOURCES.ORDERS, "update");
     if (!permissionCheck.success) {
       return NextResponse.json(
@@ -112,7 +115,7 @@ export async function PUT(
     const { items, ...updates } = await req.json();
 
     const existingPO = await prisma.oMPurchaseOrder.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { items: { include: { dispatchItems: true } } },
     });
 
