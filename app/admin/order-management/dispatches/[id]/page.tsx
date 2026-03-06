@@ -134,11 +134,20 @@ export default function OMDispatchDetail() {
               </p>
             </div>
           </div>
-          <Badge
-            className={`text-sm px-3 py-1 ${getStatusColor(dispatch.status)}`}
-          >
-            {formatStatus(dispatch.status)}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/admin/order-management/dispatches/${dispatch.id}/edit`}
+            >
+              <Button size="sm" variant="outline">
+                Edit Dispatch
+              </Button>
+            </Link>
+            <Badge
+              className={`text-sm px-3 py-1 ${getStatusColor(dispatch.status)}`}
+            >
+              {formatStatus(dispatch.status)}
+            </Badge>
+          </div>
         </div>
 
         {/* Summary Cards */}

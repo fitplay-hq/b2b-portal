@@ -25,6 +25,7 @@ import {
 import { Plus, Save, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateForApi } from "@/lib/utils";
+import { getFinancialYearString } from "@/lib/utils/financial-year";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -61,7 +62,8 @@ function CreateDispatchForm() {
 
   // Form state
   const [poId, setPoId] = useState(preSelectedPoId || "");
-  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const fyPrefix = `FP/LLP/${getFinancialYearString()}/`;
+  const [invoiceNumber, setInvoiceNumber] = useState(fyPrefix);
   const [invoiceDate, setInvoiceDate] = useState("");
   const [logisticsPartnerId, setLogisticsPartnerId] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
@@ -500,8 +502,20 @@ function CreateDispatchForm() {
                 <Label>Invoice Number *</Label>
                 <Input
                   value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                  placeholder="FP/LLP/YY-YY/Sequential"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val.startsWith(fyPrefix)) {
+                      const seq = val.slice(fyPrefix.length);
+                      // Only allow digits for the sequential part
+                      if (/^\d*$/.test(seq)) {
+                        setInvoiceNumber(val);
+                      }
+                    } else if (val === "" || fyPrefix.startsWith(val)) {
+                      // Prevent deleting the prefix
+                      setInvoiceNumber(fyPrefix);
+                    }
+                  }}
+                  placeholder={`${fyPrefix}Sequential`}
                 />
               </div>
 

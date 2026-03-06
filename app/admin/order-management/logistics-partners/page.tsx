@@ -41,8 +41,10 @@ import {
   Trash2,
   Truck,
   Loader2,
+  Eye,
   FileDown,
   FileSpreadsheet,
+  ChevronDown,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -59,7 +61,10 @@ export default function OMLogisticsPartners() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingPartner, setEditingPartner] =
+    useState<OMLogisticsPartner | null>(null);
+  const [viewingPartner, setViewingPartner] =
     useState<OMLogisticsPartner | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -148,6 +153,11 @@ export default function OMLogisticsPartners() {
       defaultMode: partner.defaultMode || "Surface",
     });
     setIsAddDialogOpen(true);
+  };
+
+  const handleView = (partner: OMLogisticsPartner) => {
+    setViewingPartner(partner);
+    setIsViewDialogOpen(true);
   };
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -308,6 +318,7 @@ export default function OMLogisticsPartners() {
                 <Button variant="outline">
                   <FileDown className="h-4 w-4 mr-2" />
                   Export
+                  <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
@@ -455,6 +466,85 @@ export default function OMLogisticsPartners() {
                 </form>
               </DialogContent>
             </Dialog>
+
+            <Dialog
+              open={isViewDialogOpen}
+              onOpenChange={(open) => {
+                setIsViewDialogOpen(open);
+                if (!open) setViewingPartner(null);
+              }}
+            >
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>View Logistics Partner Details</DialogTitle>
+                </DialogHeader>
+
+                {viewingPartner && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2 col-span-2">
+                        <Label>Partner Name</Label>
+                        <Input
+                          value={viewingPartner.name}
+                          readOnly
+                          className="bg-muted"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Contact Person</Label>
+                        <Input
+                          value={viewingPartner.contactPerson || "-"}
+                          readOnly
+                          className="bg-muted"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Phone</Label>
+                        <Input
+                          value={viewingPartner.phone || "-"}
+                          readOnly
+                          className="bg-muted"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Email</Label>
+                        <Input
+                          value={viewingPartner.email || "-"}
+                          readOnly
+                          className="bg-muted"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Default Mode</Label>
+                        <Input
+                          value={viewingPartner.defaultMode || "-"}
+                          readOnly
+                          className="bg-muted"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsViewDialogOpen(false)}
+                      >
+                        Close
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setIsViewDialogOpen(false);
+                          handleEdit(viewingPartner);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit Partner
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -510,7 +600,11 @@ export default function OMLogisticsPartners() {
                     </TableRow>
                   ) : (
                     filteredPartners.map((partner) => (
-                      <TableRow key={partner.id}>
+                      <TableRow
+                        key={partner.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleView(partner)}
+                      >
                         <TableCell className="font-medium text-xs truncate max-w-25">
                           {partner.id}
                         </TableCell>
@@ -533,14 +627,31 @@ export default function OMLogisticsPartners() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleEdit(partner)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleView(partner);
+                              }}
+                              title="View Partner"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(partner);
+                              }}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(partner.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(partner.id);
+                              }}
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />

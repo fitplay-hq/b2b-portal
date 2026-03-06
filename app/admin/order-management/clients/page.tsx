@@ -37,6 +37,7 @@ import {
   Eye,
   FileDown,
   FileSpreadsheet,
+  ChevronDown,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -327,6 +328,7 @@ export default function OMClients() {
                 <Button variant="outline">
                   <FileDown className="h-4 w-4 mr-2" />
                   Export
+                  <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
@@ -581,6 +583,24 @@ export default function OMClients() {
                         rows={3}
                       />
                     </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsViewDialogOpen(false)}
+                      >
+                        Close
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setIsViewDialogOpen(false);
+                          handleEdit(viewingClient);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit Client
+                      </Button>
+                    </div>
                   </div>
                 )}
               </DialogContent>
@@ -639,7 +659,11 @@ export default function OMClients() {
                     </TableRow>
                   ) : (
                     filteredClients.map((client) => (
-                      <TableRow key={client.id}>
+                      <TableRow
+                        key={client.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleView(client)}
+                      >
                         <TableCell>{client.name}</TableCell>
                         <TableCell>{client.contactPerson || "-"}</TableCell>
                         <TableCell>{client.email || "-"}</TableCell>
@@ -650,7 +674,10 @@ export default function OMClients() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleView(client)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleView(client);
+                              }}
                               title="View Client"
                             >
                               <Eye className="h-4 w-4" />
@@ -658,7 +685,10 @@ export default function OMClients() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleEdit(client)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(client);
+                              }}
                               title="Edit Client"
                             >
                               <Pencil className="h-4 w-4" />
@@ -666,7 +696,10 @@ export default function OMClients() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(client.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(client.id);
+                              }}
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />

@@ -25,6 +25,7 @@ import {
 import { Plus, Trash2, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateForApi } from "@/lib/utils";
+import { getFinancialYearString } from "@/lib/utils/financial-year";
 import {
   Dialog,
   DialogContent,
@@ -51,12 +52,12 @@ export default function OMCreatePurchaseOrder() {
   // Form state
   const [clientId, setClientId] = useState("");
   const [locationId, setLocationId] = useState("");
-  const [estimateNumber, setEstimateNumber] = useState("");
+  const fyPrefix = `FP/${getFinancialYearString()}/`;
+  const [estimateNumber, setEstimateNumber] = useState(fyPrefix);
   const [estimateDate, setEstimateDate] = useState("");
   const [poNumber, setPoNumber] = useState("");
   const [poDate, setPoDate] = useState("");
   const [poReceivedDate, setPoReceivedDate] = useState("");
-  const [status, setStatus] = useState<"DRAFT" | "CONFIRMED">("CONFIRMED");
 
   // Master data
   const [clients, setClients] = useState<any[]>([]);
@@ -84,6 +85,7 @@ export default function OMCreatePurchaseOrder() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemRate, setNewItemRate] = useState("");
   const [isAddingItem, setIsAddingItem] = useState(false);
+  const [activeRowTempId, setActiveRowTempId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -133,16 +135,18 @@ export default function OMCreatePurchaseOrder() {
     tempId: string,
     field: keyof LineItem,
     value: string | number,
+    productOverride?: any,
   ) => {
-    setLineItems(
-      lineItems.map((item) => {
+    setLineItems((prevItems) =>
+      prevItems.map((item) => {
         if (item.tempId !== tempId) return item;
 
         const updated = { ...item, [field]: value };
 
         // Handle item selection
         if (field === "productId") {
-          const selectedProduct = products.find((p) => p.id === value);
+          const selectedProduct =
+            productOverride || products.find((p) => p.id === value);
           if (selectedProduct) {
             updated.itemName = selectedProduct.name;
             updated.rate = selectedProduct.price || 0;
@@ -200,7 +204,6 @@ export default function OMCreatePurchaseOrder() {
         poNumber,
         poDate: formatDateForApi(poDate),
         poReceivedDate: formatDateForApi(poReceivedDate),
-        status,
         items: lineItems.map(({ tempId, itemName, ...rest }) => rest),
       };
 
@@ -239,8 +242,17 @@ export default function OMCreatePurchaseOrder() {
       });
       if (res.ok) {
         const data = await res.json();
-        setClients([...clients, data.data]);
-        setClientId(data.id);
+        // The API returns { id: string, data: OMClient }
+        const newClient = data.data;
+        const newClientId = data.id || newClient.id;
+
+        setClients((prev) => [...prev, newClient]);
+
+        // Use a short timeout to ensure the Select options are updated before setting the value
+        setTimeout(() => {
+          setClientId(newClientId);
+        }, 100);
+
         toast.success("Client added successfully");
         setShowNewClientDialog(false);
         setNewClientName("");
@@ -266,8 +278,17 @@ export default function OMCreatePurchaseOrder() {
       });
       if (res.ok) {
         const data = await res.json();
-        setLocations([...locations, data.data]);
-        setLocationId(data.id);
+        // The API returns { id: string, data: OMDeliveryLocation }
+        const newLocation = data.data;
+        const newLocationId = data.id || newLocation.id;
+
+        setLocations((prev) => [...prev, newLocation]);
+
+        // Use a short timeout to ensure the Select options are updated before setting the value
+        setTimeout(() => {
+          setLocationId(newLocationId);
+        }, 100);
+
         toast.success("Location added successfully");
         setShowNewLocationDialog(false);
         setNewLocationName("");
@@ -296,11 +317,29 @@ export default function OMCreatePurchaseOrder() {
       });
       if (res.ok) {
         const data = await res.json();
-        setProducts([...products, data.data]);
+        const newProduct = data.data;
+        const newProductId = data.id || newProduct.id;
+
+        setProducts((prev) => [...prev, newProduct]);
+
+        // If we know which row triggered this, select the new product in that row
+        if (activeRowTempId) {
+          // Use a short timeout to ensure the Select options are updated
+          setTimeout(() => {
+            updateLineItem(
+              activeRowTempId,
+              "productId",
+              newProductId,
+              newProduct,
+            );
+          }, 100);
+        }
+
         toast.success("Item added successfully");
         setShowNewItemDialog(false);
         setNewItemName("");
         setNewItemRate("");
+        setActiveRowTempId(null);
       }
     } catch (err) {
       toast.error("Failed to add item");
@@ -447,8 +486,20 @@ export default function OMCreatePurchaseOrder() {
                 <Label>FitPlay Estimate Number *</Label>
                 <Input
                   value={estimateNumber}
-                  onChange={(e) => setEstimateNumber(e.target.value)}
-                  placeholder="FP/YY-YY/SequentialNumber"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val.startsWith(fyPrefix)) {
+                      const seq = val.slice(fyPrefix.length);
+                      // Only allow digits for the sequential part
+                      if (/^\d*$/.test(seq)) {
+                        setEstimateNumber(val);
+                      }
+                    } else if (val === "" || fyPrefix.startsWith(val)) {
+                      // Prevent deleting the prefix
+                      setEstimateNumber(fyPrefix);
+                    }
+                  }}
+                  placeholder={`${fyPrefix}SequentialNumber`}
                 />
               </div>
 
@@ -486,26 +537,6 @@ export default function OMCreatePurchaseOrder() {
                   value={poReceivedDate}
                   onChange={(e) => setPoReceivedDate(e.target.value)}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium mb-1.5">Status</p>
-                <div className="flex bg-muted p-1 rounded-md">
-                  <button
-                    type="button"
-                    onClick={() => setStatus("DRAFT")}
-                    className={`flex-1 text-xs py-1.5 rounded-sm transition-all ${status === "DRAFT" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
-                  >
-                    Draft
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStatus("CONFIRMED")}
-                    className={`flex-1 text-xs py-1.5 rounded-sm transition-all ${status === "CONFIRMED" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
-                  >
-                    Confirmed
-                  </button>
-                </div>
               </div>
             </div>
           </CardContent>
@@ -569,10 +600,20 @@ export default function OMCreatePurchaseOrder() {
                             </Select>
                             <Dialog
                               open={showNewItemDialog}
-                              onOpenChange={setShowNewItemDialog}
+                              onOpenChange={(open) => {
+                                setShowNewItemDialog(open);
+                                if (!open) setActiveRowTempId(null);
+                              }}
                             >
                               <DialogTrigger asChild>
-                                <Button type="button" variant="ghost" size="sm">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setActiveRowTempId(item.tempId)
+                                  }
+                                >
                                   <Plus className="h-4 w-4" />
                                 </Button>
                               </DialogTrigger>
