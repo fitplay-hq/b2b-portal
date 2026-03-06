@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { useFastPermissions } from "@/contexts/fast-permission-context";
@@ -63,7 +63,7 @@ export default function NavItems({
   const DEMO_EMAIL = "demo.github@fitplaysolutions.com";
   const isDemoUser = session?.user?.email?.toLowerCase() === DEMO_EMAIL;
 
-  // Simplified nav state - no need for complex caching here since permissions are already cached
+  // Simplifed nav state
   const [companiesOpen, setCompaniesOpen] = useState(
     pathname.startsWith("/admin/companies") ||
       pathname.startsWith("/admin/companies-clients") ||
@@ -75,6 +75,12 @@ export default function NavItems({
   const [usersOpen, setUsersOpen] = useState(
     pathname.startsWith("/admin/users"),
   );
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (isClient) {
     if (status === "loading") {
@@ -252,6 +258,9 @@ export default function NavItems({
   const adminNavItems = allAdminNavItems.filter((item) => {
     if (!item.permission) return true; // Always show dashboard
 
+    // Fallback to false during SSR/Initial hydration to avoid hydration mismatch
+    if (!mounted) return false;
+
     // For admins, always show immediately (never changes)
     if (isAdminUser) return true;
 
@@ -417,6 +426,8 @@ export default function NavItems({
 
       {/* Management Section - Only show if at least one management item is accessible */}
       {(() => {
+        if (!mounted) return null;
+
         // Check if any management sections should be visible
         const showClientsSection =
           isAdminUser || pageAccess.companies || pageAccess.clients;
@@ -673,6 +684,8 @@ export default function NavItems({
 
       {/* Collapsed Management Icons with Dropdowns */}
       {(() => {
+        if (!mounted) return null;
+
         // Check if any management sections should be visible (reuse same logic)
         const showClientsSection =
           isAdminUser || pageAccess.companies || pageAccess.clients;
@@ -830,7 +843,7 @@ export default function NavItems({
                       )}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <UserCog className="h-4 w-4 flex-shrink-0" />
+                      <UserCog className="h-4 w-4 shrink-0" />
                       <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 group-focus:opacity-0">
                         User Management
                       </div>
