@@ -38,6 +38,49 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
+// Maps raw DB enum values to display labels
+const PO_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  CONFIRMED: "Confirmed",
+  PARTIALLY_DISPATCHED: "Partially Dispatched",
+  FULLY_DISPATCHED: "Fully Dispatched",
+  CLOSED: "Closed",
+};
+
+// Returns Tailwind classes for each PO status
+const getPoStatusClass = (status: string) => {
+  switch (status) {
+    case "DRAFT":
+      return "bg-slate-400 text-white border-0";
+    case "CONFIRMED":
+      return "bg-blue-500 text-white border-0";
+    case "PARTIALLY_DISPATCHED":
+      return "bg-amber-500 text-white border-0";
+    case "FULLY_DISPATCHED":
+      return "bg-emerald-500 text-white border-0";
+    case "CLOSED":
+      return "bg-gray-500 text-white border-0";
+    default:
+      return "bg-gray-300 text-gray-800 border-0";
+  }
+};
+
+// Returns Tailwind classes for each Dispatch status
+const getDispatchStatusClass = (status: string) => {
+  switch (status) {
+    case "CREATED":
+      return "bg-blue-400 text-white border-0";
+    case "DISPATCHED":
+      return "bg-amber-500 text-white border-0";
+    case "DELIVERED":
+      return "bg-emerald-500 text-white border-0";
+    case "CANCELLED":
+      return "bg-red-500 text-white border-0";
+    default:
+      return "bg-gray-300 text-gray-800 border-0";
+  }
+};
+
 export default function OMDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -135,7 +178,7 @@ export default function OMDashboard() {
 
   // Summary calculations
   const totalActivePOs = omPurchaseOrders.filter(
-    (po) => po.status !== "Closed",
+    (po) => po.status !== "CLOSED",
   ).length;
   const totalOrderValue = omPurchaseOrders.reduce(
     (sum, po) => sum + po.grandTotal,
@@ -213,34 +256,34 @@ export default function OMDashboard() {
 
   const itemSummaryArray = Object.values(itemSummary) as any[];
 
-  // Status breakdown
+  // Status breakdown — uses SCREAMING_SNAKE_CASE to match Prisma enum values
   const statusBreakdown = [
     {
       name: "Draft",
-      value: omPurchaseOrders.filter((po) => po.status === "Draft").length,
+      value: omPurchaseOrders.filter((po) => po.status === "DRAFT").length,
       color: "#94a3b8",
     },
     {
       name: "Confirmed",
-      value: omPurchaseOrders.filter((po) => po.status === "Confirmed").length,
+      value: omPurchaseOrders.filter((po) => po.status === "CONFIRMED").length,
       color: "#3b82f6",
     },
     {
       name: "Partially Dispatched",
       value: omPurchaseOrders.filter(
-        (po) => po.status === "Partially Dispatched",
+        (po) => po.status === "PARTIALLY_DISPATCHED",
       ).length,
       color: "#f59e0b",
     },
     {
       name: "Fully Dispatched",
-      value: omPurchaseOrders.filter((po) => po.status === "Fully Dispatched")
+      value: omPurchaseOrders.filter((po) => po.status === "FULLY_DISPATCHED")
         .length,
       color: "#10b981",
     },
     {
       name: "Closed",
-      value: omPurchaseOrders.filter((po) => po.status === "Closed").length,
+      value: omPurchaseOrders.filter((po) => po.status === "CLOSED").length,
       color: "#6b7280",
     },
   ].filter((item) => item.value > 0);
@@ -462,7 +505,9 @@ export default function OMDashboard() {
                                 {remaining}
                               </TableCell>
                               <TableCell>
-                                <Badge>{po.status}</Badge>
+                                <Badge className={getPoStatusClass(po.status)}>
+                                  {PO_STATUS_LABELS[po.status] ?? po.status}
+                                </Badge>
                               </TableCell>
                               <TableCell className="text-right">
                                 <Link
@@ -516,7 +561,14 @@ export default function OMDashboard() {
                               {dispatch.logisticsPartnerName}
                             </TableCell>
                             <TableCell>
-                              <Badge>{dispatch.status}</Badge>
+                              <Badge
+                                className={getDispatchStatusClass(
+                                  dispatch.status,
+                                )}
+                              >
+                                {dispatch.status.charAt(0) +
+                                  dispatch.status.slice(1).toLowerCase()}
+                              </Badge>
                             </TableCell>
                             <TableCell className="text-right">
                               <Link
