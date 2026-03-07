@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -30,6 +31,7 @@ import {
   FileSpreadsheet,
   Trash2,
   Edit,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatStatus } from "@/lib/utils";
@@ -47,6 +49,7 @@ import type {
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 
 export default function OMDispatchesList() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
@@ -345,6 +348,7 @@ export default function OMDispatchesList() {
                 <Button variant="outline">
                   <FileDown className="h-4 w-4 mr-2" />
                   Export
+                  <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
@@ -445,7 +449,15 @@ export default function OMDispatchesList() {
                   </TableRow>
                 ) : (
                   filteredDispatches.map((dispatch) => (
-                    <TableRow key={dispatch.id}>
+                    <TableRow
+                      key={dispatch.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() =>
+                        router.push(
+                          `/admin/order-management/dispatches/${dispatch.id}`,
+                        )
+                      }
+                    >
                       <TableCell className="font-medium">
                         {dispatch.invoiceNumber}
                       </TableCell>
@@ -478,6 +490,7 @@ export default function OMDispatchesList() {
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/admin/order-management/dispatches/${dispatch.id}`}
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <Button
                               variant="ghost"
@@ -489,6 +502,7 @@ export default function OMDispatchesList() {
                           </Link>
                           <Link
                             href={`/admin/order-management/dispatches/${dispatch.id}/edit`}
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <Button
                               variant="ghost"
@@ -501,7 +515,10 @@ export default function OMDispatchesList() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(dispatch.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(dispatch.id);
+                            }}
                             className="text-destructive hover:text-destructive"
                             title="Delete Dispatch"
                           >

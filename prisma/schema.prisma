@@ -344,13 +344,13 @@ model OMPurchaseOrder {
   id               String                @id @default(uuid())
   client           OMClient              @relation(fields: [clientId], references: [id])
   clientId         String
-  deliveryLocation OMDeliveryLocation    @relation(fields: [locationId], references: [id])
-  locationId       String
-  estimateNumber   String                @unique
-  estimateDate     DateTime
-  poNumber         String                @unique
-  poDate           DateTime
-  poReceivedDate   DateTime
+  deliveryLocation OMDeliveryLocation?   @relation(fields: [locationId], references: [id])
+  locationId       String?
+  estimateNumber   String?               @unique
+  estimateDate     DateTime?
+  poNumber         String?               @unique
+  poDate           DateTime?
+  poReceivedDate   DateTime?
   status           OMPoStatus            @default(CONFIRMED)
   totalGst         Float                 @default(0)
   grandTotal       Float                 @default(0)
@@ -403,12 +403,12 @@ model OMDispatchOrder {
   id                   String                @id @default(uuid())
   purchaseOrder        OMPurchaseOrder       @relation(fields: [purchaseOrderId], references: [id])
   purchaseOrderId      String
-  invoiceNumber        String                @unique
-  invoiceDate          DateTime
-  logisticsPartner     OMLogisticsPartner    @relation(fields: [logisticsPartnerId], references: [id])
-  logisticsPartnerId   String
-  docketNumber         String
-  expectedDeliveryDate DateTime
+  invoiceNumber        String?               @unique
+  invoiceDate          DateTime?
+  logisticsPartner     OMLogisticsPartner?   @relation(fields: [logisticsPartnerId], references: [id])
+  logisticsPartnerId   String?
+  docketNumber         String?
+  expectedDeliveryDate DateTime?
   status               OMDispatchStatus      @default(CREATED)
   items                OMDispatchOrderItem[]
   createdAt            DateTime              @default(now())

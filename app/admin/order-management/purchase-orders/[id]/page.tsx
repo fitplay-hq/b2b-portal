@@ -282,6 +282,16 @@ export default function OMPurchaseOrderDetail() {
                 </p>
               </div>
             </div>
+            <div className="mt-4 pt-4 border-t flex justify-end">
+              <Link
+                href={`/admin/order-management/purchase-orders/${po.id}/edit`}
+              >
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Order Details
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
 

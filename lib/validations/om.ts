@@ -78,17 +78,34 @@ export const OMPurchaseOrderItemCreateSchema = z.object({
 // --- OMPurchaseOrder Validation ---
 export const OMPurchaseOrderCreateSchema = z.object({
   clientId: z.string().min(1, "Client ID is required"),
-  locationId: z.string().min(1, "Delivery Location ID is required"),
-  estimateNumber: z.string().min(1, "Estimate Number is required"),
+  locationId: z.string().optional().nullable(),
+  estimateNumber: z.string().optional().nullable(),
   estimateDate: z
     .string()
-    .datetime({ message: "Invalid Estimate Date format" }),
-  poNumber: z.string().min(1, "PO Number is required"),
-  poDate: z.string().datetime({ message: "Invalid PO Date format" }),
+    .datetime({ message: "Invalid Estimate Date format" })
+    .optional()
+    .nullable(),
+  poNumber: z.string().optional().nullable(),
+  poDate: z
+    .string()
+    .datetime({ message: "Invalid PO Date format" })
+    .optional()
+    .nullable(),
   poReceivedDate: z
     .string()
-    .datetime({ message: "Invalid PO Received Date format" }),
-  status: z.enum(["DRAFT", "CONFIRMED"]).optional().default("CONFIRMED"),
+    .datetime({ message: "Invalid PO Received Date format" })
+    .optional()
+    .nullable(),
+  status: z
+    .enum([
+      "DRAFT",
+      "CONFIRMED",
+      "PARTIALLY_DISPATCHED",
+      "FULLY_DISPATCHED",
+      "CLOSED",
+    ])
+    .optional()
+    .default("CONFIRMED"),
   items: z
     .array(OMPurchaseOrderItemCreateSchema)
     .min(1, "At least one item is required for the PO"),
@@ -108,13 +125,19 @@ export const OMDispatchOrderItemCreateSchema = z.object({
 // --- OMDispatchOrder Validation ---
 export const OMDispatchOrderCreateSchema = z.object({
   purchaseOrderId: z.string().min(1, "Purchase Order ID is required"),
-  invoiceNumber: z.string().min(1, "Invoice Number is required"),
-  invoiceDate: z.string().datetime({ message: "Invalid Invoice Date format" }),
-  logisticsPartnerId: z.string().min(1, "Logistics Partner ID is required"),
-  docketNumber: z.string().min(1, "Docket Number is required"),
+  invoiceNumber: z.string().optional().nullable(),
+  invoiceDate: z
+    .string()
+    .datetime({ message: "Invalid Invoice Date format" })
+    .optional()
+    .nullable(),
+  logisticsPartnerId: z.string().optional().nullable(),
+  docketNumber: z.string().optional().nullable(),
   expectedDeliveryDate: z
     .string()
-    .datetime({ message: "Invalid Expected Delivery Date format" }),
+    .datetime({ message: "Invalid Expected Delivery Date format" })
+    .optional()
+    .nullable(),
   status: z
     .enum(["CREATED", "DISPATCHED", "DELIVERED", "CANCELLED"])
     .optional()

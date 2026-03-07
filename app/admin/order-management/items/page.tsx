@@ -44,6 +44,7 @@ import {
   Eye,
   FileDown,
   FileSpreadsheet,
+  ChevronDown,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -312,6 +313,7 @@ export default function OMItems() {
                 <Button variant="outline">
                   <FileDown className="h-4 w-4 mr-2" />
                   Export
+                  <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
@@ -514,6 +516,24 @@ export default function OMItems() {
                         rows={3}
                       />
                     </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsViewDialogOpen(false)}
+                      >
+                        Close
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setIsViewDialogOpen(false);
+                          handleEdit(viewingItem);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit Item
+                      </Button>
+                    </div>
                   </div>
                 )}
               </DialogContent>
@@ -572,7 +592,11 @@ export default function OMItems() {
                     </TableRow>
                   ) : (
                     filteredItems.map((item) => (
-                      <TableRow key={item.id}>
+                      <TableRow
+                        key={item.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleView(item)}
+                      >
                         <TableCell>
                           <div>
                             <div className="font-medium">{item.name}</div>
@@ -596,7 +620,10 @@ export default function OMItems() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleView(item)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleView(item);
+                              }}
                               title="View Item"
                             >
                               <Eye className="h-4 w-4" />
@@ -604,7 +631,10 @@ export default function OMItems() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleEdit(item)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(item);
+                              }}
                               title="Edit Item"
                             >
                               <Pencil className="h-4 w-4" />
@@ -612,7 +642,10 @@ export default function OMItems() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(item.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(item.id);
+                              }}
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />
