@@ -22,10 +22,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, Save, Loader2 } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateForApi } from "@/lib/utils";
 import { getFinancialYearString } from "@/lib/utils/financial-year";
+import { OMClientForm } from "@/components/orderManagement/OMClientForm";
 import {
   Dialog,
   DialogContent,
@@ -72,7 +73,15 @@ export default function OMCreatePurchaseOrder() {
 
   // New client dialog
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
-  const [newClientName, setNewClientName] = useState("");
+  const [newClientData, setNewClientData] = useState({
+    name: "",
+    contactPerson: "",
+    email: "",
+    phone: "",
+    billingAddress: "",
+    gstNumber: "",
+    notes: "",
+  });
   const [isAddingClient, setIsAddingClient] = useState(false);
 
   // New location dialog
@@ -174,14 +183,9 @@ export default function OMCreatePurchaseOrder() {
     e.preventDefault();
 
     // Validation
-    if (
-      !clientId ||
-      !locationId ||
-      !estimateNumber ||
-      !poNumber ||
-      lineItems.length === 0
-    ) {
-      toast.error("Please fill all required fields and add at least one item");
+    // Validation - Only Client and Items are strictly required now
+    if (!clientId || lineItems.length === 0) {
+      toast.error("Please select a client and add at least one item");
       return;
     }
 
@@ -198,12 +202,14 @@ export default function OMCreatePurchaseOrder() {
     try {
       const payload = {
         clientId,
-        locationId,
-        estimateNumber,
-        estimateDate: formatDateForApi(estimateDate),
-        poNumber,
-        poDate: formatDateForApi(poDate),
-        poReceivedDate: formatDateForApi(poReceivedDate),
+        locationId: locationId || null,
+        estimateNumber: estimateNumber || null,
+        estimateDate: estimateDate ? formatDateForApi(estimateDate) : null,
+        poNumber: poNumber || null,
+        poDate: poDate ? formatDateForApi(poDate) : null,
+        poReceivedDate: poReceivedDate
+          ? formatDateForApi(poReceivedDate)
+          : null,
         items: lineItems.map(({ tempId, itemName, ...rest }) => rest),
       };
 
@@ -229,7 +235,7 @@ export default function OMCreatePurchaseOrder() {
   };
 
   const handleAddNewClient = async () => {
-    if (!newClientName.trim()) {
+    if (!newClientData.name.trim()) {
       toast.error("Please enter client name");
       return;
     }
@@ -238,7 +244,7 @@ export default function OMCreatePurchaseOrder() {
       const res = await fetch("/api/admin/om/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newClientName }),
+        body: JSON.stringify(newClientData),
       });
       if (res.ok) {
         const data = await res.json();
@@ -255,7 +261,15 @@ export default function OMCreatePurchaseOrder() {
 
         toast.success("Client added successfully");
         setShowNewClientDialog(false);
-        setNewClientName("");
+        setNewClientData({
+          name: "",
+          contactPerson: "",
+          email: "",
+          phone: "",
+          billingAddress: "",
+          gstNumber: "",
+          notes: "",
+        });
       }
     } catch (err) {
       toast.error("Failed to add client");
@@ -350,471 +364,484 @@ export default function OMCreatePurchaseOrder() {
 
   return (
     <Layout isClient={false}>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Client & Reference Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Client & Reference Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Client Name *</Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={clientId}
-                    onValueChange={setClientId}
-                    disabled={isDataLoading}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue
-                        placeholder={
-                          isDataLoading ? "Loading clients..." : "Select client"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Dialog
-                    open={showNewClientDialog}
-                    onOpenChange={setShowNewClientDialog}
-                  >
-                    <DialogTrigger asChild>
-                      <Button type="button" variant="outline">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New Client</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <Label>Client Name</Label>
-                          <Input
-                            value={newClientName}
-                            onChange={(e) => setNewClientName(e.target.value)}
-                            placeholder="Enter client name"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          onClick={handleAddNewClient}
-                          disabled={isAddingClient}
-                        >
-                          {isAddingClient && (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          )}
-                          Add Client
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Delivery Location *</Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={locationId}
-                    onValueChange={setLocationId}
-                    disabled={isDataLoading}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue
-                        placeholder={
-                          isDataLoading
-                            ? "Loading locations..."
-                            : "Select location"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Dialog
-                    open={showNewLocationDialog}
-                    onOpenChange={setShowNewLocationDialog}
-                  >
-                    <DialogTrigger asChild>
-                      <Button type="button" variant="outline">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New Location</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <Label>Location Name</Label>
-                          <Input
-                            value={newLocationName}
-                            onChange={(e) => setNewLocationName(e.target.value)}
-                            placeholder="Enter location name"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          onClick={handleAddNewLocation}
-                          disabled={isAddingLocation}
-                        >
-                          {isAddingLocation && (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          )}
-                          Add Location
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>FitPlay Estimate Number *</Label>
-                <Input
-                  value={estimateNumber}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val.startsWith(fyPrefix)) {
-                      const seq = val.slice(fyPrefix.length);
-                      // Only allow digits for the sequential part
-                      if (/^\d*$/.test(seq)) {
-                        setEstimateNumber(val);
-                      }
-                    } else if (val === "" || fyPrefix.startsWith(val)) {
-                      // Prevent deleting the prefix
-                      setEstimateNumber(fyPrefix);
-                    }
-                  }}
-                  placeholder={`${fyPrefix}SequentialNumber`}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>FitPlay Estimate Date *</Label>
-                <Input
-                  type="date"
-                  value={estimateDate}
-                  onChange={(e) => setEstimateDate(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>PO Number *</Label>
-                <Input
-                  value={poNumber}
-                  onChange={(e) => setPoNumber(e.target.value)}
-                  placeholder="Enter PO number"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>PO Date *</Label>
-                <Input
-                  type="date"
-                  value={poDate}
-                  onChange={(e) => setPoDate(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>PO Received Date *</Label>
-                <Input
-                  type="date"
-                  value={poReceivedDate}
-                  onChange={(e) => setPoReceivedDate(e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Item Line Entries */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Item Line Entries</CardTitle>
-            <Button type="button" onClick={addLineItem} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-50">Item</TableHead>
-                    <TableHead className="w-25">Qty</TableHead>
-                    <TableHead className="w-25">Rate</TableHead>
-                    <TableHead className="w-25">Amount</TableHead>
-                    <TableHead className="w-25">GST %</TableHead>
-                    <TableHead className="w-25">GST Amt</TableHead>
-                    <TableHead className="w-25">Total</TableHead>
-                    <TableHead className="w-12.5"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lineItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No items added. Click "Add Item" to start.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    lineItems.map((item) => (
-                      <TableRow key={item.tempId}>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Select
-                              value={item.productId}
-                              onValueChange={(val) =>
-                                updateLineItem(item.tempId, "productId", val)
-                              }
-                            >
-                              <SelectTrigger className="min-w-45">
-                                <SelectValue placeholder="Select item" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {products.map((p) => (
-                                  <SelectItem key={p.id} value={p.id}>
-                                    {p.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Dialog
-                              open={showNewItemDialog}
-                              onOpenChange={(open) => {
-                                setShowNewItemDialog(open);
-                                if (!open) setActiveRowTempId(null);
-                              }}
-                            >
-                              <DialogTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    setActiveRowTempId(item.tempId)
-                                  }
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Add New Item</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4 pt-4">
-                                  <div className="space-y-2">
-                                    <Label>Item Name</Label>
-                                    <Input
-                                      value={newItemName}
-                                      onChange={(e) =>
-                                        setNewItemName(e.target.value)
-                                      }
-                                      placeholder="Enter item name"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label>Default Rate (optional)</Label>
-                                    <Input
-                                      type="number"
-                                      value={newItemRate}
-                                      onChange={(e) =>
-                                        setNewItemRate(e.target.value)
-                                      }
-                                      placeholder="0"
-                                    />
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    onClick={handleAddNewItem}
-                                    disabled={isAddingItem}
-                                  >
-                                    {isAddingItem && (
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    )}
-                                    Add Item
-                                  </Button>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) =>
-                              updateLineItem(
-                                item.tempId,
-                                "quantity",
-                                parseInt(e.target.value) || 0,
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.rate}
-                            onChange={(e) =>
-                              updateLineItem(
-                                item.tempId,
-                                "rate",
-                                parseFloat(e.target.value) || 0,
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          ₹
-                          {item.amount.toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={item.gstPercentage.toString()}
-                            onValueChange={(val) =>
-                              updateLineItem(
-                                item.tempId,
-                                "gstPercentage",
-                                parseFloat(val),
-                              )
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="0">0%</SelectItem>
-                              <SelectItem value="5">5%</SelectItem>
-                              <SelectItem value="18">18%</SelectItem>
-                              <SelectItem value="28">28%</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          ₹
-                          {item.gstAmount.toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          ₹
-                          {item.totalAmount.toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeLineItem(item.tempId)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Order Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Quantity:</span>
-                <span className="font-medium">{totalQuantity}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-medium">
-                  ₹
-                  {subtotal.toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total GST:</span>
-                <span className="font-medium">
-                  ₹
-                  {totalGst.toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between pt-2 border-t">
-                <span className="font-semibold">Grand Total:</span>
-                <span className="font-semibold text-lg">
-                  ₹
-                  {grandTotal.toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-4">
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
+            size="icon"
             onClick={() =>
               router.push("/admin/order-management/purchase-orders")
             }
           >
-            Cancel
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            {isSubmitting ? "Creating..." : "Create Purchase Order"}
-          </Button>
+          <div>
+            <h1 className="text-2xl font-semibold">Create Purchase Order</h1>
+            <p className="text-muted-foreground">
+              Create a new purchase order for a client
+            </p>
+          </div>
         </div>
-      </form>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Client & Reference Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Client & Reference Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Client Name *</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={clientId}
+                      onValueChange={setClientId}
+                      disabled={isDataLoading}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue
+                          placeholder={
+                            isDataLoading
+                              ? "Loading clients..."
+                              : "Select client"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Dialog
+                      open={showNewClientDialog}
+                      onOpenChange={setShowNewClientDialog}
+                    >
+                      <DialogTrigger asChild>
+                        <Button type="button" variant="outline">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add New Client</DialogTitle>
+                        </DialogHeader>
+                        <div className="pt-4">
+                          <OMClientForm
+                            formData={newClientData}
+                            onChange={setNewClientData}
+                            onSubmit={handleAddNewClient}
+                            isSubmitting={isAddingClient}
+                          />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Delivery Location</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={locationId}
+                      onValueChange={setLocationId}
+                      disabled={isDataLoading}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue
+                          placeholder={
+                            isDataLoading
+                              ? "Loading locations..."
+                              : "Select location"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {locations.map((location) => (
+                          <SelectItem key={location.id} value={location.id}>
+                            {location.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Dialog
+                      open={showNewLocationDialog}
+                      onOpenChange={setShowNewLocationDialog}
+                    >
+                      <DialogTrigger asChild>
+                        <Button type="button" variant="outline">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add New Location</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                          <div className="space-y-2">
+                            <Label>Location Name</Label>
+                            <Input
+                              value={newLocationName}
+                              onChange={(e) =>
+                                setNewLocationName(e.target.value)
+                              }
+                              placeholder="Enter location name"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={handleAddNewLocation}
+                            disabled={isAddingLocation}
+                          >
+                            {isAddingLocation && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Add Location
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>FitPlay Estimate Number</Label>
+                  <Input
+                    value={estimateNumber}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.startsWith(fyPrefix)) {
+                        const seq = val.slice(fyPrefix.length);
+                        // Only allow digits for the sequential part
+                        if (/^\d*$/.test(seq)) {
+                          setEstimateNumber(val);
+                        }
+                      } else if (val === "" || fyPrefix.startsWith(val)) {
+                        // Prevent deleting the prefix
+                        setEstimateNumber(fyPrefix);
+                      }
+                    }}
+                    placeholder={`${fyPrefix}SequentialNumber`}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>FitPlay Estimate Date</Label>
+                  <Input
+                    type="date"
+                    value={estimateDate}
+                    onChange={(e) => setEstimateDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>PO Number</Label>
+                  <Input
+                    value={poNumber}
+                    onChange={(e) => setPoNumber(e.target.value)}
+                    placeholder="Enter PO number"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>PO Date</Label>
+                  <Input
+                    type="date"
+                    value={poDate}
+                    onChange={(e) => setPoDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>PO Received Date</Label>
+                  <Input
+                    type="date"
+                    value={poReceivedDate}
+                    onChange={(e) => setPoReceivedDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Item Line Entries */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Item Line Entries</CardTitle>
+              <Button type="button" onClick={addLineItem} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-50">Item</TableHead>
+                      <TableHead className="w-29">Qty</TableHead>
+                      <TableHead className="w-29">Rate</TableHead>
+                      <TableHead className="w-25">Amount</TableHead>
+                      <TableHead className="w-25">GST %</TableHead>
+                      <TableHead className="w-25">GST Amt</TableHead>
+                      <TableHead className="w-25">Total</TableHead>
+                      <TableHead className="w-12.5"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {lineItems.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={8}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          No items added. Click "Add Item" to start.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      lineItems.map((item) => (
+                        <TableRow key={item.tempId}>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Select
+                                value={item.productId}
+                                onValueChange={(val) =>
+                                  updateLineItem(item.tempId, "productId", val)
+                                }
+                              >
+                                <SelectTrigger className="min-w-45">
+                                  <SelectValue placeholder="Select item" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {products.map((p) => (
+                                    <SelectItem key={p.id} value={p.id}>
+                                      {p.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Dialog
+                                open={showNewItemDialog}
+                                onOpenChange={(open) => {
+                                  setShowNewItemDialog(open);
+                                  if (!open) setActiveRowTempId(null);
+                                }}
+                              >
+                                <DialogTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      setActiveRowTempId(item.tempId)
+                                    }
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Add New Item</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="space-y-4 pt-4">
+                                    <div className="space-y-2">
+                                      <Label>Item Name</Label>
+                                      <Input
+                                        value={newItemName}
+                                        onChange={(e) =>
+                                          setNewItemName(e.target.value)
+                                        }
+                                        placeholder="Enter item name"
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label>Default Rate (optional)</Label>
+                                      <Input
+                                        type="number"
+                                        value={newItemRate}
+                                        onChange={(e) =>
+                                          setNewItemRate(e.target.value)
+                                        }
+                                        placeholder="0"
+                                      />
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      onClick={handleAddNewItem}
+                                      disabled={isAddingItem}
+                                    >
+                                      {isAddingItem && (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      )}
+                                      Add Item
+                                    </Button>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                updateLineItem(
+                                  item.tempId,
+                                  "quantity",
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.rate}
+                              onChange={(e) =>
+                                updateLineItem(
+                                  item.tempId,
+                                  "rate",
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ₹
+                            {item.amount.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={item.gstPercentage.toString()}
+                              onValueChange={(val) =>
+                                updateLineItem(
+                                  item.tempId,
+                                  "gstPercentage",
+                                  parseFloat(val),
+                                )
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">0%</SelectItem>
+                                <SelectItem value="5">5%</SelectItem>
+                                <SelectItem value="18">18%</SelectItem>
+                                <SelectItem value="28">28%</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ₹
+                            {item.gstAmount.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ₹
+                            {item.totalAmount.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeLineItem(item.tempId)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Order Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Quantity:</span>
+                  <span className="font-medium">{totalQuantity}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal:</span>
+                  <span className="font-medium">
+                    ₹
+                    {subtotal.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total GST:</span>
+                  <span className="font-medium">
+                    ₹
+                    {totalGst.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-2 border-t">
+                  <span className="font-semibold">Grand Total:</span>
+                  <span className="font-semibold text-lg">
+                    ₹
+                    {grandTotal.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                router.push("/admin/order-management/purchase-orders")
+              }
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {isSubmitting ? "Creating..." : "Create Purchase Order"}
+            </Button>
+          </div>
+        </form>
+      </div>
     </Layout>
   );
 }

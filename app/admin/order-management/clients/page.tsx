@@ -48,6 +48,7 @@ import {
 import { toast } from "sonner";
 import type { OMClient } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import { OMClientForm } from "@/components/orderManagement/OMClientForm";
 
 export default function OMClients() {
   const [clients, setClients] = useState<OMClient[]>([]);
@@ -363,143 +364,13 @@ export default function OMClients() {
                   </DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Client Name *</Label>
-                      <Input
-                        id="name"
-                        required
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        placeholder="Enter client name"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="contactPerson">
-                        Contact Person {editingClient && "*"}
-                      </Label>
-                      <Input
-                        id="contactPerson"
-                        required={!!editingClient}
-                        disabled={!editingClient}
-                        value={formData.contactPerson}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            contactPerson: e.target.value,
-                          })
-                        }
-                        placeholder="Enter contact person"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">
-                        Email {editingClient && "*"}
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        required={!!editingClient}
-                        disabled={!editingClient}
-                        value={formData.email}
-                        onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
-                        }
-                        placeholder="email@example.com"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">
-                        Phone {editingClient && "*"}
-                      </Label>
-                      <Input
-                        id="phone"
-                        required={!!editingClient}
-                        disabled={!editingClient}
-                        value={formData.phone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, phone: e.target.value })
-                        }
-                        placeholder="+91 XXXXX XXXXX"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="gstNumber">GST Number</Label>
-                      <Input
-                        id="gstNumber"
-                        disabled={!editingClient}
-                        value={formData.gstNumber}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            gstNumber: e.target.value,
-                          })
-                        }
-                        placeholder="Enter GST number"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="billingAddress">
-                      Billing Address {editingClient && "*"}
-                    </Label>
-                    <Textarea
-                      id="billingAddress"
-                      required={!!editingClient}
-                      disabled={!editingClient}
-                      value={formData.billingAddress}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          billingAddress: e.target.value,
-                        })
-                      }
-                      placeholder="Enter complete billing address"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes</Label>
-                    <Textarea
-                      id="notes"
-                      disabled={!editingClient}
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData({ ...formData, notes: e.target.value })
-                      }
-                      placeholder="Any additional notes or preferences"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setIsAddDialogOpen(false);
-                        resetForm();
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      {editingClient ? "Update" : "Add"} Client
-                    </Button>
-                  </div>
-                </form>
+                <OMClientForm
+                  formData={formData}
+                  onChange={setFormData}
+                  onSubmit={handleSubmit}
+                  isSubmitting={isSubmitting}
+                  isEdit={!!editingClient}
+                />
               </DialogContent>
             </Dialog>
 

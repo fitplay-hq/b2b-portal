@@ -371,13 +371,10 @@ export default function OMLogisticsPartners() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="contactPerson">
-                        Contact Person {editingPartner && "*"}
-                      </Label>
+                      <Label htmlFor="contactPerson">Contact Person</Label>
                       <Input
                         id="contactPerson"
-                        required={!!editingPartner}
-                        disabled={!editingPartner}
+                        disabled
                         value={formData.contactPerson}
                         onChange={(e) =>
                           setFormData({
@@ -390,13 +387,10 @@ export default function OMLogisticsPartners() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="phone">
-                        Phone {editingPartner && "*"}
-                      </Label>
+                      <Label htmlFor="phone">Phone</Label>
                       <Input
                         id="phone"
-                        required={!!editingPartner}
-                        disabled={!editingPartner}
+                        disabled
                         value={formData.phone}
                         onChange={(e) =>
                           setFormData({ ...formData, phone: e.target.value })
@@ -406,14 +400,11 @@ export default function OMLogisticsPartners() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email">
-                        Email {editingPartner && "*"}
-                      </Label>
+                      <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
                         type="email"
-                        required={!!editingPartner}
-                        disabled={!editingPartner}
+                        disabled
                         value={formData.email}
                         onChange={(e) =>
                           setFormData({ ...formData, email: e.target.value })
@@ -423,15 +414,13 @@ export default function OMLogisticsPartners() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="defaultMode">
-                        Default Mode {editingPartner && "*"}
-                      </Label>
+                      <Label htmlFor="defaultMode">Default Mode</Label>
                       <Select
                         value={formData.defaultMode}
                         onValueChange={(value: "Air" | "Surface" | "Road") =>
                           setFormData({ ...formData, defaultMode: value })
                         }
-                        disabled={!editingPartner}
+                        disabled
                       >
                         <SelectTrigger>
                           <SelectValue />

@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Save, AlertCircle, Loader2 } from "lucide-react";
+import { Plus, Save, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateForApi } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -305,14 +305,9 @@ function EditDispatchForm() {
     e.preventDefault();
 
     // Validation
-    if (
-      !poId ||
-      !invoiceNumber ||
-      !invoiceDate ||
-      !logisticsPartnerId ||
-      !trackingNumber
-    ) {
-      toast.error("Please fill all required fields");
+    // Validation - Only PO and Items are strictly required now
+    if (!poId) {
+      toast.error("Please select a Purchase Order");
       return;
     }
 
@@ -325,11 +320,13 @@ function EditDispatchForm() {
     try {
       const payload = {
         purchaseOrderId: poId,
-        invoiceNumber,
-        invoiceDate: formatDateForApi(invoiceDate),
-        logisticsPartnerId,
-        docketNumber: trackingNumber,
-        expectedDeliveryDate: formatDateForApi(expectedDeliveryDate),
+        invoiceNumber: invoiceNumber || null,
+        invoiceDate: invoiceDate ? formatDateForApi(invoiceDate) : null,
+        logisticsPartnerId: logisticsPartnerId || null,
+        docketNumber: trackingNumber || null,
+        expectedDeliveryDate: expectedDeliveryDate
+          ? formatDateForApi(expectedDeliveryDate)
+          : null,
         status,
         items: lineItems
           .filter((item) => item.dispatchQty > 0)
@@ -395,380 +392,393 @@ function EditDispatchForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Select PO */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Purchase Order Reference</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Purchase Order *</Label>
-            <Select value={poId} disabled={true}>
-              <SelectTrigger>
-                <SelectValue placeholder={"PO Selected"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={poId}>
-                  {selectedPO
-                    ? `${selectedPO.estimateNumber} - ${selectedPO.poNumber} (Ordered: ${selectedPO.totalQuantity})`
-                    : "Loading..."}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              PO cannot be changed once dispatch is created.
-            </p>
-          </div>
-
-          {isLoadingPoDetail && (
-            <div className="flex items-center justify-center p-4">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="ml-2">Loading PO details...</span>
-            </div>
-          )}
-          {selectedPO && !isLoadingPoDetail && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <div className="space-y-1">
-                  <p>
-                    <strong>Client:</strong> {selectedPO.client?.name}
-                  </p>
-                  <p>
-                    <strong>Location:</strong>{" "}
-                    {selectedPO.deliveryLocation?.name}
-                  </p>
-                  <p>
-                    <strong>PO Number:</strong> {selectedPO.poNumber}
-                  </p>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Dispatch Line Items */}
-      {selectedPO && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Dispatch Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item Name</TableHead>
-                  <TableHead className="text-right">Max Allowed Qty</TableHead>
-                  <TableHead className="w-37.5">Dispatch Qty</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">GST %</TableHead>
-                  <TableHead className="text-right">GST Amt</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingPoDetail ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      Loading items...
-                    </TableCell>
-                  </TableRow>
-                ) : lineItems.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      {selectedPO
-                        ? "No items available for dispatch"
-                        : "Select a Purchase Order to view items"}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  lineItems.map((item) => (
-                    <TableRow key={item.tempId}>
-                      <TableCell className="font-medium">
-                        {item.itemName}
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-orange-600">
-                        {item.remainingQty}
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          min="0"
-                          max={item.remainingQty}
-                          value={item.dispatchQty}
-                          onChange={(e) =>
-                            updateLineItem(
-                              item.tempId,
-                              "dispatchQty",
-                              e.target.value,
-                            )
-                          }
-                          placeholder="0"
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ₹{item.rate.toLocaleString("en-IN")}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        ₹
-                        {item.amount.toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.gstPercentage}%
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        ₹
-                        {item.gstAmount.toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        ₹
-                        {item.totalAmount.toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Invoice Information */}
-      {selectedPO && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Invoice Number *</Label>
-                <Input
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                  placeholder="FP/LLP/YY-YY/Sequential"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Invoice Date *</Label>
-                <Input
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Logistics Details */}
-      {selectedPO && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Logistics Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Logistics Partner *</Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={logisticsPartnerId}
-                    onValueChange={setLogisticsPartnerId}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select logistics partner" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {logisticsPartners.map((partner) => (
-                        <SelectItem key={partner.id} value={partner.id}>
-                          {partner.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Dialog
-                    open={showNewLogisticsDialog}
-                    onOpenChange={setShowNewLogisticsDialog}
-                  >
-                    <DialogTrigger asChild>
-                      <Button type="button" variant="outline">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New Logistics Partner</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <Label>Partner Name</Label>
-                          <Input
-                            value={newLogisticsName}
-                            onChange={(e) =>
-                              setNewLogisticsName(e.target.value)
-                            }
-                            placeholder="Enter partner name"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          onClick={handleAddNewLogistics}
-                          disabled={isAddingLogistics}
-                        >
-                          {isAddingLogistics && (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          )}
-                          Add Partner
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Docket / Tracking Number *</Label>
-                <Input
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  placeholder="Enter tracking number"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Expected Delivery Date *</Label>
-                <Input
-                  type="date"
-                  value={expectedDeliveryDate}
-                  onChange={(e) => setExpectedDeliveryDate(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Dispatch Status</Label>
-                <Select
-                  value={status}
-                  onValueChange={(
-                    val: "CREATED" | "DISPATCHED" | "DELIVERED" | "CANCELLED",
-                  ) => setStatus(val)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CREATED">Created</SelectItem>
-                    <SelectItem value="DISPATCHED">Dispatched</SelectItem>
-                    <SelectItem value="DELIVERED">Delivered</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Dispatch Summary */}
-      {selectedPO && totalDispatchQty > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Dispatch Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Total Dispatch Quantity:
-                </span>
-                <span className="font-medium">{totalDispatchQty}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-medium">
-                  ₹
-                  {subtotal.toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total GST:</span>
-                <span className="font-medium">
-                  ₹
-                  {totalGst.toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between pt-2 border-t">
-                <span className="font-semibold">Grand Total:</span>
-                <span className="font-semibold text-lg">
-                  ₹
-                  {grandTotal.toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Actions */}
-      <div className="flex justify-end gap-4">
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
+          size="icon"
           onClick={() => router.push("/admin/order-management/dispatches")}
         >
-          Cancel
+          <ArrowLeft className="h-5 w-5" />
         </Button>
-        <Button
-          type="submit"
-          disabled={!selectedPO || totalDispatchQty === 0 || isSubmitting}
-        >
-          {isSubmitting ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          {isSubmitting ? "Updating..." : "Update Dispatch"}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-export default function OMEditDispatch() {
-  return (
-    <Layout isClient={false}>
-      <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-semibold">Edit Dispatch Order</h1>
           <p className="text-muted-foreground">
             Update dispatch and tracking details
           </p>
         </div>
-        <Suspense fallback={<div>Loading form...</div>}>
-          <EditDispatchForm />
-        </Suspense>
       </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Select PO */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Purchase Order Reference</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Purchase Order</Label>
+              <Select value={poId} disabled={true}>
+                <SelectTrigger>
+                  <SelectValue placeholder={"PO Selected"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={poId}>
+                    {selectedPO
+                      ? `${selectedPO.estimateNumber} - ${selectedPO.poNumber} (Ordered: ${selectedPO.totalQuantity})`
+                      : "Loading..."}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                PO cannot be changed once dispatch is created.
+              </p>
+            </div>
+
+            {isLoadingPoDetail && (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="ml-2">Loading PO details...</span>
+              </div>
+            )}
+            {selectedPO && !isLoadingPoDetail && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="space-y-1">
+                    <p>
+                      <strong>Client:</strong> {selectedPO.client?.name}
+                    </p>
+                    <p>
+                      <strong>Location:</strong>{" "}
+                      {selectedPO.deliveryLocation?.name}
+                    </p>
+                    <p>
+                      <strong>PO Number:</strong> {selectedPO.poNumber}
+                    </p>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Dispatch Line Items */}
+        {selectedPO && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Dispatch Items</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item Name</TableHead>
+                    <TableHead className="text-right">
+                      Max Allowed Qty
+                    </TableHead>
+                    <TableHead className="w-37.5">Dispatch Qty</TableHead>
+                    <TableHead className="text-right">Rate</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">GST %</TableHead>
+                    <TableHead className="text-right">GST Amt</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingPoDetail ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        Loading items...
+                      </TableCell>
+                    </TableRow>
+                  ) : lineItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        {selectedPO
+                          ? "No items available for dispatch"
+                          : "Select a Purchase Order to view items"}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    lineItems.map((item) => (
+                      <TableRow key={item.tempId}>
+                        <TableCell className="font-medium">
+                          {item.itemName}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-orange-600">
+                          {item.remainingQty}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min="0"
+                            max={item.remainingQty}
+                            value={item.dispatchQty}
+                            onChange={(e) =>
+                              updateLineItem(
+                                item.tempId,
+                                "dispatchQty",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="0"
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ₹{item.rate.toLocaleString("en-IN")}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          ₹
+                          {item.amount.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {item.gstPercentage}%
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          ₹
+                          {item.gstAmount.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          ₹
+                          {item.totalAmount.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Invoice Information */}
+        {selectedPO && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Invoice Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Invoice Number</Label>
+                  <Input
+                    value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    placeholder="FP/LLP/YY-YY/Sequential"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Invoice Date</Label>
+                  <Input
+                    type="date"
+                    value={invoiceDate}
+                    onChange={(e) => setInvoiceDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Logistics Details */}
+        {selectedPO && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Logistics Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Logistics Partner</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={logisticsPartnerId}
+                      onValueChange={setLogisticsPartnerId}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select logistics partner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {logisticsPartners.map((partner) => (
+                          <SelectItem key={partner.id} value={partner.id}>
+                            {partner.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Dialog
+                      open={showNewLogisticsDialog}
+                      onOpenChange={setShowNewLogisticsDialog}
+                    >
+                      <DialogTrigger asChild>
+                        <Button type="button" variant="outline">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add New Logistics Partner</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                          <div className="space-y-2">
+                            <Label>Partner Name</Label>
+                            <Input
+                              value={newLogisticsName}
+                              onChange={(e) =>
+                                setNewLogisticsName(e.target.value)
+                              }
+                              placeholder="Enter partner name"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={handleAddNewLogistics}
+                            disabled={isAddingLogistics}
+                          >
+                            {isAddingLogistics && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Add Partner
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Docket / Tracking Number</Label>
+                  <Input
+                    value={trackingNumber}
+                    onChange={(e) => setTrackingNumber(e.target.value)}
+                    placeholder="Enter tracking number"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Expected Delivery Date</Label>
+                  <Input
+                    type="date"
+                    value={expectedDeliveryDate}
+                    onChange={(e) => setExpectedDeliveryDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Dispatch Status</Label>
+                  <Select
+                    value={status}
+                    onValueChange={(
+                      val: "CREATED" | "DISPATCHED" | "DELIVERED" | "CANCELLED",
+                    ) => setStatus(val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CREATED">Created</SelectItem>
+                      <SelectItem value="DISPATCHED">Dispatched</SelectItem>
+                      <SelectItem value="DELIVERED">Delivered</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Dispatch Summary */}
+        {selectedPO && totalDispatchQty > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Dispatch Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Total Dispatch Quantity:
+                  </span>
+                  <span className="font-medium">{totalDispatchQty}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal:</span>
+                  <span className="font-medium">
+                    ₹
+                    {subtotal.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total GST:</span>
+                  <span className="font-medium">
+                    ₹
+                    {totalGst.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-2 border-t">
+                  <span className="font-semibold">Grand Total:</span>
+                  <span className="font-semibold text-lg">
+                    ₹
+                    {grandTotal.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Actions */}
+        <div className="flex justify-end gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push("/admin/order-management/dispatches")}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={!selectedPO || totalDispatchQty === 0 || isSubmitting}
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {isSubmitting ? "Updating..." : "Update Dispatch"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export default function OMEditDispatch() {
+  return (
+    <Layout isClient={false}>
+      <Suspense fallback={<div>Loading form...</div>}>
+        <EditDispatchForm />
+      </Suspense>
     </Layout>
   );
 }
