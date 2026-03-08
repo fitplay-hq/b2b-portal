@@ -351,7 +351,7 @@ model OMPurchaseOrder {
   poNumber         String?               @unique
   poDate           DateTime?
   poReceivedDate   DateTime?
-  status           OMPoStatus            @default(CONFIRMED)
+  status           OMPoStatus            @default(DRAFT)
   totalGst         Float                 @default(0)
   grandTotal       Float                 @default(0)
   items            OMPurchaseOrderItem[]
@@ -366,12 +366,22 @@ model OMProduct {
   sku                String?               @unique @db.VarChar(100)
   description        String?               @db.VarChar(255)
   price              Float?
-  defaultGstPct      Float                 @default(18)
-  category           String?               @db.VarChar(100)
+  defaultGstPct      Float                 @default(0)
+  brand              String?               @db.VarChar(100) // 
+  brands             OMBrand[]             @relation("ProductBrands")
   isActive           Boolean               @default(true)
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   purchaseOrderItems OMPurchaseOrderItem[]
+}
+
+model OMBrand {
+  id         String                @id @default(uuid())
+  name       String                @unique @db.VarChar(100)
+  products   OMProduct[]           @relation("ProductBrands")
+  orderItems OMPurchaseOrderItem[]
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
 }
 
 model OMPurchaseOrderItem {
@@ -380,6 +390,8 @@ model OMPurchaseOrderItem {
   purchaseOrderId String
   product         OMProduct             @relation(fields: [productId], references: [id])
   productId       String
+  brand           OMBrand?              @relation(fields: [brandId], references: [id])
+  brandId         String?
   quantity        Int
   rate            Float
   amount          Float

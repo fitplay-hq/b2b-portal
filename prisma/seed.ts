@@ -191,7 +191,7 @@ async function main() {
         name: `${omOrgs[i]} Component X${i}`,
         sku: `OM-SKU-${omOrgs[i].substring(0, 3).toUpperCase()}-${i}`,
         price: 50 * (i + 1),
-        defaultGstPct: 18,
+        defaultGstPct: 0,
       },
     });
 
