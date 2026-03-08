@@ -29,9 +29,10 @@ export async function POST(req: NextRequest) {
       poNumber,
       poDate,
       poReceivedDate,
-      status,
       items,
     } = validatedData;
+
+    const status = poNumber ? "CONFIRMED" : "DRAFT";
 
     // 1. Verify clientId and locationId exist
     const client = await prisma.oMClient.findUnique({
@@ -41,35 +42,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    const location = await prisma.oMDeliveryLocation.findUnique({
-      where: { id: locationId },
-    });
-    if (!location) {
-      return NextResponse.json(
-        { error: "Delivery Location not found" },
-        { status: 404 },
-      );
+    if (locationId) {
+      const location = await prisma.oMDeliveryLocation.findUnique({
+        where: { id: locationId },
+      });
+      if (!location) {
+        return NextResponse.json(
+          { error: "Delivery Location not found" },
+          { status: 404 },
+        );
+      }
     }
 
     // 2. Verify uniqueness of estimateNumber and poNumber
-    const existingPoEstimate = await prisma.oMPurchaseOrder.findUnique({
-      where: { estimateNumber },
-    });
-    if (existingPoEstimate) {
-      return NextResponse.json(
-        { error: "Estimate Number already exists" },
-        { status: 400 },
-      );
+    if (estimateNumber) {
+      const existingPoEstimate = await prisma.oMPurchaseOrder.findUnique({
+        where: { estimateNumber },
+      });
+      if (existingPoEstimate) {
+        return NextResponse.json(
+          { error: "Estimate Number already exists" },
+          { status: 400 },
+        );
+      }
     }
 
-    const existingPoNumber = await prisma.oMPurchaseOrder.findUnique({
-      where: { poNumber },
-    });
-    if (existingPoNumber) {
-      return NextResponse.json(
-        { error: "PO Number already exists" },
-        { status: 400 },
-      );
+    if (poNumber) {
+      const existingPoNumber = await prisma.oMPurchaseOrder.findUnique({
+        where: { poNumber },
+      });
+      if (existingPoNumber) {
+        return NextResponse.json(
+          { error: "PO Number already exists" },
+          { status: 400 },
+        );
+      }
     }
 
     // 3. Process items and calculate totals
@@ -100,12 +107,12 @@ export async function POST(req: NextRequest) {
       const po = await tx.oMPurchaseOrder.create({
         data: {
           clientId,
-          locationId,
-          estimateNumber,
-          estimateDate: new Date(estimateDate),
-          poNumber,
-          poDate: new Date(poDate),
-          poReceivedDate: new Date(poReceivedDate),
+          locationId: locationId || null,
+          estimateNumber: estimateNumber || null,
+          estimateDate: estimateDate ? new Date(estimateDate) : null,
+          poNumber: poNumber || null,
+          poDate: poDate ? new Date(poDate) : null,
+          poReceivedDate: poReceivedDate ? new Date(poReceivedDate) : null,
           status,
           totalGst,
           grandTotal,

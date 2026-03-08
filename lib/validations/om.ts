@@ -37,6 +37,7 @@ export const OMProductCreateSchema = z.object({
     .default(18)
     .optional(),
   category: z.string().max(100).optional().nullable(),
+  brand: z.string().max(100).optional().nullable(),
 });
 
 export const OMProductUpdateSchema = OMProductCreateSchema.partial();
@@ -84,18 +85,21 @@ export const OMPurchaseOrderCreateSchema = z.object({
     .string()
     .datetime({ message: "Invalid Estimate Date format" })
     .optional()
-    .nullable(),
+    .nullable()
+    .or(z.literal("")),
   poNumber: z.string().optional().nullable(),
   poDate: z
     .string()
     .datetime({ message: "Invalid PO Date format" })
     .optional()
-    .nullable(),
+    .nullable()
+    .or(z.literal("")),
   poReceivedDate: z
     .string()
     .datetime({ message: "Invalid PO Received Date format" })
     .optional()
-    .nullable(),
+    .nullable()
+    .or(z.literal("")),
   status: z
     .enum([
       "DRAFT",
@@ -105,7 +109,7 @@ export const OMPurchaseOrderCreateSchema = z.object({
       "CLOSED",
     ])
     .optional()
-    .default("CONFIRMED"),
+    .default("DRAFT"),
   items: z
     .array(OMPurchaseOrderItemCreateSchema)
     .min(1, "At least one item is required for the PO"),

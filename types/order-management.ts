@@ -37,6 +37,7 @@ export interface OMProduct {
   price?: number | null;
   defaultGstPct: number;
   category?: string | null;
+  brand?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
