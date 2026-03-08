@@ -203,7 +203,10 @@ export default function OMCreatePurchaseOrder() {
       const payload = {
         clientId,
         locationId: locationId || null,
-        estimateNumber: estimateNumber || null,
+        estimateNumber:
+          estimateNumber === fyPrefix || !estimateNumber
+            ? null
+            : estimateNumber,
         estimateDate: estimateDate ? formatDateForApi(estimateDate) : null,
         poNumber: poNumber || null,
         poDate: poDate ? formatDateForApi(poDate) : null,

@@ -67,7 +67,7 @@ export default function OMEditPurchaseOrder() {
   const [poNumber, setPoNumber] = useState("");
   const [poDate, setPoDate] = useState("");
   const [poReceivedDate, setPoReceivedDate] = useState("");
-  const [status, setStatus] = useState<OMPoStatus>("CONFIRMED");
+  const [status, setStatus] = useState<OMPoStatus>("DRAFT");
 
   // Master data
   const [clients, setClients] = useState<OMClient[]>([]);
@@ -120,9 +120,9 @@ export default function OMEditPurchaseOrder() {
           const poData = await poRes.json();
           setClientId(poData.clientId);
           setLocationId(poData.locationId);
-          setEstimateNumber(poData.estimateNumber);
+          setEstimateNumber(poData.estimateNumber || "");
           setEstimateDate(poData.estimateDate?.split("T")[0] || "");
-          setPoNumber(poData.poNumber);
+          setPoNumber(poData.poNumber || "");
           setPoDate(poData.poDate?.split("T")[0] || "");
           setPoReceivedDate(poData.poReceivedDate?.split("T")[0] || "");
           setStatus(poData.status);
@@ -522,27 +522,14 @@ export default function OMEditPurchaseOrder() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select
-                    value={status}
-                    onValueChange={(val: OMPoStatus) => setStatus(val)}
-                    disabled={isDataLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DRAFT">Draft</SelectItem>
-                      <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                      <SelectItem value="PARTIALLY_DISPATCHED">
-                        Partially Dispatched
-                      </SelectItem>
-                      <SelectItem value="FULLY_DISPATCHED">
-                        Fully Dispatched
-                      </SelectItem>
-                      <SelectItem value="CLOSED">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Status (Auto)</Label>
+                  <div className="h-10 px-3 py-2 rounded-md border bg-muted flex items-center">
+                    {poNumber ? "CONFIRMED" : "DRAFT"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Status is automatically set to CONFIRMED once PO Number is
+                    added.
+                  </p>
                 </div>
               </div>
             </CardContent>

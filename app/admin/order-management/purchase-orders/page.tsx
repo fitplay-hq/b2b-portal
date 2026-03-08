@@ -111,8 +111,10 @@ export default function OMPurchaseOrdersList() {
   const filteredPOs = purchaseOrders.filter((po) => {
     const clientName = po.client?.name || "Unknown";
     const matchesSearch =
-      po.estimateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (po.estimateNumber?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase(),
+      ) ||
+      (po.poNumber?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       clientName.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesSearch;
@@ -211,15 +213,15 @@ export default function OMPurchaseOrdersList() {
       const remaining = totalOrdered - dispatched;
 
       return [
-        po.estimateNumber,
-        po.poNumber,
+        po.estimateNumber || "-",
+        po.poNumber || "-",
         po.client?.name || "Unknown",
         totalOrdered,
         dispatched,
         remaining,
         po.grandTotal,
         po.status,
-        new Date(po.poDate).toLocaleDateString("en-IN"),
+        po.poDate ? new Date(po.poDate).toLocaleDateString("en-IN") : "-",
       ];
     });
 
@@ -288,15 +290,15 @@ export default function OMPurchaseOrdersList() {
       const totalOrdered = getTotalOrderedForPO(po);
       const remaining = totalOrdered - dispatched;
       return [
-        po.estimateNumber,
-        po.poNumber,
+        po.estimateNumber || "-",
+        po.poNumber || "-",
         po.client?.name || "Unknown",
         totalOrdered.toString(),
         dispatched.toString(),
         remaining.toString(),
         `₹${po.grandTotal.toLocaleString("en-IN")}`,
         po.status,
-        new Date(po.poDate).toLocaleDateString("en-IN"),
+        po.poDate ? new Date(po.poDate).toLocaleDateString("en-IN") : "-",
       ];
     });
 
@@ -473,9 +475,9 @@ export default function OMPurchaseOrdersList() {
                         }
                       >
                         <TableCell className="font-medium">
-                          {po.estimateNumber}
+                          {po.estimateNumber || "-"}
                         </TableCell>
-                        <TableCell>{po.poNumber}</TableCell>
+                        <TableCell>{po.poNumber || "-"}</TableCell>
                         <TableCell>{po.client?.name || "Unknown"}</TableCell>
                         <TableCell className="text-right">
                           {totalOrdered}

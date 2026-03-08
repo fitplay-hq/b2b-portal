@@ -161,8 +161,12 @@ export default function OMPurchaseOrderDetail() {
               </Button>
             </Link>
             <div>
-              <h3 className="text-lg font-semibold">{po.estimateNumber}</h3>
-              <p className="text-sm text-muted-foreground">PO: {po.poNumber}</p>
+              <h3 className="text-lg font-semibold">
+                {po.estimateNumber || "No Estimate"}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                PO: {po.poNumber || "-"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -195,7 +199,7 @@ export default function OMPurchaseOrderDetail() {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{po.totalQuantity}</div>
+              <div className="text-2xl font-bold">{totalQuantity}</div>
               <p className="text-xs text-muted-foreground">Items ordered</p>
             </CardContent>
           </Card>
@@ -264,13 +268,17 @@ export default function OMPurchaseOrderDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Estimate Date</p>
                 <p className="font-medium">
-                  {new Date(po.estimateDate).toLocaleDateString("en-IN")}
+                  {po.estimateDate
+                    ? new Date(po.estimateDate).toLocaleDateString("en-IN")
+                    : "-"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">PO Date</p>
                 <p className="font-medium">
-                  {new Date(po.poDate).toLocaleDateString("en-IN")}
+                  {po.poDate
+                    ? new Date(po.poDate).toLocaleDateString("en-IN")
+                    : "-"}
                 </p>
               </div>
               <div>
@@ -278,7 +286,9 @@ export default function OMPurchaseOrderDetail() {
                   PO Received Date
                 </p>
                 <p className="font-medium">
-                  {new Date(po.poReceivedDate).toLocaleDateString("en-IN")}
+                  {po.poReceivedDate
+                    ? new Date(po.poReceivedDate).toLocaleDateString("en-IN")
+                    : "-"}
                 </p>
               </div>
             </div>

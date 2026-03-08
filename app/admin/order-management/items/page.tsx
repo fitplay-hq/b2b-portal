@@ -70,8 +70,9 @@ export default function OMItems() {
     name: "",
     sku: "",
     price: "",
-    defaultGstPct: "18",
+    defaultGstPct: "0",
     description: "",
+    brand: "",
   });
 
   const fetchItems = async () => {
@@ -101,6 +102,7 @@ export default function OMItems() {
       price: "",
       defaultGstPct: "18",
       description: "",
+      brand: "",
     });
     setEditingItem(null);
   };
@@ -113,6 +115,7 @@ export default function OMItems() {
       ...formData,
       price: formData.price ? parseFloat(formData.price) : undefined,
       defaultGstPct: parseFloat(formData.defaultGstPct),
+      brand: formData.brand.trim() || null,
     };
 
     try {
@@ -153,6 +156,7 @@ export default function OMItems() {
       price: item.price?.toString() ?? "",
       defaultGstPct: item.defaultGstPct.toString(),
       description: item.description || "",
+      brand: item.brand || "",
     });
     setIsAddDialogOpen(true);
   };
@@ -209,6 +213,7 @@ export default function OMItems() {
       "SKU",
       "Default Rate",
       "Default GST %",
+      "Brand",
       "Description",
     ];
     const rows = filteredItems.map((item) => [
@@ -216,6 +221,7 @@ export default function OMItems() {
       item.sku || "-",
       item.price ?? "-",
       `${item.defaultGstPct}%`,
+      item.brand || "-",
       item.description || "-",
     ]);
     const csvContent = [
@@ -259,11 +265,19 @@ export default function OMItems() {
     doc.setTextColor(0, 0, 0);
     autoTable(doc, {
       head: [
-        ["Item Name", "SKU", "Default Rate", "Default GST %", "Description"],
+        [
+          "Item Name",
+          "SKU",
+          "Brand",
+          "Default Rate",
+          "Default GST %",
+          "Description",
+        ],
       ],
       body: filteredItems.map((item) => [
         item.name,
         item.sku || "-",
+        item.brand || "-",
         item.price ? `₹${item.price.toLocaleString("en-IN")}` : "-",
         `${item.defaultGstPct}%`,
         item.description || "-",
@@ -394,7 +408,7 @@ export default function OMItems() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="defaultGstPct">Default GST % *</Label>
+                        <Label htmlFor="defaultGstPct">Default GST %</Label>
                         <Select
                           value={formData.defaultGstPct}
                           onValueChange={(value) =>
@@ -412,6 +426,17 @@ export default function OMItems() {
                           </SelectContent>
                         </Select>
                       </div>{" "}
+                      <div className="space-y-2">
+                        <Label htmlFor="brand">Brand</Label>
+                        <Input
+                          id="brand"
+                          value={formData.brand}
+                          onChange={(e) =>
+                            setFormData({ ...formData, brand: e.target.value })
+                          }
+                          placeholder="Enter brand name"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -504,6 +529,14 @@ export default function OMItems() {
                             className="bg-muted"
                           />
                         </div>
+                        <div className="space-y-2">
+                          <Label>Brand</Label>
+                          <Input
+                            value={viewingItem.brand || "-"}
+                            readOnly
+                            className="bg-muted"
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -567,6 +600,7 @@ export default function OMItems() {
                   <TableRow>
                     <TableHead>Item Name</TableHead>
                     <TableHead>SKU</TableHead>
+                    <TableHead>Brand</TableHead>
 
                     <TableHead>Default Rate</TableHead>
                     <TableHead>Default GST</TableHead>
@@ -608,6 +642,7 @@ export default function OMItems() {
                           </div>
                         </TableCell>
                         <TableCell>{item.sku || "-"}</TableCell>
+                        <TableCell>{item.brand || "-"}</TableCell>
 
                         <TableCell>
                           {item.price
