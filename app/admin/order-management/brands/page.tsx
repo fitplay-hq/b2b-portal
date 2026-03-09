@@ -21,9 +21,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Loader2, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Loader2, Trash2, ArrowLeft, Pencil } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { OMBrand } from "@/types/order-management";
 
 export default function OMBrands() {
@@ -36,6 +43,10 @@ export default function OMBrands() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const [editingBrand, setEditingBrand] = useState<OMBrand | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editName, setEditName] = useState("");
 
   const fetchBrands = async () => {
     setIsLoading(true);
@@ -82,6 +93,38 @@ export default function OMBrands() {
     }
   };
 
+  const handleEdit = (brand: OMBrand) => {
+    setEditingBrand(brand);
+    setEditName(brand.name);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBrand || !editName.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/om/brands/${editingBrand.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      if (res.ok) {
+        toast.success("Brand updated successfully");
+        setIsEditDialogOpen(false);
+        fetchBrands();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to update brand");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error updating brand");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDelete = (id: string) => {
     setDeleteId(id);
     setIsDeleteDialogOpen(true);
@@ -119,9 +162,7 @@ export default function OMBrands() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() =>
-                router.push("/admin/order-management/items")
-              }
+              onClick={() => router.push("/admin/order-management/items")}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -184,12 +225,19 @@ export default function OMBrands() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={2} className="text-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                        Loading brands...
-                      </TableCell>
-                    </TableRow>
+                    [...Array(3)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <Skeleton className="h-4 w-full" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Skeleton className="h-8 w-8" />
+                            <Skeleton className="h-8 w-8" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   ) : brands.length === 0 ? (
                     <TableRow>
                       <TableCell
@@ -205,7 +253,14 @@ export default function OMBrands() {
                         <TableCell className="font-medium">
                           {brand.name}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(brand)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -232,6 +287,42 @@ export default function OMBrands() {
           title="Delete Brand"
           description="Are you sure you want to delete this brand? Products using this brand must be reassigned first."
         />
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Brand</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdate} className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="editName">Brand Name *</Label>
+                <Input
+                  id="editName"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Enter brand name"
+                  maxLength={100}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

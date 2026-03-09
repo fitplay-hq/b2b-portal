@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiSearchableSelect } from "@/components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -54,13 +55,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { OMProduct, OMBrand } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 
 function skuBrandPart(brandName: string | undefined): string {
   return brandName
-    ? brandName.replace(/[^a-zA-Z0-9]/g, "").substring(0, 3).toUpperCase()
+    ? brandName
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .substring(0, 3)
+        .toUpperCase()
     : "NIL";
 }
 
@@ -69,10 +74,6 @@ function skuProductPart(productName: string): string {
     .replace(/[^a-zA-Z0-9]/g, "")
     .substring(0, 3)
     .toUpperCase();
-}
-
-function randomCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 export default function OMItems() {
@@ -93,8 +94,10 @@ export default function OMItems() {
     price: "",
     defaultGstPct: "0",
     description: "",
-    brandId: "",
+    brandIds: [] as string[],
     code: "",
+    skuProductPart: "",
+    isPrdManuallyEdited: false,
   });
 
   const fetchItems = async () => {
@@ -129,8 +132,12 @@ export default function OMItems() {
     fetchBrands();
   }, []);
 
-  const selectedBrandName = brands.find((b) => b.id === formData.brandId)?.name;
-  const brandPart = skuBrandPart(selectedBrandName);
+  const brandOptions = brands.map((b) => ({ value: b.id, label: b.name }));
+
+  const selectedBrandNames = brands
+    .filter((b) => formData.brandIds.includes(b.id))
+    .map((b) => b.name);
+  const brandPart = skuBrandPart(selectedBrandNames[0]);
   const productPart = skuProductPart(formData.name);
 
   const resetForm = () => {
@@ -140,8 +147,10 @@ export default function OMItems() {
       price: "",
       defaultGstPct: "0",
       description: "",
-      brandId: "",
+      brandIds: [],
       code: "",
+      skuProductPart: "",
+      isPrdManuallyEdited: false,
     });
     setEditingItem(null);
   };
@@ -150,16 +159,17 @@ export default function OMItems() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const codePart = formData.code.trim() || randomCode();
-    const finalSku = `FP-${brandPart}-${productPart}-${codePart}`;
+    const brand = brands.find((b) => formData.brandIds.includes(b.id));
+    const brandPart = skuBrandPart(brand?.name);
+    const prdPart = formData.skuProductPart;
+    const finalSku = `FP-${brandPart}-${prdPart || "PRD"}-${formData.code}`;
 
-    const payload = {
+    const submissionData = {
       ...formData,
       sku: finalSku,
-      code: codePart,
       price: formData.price ? parseFloat(formData.price) : undefined,
       defaultGstPct: parseFloat(formData.defaultGstPct),
-      brandId: formData.brandId || null,
+      brandIds: formData.brandIds.length > 0 ? formData.brandIds : [],
     };
 
     try {
@@ -172,7 +182,7 @@ export default function OMItems() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(submissionData),
       });
 
       if (res.ok) {
@@ -200,8 +210,10 @@ export default function OMItems() {
       price: item.price?.toString() ?? "",
       defaultGstPct: item.defaultGstPct.toString(),
       description: item.description || "",
-      brandId: item.brandId || "",
-      code: "",
+      brandIds: item.brands?.map((b: any) => b.id) || [],
+      code: item.sku?.split("-").pop() || "",
+      skuProductPart: item.sku?.split("-")[2] || skuProductPart(item.name),
+      isPrdManuallyEdited: true, // Treat existing items as manually edited to prevent auto-refill on rename
     });
     setIsAddDialogOpen(true);
   };
@@ -263,7 +275,7 @@ export default function OMItems() {
     ];
     const rows = filteredItems.map((item) => [
       item.name,
-      item.OMBrand?.name || "-",
+      item.brands?.map((b) => b.name).join(", ") || "-",
       item.sku || "-",
       item.price ?? "-",
       `${item.defaultGstPct}%`,
@@ -310,11 +322,18 @@ export default function OMItems() {
     doc.setTextColor(0, 0, 0);
     autoTable(doc, {
       head: [
-        ["Item Name", "Brand", "SKU", "Default Rate", "Default GST %", "Description"],
+        [
+          "Item Name",
+          "Brand",
+          "SKU",
+          "Default Rate",
+          "Default GST %",
+          "Description",
+        ],
       ],
       body: filteredItems.map((item) => [
         item.name,
-        item.OMBrand?.name || "-",
+        item.brands?.map((b) => b.name).join(", ") || "-",
         item.sku || "-",
         item.price ? `₹${item.price.toLocaleString("en-IN")}` : "-",
         `${item.defaultGstPct}%`,
@@ -362,9 +381,7 @@ export default function OMItems() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() =>
-                router.push("/admin/order-management/brands")
-              }
+              onClick={() => router.push("/admin/order-management/brands")}
             >
               <Tags className="h-4 w-4 mr-2" />
               Manage Brands
@@ -422,63 +439,87 @@ export default function OMItems() {
                           id="name"
                           required
                           value={formData.name}
-                          onChange={(e) =>
-                            setFormData({ ...formData, name: e.target.value })
-                          }
+                          onChange={(e) => {
+                            const newName = e.target.value;
+                            setFormData((prev) => ({
+                              ...prev,
+                              name: newName,
+                              skuProductPart: !prev.isPrdManuallyEdited
+                                ? skuProductPart(newName)
+                                : prev.skuProductPart,
+                            }));
+                          }}
                           placeholder="Enter item name"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="brandId">Brand</Label>
-                        <Select
-                          value={formData.brandId}
-                          onValueChange={(value) =>
+                      <div className="space-y-2 col-span-2">
+                        <Label>Brands</Label>
+                        <MultiSearchableSelect
+                          options={brandOptions}
+                          value={formData.brandIds}
+                          onValueChange={(val) =>
                             setFormData({
                               ...formData,
-                              brandId: value === "none" ? "" : value,
+                              brandIds: val,
                             })
                           }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select brand" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No Brand</SelectItem>
-                            {brands.map((brand) => (
-                              <SelectItem key={brand.id} value={brand.id}>
-                                {brand.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Select brands"
+                          searchPlaceholder="Search brands..."
+                        />
+                        {brands.length === 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            No brands found. Go to Manage Brands to create some.
+                          </p>
+                        )}
                       </div>
                       <div className="col-span-2 space-y-2">
-                        <Label>SKU</Label>
-                        <div className="flex items-center gap-0 border rounded-md overflow-hidden">
-                          <span className="px-3 py-2 bg-muted text-sm font-mono whitespace-nowrap border-r">
+                        <Label>SKU (Merged Editor)</Label>
+                        <div className="flex items-center border rounded-md overflow-hidden bg-muted/50 h-10 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                          <div className="px-3 h-full flex items-center bg-muted text-xs font-mono font-bold border-r">
                             FP
-                          </span>
-                          <span className="px-1 text-muted-foreground">-</span>
-                          <span className="px-2 py-2 bg-muted text-sm font-mono min-w-[3ch] text-center border-x">
-                            {brandPart || "NIL"}
-                          </span>
-                          <span className="px-1 text-muted-foreground">-</span>
-                          <span className="px-2 py-2 bg-muted text-sm font-mono min-w-[3ch] text-center border-x">
-                            {productPart || "PRD"}
-                          </span>
-                          <span className="px-1 text-muted-foreground">-</span>
+                          </div>
+                          <div className="px-1 text-muted-foreground">-</div>
+                          <div className="px-2 h-full flex items-center bg-muted text-xs font-mono min-w-[3ch] justify-center border-x">
+                            {brands
+                              .find((b) => formData.brandIds.includes(b.id))
+                              ?.name.replace(/[^a-zA-Z0-9]/g, "")
+                              .substring(0, 3)
+                              .toUpperCase() || "NIL"}
+                          </div>
+                          <div className="px-1 text-muted-foreground">-</div>
                           <input
-                            id="code"
+                            className="px-2 h-full w-16 flex items-center bg-background text-xs font-mono text-center outline-none border-x focus:bg-accent"
+                            value={formData.skuProductPart}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                skuProductPart: e.target.value
+                                  .replace(/[^a-zA-Z0-9]/g, "")
+                                  .toUpperCase()
+                                  .substring(0, 6),
+                                isPrdManuallyEdited: true,
+                              })
+                            }
+                            placeholder="PRD"
+                          />
+                          <div className="px-1 text-muted-foreground">-</div>
+                          <input
+                            className="px-3 h-full flex-1 min-w-0 bg-background text-xs font-mono font-bold text-primary outline-none focus:bg-accent"
                             value={formData.code}
                             onChange={(e) =>
-                              setFormData({ ...formData, code: e.target.value })
+                              setFormData({
+                                ...formData,
+                                code: e.target.value
+                                  .replace(/[^a-zA-Z0-9]/g, "")
+                                  .toUpperCase(),
+                              })
                             }
-                            placeholder="Enter Code for the Item"
-                            className="flex-1 px-2 py-2 text-sm font-mono bg-background outline-none min-w-0"
+                            placeholder="SUFFIX"
                           />
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          Enter a code or leave empty to auto-generate on save
+                        <p className="text-[10px] text-muted-foreground">
+                          Format: FP-[BRAND]-[PRODUCT]-[SUFFIX]. Product &
+                          Suffix are editable.
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -584,13 +625,25 @@ export default function OMItems() {
                             className="bg-muted"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Brand</Label>
-                          <Input
-                            value={viewingItem.OMBrand?.name || "-"}
-                            readOnly
-                            className="bg-muted"
-                          />
+                        <div className="col-span-2 space-y-2">
+                          <Label>Brands</Label>
+                          <div className="flex flex-wrap gap-1.5 max-w-[400px]">
+                            {viewingItem.brands &&
+                            viewingItem.brands.length > 0 ? (
+                              viewingItem.brands.map((brand) => (
+                                <span
+                                  key={brand.id}
+                                  className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary border border-primary/20 whitespace-nowrap"
+                                >
+                                  {brand.name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-sm text-muted-foreground">
+                                -
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label>SKU</Label>
@@ -688,12 +741,35 @@ export default function OMItems() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                        Loading items...
-                      </TableCell>
-                    </TableRow>
+                    [...Array(5)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <Skeleton className="h-4 w-32" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-40" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-24" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-12" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-32" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Skeleton className="h-4 w-16 ml-auto" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Skeleton className="h-8 w-8" />
+                            <Skeleton className="h-8 w-8" />
+                            <Skeleton className="h-8 w-8" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   ) : filteredItems.length === 0 ? (
                     <TableRow>
                       <TableCell
@@ -720,7 +796,22 @@ export default function OMItems() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>{item.OMBrand?.name || "-"}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 max-w-[200px]">
+                            {item.brands && item.brands.length > 0 ? (
+                              item.brands.map((brand) => (
+                                <span
+                                  key={brand.id}
+                                  className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium border whitespace-nowrap"
+                                >
+                                  {brand.name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>{item.sku || "-"}</TableCell>
                         <TableCell>
                           {item.price

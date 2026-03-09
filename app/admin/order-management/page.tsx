@@ -35,6 +35,7 @@ import {
 } from "recharts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import type {
@@ -326,8 +327,97 @@ export default function OMDashboard() {
   if (isLoading) {
     return (
       <Layout isClient={false}>
-        <div className="flex h-[80vh] items-center justify-center">
-          <p className="text-muted-foreground">Loading dashboard data...</p>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </div>
+
+          {/* Master Search Skeleton */}
+          <Card>
+            <CardHeader className="pb-0">
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="flex gap-2">
+                <Skeleton className="h-10 flex-1" />
+                <Skeleton className="h-10 w-24" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Summary Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-28" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-20 mb-1" />
+                  <Skeleton className="h-3 w-40" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Charts Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-0">
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent className="h-[300px] flex items-center justify-center pt-6">
+                <Skeleton className="h-56 w-56 rounded-full" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0">
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent className="h-[300px] flex items-end gap-2 pt-6">
+                {[...Array(10)].map((_, i) => (
+                  <Skeleton
+                    key={i}
+                    className="flex-1"
+                    style={{ height: `${20 + ((i * 7) % 80)}%` }}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tables Skeleton */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {[...Array(2)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-0">
+                  <Skeleton className="h-6 w-48" />
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-4 gap-4 py-2 border-b">
+                      {[...Array(4)].map((_, j) => (
+                        <Skeleton key={j} className="h-4 w-full" />
+                      ))}
+                    </div>
+                    {[...Array(4)].map((_, j) => (
+                      <div
+                        key={j}
+                        className="grid grid-cols-4 gap-4 py-3 border-b"
+                      >
+                        {[...Array(4)].map((_, k) => (
+                          <Skeleton key={k} className="h-4 w-full" />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </Layout>
     );
@@ -883,8 +973,10 @@ export default function OMDashboard() {
                       />
                       <YAxis />
                       <Tooltip
-                        formatter={(value: number | undefined) =>
-                          value ? `₹${value.toLocaleString("en-IN")}` : "₹0"
+                        formatter={(value: any) =>
+                          typeof value === "number"
+                            ? `₹${value.toLocaleString("en-IN")}`
+                            : value
                         }
                       />
                       <Bar dataKey="value" fill="#3b82f6" />

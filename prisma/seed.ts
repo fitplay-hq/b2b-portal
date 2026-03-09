@@ -212,7 +212,9 @@ async function main() {
         price: 50 * (i + 1),
         defaultGstPct: 18,
         ...(omBrands.length > 0 && {
-          brandId: omBrands[i % omBrands.length].id,
+          brands: {
+            connect: { id: omBrands[i % omBrands.length].id },
+          },
         }),
       },
     });
@@ -273,6 +275,7 @@ async function main() {
     });
 
     // Create Dispatch Order logic based on PO status
+    const poWithItems = po as any; // Cast to bypass inclusion type issues in seed
     if (statuses[i] === OMPoStatus.PARTIALLY_DISPATCHED) {
       await prisma.oMDispatchOrder.upsert({
         where: { invoiceNumber: `INV-PARTIAL-${i + 100}` },
@@ -287,13 +290,13 @@ async function main() {
           status: OMDispatchStatus.DISPATCHED,
           items: {
             create: {
-              purchaseOrderItemId: po.items[0].id,
+              purchaseOrderItemId: poWithItems.items[0].id,
               quantity: 40,
-              rate: po.items[0].rate,
-              amount: po.items[0].rate * 40,
+              rate: poWithItems.items[0].rate,
+              amount: poWithItems.items[0].rate * 40,
               gstPercentage: 18,
-              gstAmount: po.items[0].rate * 40 * 0.18,
-              totalAmount: po.items[0].rate * 40 * 1.18,
+              gstAmount: poWithItems.items[0].rate * 40 * 0.18,
+              totalAmount: poWithItems.items[0].rate * 40 * 1.18,
             },
           },
         },
@@ -312,13 +315,13 @@ async function main() {
           status: OMDispatchStatus.DELIVERED,
           items: {
             create: {
-              purchaseOrderItemId: po.items[0].id,
+              purchaseOrderItemId: poWithItems.items[0].id,
               quantity: 100,
-              rate: po.items[0].rate,
-              amount: po.items[0].rate * 100,
+              rate: poWithItems.items[0].rate,
+              amount: poWithItems.items[0].rate * 100,
               gstPercentage: 18,
-              gstAmount: po.items[0].rate * 100 * 0.18,
-              totalAmount: po.items[0].rate * 100 * 1.18,
+              gstAmount: poWithItems.items[0].rate * 100 * 0.18,
+              totalAmount: poWithItems.items[0].rate * 100 * 1.18,
             },
           },
         },

@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     const products = await prisma.oMProduct.findMany({
       where: whereClause,
       include: {
-        OMBrand: true,
+        brands: true,
         purchaseOrderItems: {
           select: { quantity: true },
         },
@@ -83,15 +83,22 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const validatedData = OMProductCreateSchema.parse(body);
-    const { brandId, code, ...prismaData } = validatedData;
+    const { brandIds, code, ...prismaData } = validatedData;
     void code;
 
     const product = await prisma.oMProduct.create({
       data: {
         ...prismaData,
-        ...(brandId
-          ? { OMBrand: { connect: { id: brandId } } }
+        ...(brandIds && brandIds.length > 0
+          ? {
+              brands: {
+                connect: brandIds.map((id: string) => ({ id })),
+              },
+            }
           : {}),
+      },
+      include: {
+        brands: true,
       },
     });
 

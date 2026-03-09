@@ -29,7 +29,7 @@ export async function GET(
         deliveryLocation: true,
         items: {
           include: {
-            product: { include: { OMBrand: true } },
+            product: { include: { brands: true } },
             OMBrand: true,
             dispatchItems: true,
           },

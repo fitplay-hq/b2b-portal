@@ -45,7 +45,7 @@ export const OMProductCreateSchema = z.object({
     .default(0)
     .optional(),
   category: z.string().max(100).optional().nullable(),
-  brandId: z.string().optional().nullable(),
+  brandIds: z.array(z.string()).optional(),
   code: z.string().max(50).optional().nullable(),
 });
 
