@@ -37,7 +37,7 @@ import {
 import {
   Plus,
   Search,
-  Pencil,
+  Edit,
   Trash2,
   Truck,
   Loader2,
@@ -527,7 +527,7 @@ export default function OMLogisticsPartners() {
                           handleEdit(viewingPartner);
                         }}
                       >
-                        <Pencil className="h-4 w-4 mr-2" />
+                        <Edit className="h-4 w-4 mr-2" />
                         Edit Partner
                       </Button>
                     </div>
@@ -649,7 +649,7 @@ export default function OMLogisticsPartners() {
                                 handleEdit(partner);
                               }}
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"

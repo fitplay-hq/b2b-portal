@@ -156,14 +156,16 @@ export default function OMPurchaseOrderDetail() {
                 <Badge
                   className={
                     po.status === "DRAFT"
-                      ? "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent"
+                      ? "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent"
                       : po.status === "CONFIRMED"
-                        ? "bg-green-100 text-green-800 hover:bg-green-100 border-transparent"
+                        ? "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent"
                         : po.status === "PARTIALLY_DISPATCHED"
                           ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent"
                           : po.status === "FULLY_DISPATCHED"
                             ? "bg-green-100 text-green-800 hover:bg-green-100 border-transparent"
-                            : "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent"
+                            : po.status === "CLOSED"
+                              ? "bg-red-100 text-red-800 hover:bg-red-100 border-transparent"
+                              : "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent"
                   }
                 >
                   {formatStatus(po.status)}

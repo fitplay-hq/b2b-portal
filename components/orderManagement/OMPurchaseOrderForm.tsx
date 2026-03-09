@@ -457,7 +457,12 @@ export function OMPurchaseOrderForm({
               <Button
                 type="submit"
                 className="w-full mt-4"
-                disabled={isSubmitting}
+                disabled={
+                  isSubmitting ||
+                  !clientId ||
+                  lineItems.length === 0 ||
+                  !lineItems.some((item) => item.productId)
+                }
               >
                 {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

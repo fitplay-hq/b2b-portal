@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Loader2, Trash2, ArrowLeft, Pencil } from "lucide-react";
+import { Plus, Loader2, Trash2, ArrowLeft, Edit } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
@@ -259,7 +259,7 @@ export default function OMBrands() {
                             size="sm"
                             onClick={() => handleEdit(brand)}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"

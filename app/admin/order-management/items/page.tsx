@@ -40,7 +40,7 @@ import {
 import {
   Plus,
   Search,
-  Pencil,
+  Edit,
   Trash2,
   Loader2,
   Eye,
@@ -695,7 +695,7 @@ export default function OMItems() {
                           handleEdit(viewingItem);
                         }}
                       >
-                        <Pencil className="h-4 w-4 mr-2" />
+                        <Edit className="h-4 w-4 mr-2" />
                         Edit Item
                       </Button>
                     </div>
@@ -844,7 +844,7 @@ export default function OMItems() {
                               }}
                               title="Edit Item"
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"

@@ -31,7 +31,7 @@ import {
 import {
   Plus,
   Search,
-  Pencil,
+  Edit,
   Trash2,
   Loader2,
   Eye,
@@ -469,7 +469,7 @@ export default function OMClients() {
                           handleEdit(viewingClient);
                         }}
                       >
-                        <Pencil className="h-4 w-4 mr-2" />
+                        <Edit className="h-4 w-4 mr-2" />
                         Edit Client
                       </Button>
                     </div>
@@ -583,7 +583,7 @@ export default function OMClients() {
                               }}
                               title="Edit Client"
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
