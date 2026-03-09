@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ import {
   FileDown,
   FileSpreadsheet,
   ChevronDown,
+  Tags,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -53,11 +55,30 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import type { OMProduct } from "@/types/order-management";
+import type { OMProduct, OMBrand } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 
+function skuBrandPart(brandName: string | undefined): string {
+  return brandName
+    ? brandName.replace(/[^a-zA-Z0-9]/g, "").substring(0, 3).toUpperCase()
+    : "NIL";
+}
+
+function skuProductPart(productName: string): string {
+  return productName
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .substring(0, 3)
+    .toUpperCase();
+}
+
+function randomCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 export default function OMItems() {
+  const router = useRouter();
   const [items, setItems] = useState<OMProduct[]>([]);
+  const [brands, setBrands] = useState<OMBrand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -70,8 +91,10 @@ export default function OMItems() {
     name: "",
     sku: "",
     price: "",
-    defaultGstPct: "18",
+    defaultGstPct: "0",
     description: "",
+    brandId: "",
+    code: "",
   });
 
   const fetchItems = async () => {
@@ -90,17 +113,35 @@ export default function OMItems() {
     }
   };
 
+  const fetchBrands = async () => {
+    try {
+      const res = await fetch("/api/admin/om/brands");
+      if (res.ok) {
+        setBrands(await res.json());
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
+    fetchBrands();
   }, []);
+
+  const selectedBrandName = brands.find((b) => b.id === formData.brandId)?.name;
+  const brandPart = skuBrandPart(selectedBrandName);
+  const productPart = skuProductPart(formData.name);
 
   const resetForm = () => {
     setFormData({
       name: "",
       sku: "",
       price: "",
-      defaultGstPct: "18",
+      defaultGstPct: "0",
       description: "",
+      brandId: "",
+      code: "",
     });
     setEditingItem(null);
   };
@@ -109,10 +150,16 @@ export default function OMItems() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const codePart = formData.code.trim() || randomCode();
+    const finalSku = `FP-${brandPart}-${productPart}-${codePart}`;
+
     const payload = {
       ...formData,
+      sku: finalSku,
+      code: codePart,
       price: formData.price ? parseFloat(formData.price) : undefined,
       defaultGstPct: parseFloat(formData.defaultGstPct),
+      brandId: formData.brandId || null,
     };
 
     try {
@@ -153,6 +200,8 @@ export default function OMItems() {
       price: item.price?.toString() ?? "",
       defaultGstPct: item.defaultGstPct.toString(),
       description: item.description || "",
+      brandId: item.brandId || "",
+      code: "",
     });
     setIsAddDialogOpen(true);
   };
@@ -206,6 +255,7 @@ export default function OMItems() {
   const exportToExcel = () => {
     const headers = [
       "Item Name",
+      "Brand",
       "SKU",
       "Default Rate",
       "Default GST %",
@@ -213,6 +263,7 @@ export default function OMItems() {
     ];
     const rows = filteredItems.map((item) => [
       item.name,
+      item.OMBrand?.name || "-",
       item.sku || "-",
       item.price ?? "-",
       `${item.defaultGstPct}%`,
@@ -259,10 +310,11 @@ export default function OMItems() {
     doc.setTextColor(0, 0, 0);
     autoTable(doc, {
       head: [
-        ["Item Name", "SKU", "Default Rate", "Default GST %", "Description"],
+        ["Item Name", "Brand", "SKU", "Default Rate", "Default GST %", "Description"],
       ],
       body: filteredItems.map((item) => [
         item.name,
+        item.OMBrand?.name || "-",
         item.sku || "-",
         item.price ? `₹${item.price.toLocaleString("en-IN")}` : "-",
         `${item.defaultGstPct}%`,
@@ -308,6 +360,16 @@ export default function OMItems() {
             <p className="text-muted-foreground">Manage your product catalog</p>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() =>
+                router.push("/admin/order-management/brands")
+              }
+            >
+              <Tags className="h-4 w-4 mr-2" />
+              Manage Brands
+            </Button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -367,15 +429,57 @@ export default function OMItems() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="sku">SKU</Label>
-                        <Input
-                          id="sku"
-                          value={formData.sku}
-                          onChange={(e) =>
-                            setFormData({ ...formData, sku: e.target.value })
+                        <Label htmlFor="brandId">Brand</Label>
+                        <Select
+                          value={formData.brandId}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              brandId: value === "none" ? "" : value,
+                            })
                           }
-                          placeholder="Enter SKU code"
-                        />
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select brand" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No Brand</SelectItem>
+                            {brands.map((brand) => (
+                              <SelectItem key={brand.id} value={brand.id}>
+                                {brand.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2 space-y-2">
+                        <Label>SKU</Label>
+                        <div className="flex items-center gap-0 border rounded-md overflow-hidden">
+                          <span className="px-3 py-2 bg-muted text-sm font-mono whitespace-nowrap border-r">
+                            FP
+                          </span>
+                          <span className="px-1 text-muted-foreground">-</span>
+                          <span className="px-2 py-2 bg-muted text-sm font-mono min-w-[3ch] text-center border-x">
+                            {brandPart || "NIL"}
+                          </span>
+                          <span className="px-1 text-muted-foreground">-</span>
+                          <span className="px-2 py-2 bg-muted text-sm font-mono min-w-[3ch] text-center border-x">
+                            {productPart || "PRD"}
+                          </span>
+                          <span className="px-1 text-muted-foreground">-</span>
+                          <input
+                            id="code"
+                            value={formData.code}
+                            onChange={(e) =>
+                              setFormData({ ...formData, code: e.target.value })
+                            }
+                            placeholder="Enter Code for the Item"
+                            className="flex-1 px-2 py-2 text-sm font-mono bg-background outline-none min-w-0"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Enter a code or leave empty to auto-generate on save
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="price">Default Rate (₹)</Label>
@@ -394,7 +498,7 @@ export default function OMItems() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="defaultGstPct">Default GST % *</Label>
+                        <Label htmlFor="defaultGstPct">Default GST %</Label>
                         <Select
                           value={formData.defaultGstPct}
                           onValueChange={(value) =>
@@ -411,7 +515,7 @@ export default function OMItems() {
                             <SelectItem value="28">28%</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>{" "}
+                      </div>
                     </div>
                   </div>
 
@@ -476,6 +580,14 @@ export default function OMItems() {
                           <Label>Item Name</Label>
                           <Input
                             value={viewingItem.name}
+                            readOnly
+                            className="bg-muted"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Brand</Label>
+                          <Input
+                            value={viewingItem.OMBrand?.name || "-"}
                             readOnly
                             className="bg-muted"
                           />
@@ -566,17 +678,18 @@ export default function OMItems() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Item Name</TableHead>
+                    <TableHead>Brand</TableHead>
                     <TableHead>SKU</TableHead>
-
                     <TableHead>Default Rate</TableHead>
                     <TableHead>Default GST</TableHead>
+                    <TableHead className="text-right">Total Ordered</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
+                      <TableCell colSpan={7} className="text-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                         Loading items...
                       </TableCell>
@@ -584,7 +697,7 @@ export default function OMItems() {
                   ) : filteredItems.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={7}
                         className="text-center text-muted-foreground py-8"
                       >
                         No items found
@@ -607,14 +720,17 @@ export default function OMItems() {
                             )}
                           </div>
                         </TableCell>
+                        <TableCell>{item.OMBrand?.name || "-"}</TableCell>
                         <TableCell>{item.sku || "-"}</TableCell>
-
                         <TableCell>
                           {item.price
                             ? `₹${item.price.toLocaleString("en-IN")}`
                             : "-"}
                         </TableCell>
                         <TableCell>{item.defaultGstPct}%</TableCell>
+                        <TableCell className="text-right">
+                          {item.totalOrdered ?? 0}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button

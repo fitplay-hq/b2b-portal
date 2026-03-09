@@ -24,16 +24,13 @@ export function handleApiError(error: unknown) {
     const prismaError = error as any;
     switch (prismaError.code) {
       case "P2002":
-        const target = prismaError.meta?.target as string[];
         return NextResponse.json(
-          {
-            error: `A record with this ${target ? target.join(", ") : "value"} already exists.`,
-          },
+          { error: "A record with this value already exists." },
           { status: 409 },
         );
       case "P2025":
         return NextResponse.json(
-          { error: "Record not found." },
+          { error: "The record was not found." },
           { status: 404 },
         );
       case "P2014":
@@ -41,19 +38,20 @@ export function handleApiError(error: unknown) {
         return NextResponse.json(
           {
             error:
-              "Cannot delete or update this record because it is referenced by other records.",
+              "This record is linked to other data and cannot be modified.",
           },
           { status: 409 },
         );
       default:
         return NextResponse.json(
-          { error: "Database operation failed." },
+          { error: "Something went wrong. Please try again." },
           { status: 500 },
         );
     }
   }
 
-  const errorMessage =
-    error instanceof Error ? error.message : "Something went wrong";
-  return NextResponse.json({ error: errorMessage }, { status: 500 });
+  return NextResponse.json(
+    { error: "Something went wrong. Please try again." },
+    { status: 500 },
+  );
 }

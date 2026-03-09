@@ -29,6 +29,13 @@ export interface OMClient {
   updatedAt?: string;
 }
 
+export interface OMBrand {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface OMProduct {
   id: string;
   name: string;
@@ -37,6 +44,9 @@ export interface OMProduct {
   price?: number | null;
   defaultGstPct: number;
   category?: string | null;
+  brandId?: string | null;
+  OMBrand?: OMBrand | null;
+  totalOrdered?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -68,7 +78,10 @@ export interface OMPurchaseOrderItem {
   gstPercentage: number;
   gstAmount: number;
   totalAmount: number;
-  product?: { name?: string };
+  brandId?: string | null;
+  description?: string | null;
+  product?: { name?: string; brandId?: string | null; OMBrand?: OMBrand | null };
+  OMBrand?: OMBrand | null;
   dispatchItems?: { quantity: number }[];
 }
 

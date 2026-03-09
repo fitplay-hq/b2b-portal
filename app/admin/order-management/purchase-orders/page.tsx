@@ -219,7 +219,9 @@ export default function OMPurchaseOrdersList() {
         remaining,
         po.grandTotal,
         po.status,
-        new Date(po.poDate).toLocaleDateString("en-IN"),
+        po.poDate
+          ? new Date(po.poDate).toLocaleDateString("en-IN")
+          : "N/A",
       ];
     });
 
@@ -296,7 +298,9 @@ export default function OMPurchaseOrdersList() {
         remaining.toString(),
         `₹${po.grandTotal.toLocaleString("en-IN")}`,
         po.status,
-        new Date(po.poDate).toLocaleDateString("en-IN"),
+        po.poDate
+          ? new Date(po.poDate).toLocaleDateString("en-IN")
+          : "N/A",
       ];
     });
 

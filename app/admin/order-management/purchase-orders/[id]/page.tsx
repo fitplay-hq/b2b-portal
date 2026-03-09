@@ -195,7 +195,7 @@ export default function OMPurchaseOrderDetail() {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{po.totalQuantity}</div>
+              <div className="text-2xl font-bold">{totalQuantity}</div>
               <p className="text-xs text-muted-foreground">Items ordered</p>
             </CardContent>
           </Card>
@@ -264,13 +264,17 @@ export default function OMPurchaseOrderDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Estimate Date</p>
                 <p className="font-medium">
-                  {new Date(po.estimateDate).toLocaleDateString("en-IN")}
+                  {po.estimateDate
+                    ? new Date(po.estimateDate).toLocaleDateString("en-IN")
+                    : "N/A"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">PO Date</p>
                 <p className="font-medium">
-                  {new Date(po.poDate).toLocaleDateString("en-IN")}
+                  {po.poDate
+                    ? new Date(po.poDate).toLocaleDateString("en-IN")
+                    : "N/A"}
                 </p>
               </div>
               <div>
@@ -278,7 +282,9 @@ export default function OMPurchaseOrderDetail() {
                   PO Received Date
                 </p>
                 <p className="font-medium">
-                  {new Date(po.poReceivedDate).toLocaleDateString("en-IN")}
+                  {po.poReceivedDate
+                    ? new Date(po.poReceivedDate).toLocaleDateString("en-IN")
+                    : "N/A"}
                 </p>
               </div>
             </div>
@@ -437,9 +443,11 @@ export default function OMPurchaseOrderDetail() {
                                 {dispatch.invoiceNumber}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {new Date(
-                                  dispatch.invoiceDate,
-                                ).toLocaleDateString("en-IN")}
+                                {dispatch.invoiceDate
+                                  ? new Date(
+                                      dispatch.invoiceDate,
+                                    ).toLocaleDateString("en-IN")
+                                  : "N/A"}
                               </p>
                             </div>
                           </div>

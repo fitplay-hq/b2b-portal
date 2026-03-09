@@ -43,12 +43,26 @@ export async function GET(req: NextRequest) {
 
     const products = await prisma.oMProduct.findMany({
       where: whereClause,
+      include: {
+        OMBrand: true,
+        purchaseOrderItems: {
+          select: { quantity: true },
+        },
+      },
       orderBy: {
         [safeSortBy]: safeSortOrder,
       },
     });
 
-    return NextResponse.json(products);
+    const result = products.map(({ purchaseOrderItems, ...rest }) => ({
+      ...rest,
+      totalOrdered: purchaseOrderItems.reduce(
+        (sum, item) => sum + item.quantity,
+        0,
+      ),
+    }));
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -69,9 +83,16 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const validatedData = OMProductCreateSchema.parse(body);
+    const { brandId, code, ...prismaData } = validatedData;
+    void code;
 
     const product = await prisma.oMProduct.create({
-      data: validatedData,
+      data: {
+        ...prismaData,
+        ...(brandId
+          ? { OMBrand: { connect: { id: brandId } } }
+          : {}),
+      },
     });
 
     return NextResponse.json(

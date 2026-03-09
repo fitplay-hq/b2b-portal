@@ -10,6 +10,14 @@ export const OMClientCreateSchema = z.object({
 
 export const OMClientUpdateSchema = OMClientCreateSchema.partial();
 
+// --- OMBrand Validation ---
+export const OMBrandCreateSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(100, "Name must be less than 100 characters"),
+});
+
 // --- OMProduct Validation ---
 export const OMProductCreateSchema = z.object({
   name: z
@@ -34,9 +42,11 @@ export const OMProductCreateSchema = z.object({
   defaultGstPct: z
     .number()
     .min(0, "GST percentage must be positive")
-    .default(18)
+    .default(0)
     .optional(),
   category: z.string().max(100).optional().nullable(),
+  brandId: z.string().optional().nullable(),
+  code: z.string().max(50).optional().nullable(),
 });
 
 export const OMProductUpdateSchema = OMProductCreateSchema.partial();
@@ -73,6 +83,8 @@ export const OMPurchaseOrderItemCreateSchema = z.object({
   quantity: z.number().int().min(1, "Quantity must be at least 1"),
   rate: z.number().min(0, "Rate must be a non-negative number"),
   gstPercentage: z.number().min(0, "GST percentage must be non-negative"),
+  brandId: z.string().optional().nullable(),
+  description: z.string().max(255).optional().nullable(),
 });
 
 // --- OMPurchaseOrder Validation ---

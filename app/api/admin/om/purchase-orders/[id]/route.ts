@@ -3,6 +3,7 @@ import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
+import { OMPurchaseOrderUpdateSchema } from "@/lib/validations/om";
 
 export async function GET(
   req: NextRequest,
@@ -28,7 +29,8 @@ export async function GET(
         deliveryLocation: true,
         items: {
           include: {
-            product: true,
+            product: { include: { OMBrand: true } },
+            OMBrand: true,
             dispatchItems: true,
           },
         },
@@ -157,6 +159,115 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       message: "PO rate validation logic applied.",
+    });
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+    const permissionCheck = await checkPermission(RESOURCES.ORDERS, "update");
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        {
+          status:
+            permissionCheck.error === "Authentication required" ? 401 : 403,
+        },
+      );
+    }
+
+    const body = await req.json();
+    const validatedData = OMPurchaseOrderUpdateSchema.parse(body);
+
+    const existingPO = await prisma.oMPurchaseOrder.findUnique({
+      where: { id },
+    });
+    if (!existingPO) {
+      return NextResponse.json(
+        { error: "Purchase Order not found" },
+        { status: 404 },
+      );
+    }
+
+    const {
+      clientId,
+      locationId,
+      estimateNumber,
+      estimateDate,
+      poNumber,
+      poDate,
+      poReceivedDate,
+      status,
+      items,
+    } = validatedData;
+
+    const effectiveStatus = poNumber
+      ? (status ?? "CONFIRMED")
+      : (status ?? "DRAFT");
+
+    let totalGst = 0;
+    let grandTotal = 0;
+
+    const processedItems = items?.map((item) => {
+      const amount = item.quantity * item.rate;
+      const gstAmount = amount * (item.gstPercentage / 100);
+      const totalAmount = amount + gstAmount;
+      totalGst += gstAmount;
+      grandTotal += totalAmount;
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        rate: item.rate,
+        amount,
+        gstPercentage: item.gstPercentage,
+        gstAmount,
+        totalAmount,
+        brandId: item.brandId || null,
+        description: item.description || null,
+      };
+    });
+
+    const purchaseOrder = await prisma.$transaction(async (tx) => {
+      if (processedItems) {
+        await tx.oMPurchaseOrderItem.deleteMany({
+          where: { purchaseOrderId: id },
+        });
+      }
+
+      return tx.oMPurchaseOrder.update({
+        where: { id },
+        data: {
+          ...(clientId !== undefined && { clientId }),
+          locationId: locationId ?? null,
+          estimateNumber: estimateNumber ?? null,
+          estimateDate: estimateDate ? new Date(estimateDate) : null,
+          poNumber: poNumber ?? null,
+          poDate: poDate ? new Date(poDate) : null,
+          poReceivedDate: poReceivedDate ? new Date(poReceivedDate) : null,
+          status: effectiveStatus,
+          totalGst,
+          grandTotal,
+          ...(processedItems && {
+            items: { create: processedItems },
+          }),
+        },
+        include: {
+          items: true,
+          client: true,
+          deliveryLocation: true,
+        },
+      });
+    });
+
+    return NextResponse.json({
+      message: "Purchase Order updated successfully",
+      data: purchaseOrder,
     });
   } catch (error: unknown) {
     return handleApiError(error);
