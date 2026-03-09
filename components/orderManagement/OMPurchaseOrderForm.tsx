@@ -136,7 +136,7 @@ export function OMPurchaseOrderForm({
       quantity: 1,
       rate: 0,
       amount: 0,
-      gstPercentage: 18,
+      gstPercentage: 0,
       gstAmount: 0,
       totalAmount: 0,
       brandId: "",
@@ -168,7 +168,7 @@ export function OMPurchaseOrderForm({
           if (selectedProduct) {
             updated.itemName = selectedProduct.name || "";
             updated.rate = selectedProduct.price || 0;
-            updated.gstPercentage = selectedProduct.defaultGstPct || 18;
+            updated.gstPercentage = selectedProduct.defaultGstPct ?? 0;
             updated.brandId =
               selectedProduct.brandId ||
               (selectedProduct as any).brands?.[0]?.id ||
@@ -213,10 +213,12 @@ export function OMPurchaseOrderForm({
       clientId,
       locationId: locationId || null,
       estimateNumber: finalEstimateNumber || null,
-      estimateDate: estimateDate || null,
+      estimateDate: estimateDate ? new Date(estimateDate).toISOString() : null,
       poNumber: poNumber || null,
-      poDate: poDate || null,
-      poReceivedDate: poReceivedDate || null,
+      poDate: poDate ? new Date(poDate).toISOString() : null,
+      poReceivedDate: poReceivedDate
+        ? new Date(poReceivedDate).toISOString()
+        : null,
       status: finalStatus,
       items: lineItems.map(({ tempId, itemName, id, ...rest }) => ({
         ...rest,

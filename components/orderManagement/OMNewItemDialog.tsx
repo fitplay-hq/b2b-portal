@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Loader2 } from "lucide-react";
 import { MultiSearchableSelect } from "@/components/ui/combobox";
 import { toast } from "sonner";
@@ -214,12 +221,17 @@ export function OMNewItemDialog({
             </div>
             <div className="space-y-2">
               <Label>Default GST %</Label>
-              <Input
-                type="number"
-                value={gstPct}
-                onChange={(e) => setGstPct(e.target.value)}
-                placeholder="0"
-              />
+              <Select value={gstPct} onValueChange={setGstPct}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="0%" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0%</SelectItem>
+                  <SelectItem value="5">5%</SelectItem>
+                  <SelectItem value="18">18%</SelectItem>
+                  <SelectItem value="28">28%</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="space-y-2">
