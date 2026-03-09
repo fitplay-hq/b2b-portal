@@ -561,7 +561,6 @@ export default function OMLogisticsPartners() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Partner ID</TableHead>
                     <TableHead>Partner Name</TableHead>
                     <TableHead>Contact Person</TableHead>
                     <TableHead>Phone</TableHead>
@@ -573,7 +572,7 @@ export default function OMLogisticsPartners() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                         Loading partners...
                       </TableCell>
@@ -581,7 +580,7 @@ export default function OMLogisticsPartners() {
                   ) : filteredPartners.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={6}
                         className="text-center text-muted-foreground py-8"
                       >
                         No logistics partners found
@@ -594,9 +593,6 @@ export default function OMLogisticsPartners() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleView(partner)}
                       >
-                        <TableCell className="font-medium text-xs truncate max-w-25">
-                          {partner.id}
-                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Truck className="h-4 w-4 text-muted-foreground" />
