@@ -76,45 +76,75 @@ export default function OMPurchaseOrderDetail() {
             ))}
           </div>
 
-          {/* PO Details Skeleton */}
-          <Card>
-            <CardHeader className="pb-0">
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <Skeleton className="h-3 w-20" />
-                    <Skeleton className="h-4 w-32" />
+          {/* Details & Info Skeletons */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-5 w-32" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="space-y-1">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-4 w-40" />
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Table Skeleton */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-48" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="grid grid-cols-6 gap-4 py-2 border-b">
-                  {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="h-4 w-full" />
-                  ))}
-                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-5 w-32" />
+              </CardHeader>
+              <CardContent className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="grid grid-cols-6 gap-4 py-4 border-b">
-                    {[...Array(6)].map((_, j) => (
-                      <Skeleton key={j} className="h-4 w-full" />
+                  <div key={i} className="space-y-1">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-4 w-40" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Items & History Skeletons */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-6 gap-4 py-2 border-b">
+                    {[...Array(6)].map((_, i) => (
+                      <Skeleton key={i} className="h-4 w-full" />
                     ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="grid grid-cols-6 gap-4 py-4 border-b"
+                    >
+                      {[...Array(6)].map((_, j) => (
+                        <Skeleton key={j} className="h-4 w-full" />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-40" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[...Array(2)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </Layout>
     );
@@ -199,36 +229,13 @@ export default function OMPurchaseOrderDetail() {
 
         <OMPurchaseOrderSummaryCards po={po} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ordered Items</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <OMPurchaseOrderItemsTable
-                  items={po.items || []}
-                  dispatches={po.dispatchOrders || []}
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Dispatch History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <OMDispatchHistory dispatches={po.dispatchOrders || []} />
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Reference Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reference Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">
                     Estimate Number
@@ -243,7 +250,6 @@ export default function OMPurchaseOrderDetail() {
                       : "N/A"}
                   </p>
                 </div>
-                <Separator />
                 <div>
                   <p className="text-sm text-muted-foreground">
                     PO Received Date
@@ -262,14 +268,16 @@ export default function OMPurchaseOrderDetail() {
                     {po.deliveryLocation?.name || "N/A"}
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Client Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Client Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">
                     Contact Person
@@ -286,9 +294,32 @@ export default function OMPurchaseOrderDetail() {
                   <p className="text-sm text-muted-foreground">Phone</p>
                   <p className="font-medium">{po.client?.phone || "N/A"}</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Ordered Items</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OMPurchaseOrderItemsTable
+                items={po.items || []}
+                dispatches={po.dispatchOrders || []}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Dispatch History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OMDispatchHistory dispatches={po.dispatchOrders || []} />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </Layout>

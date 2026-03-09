@@ -42,6 +42,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SearchableSelect } from "@/components/ui/combobox";
 import type {
   OMDispatchOrder,
   OMDispatchOrderItem,
@@ -390,19 +391,21 @@ export default function OMDispatchesList() {
               </div>
 
               <div className="flex gap-2">
-                <Select value={clientFilter} onValueChange={setClientFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by Client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Clients</SelectItem>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex-1">
+                  <SearchableSelect
+                    options={[
+                      { value: "all", label: "All Clients" },
+                      ...clients.map((client) => ({
+                        value: client.id,
+                        label: client.name,
+                      })),
+                    ]}
+                    value={clientFilter}
+                    onValueChange={setClientFilter}
+                    placeholder="Filter by Client"
+                    searchPlaceholder="Search clients..."
+                  />
+                </div>
 
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger>
