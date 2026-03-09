@@ -29,6 +29,13 @@ export interface OMClient {
   updatedAt?: string;
 }
 
+export interface OMBrand {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface OMProduct {
   id: string;
   name: string;
@@ -37,6 +44,10 @@ export interface OMProduct {
   price?: number | null;
   defaultGstPct: number;
   category?: string | null;
+  brandId?: string | null;
+  OMBrand?: OMBrand | null;
+  brands?: OMBrand[];
+  totalOrdered?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -68,7 +79,15 @@ export interface OMPurchaseOrderItem {
   gstPercentage: number;
   gstAmount: number;
   totalAmount: number;
-  product?: { name?: string };
+  brandId?: string | null;
+  description?: string | null;
+  product?: {
+    name?: string;
+    sku?: string | null;
+    brandId?: string | null;
+    OMBrand?: OMBrand | null;
+  };
+  OMBrand?: OMBrand | null;
   dispatchItems?: { quantity: number }[];
 }
 
@@ -81,7 +100,8 @@ export interface OMDispatchOrderItem {
   gstPercentage: number;
   gstAmount: number;
   totalAmount: number;
-  purchaseOrderItem?: { product?: { name?: string } };
+  purchaseOrderItem?: { product?: { name?: string; sku?: string | null } };
+  product?: { name?: string; sku?: string | null };
 }
 
 export interface OMDispatchOrder {
@@ -122,8 +142,8 @@ export interface OMPurchaseOrder {
   totalQuantity?: number;
   items?: OMPurchaseOrderItem[];
   dispatchOrders?: OMDispatchOrder[];
-  client?: { name?: string };
-  deliveryLocation?: { name?: string };
+  client?: OMClient;
+  deliveryLocation?: OMDeliveryLocation;
   createdAt?: string;
   updatedAt?: string;
 }

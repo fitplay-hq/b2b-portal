@@ -10,6 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
   Package,
@@ -20,6 +27,7 @@ import {
   CheckCircle,
   Search,
   X,
+  Calendar,
 } from "lucide-react";
 
 import {
@@ -35,6 +43,7 @@ import {
 } from "recharts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import type {
@@ -61,17 +70,17 @@ const PO_STATUS_LABELS: Record<string, string> = {
 const getPoStatusClass = (status: string) => {
   switch (status) {
     case "DRAFT":
-      return "bg-slate-400 text-white border-0";
+      return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
     case "CONFIRMED":
-      return "bg-blue-500 text-white border-0";
+      return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
     case "PARTIALLY_DISPATCHED":
-      return "bg-amber-500 text-white border-0";
+      return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
     case "FULLY_DISPATCHED":
-      return "bg-emerald-500 text-white border-0";
+      return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
     case "CLOSED":
-      return "bg-gray-500 text-white border-0";
+      return "bg-red-100 text-red-800 hover:bg-red-100 border-transparent";
     default:
-      return "bg-gray-300 text-gray-800 border-0";
+      return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
   }
 };
 
@@ -79,15 +88,15 @@ const getPoStatusClass = (status: string) => {
 const getDispatchStatusClass = (status: string) => {
   switch (status) {
     case "CREATED":
-      return "bg-blue-400 text-white border-0";
+      return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
     case "DISPATCHED":
-      return "bg-amber-500 text-white border-0";
+      return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
     case "DELIVERED":
-      return "bg-emerald-500 text-white border-0";
+      return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
     case "CANCELLED":
-      return "bg-red-500 text-white border-0";
+      return "bg-red-100 text-red-800 hover:bg-red-100 border-transparent";
     default:
-      return "bg-gray-300 text-gray-800 border-0";
+      return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
   }
 };
 
@@ -97,6 +106,7 @@ export default function OMDashboard() {
   const [omPurchaseOrders, setPurchaseOrders] = useState<OMDashboardPO[]>([]);
   const [omDispatches, setDispatches] = useState<OMDashboardDispatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState("today");
 
   const fetchData = async (query: string = "") => {
     setIsLoading(true);
@@ -191,19 +201,40 @@ export default function OMDashboard() {
       .reduce((sum, d) => sum + d.totalDispatchQty, 0);
   };
 
+  const getFilteredPOs = () => {
+    if (timeRange === "all") return omPurchaseOrders;
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+
+    return omPurchaseOrders.filter((po) => {
+      const dateStr = po.poDate || po.estimateDate;
+      if (!dateStr) return false;
+      const poDate = new Date(dateStr);
+      const diffTime = Math.abs(now.getTime() - poDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (timeRange === "today") return diffDays <= 1;
+      if (timeRange === "7d") return diffDays <= 7;
+      if (timeRange === "30d") return diffDays <= 30;
+      return true;
+    });
+  };
+
+  const dashboardPOs = getFilteredPOs();
+
   // Summary calculations
-  const totalActivePOs = omPurchaseOrders.filter(
+  const totalActivePOs = dashboardPOs.filter(
     (po) => po.status !== "CLOSED",
   ).length;
-  const totalOrderValue = omPurchaseOrders.reduce(
+  const totalOrderValue = dashboardPOs.reduce(
     (sum, po) => sum + po.grandTotal,
     0,
   );
-  const totalOrderedQty = omPurchaseOrders.reduce(
+  const totalOrderedQty = dashboardPOs.reduce(
     (sum, po) => sum + po.totalQuantity,
     0,
   );
-  const totalDispatchedQty = omPurchaseOrders.reduce(
+  const totalDispatchedQty = dashboardPOs.reduce(
     (sum, po) => sum + getTotalDispatchedForPO(po.id),
     0,
   );
@@ -214,7 +245,7 @@ export default function OMDashboard() {
       : "0";
 
   // Client summary
-  const clientSummary = omPurchaseOrders.reduce(
+  const clientSummary = dashboardPOs.reduce(
     (acc, po) => {
       if (!acc[po.clientId]) {
         acc[po.clientId] = {
@@ -240,7 +271,7 @@ export default function OMDashboard() {
   const clientSummaryArray = Object.values(clientSummary);
 
   // Item summary
-  const itemSummary = omPurchaseOrders.reduce(
+  const itemSummary = dashboardPOs.reduce(
     (acc, po) => {
       po.lineItems.forEach((item: OMDashboardPO["lineItems"][number]) => {
         if (!acc[item.itemId]) {
@@ -275,31 +306,30 @@ export default function OMDashboard() {
   const statusBreakdown = [
     {
       name: "Draft",
-      value: omPurchaseOrders.filter((po) => po.status === "DRAFT").length,
+      value: dashboardPOs.filter((po) => po.status === "DRAFT").length,
       color: "#94a3b8",
     },
     {
       name: "Confirmed",
-      value: omPurchaseOrders.filter((po) => po.status === "CONFIRMED").length,
+      value: dashboardPOs.filter((po) => po.status === "CONFIRMED").length,
       color: "#3b82f6",
     },
     {
       name: "Partially Dispatched",
-      value: omPurchaseOrders.filter(
-        (po) => po.status === "PARTIALLY_DISPATCHED",
-      ).length,
+      value: dashboardPOs.filter((po) => po.status === "PARTIALLY_DISPATCHED")
+        .length,
       color: "#f59e0b",
     },
     {
       name: "Fully Dispatched",
-      value: omPurchaseOrders.filter((po) => po.status === "FULLY_DISPATCHED")
+      value: dashboardPOs.filter((po) => po.status === "FULLY_DISPATCHED")
         .length,
       color: "#10b981",
     },
     {
       name: "Closed",
-      value: omPurchaseOrders.filter((po) => po.status === "CLOSED").length,
-      color: "#6b7280",
+      value: dashboardPOs.filter((po) => po.status === "CLOSED").length,
+      color: "#ef4444",
     },
   ].filter((item) => item.value > 0);
 
@@ -326,8 +356,97 @@ export default function OMDashboard() {
   if (isLoading) {
     return (
       <Layout isClient={false}>
-        <div className="flex h-[80vh] items-center justify-center">
-          <p className="text-muted-foreground">Loading dashboard data...</p>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </div>
+
+          {/* Master Search Skeleton */}
+          <Card>
+            <CardHeader className="pb-0">
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="flex gap-2">
+                <Skeleton className="h-10 flex-1" />
+                <Skeleton className="h-10 w-24" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Summary Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-28" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-20 mb-1" />
+                  <Skeleton className="h-3 w-40" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Charts Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-0">
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent className="h-[300px] flex items-center justify-center pt-6">
+                <Skeleton className="h-56 w-56 rounded-full" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-0">
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent className="h-[300px] flex items-end gap-2 pt-6">
+                {[...Array(10)].map((_, i) => (
+                  <Skeleton
+                    key={i}
+                    className="flex-1"
+                    style={{ height: `${20 + ((i * 7) % 80)}%` }}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tables Skeleton */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {[...Array(2)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-0">
+                  <Skeleton className="h-6 w-48" />
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-4 gap-4 py-2 border-b">
+                      {[...Array(4)].map((_, j) => (
+                        <Skeleton key={j} className="h-4 w-full" />
+                      ))}
+                    </div>
+                    {[...Array(4)].map((_, j) => (
+                      <div
+                        key={j}
+                        className="grid grid-cols-4 gap-4 py-3 border-b"
+                      >
+                        {[...Array(4)].map((_, k) => (
+                          <Skeleton key={k} className="h-4 w-full" />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </Layout>
     );
@@ -396,6 +515,20 @@ export default function OMDashboard() {
             <p className="text-sm sm:text-base text-muted-foreground">
               Overview of all purchase orders and dispatches
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Time Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="7d">Last 7 Days</SelectItem>
+                <SelectItem value="30d">Last 30 Days</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -883,8 +1016,10 @@ export default function OMDashboard() {
                       />
                       <YAxis />
                       <Tooltip
-                        formatter={(value: number | undefined) =>
-                          value ? `₹${value.toLocaleString("en-IN")}` : "₹0"
+                        formatter={(value: any) =>
+                          typeof value === "number"
+                            ? `₹${value.toLocaleString("en-IN")}`
+                            : value
                         }
                       />
                       <Bar dataKey="value" fill="#3b82f6" />

@@ -37,7 +37,7 @@ import {
 import {
   Plus,
   Search,
-  Pencil,
+  Edit,
   Trash2,
   Truck,
   Loader2,
@@ -52,6 +52,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { OMLogisticsPartner } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
@@ -526,7 +527,7 @@ export default function OMLogisticsPartners() {
                           handleEdit(viewingPartner);
                         }}
                       >
-                        <Pencil className="h-4 w-4 mr-2" />
+                        <Edit className="h-4 w-4 mr-2" />
                         Edit Partner
                       </Button>
                     </div>
@@ -561,7 +562,6 @@ export default function OMLogisticsPartners() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Partner ID</TableHead>
                     <TableHead>Partner Name</TableHead>
                     <TableHead>Contact Person</TableHead>
                     <TableHead>Phone</TableHead>
@@ -572,16 +572,36 @@ export default function OMLogisticsPartners() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                        Loading partners...
-                      </TableCell>
-                    </TableRow>
+                    [...Array(3)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <Skeleton className="h-4 w-40" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-32" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-24" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-40" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-6 w-20 rounded-full" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Skeleton className="h-8 w-8" />
+                            <Skeleton className="h-8 w-8" />
+                            <Skeleton className="h-8 w-8" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   ) : filteredPartners.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={6}
                         className="text-center text-muted-foreground py-8"
                       >
                         No logistics partners found
@@ -594,9 +614,6 @@ export default function OMLogisticsPartners() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleView(partner)}
                       >
-                        <TableCell className="font-medium text-xs truncate max-w-25">
-                          {partner.id}
-                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Truck className="h-4 w-4 text-muted-foreground" />
@@ -632,7 +649,7 @@ export default function OMLogisticsPartners() {
                                 handleEdit(partner);
                               }}
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"

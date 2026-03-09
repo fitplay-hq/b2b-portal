@@ -34,6 +34,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { SearchableSelect } from "@/components/ui/combobox";
 import type {
   OMPurchaseOrder,
   OMPurchaseOrderItem,
@@ -353,31 +354,27 @@ function CreateDispatchForm() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Purchase Order *</Label>
-              <Select
+              <SearchableSelect
+                options={availablePOs.map((po) => {
+                  const totalQty =
+                    po.totalQuantity ??
+                    po.items?.reduce((sum, item) => sum + item.quantity, 0) ??
+                    0;
+                  return {
+                    value: po.id,
+                    label: `${po.client?.name || "Unknown Client"} - ${po.poNumber} (Ordered: ${totalQty})`,
+                  };
+                })}
                 value={poId}
                 onValueChange={setPoId}
+                placeholder={
+                  isLoadingMaster
+                    ? "Loading active POs..."
+                    : "Select PO with remaining quantity"
+                }
+                searchPlaceholder="Search POs..."
                 disabled={isLoadingMaster}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      isLoadingMaster
-                        ? "Loading active POs..."
-                        : "Select PO with remaining quantity"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {availablePOs.map((po) => {
-                    return (
-                      <SelectItem key={po.id} value={po.id}>
-                        {po.client?.name || "Unknown Client"} - {po.poNumber}{" "}
-                        (Ordered: {po.totalQuantity})
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              />
             </div>
 
             {isLoadingPoDetail && (
@@ -558,21 +555,18 @@ function CreateDispatchForm() {
                 <div className="space-y-2">
                   <Label>Logistics Partner</Label>
                   <div className="flex gap-2">
-                    <Select
-                      value={logisticsPartnerId}
-                      onValueChange={setLogisticsPartnerId}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select logistics partner" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {logisticsPartners.map((partner) => (
-                          <SelectItem key={partner.id} value={partner.id}>
-                            {partner.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex-1">
+                      <SearchableSelect
+                        options={logisticsPartners.map((partner) => ({
+                          value: partner.id,
+                          label: partner.name,
+                        }))}
+                        value={logisticsPartnerId}
+                        onValueChange={setLogisticsPartnerId}
+                        placeholder="Select logistics partner"
+                        searchPlaceholder="Search partners..."
+                      />
+                    </div>
                     <Dialog
                       open={showNewLogisticsDialog}
                       onOpenChange={setShowNewLogisticsDialog}

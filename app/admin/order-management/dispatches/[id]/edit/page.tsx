@@ -33,6 +33,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { SearchableSelect } from "@/components/ui/combobox";
 import type {
   OMPurchaseOrder,
   OMPurchaseOrderItem,
@@ -426,7 +427,16 @@ function EditDispatchForm() {
                 <SelectContent>
                   <SelectItem value={poId}>
                     {selectedPO
-                      ? `${selectedPO.estimateNumber} - ${selectedPO.poNumber} (Ordered: ${selectedPO.totalQuantity})`
+                      ? (() => {
+                          const totalQty =
+                            selectedPO.totalQuantity ??
+                            selectedPO.items?.reduce(
+                              (sum, item) => sum + item.quantity,
+                              0,
+                            ) ??
+                            0;
+                          return `${selectedPO.estimateNumber} - ${selectedPO.poNumber} (Ordered: ${totalQty})`;
+                        })()
                       : "Loading..."}
                   </SelectItem>
                 </SelectContent>
@@ -604,21 +614,18 @@ function EditDispatchForm() {
                 <div className="space-y-2">
                   <Label>Logistics Partner</Label>
                   <div className="flex gap-2">
-                    <Select
-                      value={logisticsPartnerId}
-                      onValueChange={setLogisticsPartnerId}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select logistics partner" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {logisticsPartners.map((partner) => (
-                          <SelectItem key={partner.id} value={partner.id}>
-                            {partner.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex-1">
+                      <SearchableSelect
+                        options={logisticsPartners.map((partner) => ({
+                          value: partner.id,
+                          label: partner.name,
+                        }))}
+                        value={logisticsPartnerId}
+                        onValueChange={setLogisticsPartnerId}
+                        placeholder="Select logistics partner"
+                        searchPlaceholder="Search partners..."
+                      />
+                    </div>
                     <Dialog
                       open={showNewLogisticsDialog}
                       onOpenChange={setShowNewLogisticsDialog}

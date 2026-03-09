@@ -24,10 +24,24 @@ export async function PATCH(
 
     const body = await req.json();
     const validatedData = OMProductUpdateSchema.parse(body);
+    const { brandIds, code, ...prismaData } = validatedData;
+    void code;
 
     const product = await prisma.oMProduct.update({
       where: { id },
-      data: validatedData,
+      data: {
+        ...prismaData,
+        ...(brandIds !== undefined
+          ? {
+              brands: {
+                set: brandIds.map((id: string) => ({ id })),
+              },
+            }
+          : {}),
+      },
+      include: {
+        brands: true,
+      },
     });
 
     return NextResponse.json(
