@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 generator client {
   provider = "prisma-client-js"
   output   = "../lib/generated/prisma"
@@ -25,7 +20,7 @@ model Admin {
   password  String
   role      Role?    @default(ADMIN)
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt()
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Company {
@@ -34,8 +29,8 @@ model Company {
   address   String    @db.VarChar(100)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  products  Product[]
   clients   Client[]
+  products  Product[] @relation("CompanyToProduct")
 }
 
 model Client {
@@ -44,16 +39,16 @@ model Client {
   email       String          @unique
   password    String
   phone       String          @unique
-  company     Company?        @relation(fields: [companyID], references: [id])
-  companyID   String?
-  companyName String?
-  isShowPrice Boolean         @default(false)
   address     String          @db.VarChar(100)
   role        Role            @default(CLIENT)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+  companyName String?
+  companyID   String?
+  isShowPrice Boolean         @default(false)
+  company     Company?        @relation(fields: [companyID], references: [id])
+  products    ClientProduct[]
   orders      Order[]
-  products    ClientProduct[] // Client-specific product access
 }
 
 model ProductCategory {
@@ -61,12 +56,12 @@ model ProductCategory {
   name          String        @unique @db.VarChar(50)
   displayName   String        @db.VarChar(100)
   description   String?       @db.VarChar(255)
-  shortCode     String        @unique @db.VarChar(10) // For SKU generation
+  shortCode     String        @unique @db.VarChar(10)
   isActive      Boolean       @default(true)
-  sortOrder     Int           @default(0) // For custom ordering
+  sortOrder     Int           @default(0)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  products      Product[] // One-to-many relation
+  products      Product[]
   subCategories SubCategory[]
 }
 
@@ -77,78 +72,78 @@ model Product {
   price                 Int?
   sku                   String            @unique @db.VarChar(100)
   availableStock        Int
-  minStockThreshold     Int?
-  inventoryUpdateReason Reason?
-  inventoryLogs         String[]
   description           String
-  categories            Category? // Keep enum for backward compatibility, now optional
-  categoryId            String? // New relation to ProductCategory table
-  category              ProductCategory?  @relation(fields: [categoryId], references: [id])
-  subCategory           SubCategory?      @relation(fields: [subCategoryId], references: [id])
-  subCategoryId         String?
+  categories            Category?
   avgRating             Float?
   noOfReviews           Int?
   brand                 String?           @db.VarChar(30)
-  companies             Company[]
-  clients               ClientProduct[] // Client-specific product access
-  orderItems            OrderItem[]
-  bundleOrderItems      BundleOrderItem[]
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
+  inventoryUpdateReason Reason?
+  inventoryLogs         String[]
+  categoryId            String?
+  minStockThreshold     Int?
+  subCategoryId         String?
   bundleItems           BundleItem[]
+  bundleOrderItems      BundleOrderItem[]
+  clients               ClientProduct[]
+  orderItems            OrderItem[]
+  category              ProductCategory?  @relation(fields: [categoryId], references: [id])
+  subCategory           SubCategory?      @relation(fields: [subCategoryId], references: [id])
+  companies             Company[]         @relation("CompanyToProduct")
 }
 
 model SubCategory {
   id         String          @id @default(uuid())
   name       String
   categoryId String
-  shortCode  String          @unique @db.VarChar(10) // For SKU generation
-  category   ProductCategory @relation(fields: [categoryId], references: [id])
-  products   Product[]
+  shortCode  String          @unique @db.VarChar(10)
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
+  products   Product[]
+  category   ProductCategory @relation(fields: [categoryId], references: [id])
 }
 
 model Order {
   id                    String            @id @default(uuid())
   totalAmount           Float
+  clientId              String?
+  createdAt             DateTime          @default(now())
+  deliveryAddress       String            @default("Address")
+  note                  String?
+  updatedAt             DateTime          @updatedAt
+  status                Status            @default(PENDING)
+  city                  String            @default("City")
+  consigneeEmail        String            @default("email@example.com")
   consigneeName         String            @default("Name")
   consigneePhone        String            @default("0000000000")
-  consigneeEmail        String            @default("email@example.com")
-  consignmentNumber     String?
-  deliveryService       String?
-  deliveryAddress       String            @default("Address")
-  city                  String            @default("City")
-  state                 String            @default("State")
-  pincode               String            @default("000000")
   modeOfDelivery        Modes             @default(SURFACE)
-  requiredByDate        DateTime
+  pincode               String            @default("000000")
+  state                 String            @default("State")
   deliveryReference     String?
   packagingInstructions String?
-  note                  String?
-  shippingLabelUrl      String?
+  requiredByDate        DateTime
+  consignmentNumber     String?
+  deliveryService       String?
   isMailSent            Boolean           @default(false)
-  status                Status            @default(PENDING)
-  client                Client?           @relation(fields: [clientId], references: [id])
-  clientId              String?
-  orderItems            OrderItem[]
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-  emails                OrderEmail[]
-  bundleOrderItems      BundleOrderItem[]
-  bundles               Bundle[]
+  shippingLabelUrl      String?
   numberOfBundles       Int?
+  bundles               Bundle[]
+  bundleOrderItems      BundleOrderItem[]
+  client                Client?           @relation(fields: [clientId], references: [id])
+  emails                OrderEmail[]
+  orderItems            OrderItem[]
 }
 
 model OrderEmail {
   id        String    @id @default(uuid())
-  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
   orderId   String
-  purpose   Status // APPROVED, DISPATCHED, etc.
+  purpose   Status
   isSent    Boolean   @default(false)
   sentAt    DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@unique([orderId, purpose])
 }
@@ -156,60 +151,60 @@ model OrderEmail {
 model BundleOrderItem {
   id          String       @id @default(uuid())
   bundleId    String
-  bundle      Bundle       @relation(fields: [bundleId], references: [id])
-  order       Order        @relation(fields: [orderId], references: [id])
   orderId     String
-  product     Product      @relation(fields: [productId], references: [id])
   productId   String
   quantity    Int          @default(1)
-  price       Float // snapshot of product price at purchase time
-  bundleItems BundleItem[]
+  price       Float
+  bundle      Bundle       @relation(fields: [bundleId], references: [id])
+  order       Order        @relation(fields: [orderId], references: [id])
+  product     Product      @relation(fields: [productId], references: [id])
+  bundleItems BundleItem[] @relation("BundleItemToBundleOrderItem")
 }
 
 model BundleItem {
   id                    String            @id @default(uuid())
-  bundleId              String
-  bundle                Bundle            @relation(fields: [bundleId], references: [id])
-  product               Product           @relation(fields: [productId], references: [id])
   productId             String
+  price                 Float
+  bundleId              String
   bundleProductQuantity Int               @default(1)
-  price                 Float // snapshot of product price at purchase time
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
-  bundleOrderItems      BundleOrderItem[]
+  bundle                Bundle            @relation(fields: [bundleId], references: [id])
+  product               Product           @relation(fields: [productId], references: [id])
+  bundleOrderItems      BundleOrderItem[] @relation("BundleItemToBundleOrderItem")
 }
 
 model Bundle {
   id               String            @id @default(uuid())
   orderId          String?
-  order            Order?            @relation(fields: [orderId], references: [id])
   price            Float?
-  numberOfBundles  Int?
-  items            BundleItem[]
-  bundleOrderItems BundleOrderItem[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+  numberOfBundles  Int?
+  order            Order?            @relation(fields: [orderId], references: [id])
+  items            BundleItem[]
+  bundleOrderItems BundleOrderItem[]
 }
 
 model OrderItem {
   id        String  @id @default(uuid())
-  order     Order   @relation(fields: [orderId], references: [id])
   orderId   String
-  product   Product @relation(fields: [productId], references: [id])
   productId String
   quantity  Int     @default(1)
-  price     Float // snapshot of product price at purchase time
+  price     Float
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 model ResetToken {
   id         String   @id @default(uuid())
   identifier String
-  password   String
   token      String   @unique
-  userId     String?
-  userType   Role?
   expires    DateTime
   createdAt  DateTime @default(now())
+  password   String
+  userId     String?
+  userType   Role?
 }
 
 model LoginToken {
@@ -223,17 +218,181 @@ model LoginToken {
   expires    DateTime
 }
 
-// Client-specific product access relationship
 model ClientProduct {
   id        String   @id @default(uuid())
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId  String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([clientId, productId]) // Prevent duplicate client-product relationships
+  @@unique([clientId, productId])
+}
+
+model SystemRole {
+  id          String             @id @default(uuid())
+  name        String             @unique @db.VarChar(50)
+  description String?            @db.VarChar(255)
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  users       SystemUser[]
+  permissions SystemPermission[] @relation("SystemPermissionToSystemRole")
+}
+
+model SystemPermission {
+  id          String       @id @default(uuid())
+  resource    String       @db.VarChar(50)
+  action      String       @db.VarChar(20)
+  description String?      @db.VarChar(255)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  roles       SystemRole[] @relation("SystemPermissionToSystemRole")
+
+  @@unique([resource, action])
+}
+
+model SystemUser {
+  id        String     @id @default(uuid())
+  name      String     @db.VarChar(100)
+  email     String     @unique
+  password  String
+  isActive  Boolean    @default(true)
+  roleId    String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  role      SystemRole @relation(fields: [roleId], references: [id])
+}
+
+model OMClient {
+  id             String            @id @default(uuid())
+  name           String            @db.VarChar(100)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  billingAddress String?           @db.VarChar(500)
+  contactPerson  String?           @db.VarChar(100)
+  email          String?           @unique @db.VarChar(100)
+  gstNumber      String?           @db.VarChar(20)
+  notes          String?           @db.VarChar(1000)
+  phone          String?           @db.VarChar(20)
+  pos            OMPurchaseOrder[]
+}
+
+model OMDeliveryLocation {
+  id        String            @id @default(uuid())
+  name      String            @db.VarChar(100)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  pos       OMPurchaseOrder[]
+}
+
+model OMPurchaseOrder {
+  id               String                @id @default(uuid())
+  clientId         String
+  locationId       String?
+  estimateNumber   String?               @unique
+  estimateDate     DateTime?
+  poNumber         String?               @unique
+  poDate           DateTime?
+  poReceivedDate   DateTime?
+  status           OMPoStatus            @default(DRAFT)
+  totalGst         Float                 @default(0)
+  grandTotal       Float                 @default(0)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  dispatchOrders   OMDispatchOrder[]
+  client           OMClient              @relation(fields: [clientId], references: [id])
+  deliveryLocation OMDeliveryLocation?   @relation(fields: [locationId], references: [id])
+  items            OMPurchaseOrderItem[]
+}
+
+model OMProduct {
+  id                 String                @id @default(uuid())
+  name               String                @db.VarChar(100)
+  sku                String?               @unique @db.VarChar(100)
+  description        String?               @db.VarChar(255)
+  price              Float?
+  defaultGstPct      Float                 @default(0)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  isActive           Boolean               @default(true)
+  brandId            String?
+  OMBrand            OMBrand?              @relation(fields: [brandId], references: [id])
+  purchaseOrderItems OMPurchaseOrderItem[]
+}
+
+model OMPurchaseOrderItem {
+  id              String                @id @default(uuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  rate            Float
+  amount          Float
+  gstPercentage   Float
+  gstAmount       Float
+  totalAmount     Float
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  brandId         String?
+  description     String?               @db.VarChar(255)
+  dispatchItems   OMDispatchOrderItem[]
+  OMBrand         OMBrand?              @relation(fields: [brandId], references: [id])
+  product         OMProduct             @relation(fields: [productId], references: [id])
+  purchaseOrder   OMPurchaseOrder       @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+}
+
+model OMLogisticsPartner {
+  id             String            @id @default(uuid())
+  name           String            @db.VarChar(100)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  contactPerson  String?           @db.VarChar(100)
+  defaultMode    Modes             @default(SURFACE)
+  email          String?           @db.VarChar(100)
+  phone          String?           @db.VarChar(20)
+  dispatchOrders OMDispatchOrder[]
+}
+
+model OMDispatchOrder {
+  id                   String                @id @default(uuid())
+  purchaseOrderId      String
+  invoiceNumber        String?               @unique
+  invoiceDate          DateTime?
+  logisticsPartnerId   String?
+  docketNumber         String?
+  expectedDeliveryDate DateTime?
+  status               OMDispatchStatus      @default(CREATED)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  logisticsPartner     OMLogisticsPartner?   @relation(fields: [logisticsPartnerId], references: [id])
+  purchaseOrder        OMPurchaseOrder       @relation(fields: [purchaseOrderId], references: [id])
+  items                OMDispatchOrderItem[]
+}
+
+model OMDispatchOrderItem {
+  id                  String              @id @default(uuid())
+  dispatchOrderId     String
+  purchaseOrderItemId String
+  quantity            Int
+  rate                Float
+  amount              Float
+  gstPercentage       Float
+  gstAmount           Float
+  totalAmount         Float
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  dispatchOrder       OMDispatchOrder     @relation(fields: [dispatchOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderItem   OMPurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id])
+}
+
+model OMBrand {
+  id                  String                @id
+  name                String                @unique @db.VarChar(100)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  OMProduct           OMProduct[]
+  OMPurchaseOrderItem OMPurchaseOrderItem[]
 }
 
 enum Category {
@@ -282,153 +441,6 @@ enum Role {
   ADMIN
   CLIENT
   SYSTEM_USER
-}
-
-// Role Management System Models
-model SystemRole {
-  id          String             @id @default(uuid())
-  name        String             @unique @db.VarChar(50)
-  description String?            @db.VarChar(255)
-  isActive    Boolean            @default(true)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  permissions SystemPermission[]
-  users       SystemUser[]
-}
-
-model SystemPermission {
-  id          String       @id @default(uuid())
-  resource    String       @db.VarChar(50) // e.g., "users", "roles", "products", "orders", "clients", "companies"
-  action      String       @db.VarChar(20) // e.g., "create", "read", "update", "delete"
-  description String?      @db.VarChar(255)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  roles       SystemRole[]
-
-  @@unique([resource, action])
-}
-
-model SystemUser {
-  id        String     @id @default(uuid())
-  name      String     @db.VarChar(100)
-  email     String     @unique
-  password  String
-  isActive  Boolean    @default(true)
-  role      SystemRole @relation(fields: [roleId], references: [id])
-  roleId    String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-}
-
-// ==========================================
-// Order Management (OM) Models
-// ==========================================
-
-model OMClient {
-  id        String            @id @default(uuid())
-  name      String            @db.VarChar(100)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  pos       OMPurchaseOrder[]
-}
-
-model OMDeliveryLocation {
-  id        String            @id @default(uuid())
-  name      String            @db.VarChar(100)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  pos       OMPurchaseOrder[]
-}
-
-model OMPurchaseOrder {
-  id               String                @id @default(uuid())
-  client           OMClient              @relation(fields: [clientId], references: [id])
-  clientId         String
-  deliveryLocation OMDeliveryLocation?   @relation(fields: [locationId], references: [id])
-  locationId       String?
-  estimateNumber   String?               @unique
-  estimateDate     DateTime?
-  poNumber         String?               @unique
-  poDate           DateTime?
-  poReceivedDate   DateTime?
-  status           OMPoStatus            @default(CONFIRMED)
-  totalGst         Float                 @default(0)
-  grandTotal       Float                 @default(0)
-  items            OMPurchaseOrderItem[]
-  dispatchOrders   OMDispatchOrder[]
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
-}
-
-model OMProduct {
-  id                 String                @id @default(uuid())
-  name               String                @db.VarChar(100)
-  sku                String?               @unique @db.VarChar(100)
-  description        String?               @db.VarChar(255)
-  price              Float?
-  defaultGstPct      Float                 @default(18)
-  category           String?               @db.VarChar(100)
-  isActive           Boolean               @default(true)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  purchaseOrderItems OMPurchaseOrderItem[]
-}
-
-model OMPurchaseOrderItem {
-  id              String                @id @default(uuid())
-  purchaseOrder   OMPurchaseOrder       @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  purchaseOrderId String
-  product         OMProduct             @relation(fields: [productId], references: [id])
-  productId       String
-  quantity        Int
-  rate            Float
-  amount          Float
-  gstPercentage   Float
-  gstAmount       Float
-  totalAmount     Float
-  dispatchItems   OMDispatchOrderItem[]
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-}
-
-model OMLogisticsPartner {
-  id             String            @id @default(uuid())
-  name           String            @db.VarChar(100)
-  dispatchOrders OMDispatchOrder[]
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-}
-
-model OMDispatchOrder {
-  id                   String                @id @default(uuid())
-  purchaseOrder        OMPurchaseOrder       @relation(fields: [purchaseOrderId], references: [id])
-  purchaseOrderId      String
-  invoiceNumber        String?               @unique
-  invoiceDate          DateTime?
-  logisticsPartner     OMLogisticsPartner?   @relation(fields: [logisticsPartnerId], references: [id])
-  logisticsPartnerId   String?
-  docketNumber         String?
-  expectedDeliveryDate DateTime?
-  status               OMDispatchStatus      @default(CREATED)
-  items                OMDispatchOrderItem[]
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-}
-
-model OMDispatchOrderItem {
-  id                  String              @id @default(uuid())
-  dispatchOrder       OMDispatchOrder     @relation(fields: [dispatchOrderId], references: [id], onDelete: Cascade)
-  dispatchOrderId     String
-  purchaseOrderItem   OMPurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id])
-  purchaseOrderItemId String
-  quantity            Int
-  rate                Float
-  amount              Float
-  gstPercentage       Float
-  gstAmount           Float
-  totalAmount         Float
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
 }
 
 enum OMPoStatus {

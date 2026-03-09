@@ -1,11 +1,9 @@
+import { randomUUID } from "node:crypto";
 import {
   PrismaClient,
   Role,
-  Status,
-  Modes,
   OMPoStatus,
   OMDispatchStatus,
-  Reason,
 } from "../lib/generated/prisma";
 import bcrypt from "bcryptjs";
 
@@ -100,6 +98,8 @@ async function main() {
         availableStock: 500,
         description: `High quality ${p.name}`,
         categoryId: categories[p.catIdx].id,
+        images: [],
+        inventoryLogs: [],
       },
     });
     products.push(product);
@@ -159,7 +159,26 @@ async function main() {
     }
   }
 
-  // 7. Order Management (OM) Models
+  // 7. OMBrands (for OMProduct / OMPurchaseOrderItem) - optional if table exists
+  const omBrands: { id: string }[] = [];
+  try {
+    for (const name of ["Brand A", "Brand B", "Brand C"]) {
+      const brand = await prisma.oMBrand.upsert({
+        where: { name },
+        update: {},
+        create: {
+          id: randomUUID(),
+          name,
+          updatedAt: new Date(),
+        },
+      });
+      omBrands.push(brand);
+    }
+  } catch {
+    // OMBrand table may not exist in all environments
+  }
+
+  // 8. Order Management (OM) Models
   const omOrgs = [
     "Pepsi India",
     "Munch Global",
@@ -192,6 +211,9 @@ async function main() {
         sku: `OM-SKU-${omOrgs[i].substring(0, 3).toUpperCase()}-${i}`,
         price: 50 * (i + 1),
         defaultGstPct: 18,
+        ...(omBrands.length > 0 && {
+          brandId: omBrands[i % omBrands.length].id,
+        }),
       },
     });
 
@@ -209,7 +231,7 @@ async function main() {
     logisticsPartners.push(logP);
   }
 
-  // 8. OMPurchaseOrders & OMDispatchOrders with Varied Statuses
+  // 9. OMPurchaseOrders & OMDispatchOrders with Varied Statuses
   const statuses = [
     OMPoStatus.CONFIRMED, // 0: Just Confirmed
     OMPoStatus.PARTIALLY_DISPATCHED, // 1: Partial
@@ -241,6 +263,9 @@ async function main() {
             gstPercentage: 18,
             gstAmount: (omProducts[i].price || 50) * 100 * 0.18,
             totalAmount: (omProducts[i].price || 50) * 100 * 1.18,
+            ...(omBrands.length > 0 && {
+              brandId: omBrands[i % omBrands.length].id,
+            }),
           },
         },
       },
@@ -301,7 +326,7 @@ async function main() {
     }
   }
 
-  // 9. System Roles & Permissions
+  // 10. System Roles & Permissions
   const resources = ["users", "products", "orders", "clients", "companies"];
   const permissions = [];
   for (const res of resources) {
