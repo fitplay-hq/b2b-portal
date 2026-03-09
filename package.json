@@ -8,7 +8,11 @@
     "seed": "tsx prisma/seed.ts",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "node scripts/upload-chromium-to-blob.mjs"
+    "postinstall": "node scripts/upload-chromium-to-blob.mjs",
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down",
+    "db:migrate": "prisma migrate deploy",
+    "db:setup": "prisma migrate deploy && pnpm run seed"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",
