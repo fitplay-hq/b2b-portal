@@ -196,6 +196,10 @@ export function OMPurchaseOrderLineItems({
                       }
                     />
                     <OMNewBrandDialog
+                      productId={item.productId}
+                      currentBrandIds={selectedProduct?.brands?.map(
+                        (b) => b.id,
+                      )}
                       onBrandAdded={(brand) =>
                         onNewBrandAdded(item.tempId, brand)
                       }
@@ -205,6 +209,7 @@ export function OMPurchaseOrderLineItems({
                           variant="ghost"
                           size="sm"
                           className="h-10 w-10 p-0 border"
+                          disabled={!item.productId}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -397,30 +402,37 @@ export function OMPurchaseOrderLineItems({
                               onUpdateLineItem(item.tempId, "brandId", val)
                             }
                             placeholder={
-                              item.productId ? "Select Brand" : "Select Item First"
+                              item.productId
+                                ? "Select Brand"
+                                : "Select Item First"
                             }
                             searchPlaceholder="Search brands..."
                             disabled={
-                              !item.productId || filteredBrandOptions.length === 0
+                              !item.productId ||
+                              filteredBrandOptions.length === 0
                             }
                           />
-
                         </div>
-                      <OMNewBrandDialog
-                        onBrandAdded={(brand) =>
-                          onNewBrandAdded(item.tempId, brand)
-                        }
-                        trigger={
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-10 w-10 p-0 hover:bg-muted pr-0"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        }
-                      />
+                        <OMNewBrandDialog
+                          productId={item.productId}
+                          currentBrandIds={selectedProduct?.brands?.map(
+                            (b) => b.id,
+                          )}
+                          onBrandAdded={(brand) =>
+                            onNewBrandAdded(item.tempId, brand)
+                          }
+                          trigger={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-10 w-10 p-0 hover:bg-muted pr-0"
+                              disabled={!item.productId}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
                       </div>
                     </TableCell>
                     <TableCell className="p-3">

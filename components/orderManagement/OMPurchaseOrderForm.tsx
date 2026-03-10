@@ -42,7 +42,7 @@ interface OMPurchaseOrderFormProps {
   brands: OMBrand[];
   onSubmit: (data: any) => Promise<void>;
   isSubmitting: boolean;
-  onRefreshData: () => Promise<void>;
+  onRefreshData: (isSilent?: boolean) => Promise<void>;
 }
 
 export function OMPurchaseOrderForm({
@@ -67,6 +67,7 @@ export function OMPurchaseOrderForm({
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [nextTempId, setNextTempId] = useState(1);
   const fyPrefixRef = useRef(`FP/${getFinancialYearString()}/`);
+  const hasInitializedRef = useRef(false);
 
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
   const [newClientData, setNewClientData] = useState({
@@ -81,7 +82,8 @@ export function OMPurchaseOrderForm({
   const [isAddingClient, setIsAddingClient] = useState(false);
 
   useEffect(() => {
-    if (initialData) {
+    if (initialData && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
       setClientId(initialData.clientId || "");
       setLocationId(initialData.locationId || "");
 
@@ -186,13 +188,13 @@ export function OMPurchaseOrderForm({
   };
 
   const handleNewItemAdded = (tempId: string, product: OMProduct) => {
-    onRefreshData().then(() => {
+    onRefreshData(true).then(() => {
       updateLineItem(tempId, "productId", product.id, product);
     });
   };
 
   const handleNewBrandAdded = (tempId: string, brand: OMBrand) => {
-    onRefreshData().then(() => {
+    onRefreshData(true).then(() => {
       updateLineItem(tempId, "brandId", brand.id);
     });
   };

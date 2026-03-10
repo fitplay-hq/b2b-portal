@@ -49,8 +49,8 @@ export default function OMCreatePurchaseOrder() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchData = async () => {
-    setIsDataLoading(true);
+  const fetchData = async (isSilent = false) => {
+    if (!isSilent) setIsDataLoading(true);
     try {
       const [clientsRes, locationsRes, productsRes, brandsRes] =
         await Promise.all([
@@ -68,7 +68,7 @@ export default function OMCreatePurchaseOrder() {
       console.error("Error fetching master data:", err);
       toast.error("Failed to load form data");
     } finally {
-      setIsDataLoading(false);
+      if (!isSilent) setIsDataLoading(false);
     }
   };
 
