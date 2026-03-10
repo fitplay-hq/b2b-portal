@@ -167,7 +167,7 @@ export function OMNewItemDialog({
             />
           </div>
           <div className="col-span-2 space-y-2">
-            <Label>SKU (Merged Editor)</Label>
+            <Label>SKU</Label>
             <div
               className={`flex items-center border rounded-md overflow-hidden h-10 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${skuNotApplicable ? "bg-muted opacity-50 pointer-events-none" : "bg-muted/50"}`}
             >
