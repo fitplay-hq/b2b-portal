@@ -28,6 +28,8 @@ import {
   Search,
   X,
   Calendar,
+  Filter,
+  RotateCcw,
 } from "lucide-react";
 
 import {
@@ -44,7 +46,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState, useEffect } from "react";
+import { SearchableSelect, ComboboxOption } from "@/components/ui/combobox";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type {
   OMDashboardPO,
@@ -108,12 +111,80 @@ export default function OMDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState("today");
 
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    fromDate: "",
+    toDate: "",
+    clientName: "",
+    itemName: "",
+    brandName: "",
+    logisticsPartnerId: "",
+    locationId: "",
+    sku: "",
+    docketNumber: "",
+    gstPercentage: "",
+    minAmount: "",
+    maxAmount: "",
+    status: "",
+  });
+
+  const [clientOptions, setClientOptions] = useState<ComboboxOption[]>([]);
+  const [itemOptions, setItemOptions] = useState<ComboboxOption[]>([]);
+  const [brandOptions, setBrandOptions] = useState<ComboboxOption[]>([]);
+  const [logisticsOptions, setLogisticsOptions] = useState<ComboboxOption[]>(
+    [],
+  );
+  const [locationOptions, setLocationOptions] = useState<ComboboxOption[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+
+  const filteredBrandOptions = useMemo(() => {
+    if (!advancedFilters.itemName) return brandOptions;
+
+    const selectedProduct = products.find(
+      (p) => p.name === advancedFilters.itemName,
+    );
+    if (!selectedProduct) return [];
+
+    return (
+      selectedProduct.brands?.map((b: any) => ({
+        value: b.name,
+        label: b.name,
+      })) || []
+    );
+  }, [advancedFilters.itemName, products, brandOptions]);
+
   const fetchData = async (query: string = "") => {
     setIsLoading(true);
     try {
-      const res = await fetch(
-        `/api/admin/om/search?q=${encodeURIComponent(query)}`,
-      );
+      const params = new URLSearchParams();
+      if (query) params.append("q", query);
+      if (advancedFilters.fromDate)
+        params.append("fromDate", advancedFilters.fromDate);
+      if (advancedFilters.toDate)
+        params.append("toDate", advancedFilters.toDate);
+      if (advancedFilters.clientName)
+        params.append("clientName", advancedFilters.clientName);
+      if (advancedFilters.itemName)
+        params.append("itemName", advancedFilters.itemName);
+      if (advancedFilters.brandName)
+        params.append("brandName", advancedFilters.brandName);
+      if (advancedFilters.logisticsPartnerId)
+        params.append("logisticsPartnerId", advancedFilters.logisticsPartnerId);
+      if (advancedFilters.locationId)
+        params.append("locationId", advancedFilters.locationId);
+      if (advancedFilters.sku) params.append("sku", advancedFilters.sku);
+      if (advancedFilters.docketNumber)
+        params.append("docketNumber", advancedFilters.docketNumber);
+      if (advancedFilters.gstPercentage)
+        params.append("gstPercentage", advancedFilters.gstPercentage);
+      if (advancedFilters.minAmount)
+        params.append("minAmount", advancedFilters.minAmount);
+      if (advancedFilters.maxAmount)
+        params.append("maxAmount", advancedFilters.maxAmount);
+      if (advancedFilters.status)
+        params.append("status", advancedFilters.status);
+
+      const res = await fetch(`/api/admin/om/search?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
 
@@ -164,6 +235,7 @@ export default function OMDashboard() {
             clientId: po.clientId,
             clientName: po.client?.name || "Unknown",
             invoiceNumber: d.invoiceNumber,
+            docketNumber: d.docketNumber || "",
             totalDispatchQty:
               d.items?.reduce(
                 (sum: number, i: OMDispatchOrderItem) => sum + i.quantity,
@@ -192,8 +264,58 @@ export default function OMDashboard() {
   };
 
   useEffect(() => {
-    fetchData();
+    const fetchOptions = async () => {
+      try {
+        const [clientsRes, productsRes, brandsRes, logisticsRes, locationsRes] =
+          await Promise.all([
+            fetch("/api/admin/om/clients"),
+            fetch("/api/admin/om/products"),
+            fetch("/api/admin/om/brands"),
+            fetch("/api/admin/om/logistics-partners"),
+            fetch("/api/admin/om/delivery-locations"),
+          ]);
+
+        if (clientsRes.ok) {
+          const clients = await clientsRes.json();
+          setClientOptions(
+            clients.map((c: any) => ({ value: c.name, label: c.name })),
+          );
+        }
+        if (productsRes.ok) {
+          const productsData = await productsRes.json();
+          setProducts(productsData);
+          setItemOptions(
+            productsData.map((p: any) => ({ value: p.name, label: p.name })),
+          );
+        }
+        if (brandsRes.ok) {
+          const brands = await brandsRes.json();
+          setBrandOptions(
+            brands.map((b: any) => ({ value: b.name, label: b.name })),
+          );
+        }
+        if (logisticsRes.ok) {
+          const logistics = await logisticsRes.json();
+          setLogisticsOptions(
+            logistics.map((l: any) => ({ value: l.id, label: l.name })),
+          );
+        }
+        if (locationsRes.ok) {
+          const locations = await locationsRes.json();
+          setLocationOptions(
+            locations.map((l: any) => ({ value: l.id, label: l.name })),
+          );
+        }
+      } catch (err) {
+        console.error("Failed to fetch filter options:", err);
+      }
+    };
+    fetchOptions();
   }, []);
+
+  useEffect(() => {
+    fetchData(searchQuery);
+  }, [advancedFilters]);
 
   const getTotalDispatchedForPO = (poId: string) => {
     return omDispatches
@@ -353,6 +475,119 @@ export default function OMDashboard() {
     }
   };
 
+  const resetFilters = () => {
+    setAdvancedFilters({
+      fromDate: "",
+      toDate: "",
+      clientName: "",
+      itemName: "",
+      brandName: "",
+      logisticsPartnerId: "",
+      locationId: "",
+      sku: "",
+      docketNumber: "",
+      gstPercentage: "",
+      minAmount: "",
+      maxAmount: "",
+      status: "",
+    });
+    setSearchQuery("");
+    setIsSearching(false);
+  };
+
+  const removeFilter = (key: string) => {
+    setAdvancedFilters((prev) => ({ ...prev, [key]: "" }));
+  };
+
+  const getActiveFilters = () => {
+    const active = [];
+    if (advancedFilters.fromDate)
+      active.push({
+        key: "fromDate",
+        label: "From",
+        value: advancedFilters.fromDate,
+      });
+    if (advancedFilters.toDate)
+      active.push({
+        key: "toDate",
+        label: "To",
+        value: advancedFilters.toDate,
+      });
+    if (advancedFilters.clientName)
+      active.push({
+        key: "clientName",
+        label: "Client",
+        value: advancedFilters.clientName,
+      });
+    if (advancedFilters.itemName)
+      active.push({
+        key: "itemName",
+        label: "Item",
+        value: advancedFilters.itemName,
+      });
+    if (advancedFilters.brandName)
+      active.push({
+        key: "brandName",
+        label: "Brand",
+        value: advancedFilters.brandName,
+      });
+    if (advancedFilters.logisticsPartnerId) {
+      const label = logisticsOptions.find(
+        (o) => o.value === advancedFilters.logisticsPartnerId,
+      )?.label;
+      active.push({
+        key: "logisticsPartnerId",
+        label: "Logistics",
+        value: label || advancedFilters.logisticsPartnerId,
+      });
+    }
+    if (advancedFilters.locationId) {
+      const label = locationOptions.find(
+        (o) => o.value === advancedFilters.locationId,
+      )?.label;
+      active.push({
+        key: "locationId",
+        label: "Location",
+        value: label || advancedFilters.locationId,
+      });
+    }
+    if (advancedFilters.sku)
+      active.push({ key: "sku", label: "SKU", value: advancedFilters.sku });
+    if (advancedFilters.docketNumber)
+      active.push({
+        key: "docketNumber",
+        label: "Tracking #",
+        value: advancedFilters.docketNumber,
+      });
+    if (advancedFilters.gstPercentage)
+      active.push({
+        key: "gstPercentage",
+        label: "GST %",
+        value: advancedFilters.gstPercentage + "%",
+      });
+    if (advancedFilters.minAmount)
+      active.push({
+        key: "minAmount",
+        label: "Min Amount",
+        value: "₹" + advancedFilters.minAmount,
+      });
+    if (advancedFilters.maxAmount)
+      active.push({
+        key: "maxAmount",
+        label: "Max Amount",
+        value: "₹" + advancedFilters.maxAmount,
+      });
+
+    if (advancedFilters.status && advancedFilters.status !== "ALL")
+      active.push({
+        key: "status",
+        label: "Status",
+        value:
+          PO_STATUS_LABELS[advancedFilters.status] || advancedFilters.status,
+      });
+    return active;
+  };
+
   if (isLoading) {
     return (
       <Layout isClient={false}>
@@ -462,6 +697,16 @@ export default function OMDashboard() {
         po.deliveryLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
         po.lineItems.some((item) =>
           item.itemName.toLowerCase().includes(searchQuery.toLowerCase()),
+        ) ||
+        omDispatches.some(
+          (d) =>
+            d.poId === po.id &&
+            (d.invoiceNumber
+              ?.toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+              d.logisticsPartnerName
+                ?.toLowerCase()
+                .includes(searchQuery.toLowerCase())),
         ),
     ),
     dispatches: omDispatches.filter(
@@ -534,15 +779,24 @@ export default function OMDashboard() {
 
         {/* Master Search Bar */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle>Master Search</CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="h-8 flex gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              {showAdvancedFilters ? "Hide Filters" : "Show Filters"}
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by client name, item name, PO number, invoice number, or location..."
+                  placeholder="Search by client, item, PO/Estimate #, invoice, tracking #, brand, logistics, location, SKU, rate, amount, GST"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -556,9 +810,224 @@ export default function OMDashboard() {
               )}
               <Button onClick={handleSearch}>Search</Button>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Search across all POs, dispatches, clients, and items
-            </p>
+
+            {showAdvancedFilters && (
+              <div className="mt-6 pt-6 border-t animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+                      From Date
+                    </label>
+                    <div className="relative">
+                      <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                      <Input
+                        type="date"
+                        value={advancedFilters.fromDate}
+                        onChange={(e) =>
+                          setAdvancedFilters((prev) => ({
+                            ...prev,
+                            fromDate: e.target.value,
+                          }))
+                        }
+                        className="pl-9 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+                      To Date
+                    </label>
+                    <div className="relative">
+                      <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                      <Input
+                        type="date"
+                        value={advancedFilters.toDate}
+                        onChange={(e) =>
+                          setAdvancedFilters((prev) => ({
+                            ...prev,
+                            toDate: e.target.value,
+                          }))
+                        }
+                        className="pl-9 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Client Name
+                    </label>
+                    <SearchableSelect
+                      options={clientOptions}
+                      value={advancedFilters.clientName}
+                      onValueChange={(val) =>
+                        setAdvancedFilters((prev) => ({
+                          ...prev,
+                          clientName: val,
+                        }))
+                      }
+                      placeholder="Select client..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Item Name
+                    </label>
+                    <SearchableSelect
+                      options={itemOptions}
+                      value={advancedFilters.itemName}
+                      onValueChange={(val) => {
+                        setAdvancedFilters((prev) => {
+                          const newState = { ...prev, itemName: val };
+                          if (val) {
+                            const selectedProduct = products.find(
+                              (p) => p.name === val,
+                            );
+                            const availableBrands =
+                              selectedProduct?.brands?.map(
+                                (b: any) => b.name,
+                              ) || [];
+                            if (!availableBrands.includes(prev.brandName)) {
+                              newState.brandName = "";
+                            }
+                          }
+                          return newState;
+                        });
+                      }}
+                      placeholder="Select item..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Brand Name
+                    </label>
+                    <SearchableSelect
+                      options={filteredBrandOptions}
+                      value={advancedFilters.brandName}
+                      onValueChange={(val) =>
+                        setAdvancedFilters((prev) => ({
+                          ...prev,
+                          brandName: val,
+                        }))
+                      }
+                      placeholder={
+                        advancedFilters.itemName
+                          ? "Select brand..."
+                          : "Select item first..."
+                      }
+                      disabled={!advancedFilters.itemName}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Logistics Partner
+                    </label>
+                    <SearchableSelect
+                      options={logisticsOptions}
+                      value={advancedFilters.logisticsPartnerId}
+                      onValueChange={(val) =>
+                        setAdvancedFilters((prev) => ({
+                          ...prev,
+                          logisticsPartnerId: val,
+                        }))
+                      }
+                      placeholder="Select partner..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Delivery Location
+                    </label>
+                    <SearchableSelect
+                      options={locationOptions}
+                      value={advancedFilters.locationId}
+                      onValueChange={(val) =>
+                        setAdvancedFilters((prev) => ({
+                          ...prev,
+                          locationId: val,
+                        }))
+                      }
+                      placeholder="Select location..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Status
+                    </label>
+                    <Select
+                      value={advancedFilters.status}
+                      onValueChange={(val) =>
+                        setAdvancedFilters((prev) => ({ ...prev, status: val }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PO_STATUS_LABELS).map(
+                          ([val, label]) => (
+                            <SelectItem key={val} value={val}>
+                              {label}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-end lg:col-span-1 xl:col-start-4">
+                    <Button
+                      variant="outline"
+                      className="w-full flex gap-2"
+                      onClick={resetFilters}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reset All Filters
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {getActiveFilters().length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2 items-center">
+                <span className="text-xs text-muted-foreground font-medium mr-1">
+                  Active Filters:
+                </span>
+                {getActiveFilters().map((filter) => (
+                  <Badge
+                    key={filter.key}
+                    variant="secondary"
+                    className="flex gap-1 items-center px-2 py-1 bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 transition-colors"
+                  >
+                    <span className="font-bold opacity-70 uppercase text-[10px]">
+                      {filter.label}:
+                    </span>
+                    <span>{filter.value}</span>
+                    <button
+                      onClick={() => removeFilter(filter.key)}
+                      className="ml-1 hover:text-blue-900 rounded-full hover:bg-blue-200 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                >
+                  Clear all
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -694,6 +1163,7 @@ export default function OMDashboard() {
                           <TableHead>Client</TableHead>
                           <TableHead className="text-right">Quantity</TableHead>
                           <TableHead>Courier</TableHead>
+                          <TableHead>Tracking #</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -712,6 +1182,7 @@ export default function OMDashboard() {
                             <TableCell>
                               {dispatch.logisticsPartnerName}
                             </TableCell>
+                            <TableCell>{dispatch.docketNumber}</TableCell>
                             <TableCell>
                               <Badge
                                 className={getDispatchStatusClass(

@@ -194,6 +194,7 @@ export interface OMDashboardDispatch {
   invoiceNumber: string;
   totalDispatchQty: number;
   logisticsPartnerName: string;
+  docketNumber: string;
   status: OMDispatchStatus;
   lineItems: OMDashboardDispatchLineItem[];
 }
