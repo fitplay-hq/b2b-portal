@@ -58,13 +58,12 @@ export function OMNewLocationDialog({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button type="button" variant="outline" size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Location
+          <Button type="button" variant="outline" size="default">
+            <Plus className="h-5 w-5" />
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Add New Location</DialogTitle>
         </DialogHeader>
