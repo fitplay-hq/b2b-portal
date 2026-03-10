@@ -116,7 +116,7 @@ export default function OMDashboard() {
   const [omPurchaseOrders, setPurchaseOrders] = useState<OMDashboardPO[]>([]);
   const [omDispatches, setDispatches] = useState<OMDashboardDispatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState("today");
+  const [timeRange, setTimeRange] = useState("all");
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState({

@@ -49,6 +49,10 @@ import type {
   OMClient,
 } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import {
+  OMSortControl,
+  type SortOption,
+} from "@/components/orderManagement/OMSortControl";
 
 export default function OMDispatchesList() {
   const router = useRouter();
@@ -58,6 +62,7 @@ export default function OMDispatchesList() {
   const [dispatches, setDispatches] = useState<OMDispatchOrder[]>([]);
   const [clients, setClients] = useState<OMClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   const fetchClients = async () => {
     try {
@@ -102,24 +107,49 @@ export default function OMDispatchesList() {
   }, [statusFilter]);
 
   // Filter dispatches client-side
-  const filteredDispatches = dispatches.filter((dispatch) => {
-    const clientName = dispatch.purchaseOrder?.client?.name || "Unknown";
-    const poNumber = dispatch.purchaseOrder?.poNumber || "N/A";
+  const filteredDispatches = dispatches
+    .filter((dispatch) => {
+      const clientName = dispatch.purchaseOrder?.client?.name || "Unknown";
+      const poNumber = dispatch.purchaseOrder?.poNumber || "N/A";
 
-    const matchesSearch =
-      dispatch.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (dispatch.docketNumber || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      const matchesSearch =
+        dispatch.invoiceNumber
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (dispatch.docketNumber || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
 
-    const matchesClient =
-      clientFilter === "all" ||
-      dispatch.purchaseOrder?.clientId === clientFilter;
+      const matchesClient =
+        clientFilter === "all" ||
+        dispatch.purchaseOrder?.clientId === clientFilter;
 
-    return matchesSearch && matchesClient;
-  });
+      return matchesSearch && matchesClient;
+    })
+    .sort((a, b) => {
+      const aClientName = a.purchaseOrder?.client?.name || "";
+      const bClientName = b.purchaseOrder?.client?.name || "";
+      if (sortBy === "name_asc") return aClientName.localeCompare(bClientName);
+      if (sortBy === "name_desc") return bClientName.localeCompare(aClientName);
+      if (sortBy === "newest")
+        return (
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+        );
+      if (sortBy === "oldest")
+        return (
+          new Date(a.createdAt || 0).getTime() -
+          new Date(b.createdAt || 0).getTime()
+        );
+      if (sortBy === "latest_update")
+        return (
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+        );
+      return 0;
+    });
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -379,7 +409,7 @@ export default function OMDispatchesList() {
             <CardTitle>Search & Filter</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 items-end gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -420,6 +450,13 @@ export default function OMDispatchesList() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <OMSortControl
+                value={sortBy}
+                onValueChange={setSortBy}
+                nameLabel="Client Name"
+                className="w-full"
+              />
             </div>
           </CardContent>
         </Card>

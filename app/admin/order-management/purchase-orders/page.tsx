@@ -12,6 +12,10 @@ import { OMPurchaseOrderListTable } from "@/components/orderManagement/OMPurchas
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  OMSortControl,
+  type SortOption,
+} from "@/components/orderManagement/OMSortControl";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -31,6 +35,7 @@ export default function OMPurchaseOrdersList() {
   const [clients, setClients] = useState<OMClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [meta, setMeta] = useState<OMPaginationMeta | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   const [deletePo, setDeletePo] = useState<OMPurchaseOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -99,17 +104,40 @@ export default function OMPurchaseOrdersList() {
     }
   };
 
-  const filteredPOs = purchaseOrders.filter((po) => {
-    const searchLower = searchTerm.toLowerCase();
-    const poNum = (po.poNumber || "").toLowerCase();
-    const estNum = (po.estimateNumber || "").toLowerCase();
-    const clientName = (po.client?.name || "").toLowerCase();
-    return (
-      poNum.includes(searchLower) ||
-      estNum.includes(searchLower) ||
-      clientName.includes(searchLower)
-    );
-  });
+  const filteredPOs = purchaseOrders
+    .filter((po) => {
+      const searchLower = searchTerm.toLowerCase();
+      const poNum = (po.poNumber || "").toLowerCase();
+      const estNum = (po.estimateNumber || "").toLowerCase();
+      const clientName = (po.client?.name || "").toLowerCase();
+      return (
+        poNum.includes(searchLower) ||
+        estNum.includes(searchLower) ||
+        clientName.includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      if (sortBy === "name_asc")
+        return (a.client?.name || "").localeCompare(b.client?.name || "");
+      if (sortBy === "name_desc")
+        return (b.client?.name || "").localeCompare(a.client?.name || "");
+      if (sortBy === "newest")
+        return (
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+        );
+      if (sortBy === "oldest")
+        return (
+          new Date(a.createdAt || 0).getTime() -
+          new Date(b.createdAt || 0).getTime()
+        );
+      if (sortBy === "latest_update")
+        return (
+          new Date(b.updatedAt || 0).getTime() -
+          new Date(a.updatedAt || 0).getTime()
+        );
+      return 0;
+    });
 
   const handleExportExcel = () => {
     toast.info("Exporting to Excel...");
@@ -173,6 +201,14 @@ export default function OMPurchaseOrdersList() {
               onClientChange={setClientFilter}
               clients={clients}
             />
+            <div className="mt-4 flex justify-start items-end">
+              <OMSortControl
+                value={sortBy}
+                onValueChange={setSortBy}
+                nameLabel="Client Name"
+                className="w-full md:w-[200px]"
+              />
+            </div>
           </CardContent>
         </Card>
 

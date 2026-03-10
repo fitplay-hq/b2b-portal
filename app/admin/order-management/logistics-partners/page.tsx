@@ -56,6 +56,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { OMLogisticsPartner } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import {
+  OMSortControl,
+  type SortOption,
+} from "@/components/orderManagement/OMSortControl";
 
 export default function OMLogisticsPartners() {
   const [partners, setPartners] = useState<OMLogisticsPartner[]>([]);
@@ -68,6 +72,7 @@ export default function OMLogisticsPartners() {
   const [viewingPartner, setViewingPartner] =
     useState<OMLogisticsPartner | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -195,23 +200,39 @@ export default function OMLogisticsPartners() {
     }
   };
 
-  const filteredPartners = partners.filter(
-    (partner) =>
-      partner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (partner.contactPerson || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      (partner.email || "").toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredPartners = partners
+    .filter(
+      (partner) =>
+        partner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (partner.contactPerson || "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        (partner.email || "").toLowerCase().includes(searchQuery.toLowerCase()),
+    )
+    .sort((a, b) => {
+      if (sortBy === "name_asc") return a.name.localeCompare(b.name);
+      if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+      if (sortBy === "newest")
+        return (
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+        );
+      if (sortBy === "oldest")
+        return (
+          new Date(a.createdAt || 0).getTime() -
+          new Date(b.createdAt || 0).getTime()
+        );
+      if (sortBy === "latest_update")
+        return (
+          new Date(b.updatedAt || 0).getTime() -
+          new Date(a.updatedAt || 0).getTime()
+        );
+      return 0;
+    });
 
   // Export to CSV/Excel
   const exportToExcel = () => {
-    const headers = [
-      "Partner Name",
-      "Contact Person",
-      "Phone",
-      "Email",
-    ];
+    const headers = ["Partner Name", "Contact Person", "Phone", "Email"];
     const rows = filteredPartners.map((partner) => [
       partner.name,
       partner.contactPerson || "-",
@@ -259,9 +280,7 @@ export default function OMLogisticsPartners() {
     );
     doc.setTextColor(0, 0, 0);
     autoTable(doc, {
-      head: [
-        ["Partner Name", "Contact Person", "Phone", "Email"],
-      ],
+      head: [["Partner Name", "Contact Person", "Phone", "Email"]],
       body: filteredPartners.map((partner) => [
         partner.name,
         partner.contactPerson || "-",
@@ -517,8 +536,8 @@ export default function OMLogisticsPartners() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <div className="relative">
+            <div className="mb-4 flex flex-col md:flex-row items-end gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, contact person, or email..."
@@ -527,6 +546,12 @@ export default function OMLogisticsPartners() {
                   className="pl-10"
                 />
               </div>
+              <OMSortControl
+                value={sortBy}
+                onValueChange={setSortBy}
+                nameLabel="Partner Name"
+                className="w-full md:w-[200px]"
+              />
             </div>
 
             <div className="border rounded-lg">

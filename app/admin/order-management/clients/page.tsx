@@ -50,6 +50,10 @@ import { toast } from "sonner";
 import type { OMClient } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { OMClientForm } from "@/components/orderManagement/OMClientForm";
+import {
+  OMSortControl,
+  type SortOption,
+} from "@/components/orderManagement/OMSortControl";
 
 export default function OMClients() {
   const [clients, setClients] = useState<OMClient[]>([]);
@@ -60,6 +64,7 @@ export default function OMClients() {
   const [editingClient, setEditingClient] = useState<OMClient | null>(null);
   const [viewingClient, setViewingClient] = useState<OMClient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -193,17 +198,40 @@ export default function OMClients() {
     }
   };
 
-  const filteredClients = clients.filter(
-    (client) =>
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (client.contactPerson || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      (client.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (client.gstNumber || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()),
-  );
+  const filteredClients = clients
+    .filter(
+      (client) =>
+        client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (client.contactPerson || "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        (client.email || "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        (client.gstNumber || "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()),
+    )
+    .sort((a, b) => {
+      if (sortBy === "name_asc") return a.name.localeCompare(b.name);
+      if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+      if (sortBy === "newest")
+        return (
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+        );
+      if (sortBy === "oldest")
+        return (
+          new Date(a.createdAt || 0).getTime() -
+          new Date(b.createdAt || 0).getTime()
+        );
+      if (sortBy === "latest_update")
+        return (
+          new Date(b.updatedAt || 0).getTime() -
+          new Date(a.updatedAt || 0).getTime()
+        );
+      return 0;
+    });
 
   // Export to CSV/Excel
   const exportToExcel = () => {
@@ -488,8 +516,8 @@ export default function OMClients() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <div className="relative">
+            <div className="mb-4 flex flex-col md:flex-row items-end gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, contact, email, or GST number..."
@@ -498,6 +526,12 @@ export default function OMClients() {
                   className="pl-10"
                 />
               </div>
+              <OMSortControl
+                value={sortBy}
+                onValueChange={setSortBy}
+                nameLabel="Client Name"
+                className="w-full md:w-[200px]"
+              />
             </div>
 
             <div className="border rounded-lg">
