@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -98,6 +99,7 @@ export default function OMItems() {
     code: "",
     skuProductPart: "",
     isPrdManuallyEdited: false,
+    skuNotApplicable: true,
   });
 
   const fetchItems = async () => {
@@ -151,6 +153,7 @@ export default function OMItems() {
       code: "",
       skuProductPart: "",
       isPrdManuallyEdited: false,
+      skuNotApplicable: true,
     });
     setEditingItem(null);
   };
@@ -162,7 +165,9 @@ export default function OMItems() {
     const brand = brands.find((b) => formData.brandIds.includes(b.id));
     const brandPart = skuBrandPart(brand?.name);
     const prdPart = formData.skuProductPart;
-    const finalSku = `FP-${brandPart}-${prdPart || "PRD"}-${formData.code}`;
+    const finalSku = formData.skuNotApplicable
+      ? null
+      : `FP-${brandPart}-${prdPart || "PRD"}-${formData.code}`;
 
     const submissionData = {
       ...formData,
@@ -171,6 +176,7 @@ export default function OMItems() {
       defaultGstPct: parseFloat(formData.defaultGstPct),
       brandIds: formData.brandIds.length > 0 ? formData.brandIds : [],
     };
+    delete (submissionData as any).skuNotApplicable;
 
     try {
       const url = editingItem
@@ -214,6 +220,7 @@ export default function OMItems() {
       code: item.sku?.split("-").pop() || "",
       skuProductPart: item.sku?.split("-")[2] || skuProductPart(item.name),
       isPrdManuallyEdited: true, // Treat existing items as manually edited to prevent auto-refill on rename
+      skuNotApplicable: !item.sku,
     });
     setIsAddDialogOpen(true);
   };
@@ -473,8 +480,9 @@ export default function OMItems() {
                         )}
                       </div>
                       <div className="col-span-2 space-y-2">
-                        <Label>SKU (Merged Editor)</Label>
-                        <div className="flex items-center border rounded-md overflow-hidden bg-muted/50 h-10 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                        <div
+                          className={`flex items-center border rounded-md overflow-hidden h-10 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${formData.skuNotApplicable ? "bg-muted opacity-50 pointer-events-none" : "bg-muted/50"}`}
+                        >
                           <div className="px-3 h-full flex items-center bg-muted text-xs font-mono font-bold border-r">
                             FP
                           </div>
@@ -488,8 +496,9 @@ export default function OMItems() {
                           </div>
                           <div className="px-1 text-muted-foreground">-</div>
                           <input
-                            className="px-2 h-full w-16 flex items-center bg-background text-xs font-mono text-center outline-none border-x focus:bg-accent"
+                            className="px-2 h-full w-16 flex items-center bg-background text-xs font-mono text-center outline-none border-x focus:bg-accent disabled:bg-muted"
                             value={formData.skuProductPart}
+                            disabled={formData.skuNotApplicable}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -504,8 +513,9 @@ export default function OMItems() {
                           />
                           <div className="px-1 text-muted-foreground">-</div>
                           <input
-                            className="px-3 h-full flex-1 min-w-0 bg-background text-xs font-mono font-bold text-primary outline-none focus:bg-accent"
+                            className="px-3 h-full flex-1 min-w-0 bg-background text-xs font-mono font-bold text-primary outline-none focus:bg-accent disabled:bg-muted"
                             value={formData.code}
+                            disabled={formData.skuNotApplicable}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -517,9 +527,28 @@ export default function OMItems() {
                             placeholder="SUFFIX"
                           />
                         </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          Format: FP-[BRAND]-[PRODUCT]-[SUFFIX]. Product &
-                          Suffix are editable.
+                        <div className="flex items-center space-x-2 ml-1">
+                          <Checkbox
+                            id="skuNotApplicable"
+                            checked={formData.skuNotApplicable}
+                            onCheckedChange={(checked) =>
+                              setFormData({
+                                ...formData,
+                                skuNotApplicable: !!checked,
+                              })
+                            }
+                          />
+                          <Label
+                            htmlFor="skuNotApplicable"
+                            className="text-[10px] font-normal cursor-pointer"
+                          >
+                            SKU is not applicable
+                          </Label>
+                        </div>
+                        <p className="ml-1 text-[10px] text-muted-foreground">
+                          {formData.skuNotApplicable
+                            ? "SKU is marked as not applicable."
+                            : "Format: FP-[BRAND]-[PRODUCT]-[SUFFIX]. Product & Suffix are editable."}
                         </p>
                       </div>
                       <div className="space-y-2">

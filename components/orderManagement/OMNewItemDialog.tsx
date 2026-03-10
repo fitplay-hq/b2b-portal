@@ -22,6 +22,7 @@ import {
 import { Plus, Loader2 } from "lucide-react";
 import { MultiSearchableSelect } from "@/components/ui/combobox";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 import { OMBrand, OMProduct } from "@/types/order-management";
 
 interface OMNewItemDialogProps {
@@ -51,6 +52,7 @@ export function OMNewItemDialog({
   const [code, setCode] = useState("");
   const [skuProductPartState, setSkuProductPartState] = useState("");
   const [isPrdManuallyEdited, setIsPrdManuallyEdited] = useState(false);
+  const [skuNotApplicable, setSkuNotApplicable] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const brandOptions = brands.map((b) => ({ value: b.id, label: b.name }));
@@ -72,12 +74,14 @@ export function OMNewItemDialog({
     const productPart = skuProductPartState.trim() || skuProductPart(name);
     const codePart = code.trim();
 
-    if (!codePart) {
+    if (!skuNotApplicable && !codePart) {
       toast.error("Item code suffix is required for SKU");
       return;
     }
 
-    const finalSku = `FP-${brandPart}-${productPart}-${codePart}`;
+    const finalSku = skuNotApplicable
+      ? null
+      : `FP-${brandPart}-${productPart}-${codePart}`;
 
     setIsSubmitting(true);
     try {
@@ -120,6 +124,7 @@ export function OMNewItemDialog({
     setCode("");
     setSkuProductPartState("");
     setIsPrdManuallyEdited(false);
+    setSkuNotApplicable(true);
   };
 
   return (
@@ -163,7 +168,9 @@ export function OMNewItemDialog({
           </div>
           <div className="col-span-2 space-y-2">
             <Label>SKU (Merged Editor)</Label>
-            <div className="flex items-center border rounded-md overflow-hidden bg-muted/50 h-10 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+            <div
+              className={`flex items-center border rounded-md overflow-hidden h-10 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${skuNotApplicable ? "bg-muted opacity-50 pointer-events-none" : "bg-muted/50"}`}
+            >
               <div className="px-3 h-full flex items-center bg-muted text-xs font-mono font-bold border-r">
                 FP
               </div>
@@ -179,8 +186,9 @@ export function OMNewItemDialog({
               </div>
               <div className="px-1 text-muted-foreground">-</div>
               <input
-                className="px-2 h-full w-16 flex items-center bg-background text-xs font-mono text-center outline-none border-x focus:bg-accent"
+                className="px-2 h-full w-16 flex items-center bg-background text-xs font-mono text-center outline-none border-x focus:bg-accent disabled:bg-muted"
                 value={skuProductPartState}
+                disabled={skuNotApplicable}
                 onChange={(e) => {
                   setSkuProductPartState(
                     e.target.value
@@ -194,8 +202,9 @@ export function OMNewItemDialog({
               />
               <div className="px-1 text-muted-foreground">-</div>
               <input
-                className="px-3 h-full flex-1 min-w-0 bg-background text-xs font-mono font-bold text-primary outline-none focus:bg-accent"
+                className="px-3 h-full flex-1 min-w-0 bg-background text-xs font-mono font-bold text-primary outline-none focus:bg-accent disabled:bg-muted"
                 value={code}
+                disabled={skuNotApplicable}
                 onChange={(e) =>
                   setCode(
                     e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase(),
@@ -204,9 +213,23 @@ export function OMNewItemDialog({
                 placeholder="SUFFIX"
               />
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="skuNotApplicableItem"
+                checked={skuNotApplicable}
+                onCheckedChange={(checked) => setSkuNotApplicable(!!checked)}
+              />
+              <Label
+                htmlFor="skuNotApplicableItem"
+                className="text-xs font-normal cursor-pointer"
+              >
+                SKU is not applicable
+              </Label>
+            </div>
             <p className="text-[10px] text-muted-foreground">
-              Format: FP-[BRAND]-[PRODUCT]-[SUFFIX]. Product & Suffix are
-              editable.
+              {skuNotApplicable
+                ? "SKU is marked as not applicable."
+                : "Format: FP-[BRAND]-[PRODUCT]-[SUFFIX]. Product & Suffix are editable."}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -247,7 +270,11 @@ export function OMNewItemDialog({
             type="button"
             className="w-full"
             onClick={handleSubmit}
-            disabled={isSubmitting || !name.trim() || !code.trim()}
+            disabled={
+              isSubmitting ||
+              !name.trim() ||
+              (!skuNotApplicable && !code.trim())
+            }
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add Item

@@ -211,7 +211,6 @@ export default function OMLogisticsPartners() {
       "Contact Person",
       "Phone",
       "Email",
-      "Default Mode",
     ];
     const rows = filteredPartners.map((partner) => [
       partner.name,
@@ -261,7 +260,7 @@ export default function OMLogisticsPartners() {
     doc.setTextColor(0, 0, 0);
     autoTable(doc, {
       head: [
-        ["Partner Name", "Contact Person", "Phone", "Email", "Default Mode"],
+        ["Partner Name", "Contact Person", "Phone", "Email"],
       ],
       body: filteredPartners.map((partner) => [
         partner.name,
@@ -413,26 +412,6 @@ export default function OMLogisticsPartners() {
                         placeholder="email@example.com"
                       />
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="defaultMode">Default Mode</Label>
-                      <Select
-                        value={formData.defaultMode}
-                        onValueChange={(value: "Air" | "Surface" | "Road") =>
-                          setFormData({ ...formData, defaultMode: value })
-                        }
-                        disabled
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Air">Air</SelectItem>
-                          <SelectItem value="Surface">Surface</SelectItem>
-                          <SelectItem value="Road">Road</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-4">
@@ -504,14 +483,6 @@ export default function OMLogisticsPartners() {
                           className="bg-muted"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>Default Mode</Label>
-                        <Input
-                          value={viewingPartner.defaultMode || "-"}
-                          readOnly
-                          className="bg-muted"
-                        />
-                      </div>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4 border-t">
@@ -566,7 +537,6 @@ export default function OMLogisticsPartners() {
                     <TableHead>Contact Person</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Default Mode</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -623,11 +593,6 @@ export default function OMLogisticsPartners() {
                         <TableCell>{partner.contactPerson || "-"}</TableCell>
                         <TableCell>{partner.phone || "-"}</TableCell>
                         <TableCell>{partner.email || "-"}</TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-                            {partner.defaultMode}
-                          </span>
-                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
