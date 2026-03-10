@@ -148,37 +148,65 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get("clientId");
     const status = searchParams.get("status");
-    const startDate = searchParams.get("startDate");
-    const endDate = searchParams.get("endDate");
+    const fromDate =
+      searchParams.get("fromDate") || searchParams.get("startDate");
+    const toDate = searchParams.get("toDate") || searchParams.get("endDate");
+    const search = searchParams.get("search") || searchParams.get("q") || "";
+    const poNumber = searchParams.get("poNumber");
+    const locationId = searchParams.get("locationId");
+
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    const whereClause: any = {};
+    const andFilters: any[] = [];
+
+    if (search) {
+      andFilters.push({
+        OR: [
+          { poNumber: { contains: search, mode: "insensitive" } },
+          { estimateNumber: { contains: search, mode: "insensitive" } },
+          { client: { name: { contains: search, mode: "insensitive" } } },
+        ],
+      });
+    }
 
     if (clientId) {
-      whereClause.clientId = clientId;
+      andFilters.push({ clientId });
+    }
+
+    if (poNumber) {
+      andFilters.push({
+        poNumber: { contains: poNumber, mode: "insensitive" },
+      });
+    }
+
+    if (locationId) {
+      andFilters.push({ locationId });
     }
 
     if (status) {
       if (status === "active") {
-        whereClause.status = {
-          in: ["CONFIRMED", "PARTIALLY_DISPATCHED"],
-        };
-      } else {
-        whereClause.status = status;
+        andFilters.push({
+          status: { in: ["CONFIRMED", "PARTIALLY_DISPATCHED"] },
+        });
+      } else if (status !== "all") {
+        andFilters.push({ status });
       }
     }
 
-    if (startDate || endDate) {
-      whereClause.poDate = {};
-      if (startDate) {
-        whereClause.poDate.gte = new Date(startDate);
+    if (fromDate || toDate) {
+      const dateFilter: any = {};
+      if (fromDate) dateFilter.gte = new Date(fromDate);
+      if (toDate) {
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        dateFilter.lte = endOfDay;
       }
-      if (endDate) {
-        whereClause.poDate.lte = new Date(endDate);
-      }
+      andFilters.push({ poDate: dateFilter });
     }
+
+    const whereClause = andFilters.length > 0 ? { AND: andFilters } : {};
 
     const [purchaseOrders, total] = await Promise.all([
       prisma.oMPurchaseOrder.findMany({

@@ -54,6 +54,10 @@ import {
   OMSortControl,
   type SortOption,
 } from "@/components/orderManagement/OMSortControl";
+import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
+import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
+import { ClientFilters } from "@/components/orderManagement/clients/ClientFilters";
+import { useMemo } from "react";
 
 export default function OMClients() {
   const [clients, setClients] = useState<OMClient[]>([]);
@@ -65,6 +69,10 @@ export default function OMClients() {
   const [viewingClient, setViewingClient] = useState<OMClient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    clientName: "",
+  });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -198,40 +206,80 @@ export default function OMClients() {
     }
   };
 
-  const filteredClients = clients
-    .filter(
-      (client) =>
-        client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (client.contactPerson || "")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        (client.email || "")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        (client.gstNumber || "")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()),
-    )
-    .sort((a, b) => {
-      if (sortBy === "name_asc") return a.name.localeCompare(b.name);
-      if (sortBy === "name_desc") return b.name.localeCompare(a.name);
-      if (sortBy === "newest")
-        return (
-          new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime()
-        );
-      if (sortBy === "oldest")
-        return (
-          new Date(a.createdAt || 0).getTime() -
-          new Date(b.createdAt || 0).getTime()
-        );
-      if (sortBy === "latest_update")
-        return (
-          new Date(b.updatedAt || 0).getTime() -
-          new Date(a.updatedAt || 0).getTime()
-        );
-      return 0;
+  const filteredClients = useMemo(() => {
+    return clients
+      .filter((client) => {
+        // Text search
+        const matchesSearch =
+          !searchQuery ||
+          client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (client.contactPerson || "")
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          (client.email || "")
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          (client.gstNumber || "")
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
+
+        // Advanced filters
+        const matchesClient =
+          !filters.clientName || client.name === filters.clientName;
+
+        return matchesSearch && matchesClient;
+      })
+      .sort((a, b) => {
+        if (sortBy === "name_asc") return a.name.localeCompare(b.name);
+        if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+        if (sortBy === "newest")
+          return (
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime()
+          );
+        if (sortBy === "oldest")
+          return (
+            new Date(a.createdAt || 0).getTime() -
+            new Date(b.createdAt || 0).getTime()
+          );
+        if (sortBy === "latest_update")
+          return (
+            new Date(b.updatedAt || 0).getTime() -
+            new Date(a.updatedAt || 0).getTime()
+          );
+        return 0;
+      });
+  }, [clients, searchQuery, filters, sortBy]);
+
+  const resetFilters = () => {
+    setFilters({
+      clientName: "",
     });
+    setSearchQuery("");
+  };
+
+  const removeFilter = (key: string) => {
+    setFilters((prev: any) => ({ ...prev, [key]: "" }));
+  };
+
+  const activeFilters = useMemo(() => {
+    const active = [];
+    if (filters.clientName) {
+      active.push({
+        key: "clientName",
+        label: "Client",
+        value: filters.clientName,
+      });
+    }
+    return active;
+  }, [filters]);
+
+  const clientOptions = useMemo(() => {
+    return Array.from(new Set(clients.map((c) => c.name))).map((name) => ({
+      value: name,
+      label: name,
+    }));
+  }, [clients]);
 
   // Export to CSV/Excel
   const exportToExcel = () => {
@@ -508,32 +556,33 @@ export default function OMClients() {
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Client List</CardTitle>
-            <CardDescription>
-              Total {clients.length} clients registered
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4 flex flex-col md:flex-row items-end gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name, contact, email, or GST number..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <OMSortControl
-                value={sortBy}
-                onValueChange={setSortBy}
-                nameLabel="Client Name"
-                className="w-full md:w-[200px]"
-              />
-            </div>
+        <OMFilterCard
+          title="Filters"
+          subtitle={`Total ${clients.length} clients registered`}
+          searchPlaceholder="Search by name, contact, email, or GST number..."
+          searchTerm={searchQuery}
+          onSearchChange={setSearchQuery}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          sortNameLabel="Client Name"
+          showFilters={showFilters}
+          setShowFilters={setShowFilters}
+          onReset={resetFilters}
+        >
+          <ClientFilters
+            filters={filters}
+            setFilters={setFilters}
+            clientOptions={clientOptions}
+          />
+          <OMActiveFilters
+            activeFilters={activeFilters}
+            onRemove={removeFilter}
+            onClearAll={resetFilters}
+          />
+        </OMFilterCard>
 
+        <Card>
+          <CardContent className="pt-6">
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>

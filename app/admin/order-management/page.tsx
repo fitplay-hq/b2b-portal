@@ -37,6 +37,8 @@ import {
   Filter,
   RotateCcw,
   Box,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 import {
@@ -145,6 +147,7 @@ export default function OMDashboard() {
   );
   const [poOptions, setPoOptions] = useState<ComboboxOption[]>([]);
   const [invoiceOptions, setInvoiceOptions] = useState<ComboboxOption[]>([]);
+  const [docketOptions, setDocketOptions] = useState<ComboboxOption[]>([]);
   const [locationOptions, setLocationOptions] = useState<ComboboxOption[]>([]);
   const [products, setProducts] = useState<any[]>([]);
 
@@ -280,26 +283,42 @@ export default function OMDashboard() {
     }
   };
 
+  const fetchDynamicOptions = async () => {
+    try {
+      const clientParam = advancedFilters.clientName
+        ? `?clientName=${encodeURIComponent(advancedFilters.clientName)}`
+        : "";
+      const [poRes, invRes, docketRes] = await Promise.all([
+        fetch(`/api/admin/om/purchase-orders/options${clientParam}`),
+        fetch(`/api/admin/om/dispatch-orders/options${clientParam}`),
+        fetch(
+          `/api/admin/om/dispatch-orders/options${clientParam}${clientParam ? "&" : "?"}type=docket`,
+        ),
+      ]);
+
+      if (poRes.ok) setPoOptions(await poRes.json());
+      if (invRes.ok) setInvoiceOptions(await invRes.json());
+      if (docketRes.ok) setDocketOptions(await docketRes.json());
+    } catch (err) {
+      console.error("Failed to fetch dynamic options", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchOptions = async () => {
+    fetchDynamicOptions();
+  }, [advancedFilters.clientName]);
+
+  useEffect(() => {
+    const fetchStaticOptions = async () => {
       try {
-        const [
-          clientsRes,
-          productsRes,
-          brandsRes,
-          logisticsRes,
-          locationsRes,
-          poOptionsRes,
-          invoiceOptionsRes,
-        ] = await Promise.all([
-          fetch("/api/admin/om/clients"),
-          fetch("/api/admin/om/products"),
-          fetch("/api/admin/om/brands"),
-          fetch("/api/admin/om/logistics-partners"),
-          fetch("/api/admin/om/delivery-locations"),
-          fetch("/api/admin/om/purchase-orders/options"),
-          fetch("/api/admin/om/dispatch-orders/options"),
-        ]);
+        const [clientsRes, productsRes, brandsRes, logisticsRes, locationsRes] =
+          await Promise.all([
+            fetch("/api/admin/om/clients"),
+            fetch("/api/admin/om/products"),
+            fetch("/api/admin/om/brands"),
+            fetch("/api/admin/om/logistics-partners"),
+            fetch("/api/admin/om/delivery-locations"),
+          ]);
 
         if (clientsRes.ok) {
           const clients = await clientsRes.json();
@@ -332,19 +351,11 @@ export default function OMDashboard() {
             locations.map((l: any) => ({ value: l.id, label: l.name })),
           );
         }
-        if (poOptionsRes.ok) {
-          const poOpts = await poOptionsRes.json();
-          setPoOptions(poOpts);
-        }
-        if (invoiceOptionsRes.ok) {
-          const invOpts = await invoiceOptionsRes.json();
-          setInvoiceOptions(invOpts);
-        }
       } catch (err) {
         console.error("Failed to fetch filter options:", err);
       }
     };
-    fetchOptions();
+    fetchStaticOptions();
   }, []);
 
   useEffect(() => {
@@ -642,22 +653,34 @@ export default function OMDashboard() {
   const searchResults = useMemo(() => {
     const pos = omPurchaseOrders.filter(
       (po) =>
-        po.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        po.estimateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        po.poNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        po.deliveryLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (po.clientName ?? "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        (po.estimateNumber ?? "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        (po.poNumber ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (po.deliveryLocation ?? "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
         po.lineItems.some(
           (item) =>
-            item.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (item.itemName ?? "")
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
             item.itemSku?.toLowerCase().includes(searchQuery.toLowerCase()),
         ),
     );
 
     const dispatches = omDispatches.filter(
       (d) =>
-        d.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.poNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (d.clientName ?? "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        (d.invoiceNumber ?? "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        (d.poNumber ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         d.lineItems.some(
           (item) =>
             (item.itemName ?? "")
@@ -672,7 +695,9 @@ export default function OMDashboard() {
     omPurchaseOrders.forEach((po) => {
       po.lineItems.forEach((item) => {
         if (
-          item.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (item.itemName ?? "")
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
           item.itemSku?.toLowerCase().includes(searchQuery.toLowerCase())
         ) {
           const existing = itemsMap.get(item.itemName) || {
@@ -877,10 +902,15 @@ export default function OMDashboard() {
               variant="ghost"
               size="sm"
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="h-8 flex gap-2"
+              className="h-8 flex gap-2 text-muted-foreground hover:text-foreground"
             >
               <Filter className="h-4 w-4" />
               {showAdvancedFilters ? "Hide Filters" : "Show Filters"}
+              {showAdvancedFilters ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
             </Button>
           </CardHeader>
           <CardContent>
@@ -915,6 +945,10 @@ export default function OMDashboard() {
                       <Input
                         type="date"
                         value={advancedFilters.fromDate}
+                        max={
+                          advancedFilters.toDate ||
+                          new Date().toISOString().split("T")[0]
+                        }
                         onChange={(e) =>
                           setAdvancedFilters((prev) => ({
                             ...prev,
@@ -935,6 +969,8 @@ export default function OMDashboard() {
                       <Input
                         type="date"
                         value={advancedFilters.toDate}
+                        min={advancedFilters.fromDate}
+                        max={new Date().toISOString().split("T")[0]}
                         onChange={(e) =>
                           setAdvancedFilters((prev) => ({
                             ...prev,
@@ -1062,6 +1098,23 @@ export default function OMDashboard() {
                         }))
                       }
                       placeholder="Select Invoice #..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Tracking/Docket #
+                    </label>
+                    <SearchableSelect
+                      options={docketOptions}
+                      value={advancedFilters.docketNumber}
+                      onValueChange={(val) =>
+                        setAdvancedFilters((prev) => ({
+                          ...prev,
+                          docketNumber: val,
+                        }))
+                      }
+                      placeholder="Select tracking #..."
                     />
                   </div>
 

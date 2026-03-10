@@ -17,10 +17,49 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const { searchParams } = new URL(req.url);
+    const clientName = searchParams.get("clientName");
+    const type = searchParams.get("type") || "invoice";
+
+    if (type === "docket") {
+      const where: any = {
+        docketNumber: { not: null, notIn: [""] },
+      };
+
+      if (clientName) {
+        where.purchaseOrder = { client: { name: clientName } };
+      }
+
+      const dispatches = await prisma.oMDispatchOrder.findMany({
+        where,
+        select: {
+          docketNumber: true,
+        },
+        distinct: ["docketNumber"],
+        orderBy: { docketNumber: "asc" },
+      });
+
+      return NextResponse.json(
+        dispatches
+          .filter((d) => d.docketNumber)
+          .map((d) => ({
+            value: d.docketNumber,
+            label: d.docketNumber,
+          })),
+      );
+    }
+
+    // Default to invoice
+    const where: any = {
+      invoiceNumber: { not: null, notIn: [""] },
+    };
+
+    if (clientName) {
+      where.purchaseOrder = { client: { name: clientName } };
+    }
+
     const dispatches = await prisma.oMDispatchOrder.findMany({
-      where: {
-        invoiceNumber: { not: null },
-      },
+      where,
       select: {
         invoiceNumber: true,
       },

@@ -58,6 +58,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { useMemo } from "react";
 import type { OMProduct, OMBrand } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { OMNewItemDialog } from "@/components/orderManagement/OMNewItemDialog";
@@ -65,6 +67,9 @@ import {
   OMSortControl,
   type SortOption,
 } from "@/components/orderManagement/OMSortControl";
+import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
+import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
+import { ItemFilters } from "@/components/orderManagement/items/ItemFilters";
 
 function skuBrandPart(brandName: string | undefined): string {
   return brandName
@@ -94,6 +99,16 @@ export default function OMItems() {
   const [viewingItem, setViewingItem] = useState<OMProduct | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    brandIds: [] as string[],
+    minPrice: "",
+    maxPrice: "",
+    gst: "all",
+    minTotalOrdered: "",
+    maxTotalOrdered: "",
+  });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -270,32 +285,145 @@ export default function OMItems() {
     }
   };
 
-  const filteredItems = items
-    .filter(
-      (item) =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.sku || "").toLowerCase().includes(searchQuery.toLowerCase()),
-    )
-    .sort((a, b) => {
-      if (sortBy === "name_asc") return a.name.localeCompare(b.name);
-      if (sortBy === "name_desc") return b.name.localeCompare(a.name);
-      if (sortBy === "newest")
+  const filteredItems = useMemo(() => {
+    return items
+      .filter((item) => {
+        // Text search
+        const matchesSearch =
+          !searchQuery ||
+          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (item.sku || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+        // Advanced filters
+        const matchesBrands =
+          filters.brandIds.length === 0 ||
+          item.brands?.some((b: any) => filters.brandIds.includes(b.id));
+
+        const matchesMinPrice =
+          !filters.minPrice ||
+          (item.price || 0) >= parseFloat(filters.minPrice);
+        const matchesMaxPrice =
+          !filters.maxPrice ||
+          (item.price || 0) <= parseFloat(filters.maxPrice);
+
+        const matchesGst =
+          filters.gst === "all" ||
+          item.defaultGstPct.toString() === filters.gst;
+
+        const matchesMinTotalOrdered =
+          !filters.minTotalOrdered ||
+          (item.totalOrdered || 0) >= parseInt(filters.minTotalOrdered);
+        const matchesMaxTotalOrdered =
+          !filters.maxTotalOrdered ||
+          (item.totalOrdered || 0) <= parseInt(filters.maxTotalOrdered);
+
         return (
-          new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime()
+          matchesSearch &&
+          matchesBrands &&
+          matchesMinPrice &&
+          matchesMaxPrice &&
+          matchesGst &&
+          matchesMinTotalOrdered &&
+          matchesMaxTotalOrdered
         );
-      if (sortBy === "oldest")
-        return (
-          new Date(a.createdAt || 0).getTime() -
-          new Date(b.createdAt || 0).getTime()
-        );
-      if (sortBy === "latest_update")
-        return (
-          new Date(b.updatedAt || 0).getTime() -
-          new Date(a.updatedAt || 0).getTime()
-        );
-      return 0;
+      })
+      .sort((a, b) => {
+        if (sortBy === "name_asc") return a.name.localeCompare(b.name);
+        if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+        if (sortBy === "newest")
+          return (
+            new Date(a.createdAt || 0).getTime() -
+            new Date(b.createdAt || 0).getTime()
+          );
+        if (sortBy === "oldest")
+          return (
+            new Date(a.createdAt || 0).getTime() -
+            new Date(b.createdAt || 0).getTime()
+          );
+        if (sortBy === "latest_update")
+          return (
+            new Date(b.updatedAt || 0).getTime() -
+            new Date(a.updatedAt || 0).getTime()
+          );
+        return 0;
+      });
+  }, [items, searchQuery, filters, sortBy]);
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      // Search logic for enter key if needed
+    }
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      brandIds: [],
+      minPrice: "",
+      maxPrice: "",
+      gst: "all",
+      minTotalOrdered: "",
+      maxTotalOrdered: "",
     });
+    setSearchQuery("");
+  };
+
+  const removeFilter = (key: string, value?: string) => {
+    setFilters((prev: any) => {
+      if (key === "brandIds" && value) {
+        return {
+          ...prev,
+          brandIds: prev.brandIds.filter((id: string) => id !== value),
+        };
+      }
+      // For other filters, reset to their default empty/all state
+      if (key === "gst") {
+        return { ...prev, [key]: "all" };
+      }
+      return { ...prev, [key]: "" };
+    });
+  };
+
+  const activeFilters = useMemo(() => {
+    const active = [];
+    if (filters.brandIds.length > 0) {
+      filters.brandIds.forEach((id) => {
+        const brand = brands.find((b) => b.id === id);
+        active.push({
+          key: "brandIds",
+          label: "Brand",
+          value: brand?.name || id,
+          id,
+        });
+      });
+    }
+    if (filters.minPrice)
+      active.push({
+        key: "minPrice",
+        label: "Min Price",
+        value: `₹${filters.minPrice}`,
+      });
+    if (filters.maxPrice) {
+      active.push({ key: "maxPrice", label: "Max ₹", value: filters.maxPrice });
+    }
+    if (filters.gst !== "all") {
+      active.push({ key: "gst", label: "GST", value: `${filters.gst}%` });
+    }
+    if (filters.minTotalOrdered) {
+      active.push({
+        key: "minTotalOrdered",
+        label: "Min Total Ordered",
+        value: filters.minTotalOrdered,
+      });
+    }
+    if (filters.maxTotalOrdered) {
+      active.push({
+        key: "maxTotalOrdered",
+        label: "Max Total Ordered",
+        value: filters.maxTotalOrdered,
+      });
+    }
+    return active;
+  }, [filters, brands]);
 
   // Export to CSV/Excel
   const exportToExcel = () => {
@@ -768,6 +896,31 @@ export default function OMItems() {
           </div>
         </div>
 
+        <OMFilterCard
+          title="Filters"
+          subtitle={`Showing ${filteredItems.length} of ${items.length} products`}
+          searchPlaceholder="Search by name or SKU..."
+          searchTerm={searchQuery}
+          onSearchChange={setSearchQuery}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          sortNameLabel="Item Name"
+          showFilters={showFilters}
+          setShowFilters={setShowFilters}
+          onReset={resetFilters}
+        >
+          <ItemFilters
+            filters={filters}
+            setFilters={setFilters}
+            brandOptions={brandOptions}
+          />
+          <OMActiveFilters
+            activeFilters={activeFilters}
+            onRemove={removeFilter}
+            onClearAll={resetFilters}
+          />
+        </OMFilterCard>
+
         <Card>
           <CardHeader>
             <CardTitle>Item List</CardTitle>
@@ -776,24 +929,6 @@ export default function OMItems() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 flex flex-col md:flex-row items-end gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name or SKU..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <OMSortControl
-                value={sortBy}
-                onValueChange={setSortBy}
-                nameLabel="Item Name"
-                className="w-full md:w-[200px]"
-              />
-            </div>
-
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>

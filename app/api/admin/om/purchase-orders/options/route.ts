@@ -17,10 +17,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const { searchParams } = new URL(req.url);
+    const clientName = searchParams.get("clientName");
+
+    const where: any = {
+      poNumber: { not: null },
+    };
+
+    if (clientName) {
+      where.client = { name: clientName };
+    }
+
     const pos = await prisma.oMPurchaseOrder.findMany({
-      where: {
-        poNumber: { not: null },
-      },
+      where,
       select: {
         poNumber: true,
       },
