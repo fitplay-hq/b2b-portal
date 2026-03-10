@@ -60,6 +60,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { OMProduct, OMBrand } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import { OMNewItemDialog } from "@/components/orderManagement/OMNewItemDialog";
 
 function skuBrandPart(brandName: string | undefined): string {
   return brandName
@@ -414,6 +415,20 @@ export default function OMItems() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            <OMNewItemDialog
+              brands={brands}
+              onItemAdded={() => {
+                fetchItems();
+                setIsAddDialogOpen(false);
+              }}
+              trigger={
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Item
+                </Button>
+              }
+            />
+
             <Dialog
               open={isAddDialogOpen}
               onOpenChange={(open) => {
@@ -421,17 +436,9 @@ export default function OMItems() {
                 if (!open) resetForm();
               }}
             >
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Item
-                </Button>
-              </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>
-                    {editingItem ? "Edit Item" : "Add New Item"}
-                  </DialogTitle>
+                  <DialogTitle>Edit Item</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-6">

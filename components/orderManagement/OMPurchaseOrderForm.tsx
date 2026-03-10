@@ -191,6 +191,12 @@ export function OMPurchaseOrderForm({
     });
   };
 
+  const handleNewBrandAdded = (tempId: string, brand: OMBrand) => {
+    onRefreshData().then(() => {
+      updateLineItem(tempId, "brandId", brand.id);
+    });
+  };
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -416,6 +422,7 @@ export function OMPurchaseOrderForm({
             onRemoveLineItem={removeLineItem}
             onUpdateLineItem={updateLineItem}
             onNewItemAdded={handleNewItemAdded}
+            onNewBrandAdded={handleNewBrandAdded}
           />
         </CardContent>
       </Card>
