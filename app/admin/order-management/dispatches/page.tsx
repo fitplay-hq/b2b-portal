@@ -188,7 +188,12 @@ export default function OMDispatchesList() {
         const matchesFromDate =
           !filters.fromDate || invoiceDate >= new Date(filters.fromDate);
         const matchesToDate =
-          !filters.toDate || invoiceDate <= new Date(filters.toDate);
+          !filters.toDate ||
+          (() => {
+            const to = new Date(filters.toDate);
+            to.setHours(23, 59, 59, 999);
+            return invoiceDate <= to;
+          })();
 
         return (
           matchesSearch &&
