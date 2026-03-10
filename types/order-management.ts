@@ -153,6 +153,7 @@ export interface OMDashboardLineItem {
   id: string;
   itemId: string;
   itemName: string;
+  itemSku?: string | null;
   quantity: number;
   rate: number;
   amount: number;
@@ -183,6 +184,7 @@ export interface OMDashboardDispatchLineItem {
   poLineItemId: string;
   dispatchQty: number;
   itemName: string;
+  itemSku?: string | null;
 }
 
 export interface OMDashboardDispatch {

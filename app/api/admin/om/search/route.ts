@@ -24,6 +24,8 @@ export async function GET(req: NextRequest) {
     const clientName = searchParams.get("clientName");
     const itemName = searchParams.get("itemName");
     const brandName = searchParams.get("brandName");
+    const poNumber = searchParams.get("poNumber");
+    const invoiceNumber = searchParams.get("invoiceNumber");
     const logisticsPartnerId = searchParams.get("logisticsPartnerId");
     const locationId = searchParams.get("locationId");
     const status = searchParams.get("status");
@@ -154,6 +156,22 @@ export async function GET(req: NextRequest) {
                 },
               },
             ],
+          },
+        },
+      });
+    }
+
+    if (poNumber) {
+      andFilters.push({
+        poNumber: { contains: poNumber, mode: "insensitive" },
+      });
+    }
+
+    if (invoiceNumber) {
+      andFilters.push({
+        dispatchOrders: {
+          some: {
+            invoiceNumber: { contains: invoiceNumber, mode: "insensitive" },
           },
         },
       });
