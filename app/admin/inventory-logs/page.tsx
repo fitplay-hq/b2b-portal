@@ -278,7 +278,7 @@ export default function InventoryLogsPage() {
 
           {/* Active Filters Display */}
           {getActiveFilters().length > 0 ? (
-            <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-sm">
+            <Card className="bg-linear-to-r from-blue-50 to-purple-50 border-blue-200 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -329,7 +329,7 @@ export default function InventoryLogsPage() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200">
+            <Card className="bg-linear-to-r from-gray-50 to-slate-50 border-gray-200">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">

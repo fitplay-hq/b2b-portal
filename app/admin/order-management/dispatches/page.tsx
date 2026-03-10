@@ -42,44 +42,94 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SearchableSelect } from "@/components/ui/combobox";
+import { SearchableSelect, ComboboxOption } from "@/components/ui/combobox";
 import type {
   OMDispatchOrder,
   OMDispatchOrderItem,
   OMClient,
 } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import {
+  OMSortControl,
+  type SortOption,
+} from "@/components/orderManagement/OMSortControl";
+import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
+import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
+import { DispatchFilters } from "@/components/orderManagement/dispatches/DispatchFilters";
+import { useMemo } from "react";
 
 export default function OMDispatchesList() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [clientFilter, setClientFilter] = useState<string>("all");
   const [dispatches, setDispatches] = useState<OMDispatchOrder[]>([]);
   const [clients, setClients] = useState<OMClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
-  const fetchClients = async () => {
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    fromDate: "",
+    toDate: "",
+    clientName: "",
+    logisticsPartnerId: "",
+    status: "all",
+    invoiceNumber: "",
+    docketNumber: "",
+  });
+
+  const [logisticsOptions, setLogisticsOptions] = useState<ComboboxOption[]>(
+    [],
+  );
+  const [invoiceOptions, setInvoiceOptions] = useState<ComboboxOption[]>([]);
+  const [docketOptions, setDocketOptions] = useState<ComboboxOption[]>([]);
+
+  const fetchDynamicOptions = async () => {
     try {
-      const res = await fetch("/api/admin/om/clients");
-      if (res.ok) {
-        const data = await res.json();
-        setClients(data);
+      const clientParam = filters.clientName
+        ? `?clientName=${encodeURIComponent(filters.clientName)}`
+        : "";
+      const [invRes, docketRes] = await Promise.all([
+        fetch(`/api/admin/om/dispatch-orders/options${clientParam}`),
+        fetch(
+          `/api/admin/om/dispatch-orders/options${clientParam}${clientParam ? "&" : "?"}type=docket`,
+        ),
+      ]);
+
+      if (invRes.ok) setInvoiceOptions(await invRes.json());
+      if (docketRes.ok) setDocketOptions(await docketRes.json());
+    } catch (err) {
+      console.error("Failed to fetch dynamic options", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDynamicOptions();
+  }, [filters.clientName]);
+
+  const fetchOptions = async () => {
+    try {
+      const [clientsRes, logisticsRes] = await Promise.all([
+        fetch("/api/admin/om/clients"),
+        fetch("/api/admin/om/logistics-partners"),
+      ]);
+
+      if (clientsRes.ok) {
+        setClients(await clientsRes.json());
+      }
+      if (logisticsRes.ok) {
+        const logistics = await logisticsRes.json();
+        setLogisticsOptions(
+          logistics.map((l: any) => ({ value: l.id, label: l.name })),
+        );
       }
     } catch (err) {
-      console.error("Failed to fetch clients", err);
+      console.error("Failed to fetch options", err);
     }
   };
 
   const fetchDispatches = async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (statusFilter !== "all") params.append("status", statusFilter);
-      // Backend route doesn't explicitly support clientId filter in dispatch-orders API yet,
-      // but we can filter client-side or use purchaseOrderId if needed.
-      // For now we'll filter client-side for consistency with the PO list.
-
       const res = await fetch(`/api/admin/om/dispatch-orders?limit=100`);
       if (res.ok) {
         const data = await res.json();
@@ -94,32 +144,167 @@ export default function OMDispatchesList() {
   };
 
   useEffect(() => {
-    fetchClients();
+    fetchOptions();
+    fetchDispatches();
   }, []);
 
-  useEffect(() => {
-    fetchDispatches();
-  }, [statusFilter]);
-
   // Filter dispatches client-side
-  const filteredDispatches = dispatches.filter((dispatch) => {
-    const clientName = dispatch.purchaseOrder?.client?.name || "Unknown";
-    const poNumber = dispatch.purchaseOrder?.poNumber || "N/A";
+  const filteredDispatches = useMemo(() => {
+    return dispatches
+      .filter((dispatch) => {
+        const clientName = dispatch.purchaseOrder?.client?.name || "Unknown";
+        const poNumber = dispatch.purchaseOrder?.poNumber || "N/A";
+        const invoiceDate = new Date(dispatch.invoiceDate);
 
-    const matchesSearch =
-      dispatch.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (dispatch.docketNumber || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+        // Text search
+        const matchesSearch =
+          !searchTerm ||
+          dispatch.invoiceNumber
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (dispatch.docketNumber || "")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
 
-    const matchesClient =
-      clientFilter === "all" ||
-      dispatch.purchaseOrder?.clientId === clientFilter;
+        // Advanced filters
+        const matchesClient =
+          !filters.clientName || clientName === filters.clientName;
+        const matchesStatus =
+          filters.status === "all" || dispatch.status === filters.status;
+        const matchesLogistics =
+          !filters.logisticsPartnerId ||
+          dispatch.logisticsPartnerId === filters.logisticsPartnerId;
+        const matchesInvoice =
+          !filters.invoiceNumber ||
+          dispatch.invoiceNumber === filters.invoiceNumber;
+        const matchesDocket =
+          !filters.docketNumber ||
+          (dispatch.docketNumber || "")
+            .toLowerCase()
+            .includes(filters.docketNumber.toLowerCase());
 
-    return matchesSearch && matchesClient;
-  });
+        const matchesFromDate =
+          !filters.fromDate || invoiceDate >= new Date(filters.fromDate);
+        const matchesToDate =
+          !filters.toDate ||
+          (() => {
+            const to = new Date(filters.toDate);
+            to.setHours(23, 59, 59, 999);
+            return invoiceDate <= to;
+          })();
+
+        return (
+          matchesSearch &&
+          matchesClient &&
+          matchesStatus &&
+          matchesLogistics &&
+          matchesInvoice &&
+          matchesDocket &&
+          matchesFromDate &&
+          matchesToDate
+        );
+      })
+      .sort((a, b) => {
+        const aClientName = a.purchaseOrder?.client?.name || "";
+        const bClientName = b.purchaseOrder?.client?.name || "";
+        if (sortBy === "name_asc")
+          return aClientName.localeCompare(bClientName);
+        if (sortBy === "name_desc")
+          return bClientName.localeCompare(aClientName);
+        if (sortBy === "newest")
+          return (
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime()
+          );
+        if (sortBy === "oldest")
+          return (
+            new Date(a.createdAt || 0).getTime() -
+            new Date(b.createdAt || 0).getTime()
+          );
+        if (sortBy === "latest_update")
+          return (
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime()
+          );
+        return 0;
+      });
+  }, [dispatches, searchTerm, filters, sortBy]);
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      // Logic for enter key if needed
+    }
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      fromDate: "",
+      toDate: "",
+      clientName: "",
+      logisticsPartnerId: "",
+      status: "all",
+      invoiceNumber: "",
+      docketNumber: "",
+    });
+    setSearchTerm("");
+  };
+
+  const removeFilter = (key: string) => {
+    setFilters((prev: any) => ({
+      ...prev,
+      [key]: key === "status" ? "all" : "",
+    }));
+  };
+
+  const activeFilters = useMemo(() => {
+    const active = [];
+    if (filters.fromDate)
+      active.push({ key: "fromDate", label: "From", value: filters.fromDate });
+    if (filters.toDate)
+      active.push({ key: "toDate", label: "To", value: filters.toDate });
+    if (filters.clientName)
+      active.push({
+        key: "clientName",
+        label: "Client",
+        value: filters.clientName,
+      });
+    if (filters.logisticsPartnerId) {
+      const label = logisticsOptions.find(
+        (o) => o.value === filters.logisticsPartnerId,
+      )?.label;
+      active.push({
+        key: "logisticsPartnerId",
+        label: "Logistics",
+        value: label || filters.logisticsPartnerId,
+      });
+    }
+    if (filters.invoiceNumber)
+      active.push({
+        key: "invoiceNumber",
+        label: "Invoice #",
+        value: filters.invoiceNumber,
+      });
+    if (filters.docketNumber)
+      active.push({
+        key: "docketNumber",
+        label: "Tracking #",
+        value: filters.docketNumber,
+      });
+    if (filters.status && filters.status !== "all") {
+      active.push({
+        key: "status",
+        label: "Status",
+        value: filters.status.charAt(0) + filters.status.slice(1).toLowerCase(),
+      });
+    }
+    return active;
+  }, [filters, logisticsOptions]);
+
+  const clientOptions = useMemo(() => {
+    return clients.map((c) => ({ value: c.name, label: c.name }));
+  }, [clients]);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -373,56 +558,33 @@ export default function OMDispatchesList() {
           </div>
         </div>
 
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Search & Filter</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by Invoice, PO, Client, or Tracking..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <SearchableSelect
-                    options={[
-                      { value: "all", label: "All Clients" },
-                      ...clients.map((client) => ({
-                        value: client.id,
-                        label: client.name,
-                      })),
-                    ]}
-                    value={clientFilter}
-                    onValueChange={setClientFilter}
-                    placeholder="Filter by Client"
-                    searchPlaceholder="Search clients..."
-                  />
-                </div>
-
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="CREATED">Created</SelectItem>
-                    <SelectItem value="DISPATCHED">Dispatched</SelectItem>
-                    <SelectItem value="DELIVERED">Delivered</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <OMFilterCard
+          title="Filters"
+          subtitle={`Showing ${filteredDispatches.length} of ${dispatches.length} dispatch orders`}
+          searchPlaceholder="Search by Invoice, PO, Client, or Tracking..."
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          sortNameLabel="Client Name"
+          showFilters={showFilters}
+          setShowFilters={setShowFilters}
+          onReset={resetFilters}
+        >
+          <DispatchFilters
+            filters={filters}
+            setFilters={setFilters}
+            clientOptions={clientOptions}
+            logisticsOptions={logisticsOptions}
+            invoiceOptions={invoiceOptions}
+            docketOptions={docketOptions}
+          />
+          <OMActiveFilters
+            activeFilters={activeFilters}
+            onRemove={removeFilter}
+            onClearAll={resetFilters}
+          />
+        </OMFilterCard>
 
         {/* Dispatches Table */}
         <Card>

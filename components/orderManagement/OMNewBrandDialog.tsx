@@ -18,11 +18,15 @@ import { OMBrand } from "@/types/order-management";
 interface OMNewBrandDialogProps {
   onBrandAdded: (brand: OMBrand) => void;
   trigger?: React.ReactNode;
+  productId?: string;
+  currentBrandIds?: string[];
 }
 
 export function OMNewBrandDialog({
   onBrandAdded,
   trigger,
+  productId,
+  currentBrandIds = [],
 }: OMNewBrandDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
@@ -42,9 +46,28 @@ export function OMNewBrandDialog({
 
       if (res.ok) {
         const data = await res.json();
-        // The API returns the brand object directly or wrapped in data.data
-        // Based on brands/page.tsx, it seems to be handled locally after fetchBrands
-        // But for this component, we'll assume the API returns the created brand
+        const newBrandId = data.id || data.data?.id;
+
+        // If a productId is provided, associate this new brand with the product
+        if (productId && newBrandId) {
+          try {
+            await fetch(`/api/admin/om/products/${productId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                brandIds: [...currentBrandIds, newBrandId],
+              }),
+            });
+          } catch (assocError) {
+            console.error(
+              "Failed to associate brand with product:",
+              assocError,
+            );
+            // We don't block the brand creation success if association fails,
+            // but we might want to inform the user if it's critical.
+          }
+        }
+
         onBrandAdded(data);
         toast.success("Brand added successfully");
         setIsOpen(false);

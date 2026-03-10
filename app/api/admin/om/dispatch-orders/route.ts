@@ -53,16 +53,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Verify Logistics Partner exists
-    const logisticsPartner = await prisma.oMLogisticsPartner.findUnique({
-      where: { id: logisticsPartnerId },
-    });
+    // 2. Verify Logistics Partner exists if provided
+    if (logisticsPartnerId) {
+      const logisticsPartner = await prisma.oMLogisticsPartner.findUnique({
+        where: { id: logisticsPartnerId },
+      });
 
-    if (!logisticsPartner) {
-      return NextResponse.json(
-        { error: "Logistics Partner not found" },
-        { status: 404 },
-      );
+      if (!logisticsPartner) {
+        return NextResponse.json(
+          { error: "Logistics Partner not found" },
+          { status: 404 },
+        );
+      }
     }
 
     // 3. Validate fulfillment for each dispatch item
@@ -131,11 +133,13 @@ export async function POST(req: NextRequest) {
       const dispatch = await tx.oMDispatchOrder.create({
         data: {
           purchaseOrderId,
-          invoiceNumber,
-          invoiceDate: new Date(invoiceDate),
-          logisticsPartnerId,
-          docketNumber,
-          expectedDeliveryDate: new Date(expectedDeliveryDate),
+          invoiceNumber: invoiceNumber || null,
+          invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
+          logisticsPartnerId: logisticsPartnerId || null,
+          docketNumber: docketNumber || null,
+          expectedDeliveryDate: expectedDeliveryDate
+            ? new Date(expectedDeliveryDate)
+            : null,
           status,
           items: {
             create: processedItems,
@@ -203,29 +207,69 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const search = searchParams.get("search") || "";
+    const search = searchParams.get("search") || searchParams.get("q") || "";
     const status = searchParams.get("status");
     const purchaseOrderId = searchParams.get("purchaseOrderId");
+    const clientId = searchParams.get("clientId");
+    const fromDate = searchParams.get("fromDate");
+    const toDate = searchParams.get("toDate");
+    const logisticsPartnerId = searchParams.get("logisticsPartnerId");
+    const invoiceNumber = searchParams.get("invoiceNumber");
+
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    const whereClause: any = {};
+    const andFilters: any[] = [];
 
     if (search) {
-      whereClause.OR = [
-        { invoiceNumber: { contains: search, mode: "insensitive" } },
-        { docketNumber: { contains: search, mode: "insensitive" } },
-      ];
+      andFilters.push({
+        OR: [
+          { invoiceNumber: { contains: search, mode: "insensitive" } },
+          { docketNumber: { contains: search, mode: "insensitive" } },
+          {
+            purchaseOrder: {
+              poNumber: { contains: search, mode: "insensitive" },
+            },
+          },
+        ],
+      });
     }
 
-    if (status) {
-      whereClause.status = status;
+    if (status && status !== "all") {
+      andFilters.push({ status });
     }
 
     if (purchaseOrderId) {
-      whereClause.purchaseOrderId = purchaseOrderId;
+      andFilters.push({ purchaseOrderId });
     }
+
+    if (clientId) {
+      andFilters.push({ purchaseOrder: { clientId } });
+    }
+
+    if (logisticsPartnerId) {
+      andFilters.push({ logisticsPartnerId });
+    }
+
+    if (invoiceNumber) {
+      andFilters.push({
+        invoiceNumber: { contains: invoiceNumber, mode: "insensitive" },
+      });
+    }
+
+    if (fromDate || toDate) {
+      const dateFilter: any = {};
+      if (fromDate) dateFilter.gte = new Date(fromDate);
+      if (toDate) {
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        dateFilter.lte = endOfDay;
+      }
+      andFilters.push({ invoiceDate: dateFilter });
+    }
+
+    const whereClause = andFilters.length > 0 ? { AND: andFilters } : {};
 
     const [dispatchOrders, total] = await Promise.all([
       prisma.oMDispatchOrder.findMany({

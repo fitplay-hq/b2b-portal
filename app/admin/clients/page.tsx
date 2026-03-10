@@ -129,7 +129,7 @@ export default function AdminClientsPage() {
                   </p>
                 </div>
                 {actions.clients.create && (
-                <Link href="/admin/clients/new" className="flex-shrink-0">
+                <Link href="/admin/clients/new" className="shrink-0">
                   <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Client

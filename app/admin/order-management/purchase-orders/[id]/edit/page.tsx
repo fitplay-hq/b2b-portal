@@ -51,33 +51,45 @@ export default function OMEditPurchaseOrder() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (isSilent = false) => {
+    if (!isSilent) setIsDataLoading(true);
     try {
-      const [clientsRes, locationsRes, productsRes, brandsRes, poRes] =
-        await Promise.all([
-          fetch("/api/admin/om/clients"),
-          fetch("/api/admin/om/delivery-locations"),
-          fetch("/api/admin/om/products"),
-          fetch("/api/admin/om/brands"),
+      const fetchPageData = async () => {
+        const [clientsRes, locationsRes, productsRes, brandsRes] =
+          await Promise.all([
+            fetch("/api/admin/om/clients"),
+            fetch("/api/admin/om/delivery-locations"),
+            fetch("/api/admin/om/products"),
+            fetch("/api/admin/om/brands"),
+          ]);
+
+        if (clientsRes.ok) setClients(await clientsRes.json());
+        if (locationsRes.ok) setLocations(await locationsRes.json());
+        if (productsRes.ok) setProducts(await productsRes.json());
+        if (brandsRes.ok) setBrands(await brandsRes.json());
+      };
+
+      if (isSilent) {
+        await fetchPageData();
+      } else {
+        const [_, poRes] = await Promise.all([
+          fetchPageData(),
           fetch(`/api/admin/om/purchase-orders/${id}`),
         ]);
 
-      if (clientsRes.ok) setClients(await clientsRes.json());
-      if (locationsRes.ok) setLocations(await locationsRes.json());
-      if (productsRes.ok) setProducts(await productsRes.json());
-      if (brandsRes.ok) setBrands(await brandsRes.json());
-      if (poRes.ok) {
-        const data = await poRes.json();
-        setPoData(data.data || data);
-      } else {
-        toast.error("Failed to load Purchase Order");
-        router.push("/admin/order-management/purchase-orders");
+        if (poRes.ok) {
+          const data = await poRes.json();
+          setPoData(data.data || data);
+        } else {
+          toast.error("Failed to load Purchase Order");
+          router.push("/admin/order-management/purchase-orders");
+        }
       }
     } catch (err) {
       console.error("Error fetching data:", err);
       toast.error("Something went wrong");
     } finally {
-      setIsDataLoading(false);
+      if (!isSilent) setIsDataLoading(false);
     }
   };
 

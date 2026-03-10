@@ -5,45 +5,104 @@ import Link from "next/link";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, FileDown, FileSpreadsheet, Download } from "lucide-react";
+import {
+  Search,
+  Plus,
+  FileDown,
+  FileSpreadsheet,
+  Download,
+  Package,
+} from "lucide-react";
 import { toast } from "sonner";
-import { OMPurchaseOrderFilters } from "@/components/orderManagement/OMPurchaseOrderFilters";
 import { OMPurchaseOrderListTable } from "@/components/orderManagement/OMPurchaseOrderListTable";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
+import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
+import { POFilters } from "@/components/orderManagement/purchaseOrders/POFilters";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  OMSortControl,
+  type SortOption,
+} from "@/components/orderManagement/OMSortControl";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SearchableSelect, ComboboxOption } from "@/components/ui/combobox";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { useMemo } from "react";
 import type {
   OMPurchaseOrder,
   OMClient,
   OMPaginationMeta,
 } from "@/types/order-management";
 
+const PO_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  CONFIRMED: "Confirmed",
+  PARTIALLY_DISPATCHED: "Partially Dispatched",
+  FULLY_DISPATCHED: "Fully Dispatched",
+  CLOSED: "Closed",
+};
+
 export default function OMPurchaseOrdersList() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [clientFilter, setClientFilter] = useState<string>("all");
   const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>([]);
   const [clients, setClients] = useState<OMClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [meta, setMeta] = useState<OMPaginationMeta | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    fromDate: "",
+    toDate: "",
+    clientName: "",
+    poNumber: "",
+    status: "all",
+    locationId: "",
+  });
+
+  const [locationOptions, setLocationOptions] = useState<ComboboxOption[]>([]);
+  const [poOptions, setPoOptions] = useState<ComboboxOption[]>([]);
 
   const [deletePo, setDeletePo] = useState<OMPurchaseOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchClients = async () => {
+  const fetchOptions = async () => {
     try {
-      const res = await fetch("/api/admin/om/clients");
-      if (res.ok) {
-        const data = await res.json();
+      const [clientsRes, locationsRes, poOptionsRes] = await Promise.all([
+        fetch("/api/admin/om/clients"),
+        fetch("/api/admin/om/delivery-locations"),
+        fetch("/api/admin/om/purchase-orders/options"),
+      ]);
+
+      if (clientsRes.ok) {
+        const data = await clientsRes.json();
         setClients(data);
       }
+      if (locationsRes.ok) {
+        const locations = await locationsRes.json();
+        setLocationOptions(
+          locations.map((l: any) => ({ value: l.id, label: l.name })),
+        );
+      }
+      if (poOptionsRes.ok) {
+        const poOpts = await poOptionsRes.json();
+        setPoOptions(poOpts);
+      }
     } catch (err) {
-      console.error("Failed to fetch clients", err);
+      console.error("Failed to fetch options", err);
     }
   };
 
@@ -51,8 +110,15 @@ export default function OMPurchaseOrdersList() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (statusFilter !== "all") params.append("status", statusFilter);
-      if (clientFilter !== "all") params.append("clientId", clientFilter);
+      if (filters.status !== "all") params.append("status", filters.status);
+      if (filters.clientName) {
+        const client = clients.find((c) => c.name === filters.clientName);
+        if (client) params.append("clientId", client.id);
+      }
+      if (filters.fromDate) params.append("fromDate", filters.fromDate);
+      if (filters.toDate) params.append("toDate", filters.toDate);
+      if (filters.poNumber) params.append("poNumber", filters.poNumber);
+      if (filters.locationId) params.append("locationId", filters.locationId);
 
       const res = await fetch(
         `/api/admin/om/purchase-orders?${params.toString()}`,
@@ -71,12 +137,12 @@ export default function OMPurchaseOrdersList() {
   };
 
   useEffect(() => {
-    fetchClients();
+    fetchOptions();
   }, []);
 
   useEffect(() => {
     fetchPurchaseOrders();
-  }, [statusFilter, clientFilter]);
+  }, [filters]);
 
   const handleDeletePO = async () => {
     if (!deletePo) return;
@@ -99,17 +165,103 @@ export default function OMPurchaseOrdersList() {
     }
   };
 
-  const filteredPOs = purchaseOrders.filter((po) => {
-    const searchLower = searchTerm.toLowerCase();
-    const poNum = (po.poNumber || "").toLowerCase();
-    const estNum = (po.estimateNumber || "").toLowerCase();
-    const clientName = (po.client?.name || "").toLowerCase();
-    return (
-      poNum.includes(searchLower) ||
-      estNum.includes(searchLower) ||
-      clientName.includes(searchLower)
-    );
-  });
+  const filteredPOs = purchaseOrders
+    .filter((po) => {
+      const searchLower = searchTerm.toLowerCase();
+      const poNum = (po.poNumber || "").toLowerCase();
+      const estNum = (po.estimateNumber || "").toLowerCase();
+      const clientName = (po.client?.name || "").toLowerCase();
+      return (
+        poNum.includes(searchLower) ||
+        estNum.includes(searchLower) ||
+        clientName.includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      if (sortBy === "name_asc")
+        return (a.client?.name || "").localeCompare(b.client?.name || "");
+      if (sortBy === "name_desc")
+        return (b.client?.name || "").localeCompare(a.client?.name || "");
+      if (sortBy === "newest")
+        return (
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+        );
+      if (sortBy === "oldest")
+        return (
+          new Date(a.createdAt || 0).getTime() -
+          new Date(b.createdAt || 0).getTime()
+        );
+      if (sortBy === "latest_update")
+        return (
+          new Date(b.updatedAt || 0).getTime() -
+          new Date(a.updatedAt || 0).getTime()
+        );
+      return 0;
+    });
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      fetchPurchaseOrders();
+    }
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      fromDate: "",
+      toDate: "",
+      clientName: "",
+      poNumber: "",
+      status: "all",
+      locationId: "",
+    });
+    setSearchTerm("");
+  };
+
+  const removeFilter = (key: string) => {
+    setFilters((prev: any) => ({
+      ...prev,
+      [key]: key === "status" ? "all" : "",
+    }));
+  };
+
+  const activeFilters = useMemo(() => {
+    const active = [];
+    if (filters.fromDate)
+      active.push({ key: "fromDate", label: "From", value: filters.fromDate });
+    if (filters.toDate)
+      active.push({ key: "toDate", label: "To", value: filters.toDate });
+    if (filters.clientName)
+      active.push({
+        key: "clientName",
+        label: "Client",
+        value: filters.clientName,
+      });
+    if (filters.poNumber)
+      active.push({ key: "poNumber", label: "PO #", value: filters.poNumber });
+    if (filters.locationId) {
+      const label = locationOptions.find(
+        (o) => o.value === filters.locationId,
+      )?.label;
+      active.push({
+        key: "locationId",
+        label: "Location",
+        value: label || filters.locationId,
+      });
+    }
+    if (filters.status && filters.status !== "all") {
+      active.push({
+        key: "status",
+        label: "Status",
+        value: PO_STATUS_LABELS[filters.status] || filters.status,
+      });
+    }
+    return active;
+  }, [filters, locationOptions]);
+
+  const clientOptions = useMemo(() => {
+    return clients.map((c) => ({ value: c.name, label: c.name }));
+  }, [clients]);
 
   const handleExportExcel = () => {
     toast.info("Exporting to Excel...");
@@ -159,22 +311,32 @@ export default function OMPurchaseOrdersList() {
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <OMPurchaseOrderFilters
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              statusFilter={statusFilter}
-              onStatusChange={setStatusFilter}
-              clientFilter={clientFilter}
-              onClientChange={setClientFilter}
-              clients={clients}
-            />
-          </CardContent>
-        </Card>
+        <OMFilterCard
+          title="Filters"
+          subtitle={`Showing ${filteredPOs.length} of ${meta?.total || purchaseOrders.length} purchase orders`}
+          searchPlaceholder="Search by PO/Estimate #, client name..."
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          sortNameLabel="Client Name"
+          showFilters={showFilters}
+          setShowFilters={setShowFilters}
+          onReset={resetFilters}
+        >
+          <POFilters
+            filters={filters}
+            setFilters={setFilters}
+            clientOptions={clientOptions}
+            poOptions={poOptions}
+            locationOptions={locationOptions}
+          />
+          <OMActiveFilters
+            activeFilters={activeFilters}
+            onRemove={removeFilter}
+            onClearAll={resetFilters}
+          />
+        </OMFilterCard>
 
         <Card>
           <CardHeader>
