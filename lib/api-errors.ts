@@ -24,8 +24,9 @@ export function handleApiError(error: unknown) {
     const prismaError = error as any;
     switch (prismaError.code) {
       case "P2002":
+        console.error("P2002 Meta:", prismaError.meta);
         return NextResponse.json(
-          { error: "A record with this value already exists." },
+          { error: `Unique constraint failed on the fields: (${(prismaError.meta?.target as string[])?.join(', ') || 'unknown'})` },
           { status: 409 },
         );
       case "P2025":

@@ -214,6 +214,16 @@ export default function OMDispatchesList() {
           return aClientName.localeCompare(bClientName);
         if (sortBy === "name_desc")
           return bClientName.localeCompare(aClientName);
+        if (sortBy === "inv_date_desc")
+          return (
+            new Date(b.invoiceDate).getTime() -
+            new Date(a.invoiceDate).getTime()
+          );
+        if (sortBy === "inv_date_asc")
+          return (
+            new Date(a.invoiceDate).getTime() -
+            new Date(b.invoiceDate).getTime()
+          );
         if (sortBy === "newest")
           return (
             new Date(b.createdAt || 0).getTime() -
@@ -223,11 +233,6 @@ export default function OMDispatchesList() {
           return (
             new Date(a.createdAt || 0).getTime() -
             new Date(b.createdAt || 0).getTime()
-          );
-        if (sortBy === "latest_update")
-          return (
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime()
           );
         return 0;
       });
@@ -514,8 +519,8 @@ export default function OMDispatchesList() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-semibold">All Dispatches</h3>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl font-semibold">All Dispatches</h1>
+            <p className="text-muted-foreground">
               Track dispatch and delivery status
             </p>
           </div>
@@ -564,6 +569,8 @@ export default function OMDispatchesList() {
           <DispatchFilters
             filters={filters}
             setFilters={setFilters}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
             clientOptions={clientOptions}
             logisticsOptions={logisticsOptions}
             invoiceOptions={invoiceOptions}
@@ -578,8 +585,12 @@ export default function OMDispatchesList() {
 
         {/* Dispatches Table */}
         <Card>
-          <CardContent className="p-0">
-            <Table>
+          <CardHeader>
+            <CardTitle>Dispatch List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-md overflow-hidden">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Invoice Number</TableHead>
@@ -647,7 +658,7 @@ export default function OMDispatchesList() {
                       }
                     >
                       <TableCell className="font-medium">
-                        {dispatch.invoiceNumber}
+                        {dispatch.invoiceNumber || "N/A"}
                       </TableCell>
                       <TableCell>
                         {dispatch.purchaseOrder?.poNumber || "N/A"}
@@ -716,7 +727,8 @@ export default function OMDispatchesList() {
                   ))
                 )}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 

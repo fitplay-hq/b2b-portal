@@ -3,6 +3,10 @@ import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
+import {
+  OMDispatchOrderCreateSchema,
+  OMDispatchOrderUpdateSchema,
+} from "@/lib/validations/om";
 
 export async function GET(
   req: NextRequest,
@@ -40,6 +44,24 @@ export async function GET(
             },
           },
         },
+        shipmentBoxes: {
+          include: {
+            contents: {
+              include: {
+                dispatchOrderItem: {
+                  include: {
+                    purchaseOrderItem: {
+                      include: {
+                        product: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
 
@@ -50,7 +72,28 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(dispatchOrder);
+    // Map shipmentBoxes to match the frontend interface OMShipmentBox safely
+    const formattedDispatch = {
+      ...dispatchOrder,
+      shipmentBoxes: (dispatchOrder.shipmentBoxes || []).map((box) => ({
+        boxId: box.id,
+        boxNumber: box.boxLabel || `Box ${box.id.slice(0, 4)}`,
+        length: box.length,
+        width: box.width,
+        height: box.height,
+        weight: box.weight,
+        numberOfBoxes: box.numberOfBoxes,
+        contents: (box.contents || []).map((c) => ({
+          contentId: c.id,
+          itemId: c.dispatchOrderItem?.purchaseOrderItemId || "unknown",
+          itemName: c.dispatchOrderItem?.purchaseOrderItem?.product?.name || "Unknown Item",
+          quantity: c.quantityPerBox,
+          dispatchOrderItemId: c.dispatchOrderItemId,
+        })),
+      })),
+    };
+
+    return NextResponse.json(formattedDispatch);
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -74,6 +117,10 @@ export async function PUT(
     }
 
     const body = await req.json();
+
+    // Use Zod validation
+    const validatedData = OMDispatchOrderUpdateSchema.parse(body);
+
     const {
       invoiceNumber,
       invoiceDate,
@@ -82,7 +129,8 @@ export async function PUT(
       expectedDeliveryDate,
       status,
       items,
-    } = body;
+      shipmentBoxes,
+    } = validatedData;
 
     // We use a transaction because we need to delete old items and create new ones
     const updatedDispatch = await prisma.$transaction(async (tx) => {
@@ -95,16 +143,16 @@ export async function PUT(
       const dispatch = await tx.oMDispatchOrder.update({
         where: { id },
         data: {
-          invoiceNumber,
-          invoiceDate: new Date(invoiceDate),
-          logisticsPartnerId,
+          invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
+          invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
+          logisticsPartnerId: logisticsPartnerId || null,
           docketNumber,
-          expectedDeliveryDate: new Date(expectedDeliveryDate),
+          expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
           status,
           items: {
-            create: items.map((item: any) => ({
-              purchaseOrderItemId: item.poLineItemId,
-              quantity: item.dispatchQty,
+            create: (items || []).map((item: any) => ({
+              purchaseOrderItemId: item.purchaseOrderItemId || item.poLineItemId,
+              quantity: item.quantity || item.dispatchQty,
               rate: item.rate,
               amount: item.amount,
               gstPercentage: item.gstPercentage,
@@ -117,6 +165,46 @@ export async function PUT(
           items: true,
         },
       });
+
+      // 3. Update Shipment Boxes
+      // First, delete existing boxes (and contents will be deleted via cascade)
+      await tx.oMShipmentBox.deleteMany({
+        where: { dispatchOrderId: id },
+      });
+
+      if (shipmentBoxes && shipmentBoxes.length > 0) {
+        for (const box of shipmentBoxes) {
+          const createdBox = await tx.oMShipmentBox.create({
+            data: {
+              dispatchOrderId: dispatch.id,
+              boxLabel: box.boxNumber?.toString() || "1",
+              length: box.length,
+              width: box.width,
+              height: box.height,
+              weight: box.weight || 0,
+              numberOfBoxes: box.numberOfBoxes,
+            },
+          });
+
+          if (box.contents) {
+            for (const content of box.contents) {
+              const dispatchItem = dispatch.items.find(
+                (di) => di.purchaseOrderItemId === content.itemId,
+              );
+
+              if (dispatchItem) {
+                await tx.oMShipmentBoxContent.create({
+                  data: {
+                    shipmentBoxId: createdBox.id,
+                    dispatchOrderItemId: dispatchItem.id,
+                    quantityPerBox: content.quantity,
+                  },
+                });
+              }
+            }
+          }
+        }
+      }
 
       return dispatch;
     });

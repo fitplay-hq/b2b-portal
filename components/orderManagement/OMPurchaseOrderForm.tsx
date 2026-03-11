@@ -253,7 +253,7 @@ export function OMPurchaseOrderForm({
       });
       if (res.ok) {
         const data = await res.json();
-        await onRefreshData();
+        await onRefreshData(true);
         setClientId(data.id || data.data.id);
         setShowNewClientDialog(false);
         setNewClientData({
@@ -336,7 +336,7 @@ export function OMPurchaseOrderForm({
                 </div>
                 <OMNewLocationDialog
                   onLocationAdded={(loc) => {
-                    onRefreshData().then(() => setLocationId(loc.id));
+                    onRefreshData(true).then(() => setLocationId(loc.id));
                   }}
                 />
               </div>

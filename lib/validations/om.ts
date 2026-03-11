@@ -69,8 +69,8 @@ export const OMDeliveryLocationCreateSchema = z.object({
     .min(1, "City Name is required")
     .max(100, "City Name must be less than 100 characters")
     .regex(
-      /^[a-zA-Z\s]+$/,
-      "Only City Name is allowed, no special characters or numbers",
+      /^[a-zA-Z0-9\s.,-]+$/,
+      "City Name can only contain letters, numbers, spaces, dots, and hyphens",
     ),
 });
 
@@ -132,19 +132,30 @@ export const OMDispatchOrderItemCreateSchema = z.object({
   quantity: z.number().int().min(1, "Dispatch quantity must be at least 1"),
   rate: z.number().min(0, "Rate must be a non-negative number"),
   gstPercentage: z.number().min(0, "GST percentage must be non-negative"),
+  amount: z.number().min(0),
+  gstAmount: z.number().min(0),
+  totalAmount: z.number().min(0),
 });
 
 // --- OMDispatchOrder Validation ---
 export const OMDispatchOrderCreateSchema = z.object({
   purchaseOrderId: z.string().min(1, "Purchase Order ID is required"),
-  invoiceNumber: z.string().optional().nullable(),
+  invoiceNumber: z
+    .string()
+    .transform((val) => (val === "" ? null : val))
+    .nullable()
+    .optional(),
   invoiceDate: z
     .string()
     .datetime({ message: "Invalid Invoice Date format" })
     .optional()
     .nullable(),
   logisticsPartnerId: z.string().optional().nullable(),
-  docketNumber: z.string().optional().nullable(),
+  docketNumber: z
+    .string()
+    .transform((val) => (val === "" ? null : val))
+    .nullable()
+    .optional(),
   expectedDeliveryDate: z
     .string()
     .datetime({ message: "Invalid Expected Delivery Date format" })
@@ -165,4 +176,52 @@ export const OMDispatchOrderCreateSchema = z.object({
   items: z
     .array(OMDispatchOrderItemCreateSchema)
     .min(1, "At least one dispatch item is required"),
+  shipmentBoxes: z
+    .array(
+      z.object({
+        boxNumber: z.union([z.string(), z.number()]).optional(),
+        length: z.number().positive("Length must be a positive number"),
+        width: z.number().positive("Width must be a positive number"),
+        height: z.number().positive("Height must be a positive number"),
+        weight: z.number().min(0, "Weight must be non-negative").optional().default(0),
+        numberOfBoxes: z
+          .number()
+          .int()
+          .min(1, "Number of boxes must be at least 1"),
+        contents: z.array(
+          z.object({
+            itemId: z.string().min(1, "Item ID is required"),
+            quantity: z.number().int().min(1, "Quantity must be at least 1"),
+          }),
+        ),
+      }),
+    )
+    .optional(),
+});
+
+export const OMDispatchOrderUpdateSchema = OMDispatchOrderCreateSchema.partial().extend({
+  purchaseOrderId: z.string().optional(),
+});
+
+// --- OMShipmentBox Validation ---
+export const OMShipmentBoxCreateSchema = z.object({
+  boxNumber: z.union([z.string(), z.number()]).optional(),
+  length: z.number().positive("Length must be a positive number"),
+  width: z.number().positive("Width must be a positive number"),
+  height: z.number().positive("Height must be a positive number"),
+  weight: z.number().min(0, "Weight must be non-negative").optional().default(0),
+  numberOfBoxes: z.number().int().min(1, "Number of boxes must be at least 1"),
+});
+
+export const OMShipmentBoxUpdateSchema = OMShipmentBoxCreateSchema.partial();
+
+// --- OMShipmentBoxContent Validation ---
+export const OMShipmentBoxContentCreateSchema = z.object({
+  purchaseOrderItemId: z.string().uuid("Invalid Purchase Order Item ID").optional(),
+  itemId: z.string().uuid("Invalid Item ID").optional(), // To support frontend's payload format fallback
+  quantity: z.number().int().min(1, "Quantity must be at least 1"),
+});
+
+export const OMShipmentBoxContentUpdateSchema = z.object({
+  quantity: z.number().int().min(1, "Quantity must be at least 1"),
 });
