@@ -317,7 +317,7 @@ export function OMPurchaseOrderLineItems({
               <TableHead className="min-w-36">Brand</TableHead>
               <TableHead className="min-w-40">Description</TableHead>
               <TableHead className="w-29">Qty</TableHead>
-              <TableHead className="w-29">Rate</TableHead>
+              <TableHead className="w-auto">Rate</TableHead>
               <TableHead className="w-25">Amount</TableHead>
               <TableHead className="w-25">GST %</TableHead>
               <TableHead className="w-30">GST Amt</TableHead>
@@ -461,7 +461,7 @@ export function OMPurchaseOrderLineItems({
                         className="font-medium w-20"
                       />
                     </TableCell>
-                    <TableCell className="p-3 w-60">
+                    <TableCell className="p-3">
                       <Input
                         type="number"
                         min="0"
@@ -476,7 +476,7 @@ export function OMPurchaseOrderLineItems({
                               : parseFloat(e.target.value) || 0,
                           )
                         }
-                        className="font-medium w-20"
+                        className="font-medium w-23"
                       />
                     </TableCell>
                     <TableCell className="text-right font-medium">
