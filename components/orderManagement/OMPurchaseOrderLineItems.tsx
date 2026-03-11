@@ -203,6 +203,7 @@ export function OMPurchaseOrderLineItems({
                     />
                     <OMNewBrandDialog
                       productId={item.productId}
+                      brands={brands}
                       currentBrandIds={selectedProduct?.brands?.map(
                         (b) => b.id,
                       )}
@@ -426,6 +427,7 @@ export function OMPurchaseOrderLineItems({
                         </div>
                         <OMNewBrandDialog
                           productId={item.productId}
+                          brands={brands}
                           currentBrandIds={selectedProduct?.brands?.map(
                             (b) => b.id,
                           )}

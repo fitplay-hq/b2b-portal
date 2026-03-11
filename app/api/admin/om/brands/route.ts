@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
     const existing = await prisma.oMBrand.findUnique({ where: { id } });
     if (existing) {
       return NextResponse.json(
-        { error: "A brand with a similar name already exists" },
-        { status: 409 },
+        { message: "Brand already exists", id: existing.id, data: existing },
+        { status: 200 },
       );
     }
 
