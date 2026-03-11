@@ -16,7 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Package, TrendingUp, Truck } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Package, TrendingUp, Truck, Box } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { formatStatus, formatDisplayDate } from "@/lib/utils";
@@ -25,7 +26,6 @@ import {
   type OMDispatchOrderItem,
   getDispatchStatusVisuals,
 } from "@/types/order-management";
-import { OMShipmentPackingView } from "@/components/orderManagement/dispatches/OMShipmentPackingView";
 
 export default function OMDispatchDetail() {
   const params = useParams();
@@ -406,12 +406,160 @@ export default function OMDispatchDetail() {
           </CardContent>
         </Card>
 
-        {/* Shipment Packing Details */}
-        <OMShipmentPackingView
-          shipmentBoxes={dispatch.shipmentBoxes || []}
-          totalDispatchQty={totalQty}
-          isLoading={false}
-        />
+        {/* Shipment / Packing Details */}
+        {dispatch.shipmentBoxes && dispatch.shipmentBoxes.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Box className="h-5 w-5" />
+                <CardTitle>Shipment / Packing Details</CardTitle>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Detailed packing information for this dispatch
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Packing Summary */}
+              <Alert>
+                <Package className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Total Boxes</p>
+                      <p className="text-2xl font-bold">
+                        {dispatch.shipmentBoxes.reduce((sum, box) => sum + box.numberOfBoxes, 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Box Types</p>
+                      <p className="text-2xl font-bold">{dispatch.shipmentBoxes.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Total Volume</p>
+                      <p className="text-2xl font-bold">
+                        {dispatch.shipmentBoxes.reduce((sum, box) => {
+                          const volumePerBox = (box.length * box.width * box.height) / 1000000;
+                          return sum + (volumePerBox * box.numberOfBoxes);
+                        }, 0).toFixed(3)} m³
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Total Weight</p>
+                      <p className="text-2xl font-bold">
+                        {dispatch.shipmentBoxes.reduce((sum, box) => sum + (box.weight || 0) * box.numberOfBoxes, 0).toFixed(2)} kg
+                      </p>
+                    </div>
+                    <div className="md:col-span-1">
+                      <p className="text-sm font-medium">Items Packed</p>
+                      <p className="text-2xl font-bold">{totalQty}</p>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+
+              {/* Individual Box Details */}
+              <div className="space-y-4">
+                {dispatch.shipmentBoxes.map((box) => {
+                  const volumePerBox = (box.length * box.width * box.height) / 1000000;
+                  const totalVolume = volumePerBox * box.numberOfBoxes;
+                  
+                  return (
+                    <Card key={box.boxId} className="border-2">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-base">Box {box.boxNumber}</CardTitle>
+                            {box.numberOfBoxes > 1 && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {box.numberOfBoxes} identical boxes
+                              </p>
+                            )}
+                          </div>
+                          <Badge variant="outline">
+                            {box.length} × {box.width} × {box.height} cm
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {/* Dimensions */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-muted/50 rounded-lg">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Length</p>
+                            <p className="font-medium">{box.length} cm</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Width</p>
+                            <p className="font-medium">{box.width} cm</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Height</p>
+                            <p className="font-medium">{box.height} cm</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Weight</p>
+                            <p className="font-medium">{box.weight || 0} kg</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Volume</p>
+                            <p className="font-medium">{volumePerBox.toFixed(4)} m³</p>
+                            {box.numberOfBoxes > 1 && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Total Vol: {totalVolume.toFixed(4)} m³
+                                <br />
+                                Total Wt: {((box.weight || 0) * box.numberOfBoxes).toFixed(2)} kg
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Contents */}
+                        <div>
+                          <p className="text-sm font-medium mb-2">Contents (per box):</p>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Item Name</TableHead>
+                                <TableHead className="text-right">Quantity per Box</TableHead>
+                                {box.numberOfBoxes > 1 && (
+                                  <TableHead className="text-right">Total Quantity</TableHead>
+                                )}
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {box.contents.map((content, index) => (
+                                <TableRow key={index}>
+                                  <TableCell className="font-medium">{content.itemName}</TableCell>
+                                  <TableCell className="text-right">{content.quantity}</TableCell>
+                                  {box.numberOfBoxes > 1 && (
+                                    <TableCell className="text-right font-medium">
+                                      {content.quantity * box.numberOfBoxes}
+                                    </TableCell>
+                                  )}
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Instructions for Client */}
+              <Alert>
+                <AlertDescription>
+                  <p className="text-sm font-medium mb-2">📦 For Client Reference:</p>
+                  <ul className="text-sm space-y-1 list-disc list-inside">
+                    <li>Total shipment consists of {dispatch.shipmentBoxes.reduce((sum, box) => sum + box.numberOfBoxes, 0)} box(es)</li>
+                    <li>Please verify contents of each box upon delivery</li>
+                    <li>Box dimensions provided for storage planning</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );

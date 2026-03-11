@@ -3,6 +3,10 @@ import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
+import {
+  OMDispatchOrderCreateSchema,
+  OMDispatchOrderUpdateSchema,
+} from "@/lib/validations/om";
 
 export async function GET(
   req: NextRequest,
@@ -77,10 +81,11 @@ export async function GET(
         length: box.length,
         width: box.width,
         height: box.height,
+        weight: box.weight,
         numberOfBoxes: box.numberOfBoxes,
         contents: (box.contents || []).map((c) => ({
           contentId: c.id,
-          itemId: c.dispatchOrderItem?.purchaseOrderItem?.productId || "unknown",
+          itemId: c.dispatchOrderItem?.purchaseOrderItemId || "unknown",
           itemName: c.dispatchOrderItem?.purchaseOrderItem?.product?.name || "Unknown Item",
           quantity: c.quantityPerBox,
           dispatchOrderItemId: c.dispatchOrderItemId,
@@ -112,6 +117,10 @@ export async function PUT(
     }
 
     const body = await req.json();
+
+    // Use Zod validation
+    const validatedData = OMDispatchOrderUpdateSchema.parse(body);
+
     const {
       invoiceNumber,
       invoiceDate,
@@ -121,7 +130,7 @@ export async function PUT(
       status,
       items,
       shipmentBoxes,
-    } = body;
+    } = validatedData;
 
     // We use a transaction because we need to delete old items and create new ones
     const updatedDispatch = await prisma.$transaction(async (tx) => {
@@ -141,9 +150,9 @@ export async function PUT(
           expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
           status,
           items: {
-            create: items.map((item: any) => ({
-              purchaseOrderItemId: item.poLineItemId || item.purchaseOrderItemId,
-              quantity: item.dispatchQty || item.quantity,
+            create: (items || []).map((item: any) => ({
+              purchaseOrderItemId: item.purchaseOrderItemId || item.poLineItemId,
+              quantity: item.quantity || item.dispatchQty,
               rate: item.rate,
               amount: item.amount,
               gstPercentage: item.gstPercentage,
@@ -172,23 +181,26 @@ export async function PUT(
               length: box.length,
               width: box.width,
               height: box.height,
+              weight: box.weight || 0,
               numberOfBoxes: box.numberOfBoxes,
             },
           });
 
-          for (const content of box.contents) {
-            const dispatchItem = dispatch.items.find(
-              (di) => di.purchaseOrderItemId === content.itemId,
-            );
+          if (box.contents) {
+            for (const content of box.contents) {
+              const dispatchItem = dispatch.items.find(
+                (di) => di.purchaseOrderItemId === content.itemId,
+              );
 
-            if (dispatchItem) {
-              await tx.oMShipmentBoxContent.create({
-                data: {
-                  shipmentBoxId: createdBox.id,
-                  dispatchOrderItemId: dispatchItem.id,
-                  quantityPerBox: content.quantity,
-                },
-              });
+              if (dispatchItem) {
+                await tx.oMShipmentBoxContent.create({
+                  data: {
+                    shipmentBoxId: createdBox.id,
+                    dispatchOrderItemId: dispatchItem.id,
+                    quantityPerBox: content.quantity,
+                  },
+                });
+              }
             }
           }
         }

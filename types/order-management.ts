@@ -237,6 +237,7 @@ export interface OMShipmentBox {
   length: number; // in cm
   width: number; // in cm
   height: number; // in cm
+  weight: number; // in kg
   numberOfBoxes: number; // count of identical boxes
   contents: OMBoxContent[];
 }
@@ -284,6 +285,23 @@ export const OMShipmentHelpers = {
       const itemsInOneBox = box.contents.reduce((iSum, item) => iSum + item.quantity, 0);
       return sum + itemsInOneBox * box.numberOfBoxes;
     }, 0);
+  },
+
+  /**
+   * Calculate total weight of a group of identical boxes
+   */
+  calculateTotalBoxWeight: (box: Pick<OMShipmentBox, "weight" | "numberOfBoxes">) => {
+    return (box.weight || 0) * box.numberOfBoxes;
+  },
+
+  /**
+   * Calculate total weight of all boxes in a shipment
+   */
+  getTotalWeight: (shipmentBoxes: OMShipmentBox[]) => {
+    return shipmentBoxes.reduce(
+      (sum, box) => sum + OMShipmentHelpers.calculateTotalBoxWeight(box),
+      0
+    );
   },
 };
 

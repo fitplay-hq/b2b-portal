@@ -159,6 +159,7 @@ export async function POST(req: NextRequest) {
               length: box.length,
               width: box.width,
               height: box.height,
+              weight: box.weight || 0,
               numberOfBoxes: box.numberOfBoxes,
             },
           });

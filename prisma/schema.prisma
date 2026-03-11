@@ -395,6 +395,7 @@ model OMShipmentBox {
   length          Float // in cm
   width           Float // in cm
   height          Float // in cm
+  weight          Float                 @default(0) // in kg
   numberOfBoxes   Int                   @default(1) // Number of identical boxes
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt

@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Save, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
+import { Plus, Save, AlertCircle, Info, Loader2, ArrowLeft, Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateForApi } from "@/lib/utils";
 import { getFinancialYearString } from "@/lib/utils/financial-year";
@@ -42,8 +42,8 @@ import {
   type OMLogisticsPartner,
   OM_DISPATCH_STATUS_CONFIG,
   type OMShipmentBox,
+  OMShipmentHelpers,
 } from "@/types/order-management";
-import { OMShipmentPackingAssigner } from "@/components/orderManagement/dispatches/OMShipmentPackingAssigner";
 
 interface DispatchLineItem {
   tempId: string;
@@ -82,6 +82,7 @@ function CreateDispatchForm() {
     | "CANCELLED"
   >("PENDING");
   const [shipmentBoxes, setShipmentBoxes] = useState<OMShipmentBox[]>([]);
+  const [nextBoxNumber, setNextBoxNumber] = useState(1);
 
   // Master data
   const [availablePOs, setAvailablePOs] = useState<OMPurchaseOrder[]>([]);
@@ -249,6 +250,136 @@ function CreateDispatchForm() {
   const totalGst = lineItems.reduce((sum, item) => sum + item.gstAmount, 0);
   const grandTotal = subtotal + totalGst;
 
+
+
+  // Shipment box functions
+  const addNewBox = () => {
+    const newBox: OMShipmentBox = {
+      boxId: `box-${nextBoxNumber}`,
+      boxNumber: nextBoxNumber,
+      length: 0,
+      width: 0,
+      height: 0,
+      weight: 0,
+      numberOfBoxes: 1,
+      contents: [],
+    };
+    setShipmentBoxes([...shipmentBoxes, newBox]);
+    setNextBoxNumber(nextBoxNumber + 1);
+  };
+
+  const removeBox = (boxId: string) => {
+    setShipmentBoxes(shipmentBoxes.filter((b) => b.boxId !== boxId));
+  };
+
+  const updateBox = (
+    boxId: string,
+    field: keyof OMShipmentBox,
+    value: any,
+  ) => {
+    setShipmentBoxes(
+      shipmentBoxes.map((box) =>
+        box.boxId === boxId ? { ...box, [field]: value } : box,
+      ),
+    );
+  };
+
+  const addContentToBox = (boxId: string) => {
+    setShipmentBoxes(
+      shipmentBoxes.map((box) => {
+        if (box.boxId !== boxId) return box;
+        return {
+          ...box,
+          contents: [
+            ...box.contents,
+            { itemId: "", itemName: "", quantity: 0 },
+          ],
+        };
+      }),
+    );
+  };
+
+  const updateBoxContent = (
+    boxId: string,
+    contentIndex: number,
+    field: string,
+    value: any,
+  ) => {
+    setShipmentBoxes(
+      shipmentBoxes.map((box) => {
+        if (box.boxId !== boxId) return box;
+        const newContents = [...box.contents];
+        const content = { ...newContents[contentIndex] };
+
+        if (field === "itemId") {
+          content.itemId = value;
+          const item = lineItems.find((li) => li.poLineItemId === value);
+          content.itemName = item?.itemName || "";
+        } else if (field === "quantity") {
+          const qty = parseInt(value) || 0;
+          const currentItem = box.contents[contentIndex].itemId;
+          if (currentItem) {
+            const remaining = getRemainingToPack(currentItem, box.boxId);
+            const maxAllowedPerBox = Math.floor(remaining / box.numberOfBoxes);
+            if (qty > maxAllowedPerBox) {
+              toast.error(`Cannot pack more than available (${maxAllowedPerBox} per box)`);
+              content.quantity = maxAllowedPerBox;
+            } else {
+              content.quantity = qty;
+            }
+          } else {
+            content.quantity = qty;
+          }
+        } else {
+          (content as any)[field] = value;
+        }
+
+        newContents[contentIndex] = content;
+        return { ...box, contents: newContents };
+      }),
+    );
+  };
+
+  const removeContentFromBox = (boxId: string, contentIndex: number) => {
+    setShipmentBoxes(
+      shipmentBoxes.map((box) => {
+        if (box.boxId !== boxId) return box;
+        const newContents = box.contents.filter((_, i) => i !== contentIndex);
+        return { ...box, contents: newContents };
+      }),
+    );
+  };
+
+  const getRemainingToPack = (itemId: string, excludeBoxId?: string) => {
+    const dispatchQty =
+      lineItems.find((li) => li.poLineItemId === itemId)?.dispatchQty || 0;
+    const packed = shipmentBoxes.reduce((total, box) => {
+      if (box.boxId === excludeBoxId) return total;
+      const itemInBox = box.contents.find((c) => c.itemId === itemId);
+      return total + (itemInBox ? itemInBox.quantity * box.numberOfBoxes : 0);
+    }, 0);
+    return dispatchQty - packed;
+  };
+
+  const getPackedQuantity = (itemId: string) => {
+    return shipmentBoxes.reduce((total, box) => {
+      const itemInBox = box.contents.find((c) => c.itemId === itemId);
+      return total + (itemInBox ? itemInBox.quantity * box.numberOfBoxes : 0);
+    }, 0);
+  };
+
+  const isPackingComplete =
+    totalDispatchQty > 0 &&
+    lineItems
+      .filter((item) => item.dispatchQty > 0)
+      .every(
+        (item) => getPackedQuantity(item.poLineItemId) === item.dispatchQty,
+      );
+
+  const getTotalBoxes = () => OMShipmentHelpers.getTotalBoxes(shipmentBoxes);
+  const getTotalVolume = () => OMShipmentHelpers.getTotalVolume(shipmentBoxes);
+  const getTotalWeight = () => OMShipmentHelpers.getTotalWeight(shipmentBoxes);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -268,11 +399,14 @@ function CreateDispatchForm() {
     try {
       const processedItems = lineItems
         .filter((item) => item.dispatchQty > 0)
-        .map(({ poLineItemId, dispatchQty, rate, gstPercentage }) => ({
-          purchaseOrderItemId: poLineItemId,
-          quantity: dispatchQty,
-          rate,
-          gstPercentage,
+        .map((item) => ({
+          purchaseOrderItemId: item.poLineItemId,
+          quantity: item.dispatchQty,
+          rate: item.rate,
+          amount: item.amount,
+          gstPercentage: item.gstPercentage,
+          gstAmount: item.gstAmount,
+          totalAmount: item.totalAmount,
         }));
 
       const payload = {
@@ -291,6 +425,7 @@ function CreateDispatchForm() {
           length: box.length,
           width: box.width,
           height: box.height,
+          weight: box.weight || 0,
           numberOfBoxes: box.numberOfBoxes,
           contents: box.contents.map(c => ({
             itemId: c.itemId,
@@ -424,7 +559,7 @@ function CreateDispatchForm() {
               </Alert>
             )}
           </CardContent>
-        </Card>
+          </Card>
 
         {/* Dispatch Line Items */}
         {selectedPO && (
@@ -683,18 +818,349 @@ function CreateDispatchForm() {
           </Card>
         )}
 
-        {/* Shipment Packing Information */}
+        {/* Shipment / Packing Details */}
         {selectedPO && totalDispatchQty > 0 && (
-          <OMShipmentPackingAssigner
-            items={lineItems.map(li => ({
-              itemId: li.poLineItemId,
-              itemName: li.itemName,
-              dispatchQty: li.dispatchQty,
-            }))}
-            value={shipmentBoxes}
-            onChange={setShipmentBoxes}
-          />
-        )}
+          !logisticsPartnerId ? (
+            <Card className="px-6">
+              <CardContent className="py-6 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                <Info className="h-4 w-4 mx-auto mb-2" />
+                <p className="text-sm">Note: Select a Logistics Partner to add shipment details</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Shipment / Packing Details</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Add boxes/cartons with their dimensions and contents
+                  </p>
+                </div>
+                <Button type="button" onClick={addNewBox} variant="outline" size="sm">
+                  <Package className="h-4 w-4 mr-2" />
+                  Add Box
+                </Button>
+              </CardHeader>
+            <CardContent className="space-y-6">
+              {shipmentBoxes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                  <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No boxes added yet</p>
+                  <p className="text-sm">
+                    Click "Add Box" to start adding shipment details
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Packing Summary */}
+                  <Alert>
+                    <Package className="h-4 w-4" />
+                    <AlertDescription>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-sm font-medium">Total Boxes</p>
+                          <p className="text-2xl font-bold">{getTotalBoxes()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Total Volume</p>
+                          <p className="text-2xl font-bold">
+                            {getTotalVolume().toFixed(3)} m³
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Total Weight</p>
+                          <p className="text-2xl font-bold">
+                            {getTotalWeight().toFixed(2)} kg
+                          </p>
+                        </div>
+                        <div className="col-span-2 md:col-span-1">
+                          <p className="text-sm font-medium mb-2">
+                            Packing Status
+                          </p>
+                          {lineItems
+                            .filter((item) => item.dispatchQty > 0)
+                            .map((item) => {
+                              const packed = getPackedQuantity(item.poLineItemId);
+                              const isComplete = packed === item.dispatchQty;
+                              return (
+                                <div
+                                  key={item.poLineItemId}
+                                  className="flex justify-between text-sm mb-1"
+                                >
+                                  <span className="truncate">
+                                    {item.itemName}:
+                                  </span>
+                                  <span
+                                    className={
+                                      isComplete
+                                        ? "text-green-600 font-medium"
+                                        : "text-orange-600 font-medium"
+                                    }
+                                  >
+                                    {packed} / {item.dispatchQty}{" "}
+                                    {isComplete ? "✓" : "⚠"}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+
+                  {/* Individual Boxes */}
+                  {shipmentBoxes.map((box, boxIndex) => (
+                    <Card key={box.boxId} className="border-2">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">
+                            Box {box.boxNumber}
+                          </CardTitle>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeBox(box.boxId)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Box Dimensions */}
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">
+                            Dimensions (in cm) & Weight (in kg)
+                          </Label>
+                          <div className="grid grid-cols-5 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">
+                                Length
+                              </Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={box.length || ""}
+                                onChange={(e) =>
+                                  updateBox(
+                                    box.boxId,
+                                    "length",
+                                    parseFloat(e.target.value) || 0,
+                                  )
+                                }
+                                placeholder="cm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">
+                                Width
+                              </Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={box.width || ""}
+                                onChange={(e) =>
+                                  updateBox(
+                                    box.boxId,
+                                    "width",
+                                    parseFloat(e.target.value) || 0,
+                                  )
+                                }
+                                placeholder="cm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">
+                                Height
+                              </Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={box.height || ""}
+                                onChange={(e) =>
+                                  updateBox(
+                                    box.boxId,
+                                    "height",
+                                    parseFloat(e.target.value) || 0,
+                                  )
+                                }
+                                placeholder="cm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">
+                                Weight
+                              </Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={box.weight || ""}
+                                onChange={(e) =>
+                                  updateBox(
+                                    box.boxId,
+                                    "weight",
+                                    parseFloat(e.target.value) || 0,
+                                  )
+                                }
+                                placeholder="kg"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">
+                                # of Boxes
+                              </Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={box.numberOfBoxes || ""}
+                                onChange={(e) =>
+                                  updateBox(
+                                    box.boxId,
+                                    "numberOfBoxes",
+                                    parseInt(e.target.value),
+                                  )
+                                }
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
+                          {box.length > 0 &&
+                            box.width > 0 &&
+                            box.height > 0 && (
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Volume per box:{" "}
+                                {OMShipmentHelpers.calculateBoxVolume(
+                                  box,
+                                ).toFixed(4)}{" "}
+                                m³
+                                {box.numberOfBoxes > 1 &&
+                                  ` × ${box.numberOfBoxes} = ${OMShipmentHelpers.calculateTotalBoxVolume(
+                                    box,
+                                  ).toFixed(4)} m³`}
+                              </p>
+                            )}
+                          {box.weight > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Weight per box: {box.weight} kg
+                              {box.numberOfBoxes > 1 &&
+                                ` × ${box.numberOfBoxes} = ${(box.weight * box.numberOfBoxes).toFixed(2)} kg`}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Box Contents */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="text-sm font-medium">
+                              Contents (per box)
+                            </Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => addContentToBox(box.boxId)}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Item
+                            </Button>
+                          </div>
+
+                          {box.contents.length === 0 ? (
+                            <div className="text-center py-4 border-2 border-dashed rounded text-sm text-muted-foreground">
+                              No items in this box yet
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {box.contents.map((content, contentIndex) => (
+                                <div key={contentIndex} className="flex gap-2">
+                                  <Select
+                                    value={content.itemId}
+                                    onValueChange={(value) =>
+                                      updateBoxContent(
+                                        box.boxId,
+                                        contentIndex,
+                                        "itemId",
+                                        value,
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="flex-1">
+                                      <SelectValue placeholder="Select item" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {lineItems
+                                        .filter((item) => item.dispatchQty > 0)
+                                        .map((item) => (
+                                          <SelectItem
+                                            key={item.poLineItemId}
+                                            value={item.poLineItemId}
+                                          >
+                                            {item.itemName} (Dispatch:{" "}
+                                            {item.dispatchQty})
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={content.quantity || ""}
+                                    onChange={(e) =>
+                                      updateBoxContent(
+                                        box.boxId,
+                                        contentIndex,
+                                        "quantity",
+                                        parseInt(e.target.value) || 0,
+                                      )
+                                    }
+                                    placeholder="Qty"
+                                    className="w-24"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      removeContentFromBox(
+                                        box.boxId,
+                                        contentIndex,
+                                      )
+                                    }
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              ))}
+                              {box.numberOfBoxes > 1 &&
+                                box.contents.length > 0 && (
+                                  <p className="text-xs text-muted-foreground italic mt-2">
+                                    Total across {box.numberOfBoxes} boxes:
+                                    {box.contents
+                                      .map((c) => c.itemName)
+                                      .filter(Boolean)
+                                      .map((name, i) => (
+                                        <span key={i}>
+                                          {" "}
+                                          {name} (
+                                          {box.contents[i].quantity *
+                                            box.numberOfBoxes}
+                                          )
+                                        </span>
+                                      ))}
+                                  </p>
+                                )}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )
+      )}
 
         {/* Dispatch Summary */}
         {selectedPO && totalDispatchQty > 0 && (
@@ -743,25 +1209,38 @@ function CreateDispatchForm() {
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/admin/order-management/dispatches")}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={!selectedPO || totalDispatchQty === 0 || isSubmitting}
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            {isSubmitting ? "Creating..." : "Create Dispatch"}
-          </Button>
+        <div className="flex flex-col items-end gap-2">
+          {!isPackingComplete && totalDispatchQty > 0 && (
+            <p className="text-sm text-destructive flex items-center bg-destructive/10 px-3 py-1 rounded-md">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Packing status not met. Please ensure all items are fully packed.
+            </p>
+          )}
+          <div className="flex justify-end gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push("/admin/order-management/dispatches")}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={
+                !selectedPO ||
+                totalDispatchQty === 0 ||
+                isSubmitting ||
+                !isPackingComplete
+              }
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {isSubmitting ? "Creating..." : "Create Dispatch"}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

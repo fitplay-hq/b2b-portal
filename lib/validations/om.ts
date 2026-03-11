@@ -132,6 +132,9 @@ export const OMDispatchOrderItemCreateSchema = z.object({
   quantity: z.number().int().min(1, "Dispatch quantity must be at least 1"),
   rate: z.number().min(0, "Rate must be a non-negative number"),
   gstPercentage: z.number().min(0, "GST percentage must be non-negative"),
+  amount: z.number().min(0),
+  gstAmount: z.number().min(0),
+  totalAmount: z.number().min(0),
 });
 
 // --- OMDispatchOrder Validation ---
@@ -172,6 +175,7 @@ export const OMDispatchOrderCreateSchema = z.object({
         length: z.number().positive("Length must be a positive number"),
         width: z.number().positive("Width must be a positive number"),
         height: z.number().positive("Height must be a positive number"),
+        weight: z.number().min(0, "Weight must be non-negative").optional().default(0),
         numberOfBoxes: z
           .number()
           .int()
@@ -187,12 +191,17 @@ export const OMDispatchOrderCreateSchema = z.object({
     .optional(),
 });
 
+export const OMDispatchOrderUpdateSchema = OMDispatchOrderCreateSchema.partial().extend({
+  purchaseOrderId: z.string().optional(),
+});
+
 // --- OMShipmentBox Validation ---
 export const OMShipmentBoxCreateSchema = z.object({
   boxNumber: z.union([z.string(), z.number()]).optional(),
   length: z.number().positive("Length must be a positive number"),
   width: z.number().positive("Width must be a positive number"),
   height: z.number().positive("Height must be a positive number"),
+  weight: z.number().min(0, "Weight must be non-negative").optional().default(0),
   numberOfBoxes: z.number().int().min(1, "Number of boxes must be at least 1"),
 });
 
