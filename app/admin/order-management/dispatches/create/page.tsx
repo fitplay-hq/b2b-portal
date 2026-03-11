@@ -110,7 +110,7 @@ function CreateDispatchForm() {
       setIsLoadingMaster(true);
       try {
         const [posRes, logisticsRes] = await Promise.all([
-          fetch("/api/admin/om/purchase-orders"),
+          fetch("/api/admin/om/purchase-orders?status=active"),
           fetch("/api/admin/om/logistics-partners"),
         ]);
 
