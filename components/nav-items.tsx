@@ -21,6 +21,7 @@ import {
   TrendingUp,
   ClipboardList,
   Truck,
+  Handshake,
   CircleUser,
   Box,
   MapPin,
@@ -248,7 +249,7 @@ export default function NavItems({
     {
       href: "/admin/order-management/logistics-partners",
       label: "Logistics Partners",
-      icon: MapPin,
+      icon: Handshake,
       color: "text-slate-600",
       bgColor: "bg-slate-50",
     },

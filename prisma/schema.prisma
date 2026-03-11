@@ -357,7 +357,7 @@ model OMLogisticsPartner {
 model OMDispatchOrder {
   id                   String                @id @default(uuid())
   purchaseOrderId      String
-  invoiceNumber        String?               @unique
+  invoiceNumber        String?
   invoiceDate          DateTime?
   logisticsPartnerId   String?
   docketNumber         String?

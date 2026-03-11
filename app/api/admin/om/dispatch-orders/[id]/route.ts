@@ -143,7 +143,7 @@ export async function PUT(
       const dispatch = await tx.oMDispatchOrder.update({
         where: { id },
         data: {
-          invoiceNumber,
+          invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
           invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
           logisticsPartnerId: logisticsPartnerId || null,
           docketNumber,

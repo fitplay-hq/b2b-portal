@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       const dispatch = await tx.oMDispatchOrder.create({
         data: {
           purchaseOrderId,
-          invoiceNumber: invoiceNumber || null,
+          invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
           invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
           logisticsPartnerId: logisticsPartnerId || null,
           docketNumber: docketNumber || null,

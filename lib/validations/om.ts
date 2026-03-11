@@ -140,14 +140,22 @@ export const OMDispatchOrderItemCreateSchema = z.object({
 // --- OMDispatchOrder Validation ---
 export const OMDispatchOrderCreateSchema = z.object({
   purchaseOrderId: z.string().min(1, "Purchase Order ID is required"),
-  invoiceNumber: z.string().optional().nullable(),
+  invoiceNumber: z
+    .string()
+    .transform((val) => (val === "" ? null : val))
+    .nullable()
+    .optional(),
   invoiceDate: z
     .string()
     .datetime({ message: "Invalid Invoice Date format" })
     .optional()
     .nullable(),
   logisticsPartnerId: z.string().optional().nullable(),
-  docketNumber: z.string().optional().nullable(),
+  docketNumber: z
+    .string()
+    .transform((val) => (val === "" ? null : val))
+    .nullable()
+    .optional(),
   expectedDeliveryDate: z
     .string()
     .datetime({ message: "Invalid Expected Delivery Date format" })
@@ -209,7 +217,8 @@ export const OMShipmentBoxUpdateSchema = OMShipmentBoxCreateSchema.partial();
 
 // --- OMShipmentBoxContent Validation ---
 export const OMShipmentBoxContentCreateSchema = z.object({
-  dispatchOrderItemId: z.string().uuid("Invalid Dispatch Order Item ID"),
+  purchaseOrderItemId: z.string().uuid("Invalid Purchase Order Item ID").optional(),
+  itemId: z.string().uuid("Invalid Item ID").optional(), // To support frontend's payload format fallback
   quantity: z.number().int().min(1, "Quantity must be at least 1"),
 });
 

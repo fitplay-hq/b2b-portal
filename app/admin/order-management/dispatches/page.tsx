@@ -658,7 +658,7 @@ export default function OMDispatchesList() {
                       }
                     >
                       <TableCell className="font-medium">
-                        {dispatch.invoiceNumber}
+                        {dispatch.invoiceNumber || "N/A"}
                       </TableCell>
                       <TableCell>
                         {dispatch.purchaseOrder?.poNumber || "N/A"}

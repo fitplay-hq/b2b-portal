@@ -315,21 +315,6 @@ function CreateDispatchForm() {
           content.itemId = value;
           const item = lineItems.find((li) => li.poLineItemId === value);
           content.itemName = item?.itemName || "";
-        } else if (field === "quantity") {
-          const qty = parseInt(value) || 0;
-          const currentItem = box.contents[contentIndex].itemId;
-          if (currentItem) {
-            const remaining = getRemainingToPack(currentItem, box.boxId);
-            const maxAllowedPerBox = Math.floor(remaining / box.numberOfBoxes);
-            if (qty > maxAllowedPerBox) {
-              toast.error(`Cannot pack more than available (${maxAllowedPerBox} per box)`);
-              content.quantity = maxAllowedPerBox;
-            } else {
-              content.quantity = qty;
-            }
-          } else {
-            content.quantity = qty;
-          }
         } else {
           (content as any)[field] = value;
         }
@@ -348,17 +333,6 @@ function CreateDispatchForm() {
         return { ...box, contents: newContents };
       }),
     );
-  };
-
-  const getRemainingToPack = (itemId: string, excludeBoxId?: string) => {
-    const dispatchQty =
-      lineItems.find((li) => li.poLineItemId === itemId)?.dispatchQty || 0;
-    const packed = shipmentBoxes.reduce((total, box) => {
-      if (box.boxId === excludeBoxId) return total;
-      const itemInBox = box.contents.find((c) => c.itemId === itemId);
-      return total + (itemInBox ? itemInBox.quantity * box.numberOfBoxes : 0);
-    }, 0);
-    return dispatchQty - packed;
   };
 
   const getPackedQuantity = (itemId: string) => {
@@ -395,6 +369,50 @@ function CreateDispatchForm() {
       return;
     }
 
+    // Validate packing if boxes are added
+    if (shipmentBoxes.length > 0) {
+      // Check if all dispatched items are packed
+      for (const item of lineItems) {
+        if (item.dispatchQty > 0) {
+          const packedQty = getPackedQuantity(item.poLineItemId);
+          if (packedQty !== item.dispatchQty) {
+            toast.error(
+              `Item "${item.itemName}" dispatch quantity (${item.dispatchQty}) doesn't match packed quantity (${packedQty})`,
+            );
+            return;
+          }
+        }
+      }
+
+      // Check if all boxes have dimensions
+      if (
+        shipmentBoxes.some(
+          (box) => box.length === 0 || box.width === 0 || box.height === 0,
+        )
+      ) {
+        toast.error("Please enter dimensions for all boxes");
+        return;
+      }
+
+      // Check if all boxes have contents
+      if (shipmentBoxes.some((box) => box.contents.length === 0)) {
+        toast.error("Please add contents to all boxes");
+        return;
+      }
+
+      // Check if all contents have valid items and quantities
+      for (const box of shipmentBoxes) {
+        for (const content of box.contents) {
+          if (!content.itemId || content.quantity === 0) {
+            toast.error(
+              `Please complete all content details in Box ${box.boxNumber}`,
+            );
+            return;
+          }
+        }
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const processedItems = lineItems
@@ -411,7 +429,7 @@ function CreateDispatchForm() {
 
       const payload = {
         purchaseOrderId: poId,
-        invoiceNumber: invoiceNumber || null,
+        invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
         invoiceDate: invoiceDate ? formatDateForApi(invoiceDate) : null,
         logisticsPartnerId: logisticsPartnerId || null,
         docketNumber: trackingNumber || null,
@@ -1210,7 +1228,7 @@ function CreateDispatchForm() {
 
         {/* Actions */}
         <div className="flex flex-col items-end gap-2">
-          {!isPackingComplete && totalDispatchQty > 0 && (
+          {shipmentBoxes.length > 0 && !isPackingComplete && totalDispatchQty > 0 && (
             <p className="text-sm text-destructive flex items-center bg-destructive/10 px-3 py-1 rounded-md">
               <AlertCircle className="h-4 w-4 mr-2" />
               Packing status not met. Please ensure all items are fully packed.
@@ -1230,7 +1248,7 @@ function CreateDispatchForm() {
                 !selectedPO ||
                 totalDispatchQty === 0 ||
                 isSubmitting ||
-                !isPackingComplete
+                (shipmentBoxes.length > 0 && !isPackingComplete)
               }
             >
               {isSubmitting ? (

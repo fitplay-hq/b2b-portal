@@ -129,7 +129,7 @@ export default function OMPurchaseOrdersList() {
     try {
       const params = new URLSearchParams();
       params.append("page", (isNextPage ? page : 1).toString());
-      params.append("limit", "25");
+      params.append("limit", "50");
 
       if (filters.status !== "all") params.append("status", filters.status);
       if (filters.clientName) {
