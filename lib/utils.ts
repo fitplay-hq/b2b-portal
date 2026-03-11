@@ -35,6 +35,31 @@ export function formatDateForApi(
 }
 
 /**
+ * Formats a date string or Date object for display in "en-IN" format.
+ * Returns "N/A" if the date is invalid or missing.
+ */
+export function formatDisplayDate(
+  dateValue: string | Date | null | undefined,
+  includeTime: boolean = false,
+): string {
+  if (!dateValue) return "N/A";
+  try {
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return "N/A";
+
+    // If it's the Unix epoch (1970-01-01), treat as N/A
+    if (date.getTime() === 0) return "N/A";
+
+    if (includeTime) {
+      return date.toLocaleString("en-IN");
+    }
+    return date.toLocaleDateString("en-IN");
+  } catch (e) {
+    return "N/A";
+  }
+}
+
+/**
  * Checks if a user has admin privileges (ADMIN or SYSTEM_USER)
  */
 export function hasAdminAccess(userRole?: string): boolean {

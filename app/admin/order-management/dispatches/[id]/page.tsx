@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Package, TrendingUp, Truck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { formatStatus } from "@/lib/utils";
+import { formatStatus, formatDisplayDate } from "@/lib/utils";
 import type {
   OMDispatchOrder,
   OMDispatchOrderItem,
@@ -283,20 +283,14 @@ export default function OMDispatchDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Invoice Date</p>
                 <p className="font-medium">
-                  {new Date(dispatch.invoiceDate).toLocaleDateString("en-IN")}
+                  {formatDisplayDate(dispatch.invoiceDate)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
                   Expected Delivery
                 </p>
-                <p className="font-medium">
-                  {dispatch.expectedDeliveryDate
-                    ? new Date(
-                        dispatch.expectedDeliveryDate,
-                      ).toLocaleDateString("en-IN")
-                    : "N/A"}
-                </p>
+                <p className="font-medium">{formatDisplayDate(dispatch.expectedDeliveryDate)}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Tracking Number</p>
@@ -307,9 +301,7 @@ export default function OMDispatchDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Created At</p>
                 <p className="font-medium">
-                  {dispatch.createdAt
-                    ? new Date(dispatch.createdAt).toLocaleString("en-IN")
-                    : "N/A"}
+                  {formatDisplayDate(dispatch.createdAt, true)}
                 </p>
               </div>
               <div>

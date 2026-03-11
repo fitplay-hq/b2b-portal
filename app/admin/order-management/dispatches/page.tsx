@@ -35,7 +35,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatStatus } from "@/lib/utils";
+import { formatStatus, formatDisplayDate } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -398,8 +398,8 @@ export default function OMDispatchesList() {
         totalQty,
         dispatch.logisticsPartner?.name || "N/A",
         dispatch.docketNumber || "N/A",
-        new Date(dispatch.invoiceDate).toLocaleDateString("en-IN"),
-        new Date(dispatch.expectedDeliveryDate).toLocaleDateString("en-IN"),
+        formatDisplayDate(dispatch.invoiceDate),
+        formatDisplayDate(dispatch.expectedDeliveryDate),
         dispatch.status,
         grandTotal,
       ];
@@ -476,8 +476,8 @@ export default function OMDispatchesList() {
         totalQty.toString(),
         dispatch.logisticsPartner?.name || "N/A",
         dispatch.docketNumber || "N/A",
-        new Date(dispatch.invoiceDate).toLocaleDateString("en-IN"),
-        new Date(dispatch.expectedDeliveryDate).toLocaleDateString("en-IN"),
+        formatDisplayDate(dispatch.invoiceDate),
+        formatDisplayDate(dispatch.expectedDeliveryDate),
         dispatch.status,
         `₹${grandTotal.toLocaleString("en-IN")}`,
       ];
@@ -675,9 +675,7 @@ export default function OMDispatchesList() {
                         {dispatch.docketNumber || "N/A"}
                       </TableCell>
                       <TableCell>
-                        {new Date(dispatch.invoiceDate).toLocaleDateString(
-                          "en-IN",
-                        )}
+                        {formatDisplayDate(dispatch.invoiceDate)}
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(dispatch.status)}>

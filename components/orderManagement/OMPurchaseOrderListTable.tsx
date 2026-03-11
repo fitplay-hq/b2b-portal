@@ -33,9 +33,10 @@ export function OMPurchaseOrderListTable({
           <TableRow>
             <TableHead>PO / Estimate</TableHead>
             <TableHead>Client</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead className="text-right">Qty</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
+            <TableHead className="text-right">Total Ordered</TableHead>
+            <TableHead className="text-right">Dispatched</TableHead>
+            <TableHead className="text-right">Remaining</TableHead>
+            <TableHead className="text-right">Total Value</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right w-[100px]">Actions</TableHead>
           </TableRow>
@@ -57,6 +58,17 @@ export function OMPurchaseOrderListTable({
                   (sum: number, i: OMPurchaseOrderItem) => sum + i.quantity,
                   0,
                 ) || 0;
+              const totalDispatched =
+                po.items?.reduce(
+                  (sum: number, i: OMPurchaseOrderItem) =>
+                    sum +
+                    (i.dispatchItems?.reduce(
+                      (acc: number, d: any) => acc + d.quantity,
+                      0,
+                    ) || 0),
+                  0,
+                ) || 0;
+              const totalRemaining = totalQty - totalDispatched;
               const totalAmount =
                 po.items?.reduce(
                   (sum: number, i: OMPurchaseOrderItem) => sum + i.totalAmount,
@@ -84,16 +96,9 @@ export function OMPurchaseOrderListTable({
                     )}
                   </TableCell>
                   <TableCell>{po.client?.name || "N/A"}</TableCell>
-                  <TableCell>
-                    {po.poDate
-                      ? new Date(po.poDate).toLocaleDateString()
-                      : po.estimateDate
-                        ? new Date(po.estimateDate).toLocaleDateString()
-                        : po.createdAt
-                          ? new Date(po.createdAt).toLocaleDateString()
-                          : "N/A"}
-                  </TableCell>
                   <TableCell className="text-right">{totalQty}</TableCell>
+                  <TableCell className="text-right">{totalDispatched}</TableCell>
+                  <TableCell className="text-right">{totalRemaining}</TableCell>
                   <TableCell className="text-right font-medium">
                     ₹
                     {totalAmount.toLocaleString("en-IN", {

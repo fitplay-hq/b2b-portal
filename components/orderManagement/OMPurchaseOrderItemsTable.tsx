@@ -9,6 +9,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import Link from "next/link";
 import {
   OMPurchaseOrderItem,
   OMDispatchOrderItem,
@@ -16,11 +19,13 @@ import {
 } from "@/types/order-management";
 
 interface OMPurchaseOrderItemsTableProps {
+  poId: string;
   items: OMPurchaseOrderItem[];
   dispatches: OMDispatchOrder[];
 }
 
 export function OMPurchaseOrderItemsTable({
+  poId,
   items,
   dispatches,
 }: OMPurchaseOrderItemsTableProps) {
@@ -37,6 +42,7 @@ export function OMPurchaseOrderItemsTable({
             <TableHead className="text-right">Dispatched</TableHead>
             <TableHead className="text-right">Remaining</TableHead>
             <TableHead className="text-center w-24">Status</TableHead>
+            <TableHead className="text-right w-24">Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -109,6 +115,18 @@ export function OMPurchaseOrderItemsTable({
                   >
                     {status}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  {remainingQty > 0 && (
+                    <Link
+                      href={`/admin/order-management/dispatches/create?poId=${poId}`}
+                    >
+                      <Button variant="outline" size="sm" className="h-8">
+                        <Plus className="h-3 w-3 mr-1" />
+                        Dispatch
+                      </Button>
+                    </Link>
+                  )}
                 </TableCell>
               </TableRow>
             );
