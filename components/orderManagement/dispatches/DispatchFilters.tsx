@@ -18,6 +18,7 @@ import {
   OM_DISPATCH_STATUS_CONFIG,
   type OMDispatchStatus,
 } from "@/types/order-management";
+import type { SortOption } from "../OMSortControl";
 
 interface DispatchFiltersProps {
   filters: {
@@ -30,6 +31,8 @@ interface DispatchFiltersProps {
     docketNumber: string;
   };
   setFilters: (filters: any) => void;
+  sortBy: SortOption;
+  onSortChange: (value: SortOption) => void;
   clientOptions: ComboboxOption[];
   logisticsOptions: ComboboxOption[];
   invoiceOptions: ComboboxOption[];
@@ -39,6 +42,8 @@ interface DispatchFiltersProps {
 export function DispatchFilters({
   filters,
   setFilters,
+  sortBy,
+  onSortChange,
   clientOptions,
   logisticsOptions,
   invoiceOptions,
@@ -61,7 +66,7 @@ export function DispatchFilters({
             value={filters.fromDate}
             max={filters.toDate || new Date().toISOString().split("T")[0]}
             onChange={(e) => updateFilter("fromDate", e.target.value)}
-            className="pl-10 h-10 text-sm focus-visible:ring-blue-500"
+            className="pl-10 h-10 text-sm focus-visible:ring-neutral-900"
           />
         </div>
       </div>
@@ -78,7 +83,7 @@ export function DispatchFilters({
             min={filters.fromDate}
             max={new Date().toISOString().split("T")[0]}
             onChange={(e) => updateFilter("toDate", e.target.value)}
-            className="pl-10 h-10 text-sm focus-visible:ring-blue-500"
+            className="pl-10 h-10 text-sm focus-visible:ring-neutral-900"
           />
         </div>
       </div>
@@ -143,7 +148,7 @@ export function DispatchFilters({
           value={filters.status}
           onValueChange={(val) => updateFilter("status", val)}
         >
-          <SelectTrigger className="h-10 text-sm focus:ring-blue-500">
+          <SelectTrigger className="h-10 text-sm focus:ring-neutral-900">
             <SelectValue placeholder="Select status..." />
           </SelectTrigger>
           <SelectContent>
@@ -158,6 +163,28 @@ export function DispatchFilters({
                 {config.label}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1.5 block ml-1">
+          Sort By
+        </Label>
+        <Select
+          value={sortBy}
+          onValueChange={onSortChange}
+        >
+          <SelectTrigger className="h-10 text-sm focus:ring-neutral-900">
+            <SelectValue placeholder="Sort by..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest First</SelectItem>
+            <SelectItem value="oldest">Oldest First</SelectItem>
+            <SelectItem value="inv_date_desc">Invoice Date (Newest)</SelectItem>
+            <SelectItem value="inv_date_asc">Invoice Date (Oldest)</SelectItem>
+            <SelectItem value="name_asc">Client Name (A-Z)</SelectItem>
+            <SelectItem value="name_desc">Client Name (Z-A)</SelectItem>
           </SelectContent>
         </Select>
       </div>

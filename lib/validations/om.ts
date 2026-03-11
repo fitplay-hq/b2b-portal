@@ -69,8 +69,8 @@ export const OMDeliveryLocationCreateSchema = z.object({
     .min(1, "City Name is required")
     .max(100, "City Name must be less than 100 characters")
     .regex(
-      /^[a-zA-Z\s]+$/,
-      "Only City Name is allowed, no special characters or numbers",
+      /^[a-zA-Z0-9\s.,-]+$/,
+      "City Name can only contain letters, numbers, spaces, dots, and hyphens",
     ),
 });
 
@@ -165,4 +165,45 @@ export const OMDispatchOrderCreateSchema = z.object({
   items: z
     .array(OMDispatchOrderItemCreateSchema)
     .min(1, "At least one dispatch item is required"),
+  shipmentBoxes: z
+    .array(
+      z.object({
+        boxNumber: z.union([z.string(), z.number()]).optional(),
+        length: z.number().positive("Length must be a positive number"),
+        width: z.number().positive("Width must be a positive number"),
+        height: z.number().positive("Height must be a positive number"),
+        numberOfBoxes: z
+          .number()
+          .int()
+          .min(1, "Number of boxes must be at least 1"),
+        contents: z.array(
+          z.object({
+            itemId: z.string().min(1, "Item ID is required"),
+            quantity: z.number().int().min(1, "Quantity must be at least 1"),
+          }),
+        ),
+      }),
+    )
+    .optional(),
+});
+
+// --- OMShipmentBox Validation ---
+export const OMShipmentBoxCreateSchema = z.object({
+  boxNumber: z.union([z.string(), z.number()]).optional(),
+  length: z.number().positive("Length must be a positive number"),
+  width: z.number().positive("Width must be a positive number"),
+  height: z.number().positive("Height must be a positive number"),
+  numberOfBoxes: z.number().int().min(1, "Number of boxes must be at least 1"),
+});
+
+export const OMShipmentBoxUpdateSchema = OMShipmentBoxCreateSchema.partial();
+
+// --- OMShipmentBoxContent Validation ---
+export const OMShipmentBoxContentCreateSchema = z.object({
+  dispatchOrderItemId: z.string().uuid("Invalid Dispatch Order Item ID"),
+  quantity: z.number().int().min(1, "Quantity must be at least 1"),
+});
+
+export const OMShipmentBoxContentUpdateSchema = z.object({
+  quantity: z.number().int().min(1, "Quantity must be at least 1"),
 });

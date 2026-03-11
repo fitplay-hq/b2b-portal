@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   Download,
   Package,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { OMPurchaseOrderListTable } from "@/components/orderManagement/OMPurchaseOrderListTable";
@@ -62,6 +63,23 @@ export default function OMPurchaseOrdersList() {
   const [isLoading, setIsLoading] = useState(true);
   const [meta, setMeta] = useState<OMPaginationMeta | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastElementRef = useCallback(
+    (node: HTMLDivElement) => {
+      if (isLoading) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setPage((prevPage) => prevPage + 1);
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [isLoading, hasMore],
+  );
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -106,10 +124,13 @@ export default function OMPurchaseOrdersList() {
     }
   };
 
-  const fetchPurchaseOrders = async () => {
+  const fetchPurchaseOrders = async (isNextPage = false) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
+      params.append("page", (isNextPage ? page : 1).toString());
+      params.append("limit", "25");
+
       if (filters.status !== "all") params.append("status", filters.status);
       if (filters.clientName) {
         const client = clients.find((c) => c.name === filters.clientName);
@@ -125,8 +146,13 @@ export default function OMPurchaseOrdersList() {
       );
       if (res.ok) {
         const result = await res.json();
-        setPurchaseOrders(result.data);
+        if (isNextPage) {
+          setPurchaseOrders((prev) => [...prev, ...result.data]);
+        } else {
+          setPurchaseOrders(result.data);
+        }
         setMeta(result.meta);
+        setHasMore(result.meta.page < result.meta.totalPages);
       }
     } catch (err) {
       console.error("Failed to fetch POs", err);
@@ -141,8 +167,15 @@ export default function OMPurchaseOrdersList() {
   }, []);
 
   useEffect(() => {
-    fetchPurchaseOrders();
+    setPage(1);
+    fetchPurchaseOrders(false);
   }, [filters]);
+
+  useEffect(() => {
+    if (page > 1) {
+      fetchPurchaseOrders(true);
+    }
+  }, [page]);
 
   const handleDeletePO = async () => {
     if (!deletePo) return;
@@ -364,10 +397,22 @@ export default function OMPurchaseOrdersList() {
                 </div>
               </div>
             ) : (
-              <OMPurchaseOrderListTable
-                purchaseOrders={filteredPOs}
-                onDeleteRequest={setDeletePo}
-              />
+              <div className="space-y-4">
+                <OMPurchaseOrderListTable
+                  purchaseOrders={filteredPOs}
+                  onDeleteRequest={setDeletePo}
+                />
+                {(hasMore || isLoading) && (
+                  <div
+                    ref={lastElementRef}
+                    className="flex justify-center p-4"
+                  >
+                    {isLoading && (
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>

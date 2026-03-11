@@ -368,6 +368,7 @@ model OMDispatchOrder {
   logisticsPartner     OMLogisticsPartner?   @relation(fields: [logisticsPartnerId], references: [id])
   purchaseOrder        OMPurchaseOrder       @relation(fields: [purchaseOrderId], references: [id])
   items                OMDispatchOrderItem[]
+  shipmentBoxes        OMShipmentBox[]
 }
 
 model OMDispatchOrderItem {
@@ -383,7 +384,40 @@ model OMDispatchOrderItem {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   dispatchOrder       OMDispatchOrder     @relation(fields: [dispatchOrderId], references: [id], onDelete: Cascade)
-  purchaseOrderItem   OMPurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id])
+  purchaseOrderItem   OMPurchaseOrderItem   @relation(fields: [purchaseOrderItemId], references: [id])
+  shipmentBoxContents OMShipmentBoxContent[]
+}
+
+model OMShipmentBox {
+  id              String                @id @default(uuid())
+  dispatchOrderId String
+  boxLabel        String? // e.g., "Box 1", "Medium Carton"
+  length          Float // in cm
+  width           Float // in cm
+  height          Float // in cm
+  numberOfBoxes   Int                   @default(1) // Number of identical boxes
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  dispatchOrder OMDispatchOrder        @relation(fields: [dispatchOrderId], references: [id], onDelete: Cascade)
+  contents      OMShipmentBoxContent[]
+
+  @@index([dispatchOrderId])
+}
+
+model OMShipmentBoxContent {
+  id                  String              @id @default(uuid())
+  shipmentBoxId       String
+  dispatchOrderItemId String
+  quantityPerBox      Int // Quantity inside EACH physical box
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  shipmentBox       OMShipmentBox       @relation(fields: [shipmentBoxId], references: [id], onDelete: Cascade)
+  dispatchOrderItem OMDispatchOrderItem @relation(fields: [dispatchOrderItemId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentBoxId])
+  @@index([dispatchOrderItemId])
 }
 
 model OMBrand {

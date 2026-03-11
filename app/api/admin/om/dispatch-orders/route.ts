@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       expectedDeliveryDate,
       status,
       items,
+      shipmentBoxes,
     } = validatedData;
 
     // 1. Verify Purchase Order exists and is not CLOSED
@@ -147,6 +148,40 @@ export async function POST(req: NextRequest) {
         },
         include: { items: true },
       });
+
+      // 5.5. Create Shipment Boxes if provided
+      if (shipmentBoxes && shipmentBoxes.length > 0) {
+        for (const box of shipmentBoxes) {
+          const createdBox = await tx.oMShipmentBox.create({
+            data: {
+              dispatchOrderId: dispatch.id,
+              boxLabel: box.boxNumber?.toString() || "1",
+              length: box.length,
+              width: box.width,
+              height: box.height,
+              numberOfBoxes: box.numberOfBoxes,
+            },
+          });
+
+          // Create box contents
+          for (const content of box.contents) {
+            // Find the corresponding dispatch item we just created
+            const dispatchItem = dispatch.items.find(
+              (di) => di.purchaseOrderItemId === content.itemId,
+            );
+
+            if (dispatchItem) {
+              await tx.oMShipmentBoxContent.create({
+                data: {
+                  shipmentBoxId: createdBox.id,
+                  dispatchOrderItemId: dispatchItem.id,
+                  quantityPerBox: content.quantity,
+                },
+              });
+            }
+          }
+        }
+      }
 
       // 6. Re-aggregate all dispatched quantities (including this new dispatch)
       //    to determine whether PO is fully or partially dispatched

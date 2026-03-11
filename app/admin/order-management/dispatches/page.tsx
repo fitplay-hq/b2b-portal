@@ -214,6 +214,16 @@ export default function OMDispatchesList() {
           return aClientName.localeCompare(bClientName);
         if (sortBy === "name_desc")
           return bClientName.localeCompare(aClientName);
+        if (sortBy === "inv_date_desc")
+          return (
+            new Date(b.invoiceDate).getTime() -
+            new Date(a.invoiceDate).getTime()
+          );
+        if (sortBy === "inv_date_asc")
+          return (
+            new Date(a.invoiceDate).getTime() -
+            new Date(b.invoiceDate).getTime()
+          );
         if (sortBy === "newest")
           return (
             new Date(b.createdAt || 0).getTime() -
@@ -223,11 +233,6 @@ export default function OMDispatchesList() {
           return (
             new Date(a.createdAt || 0).getTime() -
             new Date(b.createdAt || 0).getTime()
-          );
-        if (sortBy === "latest_update")
-          return (
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime()
           );
         return 0;
       });
@@ -564,6 +569,8 @@ export default function OMDispatchesList() {
           <DispatchFilters
             filters={filters}
             setFilters={setFilters}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
             clientOptions={clientOptions}
             logisticsOptions={logisticsOptions}
             invoiceOptions={invoiceOptions}

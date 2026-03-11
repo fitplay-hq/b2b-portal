@@ -41,7 +41,9 @@ import {
   type OMDispatchOrderItem,
   type OMLogisticsPartner,
   OM_DISPATCH_STATUS_CONFIG,
+  type OMShipmentBox,
 } from "@/types/order-management";
+import { OMShipmentPackingAssigner } from "@/components/orderManagement/dispatches/OMShipmentPackingAssigner";
 
 interface DispatchLineItem {
   tempId: string;
@@ -79,6 +81,7 @@ function CreateDispatchForm() {
     | "DELIVERED"
     | "CANCELLED"
   >("PENDING");
+  const [shipmentBoxes, setShipmentBoxes] = useState<OMShipmentBox[]>([]);
 
   // Master data
   const [availablePOs, setAvailablePOs] = useState<OMPurchaseOrder[]>([]);
@@ -283,6 +286,17 @@ function CreateDispatchForm() {
           : null,
         status,
         items: processedItems,
+        shipmentBoxes: shipmentBoxes.map(box => ({
+          boxNumber: box.boxNumber,
+          length: box.length,
+          width: box.width,
+          height: box.height,
+          numberOfBoxes: box.numberOfBoxes,
+          contents: box.contents.map(c => ({
+            itemId: c.itemId,
+            quantity: c.quantity,
+          })),
+        })),
       };
 
       const res = await fetch("/api/admin/om/dispatch-orders", {
@@ -667,6 +681,19 @@ function CreateDispatchForm() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Shipment Packing Information */}
+        {selectedPO && totalDispatchQty > 0 && (
+          <OMShipmentPackingAssigner
+            items={lineItems.map(li => ({
+              itemId: li.poLineItemId,
+              itemName: li.itemName,
+              dispatchQty: li.dispatchQty,
+            }))}
+            value={shipmentBoxes}
+            onChange={setShipmentBoxes}
+          />
         )}
 
         {/* Dispatch Summary */}

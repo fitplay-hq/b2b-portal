@@ -158,6 +158,7 @@ export interface OMDispatchOrder {
   expectedDeliveryDate: string;
   status: OMDispatchStatus;
   items?: OMDispatchOrderItem[];
+  shipmentBoxes?: OMShipmentBox[];
   purchaseOrder?: {
     id: string;
     clientId: string;
@@ -223,6 +224,68 @@ export interface OMDashboardPO {
   status: OMPoStatus;
   lineItems: OMDashboardLineItem[];
 }
+
+export interface OMBoxContent {
+  itemId: string;
+  itemName: string;
+  quantity: number;
+}
+
+export interface OMShipmentBox {
+  boxId: string;
+  boxNumber: string | number;
+  length: number; // in cm
+  width: number; // in cm
+  height: number; // in cm
+  numberOfBoxes: number; // count of identical boxes
+  contents: OMBoxContent[];
+}
+
+/**
+ * Computed helpers for Shipment Packing
+ */
+export const OMShipmentHelpers = {
+  /**
+   * Calculate volume of a single box in cubic meters (m3)
+   */
+  calculateBoxVolume: (box: Pick<OMShipmentBox, "length" | "width" | "height">) => {
+    return (box.length * box.width * box.height) / 1000000;
+  },
+
+  /**
+   * Calculate total volume of a group of identical boxes
+   */
+  calculateTotalBoxVolume: (box: Pick<OMShipmentBox, "length" | "width" | "height" | "numberOfBoxes">) => {
+    return OMShipmentHelpers.calculateBoxVolume(box) * box.numberOfBoxes;
+  },
+
+  /**
+   * Calculate total boxes in a shipment
+   */
+  getTotalBoxes: (shipmentBoxes: OMShipmentBox[]) => {
+    return shipmentBoxes.reduce((sum, box) => sum + box.numberOfBoxes, 0);
+  },
+
+  /**
+   * Calculate total volume of all boxes in a shipment
+   */
+  getTotalVolume: (shipmentBoxes: OMShipmentBox[]) => {
+    return shipmentBoxes.reduce(
+      (sum, box) => sum + OMShipmentHelpers.calculateTotalBoxVolume(box),
+      0
+    );
+  },
+
+  /**
+   * Calculate total items packed across all boxes
+   */
+  getTotalItemsPacked: (shipmentBoxes: OMShipmentBox[]) => {
+    return shipmentBoxes.reduce((sum, box) => {
+      const itemsInOneBox = box.contents.reduce((iSum, item) => iSum + item.quantity, 0);
+      return sum + itemsInOneBox * box.numberOfBoxes;
+    }, 0);
+  },
+};
 
 export interface OMDashboardDispatchLineItem {
   poLineItemId: string;

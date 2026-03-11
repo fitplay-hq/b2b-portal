@@ -25,6 +25,7 @@ import {
   type OMDispatchOrderItem,
   getDispatchStatusVisuals,
 } from "@/types/order-management";
+import { OMShipmentPackingView } from "@/components/orderManagement/dispatches/OMShipmentPackingView";
 
 export default function OMDispatchDetail() {
   const params = useParams();
@@ -404,6 +405,13 @@ export default function OMDispatchDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Shipment Packing Details */}
+        <OMShipmentPackingView
+          shipmentBoxes={dispatch.shipmentBoxes || []}
+          totalDispatchQty={totalQty}
+          isLoading={false}
+        />
       </div>
     </Layout>
   );

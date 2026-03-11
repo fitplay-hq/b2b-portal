@@ -41,7 +41,9 @@ import {
   type OMLogisticsPartner,
   OM_DISPATCH_STATUS_CONFIG,
   getDispatchStatusVisuals,
+  type OMShipmentBox,
 } from "@/types/order-management";
+import { OMShipmentPackingAssigner } from "@/components/orderManagement/dispatches/OMShipmentPackingAssigner";
 
 interface DispatchLineItem {
   tempId: string;
@@ -78,6 +80,7 @@ function EditDispatchForm() {
     | "DELIVERED"
     | "CANCELLED"
   >("PENDING");
+  const [shipmentBoxes, setShipmentBoxes] = useState<OMShipmentBox[]>([]);
 
   // Master data
   const [availablePOs, setAvailablePOs] = useState<OMPurchaseOrder[]>([]);
@@ -159,6 +162,7 @@ function EditDispatchForm() {
               : "",
           );
           setStatus(dispatch.status || "DISPATCHED");
+          setShipmentBoxes(dispatch.shipmentBoxes || []);
 
           if (dispatch.purchaseOrderId) {
             await fetchPoDetail(dispatch.purchaseOrderId, dispatch.items);
@@ -340,6 +344,17 @@ function EditDispatchForm() {
         items: lineItems
           .filter((item) => item.dispatchQty > 0)
           .map(({ tempId, itemName, remainingQty, ...rest }) => rest),
+        shipmentBoxes: shipmentBoxes.map(box => ({
+          boxNumber: box.boxNumber,
+          length: box.length,
+          width: box.width,
+          height: box.height,
+          numberOfBoxes: box.numberOfBoxes,
+          contents: box.contents.map(c => ({
+            itemId: c.itemId,
+            quantity: c.quantity,
+          })),
+        })),
       };
 
       const res = await fetch(`/api/admin/om/dispatch-orders/${id}`, {
@@ -433,20 +448,26 @@ function EditDispatchForm() {
                   <SelectValue placeholder={"PO Selected"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={poId}>
-                    {selectedPO
-                      ? (() => {
-                          const totalQty =
-                            selectedPO.totalQuantity ??
-                            selectedPO.items?.reduce(
-                              (sum, item) => sum + item.quantity,
-                              0,
-                            ) ??
-                            0;
-                          return `${selectedPO.estimateNumber} - ${selectedPO.poNumber} (Ordered: ${totalQty})`;
-                        })()
-                      : "Loading..."}
-                  </SelectItem>
+                  {poId ? (
+                    <SelectItem value={poId}>
+                      {selectedPO
+                        ? (() => {
+                            const totalQty =
+                              selectedPO.totalQuantity ??
+                              selectedPO.items?.reduce(
+                                (sum, item) => sum + item.quantity,
+                                0,
+                              ) ??
+                              0;
+                            return `${selectedPO.estimateNumber} - ${selectedPO.poNumber} (Ordered: ${totalQty})`;
+                          })()
+                        : "Loading..."}
+                    </SelectItem>
+                  ) : (
+                    <div className="p-2 text-xs text-muted-foreground text-center">
+                      No Purchase Order Selected
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
@@ -727,6 +748,19 @@ function EditDispatchForm() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Shipment Packing Information */}
+        {selectedPO && totalDispatchQty > 0 && (
+          <OMShipmentPackingAssigner
+            items={lineItems.map(li => ({
+              itemId: li.poLineItemId,
+              itemName: li.itemName,
+              dispatchQty: li.dispatchQty,
+            }))}
+            value={shipmentBoxes}
+            onChange={setShipmentBoxes}
+          />
         )}
 
         {/* Dispatch Summary */}

@@ -14,7 +14,9 @@ export type SortOption =
   | "name_desc"
   | "newest"
   | "oldest"
-  | "latest_update";
+  | "latest_update"
+  | "inv_date_desc"
+  | "inv_date_asc";
 
 interface OMSortControlProps {
   value: SortOption;

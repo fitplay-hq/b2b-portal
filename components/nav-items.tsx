@@ -252,6 +252,13 @@ export default function NavItems({
       color: "text-slate-600",
       bgColor: "bg-slate-50",
     },
+    {
+      href: "/admin/order-management/delivery-locations",
+      label: "Delivery Locations",
+      icon: MapPin,
+      color: "text-slate-600",
+      bgColor: "bg-slate-50",
+    },
   ];
 
   // STABLE display strategy - prevent flashing and ensure smooth transitions

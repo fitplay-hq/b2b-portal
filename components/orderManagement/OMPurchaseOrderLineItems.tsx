@@ -461,7 +461,7 @@ export function OMPurchaseOrderLineItems({
                         className="font-medium w-20"
                       />
                     </TableCell>
-                    <TableCell className="p-3">
+                    <TableCell className="p-3 w-60">
                       <Input
                         type="number"
                         min="0"
