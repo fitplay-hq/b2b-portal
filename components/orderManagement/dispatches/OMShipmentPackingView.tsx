@@ -95,7 +95,7 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
               return (
                 <Card key={box.boxId} className="border-2 border-muted transition-all duration-300 hover:border-neutral-300 hover:shadow-md">
                   <CardHeader className="pb-3 bg-muted/20">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-around">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-900 font-bold text-sm">
                           {box.boxNumber}
@@ -183,7 +183,7 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
 
 const SummaryStat = ({ label, value, icon, gradient }: { label: string, value: string | number, icon: React.ReactNode, gradient: string }) => (
   <div className="relative overflow-hidden p-4 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all duration-300">
-    <div className={cn("absolute top-0 right-0 w-12 h-12 -mr-3 -mt-3 opacity-10 flex items-center justify-center rounded-full bg-gradient-to-br", gradient)}>
+    <div className={cn("absolute top-0 right-0 w-12 h-12 -mr-3 -mt-3 opacity-10 flex items-center justify-center rounded-full bg-linear-to-br", gradient)}>
       {icon}
     </div>
     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
