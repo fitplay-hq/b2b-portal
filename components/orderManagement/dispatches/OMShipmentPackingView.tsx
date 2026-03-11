@@ -52,7 +52,7 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
             </div>
             <div>
               <CardTitle className="text-xl">Shipment / Packing Details</CardTitle>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground my-1">
                 Detailed packing information for this dispatch
               </p>
             </div>
@@ -60,7 +60,7 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           {/* Packing Summary */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-10">
             <SummaryStat
               label="Total Boxes"
               value={totalBoxes}

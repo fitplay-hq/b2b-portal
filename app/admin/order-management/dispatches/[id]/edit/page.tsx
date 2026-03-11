@@ -908,7 +908,7 @@ function EditDispatchForm() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Shipment / Packing Details</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground my-1">
                     Add boxes/cartons with their dimensions and contents
                   </p>
                 </div>
@@ -932,7 +932,7 @@ function EditDispatchForm() {
                     <Alert>
                       <Package className="h-4 w-4" />
                       <AlertDescription>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
                           <div>
                             <p className="text-sm font-medium">Total Boxes</p>
                             <p className="text-2xl font-bold">{getTotalBoxes()}</p>
@@ -964,7 +964,7 @@ function EditDispatchForm() {
                                     className="flex justify-between text-sm mb-1"
                                   >
                                     <span className="truncate">
-                                      {item.itemName}:
+                                      {item.itemName} :
                                     </span>
                                     <span
                                       className={
@@ -990,7 +990,7 @@ function EditDispatchForm() {
                         <CardHeader>
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-base">
-                         x     Box {box.boxNumber}
+                              Box {box.boxNumber}
                             </CardTitle>
                             <Button
                               type="button"

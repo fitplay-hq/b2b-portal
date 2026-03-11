@@ -832,7 +832,7 @@ function CreateDispatchForm() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Shipment / Packing Details</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground my-1">
                     Add boxes/cartons with their dimensions and contents
                   </p>
                 </div>

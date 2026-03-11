@@ -519,8 +519,8 @@ export default function OMDispatchesList() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-semibold">All Dispatches</h3>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl font-semibold">All Dispatches</h1>
+            <p className="text-muted-foreground">
               Track dispatch and delivery status
             </p>
           </div>
@@ -585,8 +585,12 @@ export default function OMDispatchesList() {
 
         {/* Dispatches Table */}
         <Card>
-          <CardContent className="p-0">
-            <Table>
+          <CardHeader>
+            <CardTitle>Dispatch List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-md overflow-hidden">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Invoice Number</TableHead>
@@ -723,7 +727,8 @@ export default function OMDispatchesList() {
                   ))
                 )}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 

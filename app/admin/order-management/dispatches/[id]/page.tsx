@@ -414,7 +414,7 @@ export default function OMDispatchDetail() {
                 <Box className="h-5 w-5" />
                 <CardTitle>Shipment / Packing Details</CardTitle>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground my-1">
                 Detailed packing information for this dispatch
               </p>
             </CardHeader>
@@ -423,33 +423,41 @@ export default function OMDispatchDetail() {
               <Alert>
                 <Package className="h-4 w-4" />
                 <AlertDescription>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-10">
                     <div>
                       <p className="text-sm font-medium">Total Boxes</p>
                       <p className="text-2xl font-bold">
                         {dispatch.shipmentBoxes.reduce((sum, box) => sum + box.numberOfBoxes, 0)}
                       </p>
                     </div>
+
                     <div>
                       <p className="text-sm font-medium">Box Types</p>
-                      <p className="text-2xl font-bold">{dispatch.shipmentBoxes.length}</p>
+                      <p className="text-2xl font-bold">
+                        {dispatch.shipmentBoxes.length}
+                      </p>
                     </div>
+
                     <div>
                       <p className="text-sm font-medium">Total Volume</p>
                       <p className="text-2xl font-bold">
                         {dispatch.shipmentBoxes.reduce((sum, box) => {
                           const volumePerBox = (box.length * box.width * box.height) / 1000000;
-                          return sum + (volumePerBox * box.numberOfBoxes);
+                          return sum + volumePerBox * box.numberOfBoxes;
                         }, 0).toFixed(3)} m³
                       </p>
                     </div>
+
                     <div>
                       <p className="text-sm font-medium">Total Weight</p>
                       <p className="text-2xl font-bold">
-                        {dispatch.shipmentBoxes.reduce((sum, box) => sum + (box.weight || 0) * box.numberOfBoxes, 0).toFixed(2)} kg
+                        {dispatch.shipmentBoxes
+                          .reduce((sum, box) => sum + (box.weight || 0) * box.numberOfBoxes, 0)
+                          .toFixed(2)} kg
                       </p>
                     </div>
-                    <div className="md:col-span-1">
+
+                    <div>
                       <p className="text-sm font-medium">Items Packed</p>
                       <p className="text-2xl font-bold">{totalQty}</p>
                     </div>
