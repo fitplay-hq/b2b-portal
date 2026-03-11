@@ -127,19 +127,10 @@ export function OMPurchaseOrderLineItems({
             const selectedProduct = products.find(
               (p) => p.id === item.productId,
             );
-            let filteredBrandOptions =
-              selectedProduct?.brands?.map((b) => ({
-                value: b.id,
-                label: b.name,
-              })) || [];
-
-            // Ensure current brand is in options even if not in product's brand list
-            if (item.brandId && !filteredBrandOptions.some(o => o.value === item.brandId)) {
-                const globalBrand = brands.find(b => b.id === item.brandId);
-                if (globalBrand) {
-                    filteredBrandOptions.push({ value: globalBrand.id, label: globalBrand.name });
-                }
-            }
+            const filteredBrandOptions = brands.map((b) => ({
+              value: b.id,
+              label: b.name,
+            }));
 
             return (
               <div
@@ -360,19 +351,10 @@ export function OMPurchaseOrderLineItems({
                 const selectedProduct = products.find(
                   (p) => p.id === item.productId,
                 );
-                let filteredBrandOptions =
-                  selectedProduct?.brands?.map((b) => ({
-                    value: b.id,
-                    label: b.name,
-                  })) || [];
-
-                // Ensure current brand is in options even if not in product's brand list
-                if (item.brandId && !filteredBrandOptions.some(o => o.value === item.brandId)) {
-                    const globalBrand = brands.find(b => b.id === item.brandId);
-                    if (globalBrand) {
-                        filteredBrandOptions.push({ value: globalBrand.id, label: globalBrand.name });
-                    }
-                }
+                const filteredBrandOptions = brands.map((b) => ({
+                  value: b.id,
+                  label: b.name,
+                }));
 
                 return (
                   <TableRow key={item.tempId} className="group">
