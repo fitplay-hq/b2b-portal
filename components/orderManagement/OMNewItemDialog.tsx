@@ -57,7 +57,11 @@ export function OMNewItemDialog({
 
   const brandOptions = brands.map((b) => ({ value: b.id, label: b.name }));
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!name.trim()) return;
 
     const selectedBrandNames = brands
@@ -141,7 +145,10 @@ export function OMNewItemDialog({
         <DialogHeader>
           <DialogTitle>Add New Item</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 pt-4">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 pt-4"
+        >
           <div className="space-y-2">
             <Label>Item Name *</Label>
             <Input
@@ -264,12 +271,11 @@ export function OMNewItemDialog({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter item description"
               rows={3}
-            />
+             />
           </div>
           <Button
-            type="button"
+            type="submit"
             className="w-full"
-            onClick={handleSubmit}
             disabled={
               isSubmitting ||
               !name.trim() ||
@@ -279,7 +285,7 @@ export function OMNewItemDialog({
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add Item
           </Button>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

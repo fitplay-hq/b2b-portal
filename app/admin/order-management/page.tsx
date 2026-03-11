@@ -58,15 +58,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SearchableSelect, ComboboxOption } from "@/components/ui/combobox";
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import type {
-  OMDashboardPO,
-  OMDashboardDispatch,
-  OMClientSummary,
-  OMItemSummary,
-  OMPurchaseOrder,
-  OMPurchaseOrderItem,
-  OMDispatchOrder,
-  OMDispatchOrderItem,
+import {
+  type OMDashboardPO,
+  type OMDashboardDispatch,
+  type OMClientSummary,
+  type OMItemSummary,
+  type OMPurchaseOrder,
+  type OMPurchaseOrderItem,
+  type OMDispatchOrder,
+  type OMDispatchOrderItem,
+  OM_DISPATCH_STATUS_CONFIG,
+  getDispatchStatusVisuals,
 } from "@/types/order-management";
 
 // Maps raw DB enum values to display labels
@@ -98,18 +100,7 @@ const getPoStatusClass = (status: string) => {
 
 // Returns Tailwind classes for each Dispatch status
 const getDispatchStatusClass = (status: string) => {
-  switch (status) {
-    case "CREATED":
-      return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
-    case "DISPATCHED":
-      return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
-    case "DELIVERED":
-      return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
-    case "CANCELLED":
-      return "bg-red-100 text-red-800 hover:bg-red-100 border-transparent";
-    default:
-      return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
-  }
+  return getDispatchStatusVisuals(status).color;
 };
 
 export default function OMDashboard() {
@@ -469,7 +460,7 @@ export default function OMDashboard() {
 
   const itemSummaryArray = Object.values(itemSummary);
 
-  // Status breakdown — uses SCREAMING_SNAKE_CASE to match Prisma enum values
+  // Status breakdown — uses PO statuses (OMPoStatus)
   const statusBreakdown = [
     {
       name: "Draft",

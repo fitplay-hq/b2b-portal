@@ -362,7 +362,7 @@ model OMDispatchOrder {
   logisticsPartnerId   String?
   docketNumber         String?
   expectedDeliveryDate DateTime?
-  status               OMDispatchStatus      @default(CREATED)
+  status               OMDispatchStatus      @default(PENDING)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   logisticsPartner     OMLogisticsPartner?   @relation(fields: [logisticsPartnerId], references: [id])
@@ -454,8 +454,11 @@ enum OMPoStatus {
 }
 
 enum OMDispatchStatus {
-  CREATED
+  PENDING
+  APPROVED
+  READY_FOR_DISPATCH
   DISPATCHED
+  AT_DESTINATION
   DELIVERED
   CANCELLED
 }

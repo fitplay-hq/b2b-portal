@@ -240,7 +240,9 @@ export function OMPurchaseOrderForm({
     onSubmit(payload);
   };
 
-  const handleAddNewClient = async () => {
+  const handleAddNewClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!newClientData.name.trim()) return;
     setIsAddingClient(true);
     try {

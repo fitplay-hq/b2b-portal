@@ -14,6 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import {
+  OM_DISPATCH_STATUS_CONFIG,
+  type OMDispatchStatus,
+} from "@/types/order-management";
 
 interface DispatchFiltersProps {
   filters: {
@@ -144,10 +148,16 @@ export function DispatchFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="CREATED">Created</SelectItem>
-            <SelectItem value="DISPATCHED">Dispatched</SelectItem>
-            <SelectItem value="DELIVERED">Delivered</SelectItem>
-            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            {(
+              Object.entries(OM_DISPATCH_STATUS_CONFIG) as [
+                string,
+                { label: string; color: string },
+              ][]
+            ).map(([key, config]) => (
+              <SelectItem key={key} value={key}>
+                {config.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

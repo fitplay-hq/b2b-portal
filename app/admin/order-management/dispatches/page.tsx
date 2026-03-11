@@ -43,10 +43,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SearchableSelect, ComboboxOption } from "@/components/ui/combobox";
-import type {
-  OMDispatchOrder,
-  OMDispatchOrderItem,
-  OMClient,
+import {
+  type OMDispatchOrder,
+  type OMDispatchOrderItem,
+  type OMClient,
+  getDispatchStatusVisuals,
 } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import {
@@ -341,18 +342,7 @@ export default function OMDispatchesList() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "CREATED":
-        return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
-      case "DISPATCHED":
-        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
-      case "DELIVERED":
-        return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
-      case "CANCELLED":
-        return "bg-red-100 text-red-800 hover:bg-red-100 border-transparent";
-      default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
-    }
+    return getDispatchStatusVisuals(status).color;
   };
 
   const getTotalQty = (dispatch: OMDispatchOrder) => {
