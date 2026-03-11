@@ -127,11 +127,19 @@ export function OMPurchaseOrderLineItems({
             const selectedProduct = products.find(
               (p) => p.id === item.productId,
             );
-            const filteredBrandOptions =
+            let filteredBrandOptions =
               selectedProduct?.brands?.map((b) => ({
                 value: b.id,
                 label: b.name,
               })) || [];
+
+            // Ensure current brand is in options even if not in product's brand list
+            if (item.brandId && !filteredBrandOptions.some(o => o.value === item.brandId)) {
+                const globalBrand = brands.find(b => b.id === item.brandId);
+                if (globalBrand) {
+                    filteredBrandOptions.push({ value: globalBrand.id, label: globalBrand.name });
+                }
+            }
 
             return (
               <div
@@ -191,12 +199,11 @@ export function OMPurchaseOrderLineItems({
                         onUpdateLineItem(item.tempId, "brandId", val)
                       }
                       placeholder="Brand"
-                      disabled={
-                        !item.productId || filteredBrandOptions.length === 0
-                      }
+                      disabled={!item.productId}
                     />
                     <OMNewBrandDialog
                       productId={item.productId}
+                      brands={brands}
                       currentBrandIds={selectedProduct?.brands?.map(
                         (b) => b.id,
                       )}
@@ -353,11 +360,19 @@ export function OMPurchaseOrderLineItems({
                 const selectedProduct = products.find(
                   (p) => p.id === item.productId,
                 );
-                const filteredBrandOptions =
+                let filteredBrandOptions =
                   selectedProduct?.brands?.map((b) => ({
                     value: b.id,
                     label: b.name,
                   })) || [];
+
+                // Ensure current brand is in options even if not in product's brand list
+                if (item.brandId && !filteredBrandOptions.some(o => o.value === item.brandId)) {
+                    const globalBrand = brands.find(b => b.id === item.brandId);
+                    if (globalBrand) {
+                        filteredBrandOptions.push({ value: globalBrand.id, label: globalBrand.name });
+                    }
+                }
 
                 return (
                   <TableRow key={item.tempId} className="group">
@@ -407,14 +422,12 @@ export function OMPurchaseOrderLineItems({
                                 : "Select Item First"
                             }
                             searchPlaceholder="Search brands..."
-                            disabled={
-                              !item.productId ||
-                              filteredBrandOptions.length === 0
-                            }
+                            disabled={!item.productId}
                           />
                         </div>
                         <OMNewBrandDialog
                           productId={item.productId}
+                          brands={brands}
                           currentBrandIds={selectedProduct?.brands?.map(
                             (b) => b.id,
                           )}

@@ -34,11 +34,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/ui/combobox";
-import type {
-  OMPurchaseOrder,
-  OMPurchaseOrderItem,
-  OMDispatchOrderItem,
-  OMLogisticsPartner,
+import {
+  type OMPurchaseOrder,
+  type OMPurchaseOrderItem,
+  type OMDispatchOrderItem,
+  type OMLogisticsPartner,
+  OM_DISPATCH_STATUS_CONFIG,
+  getDispatchStatusVisuals,
 } from "@/types/order-management";
 
 interface DispatchLineItem {
@@ -68,8 +70,14 @@ function EditDispatchForm() {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState("");
   const [status, setStatus] = useState<
-    "CREATED" | "DISPATCHED" | "DELIVERED" | "CANCELLED"
-  >("DISPATCHED");
+    | "PENDING"
+    | "APPROVED"
+    | "READY_FOR_DISPATCH"
+    | "DISPATCHED"
+    | "AT_DESTINATION"
+    | "DELIVERED"
+    | "CANCELLED"
+  >("PENDING");
 
   // Master data
   const [availablePOs, setAvailablePOs] = useState<OMPurchaseOrder[]>([]);
@@ -689,17 +697,30 @@ function EditDispatchForm() {
                   <Select
                     value={status}
                     onValueChange={(
-                      val: "CREATED" | "DISPATCHED" | "DELIVERED" | "CANCELLED",
+                      val:
+                        | "PENDING"
+                        | "APPROVED"
+                        | "READY_FOR_DISPATCH"
+                        | "DISPATCHED"
+                        | "AT_DESTINATION"
+                        | "DELIVERED"
+                        | "CANCELLED",
                     ) => setStatus(val)}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CREATED">Created</SelectItem>
-                      <SelectItem value="DISPATCHED">Dispatched</SelectItem>
-                      <SelectItem value="DELIVERED">Delivered</SelectItem>
-                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                      {(
+                        Object.entries(OM_DISPATCH_STATUS_CONFIG) as [
+                          string,
+                          { label: string; color: string },
+                        ][]
+                      ).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          {config.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

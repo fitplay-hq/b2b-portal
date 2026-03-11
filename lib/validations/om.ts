@@ -151,9 +151,17 @@ export const OMDispatchOrderCreateSchema = z.object({
     .optional()
     .nullable(),
   status: z
-    .enum(["CREATED", "DISPATCHED", "DELIVERED", "CANCELLED"])
+    .enum([
+      "PENDING",
+      "APPROVED",
+      "READY_FOR_DISPATCH",
+      "DISPATCHED",
+      "AT_DESTINATION",
+      "DELIVERED",
+      "CANCELLED",
+    ])
     .optional()
-    .default("CREATED"),
+    .default("PENDING"),
   items: z
     .array(OMDispatchOrderItemCreateSchema)
     .min(1, "At least one dispatch item is required"),

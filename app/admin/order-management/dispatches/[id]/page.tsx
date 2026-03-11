@@ -19,10 +19,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Package, TrendingUp, Truck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { formatStatus } from "@/lib/utils";
-import type {
-  OMDispatchOrder,
-  OMDispatchOrderItem,
+import { formatStatus, formatDisplayDate } from "@/lib/utils";
+import {
+  type OMDispatchOrder,
+  type OMDispatchOrderItem,
+  getDispatchStatusVisuals,
 } from "@/types/order-management";
 
 export default function OMDispatchDetail() {
@@ -147,18 +148,11 @@ export default function OMDispatchDetail() {
   const po = dispatch.purchaseOrder;
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "CREATED":
-        return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
-      case "DISPATCHED":
-        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
-      case "DELIVERED":
-        return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
-      case "CANCELLED":
-        return "bg-red-100 text-red-800 hover:bg-red-100 border-transparent";
-      default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
-    }
+    return getDispatchStatusVisuals(status).color;
+  };
+
+  const getStatusLabel = (status: string) => {
+    return getDispatchStatusVisuals(status).label;
   };
 
   const totalQty =
@@ -214,7 +208,7 @@ export default function OMDispatchDetail() {
             <Badge
               className={`text-sm px-3 py-1 ${getStatusColor(dispatch.status)}`}
             >
-              {formatStatus(dispatch.status)}
+              {getStatusLabel(dispatch.status)}
             </Badge>
           </div>
         </div>
@@ -283,20 +277,14 @@ export default function OMDispatchDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Invoice Date</p>
                 <p className="font-medium">
-                  {new Date(dispatch.invoiceDate).toLocaleDateString("en-IN")}
+                  {formatDisplayDate(dispatch.invoiceDate)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
                   Expected Delivery
                 </p>
-                <p className="font-medium">
-                  {dispatch.expectedDeliveryDate
-                    ? new Date(
-                        dispatch.expectedDeliveryDate,
-                      ).toLocaleDateString("en-IN")
-                    : "N/A"}
-                </p>
+                <p className="font-medium">{formatDisplayDate(dispatch.expectedDeliveryDate)}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Tracking Number</p>
@@ -307,15 +295,13 @@ export default function OMDispatchDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Created At</p>
                 <p className="font-medium">
-                  {dispatch.createdAt
-                    ? new Date(dispatch.createdAt).toLocaleString("en-IN")
-                    : "N/A"}
+                  {formatDisplayDate(dispatch.createdAt, true)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
                 <Badge className={getStatusColor(dispatch.status)}>
-                  {formatStatus(dispatch.status)}
+                  {getStatusLabel(dispatch.status)}
                 </Badge>
               </div>
             </div>

@@ -11,10 +11,54 @@ export type OMPoStatus =
   | "CLOSED";
 
 export type OMDispatchStatus =
-  | "CREATED"
+  | "PENDING"
+  | "APPROVED"
+  | "READY_FOR_DISPATCH"
   | "DISPATCHED"
+  | "AT_DESTINATION"
   | "DELIVERED"
   | "CANCELLED";
+
+export const OM_DISPATCH_STATUS_CONFIG: Record<
+  OMDispatchStatus,
+  { label: string; color: string }
+> = {
+  PENDING: {
+    label: "Pending",
+    color: "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent",
+  },
+  APPROVED: {
+    label: "Approved",
+    color: "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    color: "bg-red-100 text-red-800 hover:bg-red-100 border-transparent",
+  },
+  READY_FOR_DISPATCH: {
+    label: "Ready For Dispatch",
+    color: "bg-orange-100 text-orange-800 hover:bg-orange-100 border-transparent",
+  },
+  DISPATCHED: {
+    label: "Dispatched",
+    color: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent",
+  },
+  AT_DESTINATION: {
+    label: "At Destination",
+    color: "bg-teal-100 text-teal-800 hover:bg-teal-100 border-transparent",
+  },
+  DELIVERED: {
+    label: "Delivered",
+    color: "bg-green-100 text-green-800 hover:bg-green-100 border-transparent",
+  },
+};
+
+export const getDispatchStatusVisuals = (status: string) => {
+  return (
+    OM_DISPATCH_STATUS_CONFIG[status as OMDispatchStatus] ||
+    OM_DISPATCH_STATUS_CONFIG.PENDING
+  );
+};
 
 export interface OMClient {
   id: string;

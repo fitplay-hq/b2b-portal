@@ -28,7 +28,11 @@ export function OMNewLocationDialog({
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!name.trim()) return;
     setIsSubmitting(true);
     try {
@@ -67,7 +71,7 @@ export function OMNewLocationDialog({
         <DialogHeader>
           <DialogTitle>Add New Location</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 pt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
             <Label>Location Name</Label>
             <Input
@@ -77,15 +81,14 @@ export function OMNewLocationDialog({
             />
           </div>
           <Button
-            type="button"
+            type="submit"
             className="w-full"
-            onClick={handleSubmit}
             disabled={isSubmitting || !name.trim()}
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add Location
           </Button>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

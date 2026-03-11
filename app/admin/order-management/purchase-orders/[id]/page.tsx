@@ -216,9 +216,7 @@ export default function OMPurchaseOrderDetail() {
                 Edit PO
               </Button>
             </Link>
-            <Link
-              href={`/admin/order-management/purchase-orders/${id}/dispatch`}
-            >
+            <Link href={`/admin/order-management/dispatches/create?poId=${id}`}>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Dispatch Items
@@ -306,6 +304,7 @@ export default function OMPurchaseOrderDetail() {
             </CardHeader>
             <CardContent>
               <OMPurchaseOrderItemsTable
+                poId={id}
                 items={po.items || []}
                 dispatches={po.dispatchOrders || []}
               />

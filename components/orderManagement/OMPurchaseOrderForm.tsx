@@ -55,18 +55,54 @@ export function OMPurchaseOrderForm({
   isSubmitting,
   onRefreshData,
 }: OMPurchaseOrderFormProps) {
-  const [clientId, setClientId] = useState("");
-  const [locationId, setLocationId] = useState("");
-  const [estimateNumber, setEstimateNumber] = useState("");
-  const [estimateDate, setEstimateDate] = useState("");
-  const [poNumber, setPoNumber] = useState("");
-  const [poDate, setPoDate] = useState("");
-  const [poReceivedDate, setPoReceivedDate] = useState("");
-  const [status, setStatus] = useState<OMPoStatus>("DRAFT");
+  const [clientId, setClientId] = useState(initialData?.clientId || "");
+  const [locationId, setLocationId] = useState(initialData?.locationId || "");
 
-  const [lineItems, setLineItems] = useState<LineItem[]>([]);
-  const [nextTempId, setNextTempId] = useState(1);
-  const fyPrefixRef = useRef(`FP/${getFinancialYearString()}/`);
+  const [estimateNumber, setEstimateNumber] = useState(() => {
+    const existingEst = initialData?.estimateNumber || "";
+    const fyMatch = existingEst.match(/^(FP\/\d{2}-\d{2}\/)(.*)$/);
+    return fyMatch ? (fyMatch[2] === "" ? "" : fyMatch[2]) : existingEst;
+  });
+  const [estimateDate, setEstimateDate] = useState(
+    initialData?.estimateDate?.split("T")[0] || "",
+  );
+  const [poNumber, setPoNumber] = useState(initialData?.poNumber || "");
+  const [poDate, setPoDate] = useState(
+    initialData?.poDate?.split("T")[0] || "",
+  );
+  const [poReceivedDate, setPoReceivedDate] = useState(
+    initialData?.poReceivedDate?.split("T")[0] || "",
+  );
+  const [status, setStatus] = useState<OMPoStatus>(
+    initialData?.status || "DRAFT",
+  );
+
+  const [lineItems, setLineItems] = useState<LineItem[]>(() => {
+    if (initialData?.items) {
+      return initialData.items.map((item: any, idx: number) => ({
+        tempId: `existing-${idx}`,
+        id: item.id,
+        productId: item.productId,
+        itemName: item.product?.name || "Unknown",
+        quantity: item.quantity,
+        rate: item.rate,
+        amount: item.amount,
+        gstPercentage: item.gstPercentage,
+        gstAmount: item.gstAmount,
+        totalAmount: item.totalAmount,
+        brandId: item.brandId || item.OMBrand?.id || "",
+        description: item.description || "",
+      }));
+    }
+    return [];
+  });
+  const [nextTempId, setNextTempId] = useState(
+    (initialData?.items?.length || 0) + 1,
+  );
+  const fyPrefixRef = useRef(
+    initialData?.estimateNumber?.match(/^(FP\/\d{2}-\d{2}\/)/)?.[1] ||
+      `FP/${getFinancialYearString()}/`,
+  );
   const hasInitializedRef = useRef(false);
 
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
@@ -81,47 +117,14 @@ export function OMPurchaseOrderForm({
   });
   const [isAddingClient, setIsAddingClient] = useState(false);
 
+  // Simple effect to handle programmatic data refreshes if needed,
+  // but initial mounting data is handled by useState initialization
   useEffect(() => {
-    if (initialData && !hasInitializedRef.current) {
-      hasInitializedRef.current = true;
-      setClientId(initialData.clientId || "");
-      setLocationId(initialData.locationId || "");
-
-      const existingEst = initialData.estimateNumber || "";
-      const fyMatch = existingEst.match(/^(FP\/\d{2}-\d{2}\/)(.*)$/);
-      if (fyMatch) {
-        fyPrefixRef.current = fyMatch[1];
-        setEstimateNumber(fyMatch[2] === "" ? "" : fyMatch[2]);
-      } else {
-        setEstimateNumber(existingEst);
-      }
-
-      setEstimateDate(initialData.estimateDate?.split("T")[0] || "");
-      setPoNumber(initialData.poNumber || "");
-      setPoDate(initialData.poDate?.split("T")[0] || "");
-      setPoReceivedDate(initialData.poReceivedDate?.split("T")[0] || "");
-      setStatus(initialData.status || "DRAFT");
-
-      if (initialData.items) {
-        setLineItems(
-          initialData.items.map((item: any, idx: number) => ({
-            tempId: `existing-${idx}`,
-            id: item.id,
-            productId: item.productId,
-            itemName: item.product?.name || "Unknown",
-            quantity: item.quantity,
-            rate: item.rate,
-            amount: item.amount,
-            gstPercentage: item.gstPercentage,
-            gstAmount: item.gstAmount,
-            totalAmount: item.totalAmount,
-            brandId: item.brandId || item.OMBrand?.id || "",
-            description: item.description || "",
-          })),
-        );
-        setNextTempId(initialData.items.length + 1);
-      }
+    if (initialData && hasInitializedRef.current) {
+        // Handle significant changes from outside if necessary
+        // but avoid overwriting active user edits
     }
+    hasInitializedRef.current = true;
   }, [initialData]);
 
   const clientOptions = clients.map((c) => ({ value: c.id, label: c.name }));
@@ -237,7 +240,9 @@ export function OMPurchaseOrderForm({
     onSubmit(payload);
   };
 
-  const handleAddNewClient = async () => {
+  const handleAddNewClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!newClientData.name.trim()) return;
     setIsAddingClient(true);
     try {
@@ -395,7 +400,7 @@ export function OMPurchaseOrderForm({
                 onValueChange={(val: OMPoStatus) => setStatus(val)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="DRAFT">Draft</SelectItem>

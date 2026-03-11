@@ -35,7 +35,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatStatus } from "@/lib/utils";
+import { formatStatus, formatDisplayDate } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,10 +43,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SearchableSelect, ComboboxOption } from "@/components/ui/combobox";
-import type {
-  OMDispatchOrder,
-  OMDispatchOrderItem,
-  OMClient,
+import {
+  type OMDispatchOrder,
+  type OMDispatchOrderItem,
+  type OMClient,
+  getDispatchStatusVisuals,
 } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import {
@@ -341,18 +342,7 @@ export default function OMDispatchesList() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "CREATED":
-        return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
-      case "DISPATCHED":
-        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
-      case "DELIVERED":
-        return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
-      case "CANCELLED":
-        return "bg-red-100 text-red-800 hover:bg-red-100 border-transparent";
-      default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
-    }
+    return getDispatchStatusVisuals(status).color;
   };
 
   const getTotalQty = (dispatch: OMDispatchOrder) => {
@@ -398,8 +388,8 @@ export default function OMDispatchesList() {
         totalQty,
         dispatch.logisticsPartner?.name || "N/A",
         dispatch.docketNumber || "N/A",
-        new Date(dispatch.invoiceDate).toLocaleDateString("en-IN"),
-        new Date(dispatch.expectedDeliveryDate).toLocaleDateString("en-IN"),
+        formatDisplayDate(dispatch.invoiceDate),
+        formatDisplayDate(dispatch.expectedDeliveryDate),
         dispatch.status,
         grandTotal,
       ];
@@ -476,8 +466,8 @@ export default function OMDispatchesList() {
         totalQty.toString(),
         dispatch.logisticsPartner?.name || "N/A",
         dispatch.docketNumber || "N/A",
-        new Date(dispatch.invoiceDate).toLocaleDateString("en-IN"),
-        new Date(dispatch.expectedDeliveryDate).toLocaleDateString("en-IN"),
+        formatDisplayDate(dispatch.invoiceDate),
+        formatDisplayDate(dispatch.expectedDeliveryDate),
         dispatch.status,
         `₹${grandTotal.toLocaleString("en-IN")}`,
       ];
@@ -675,9 +665,7 @@ export default function OMDispatchesList() {
                         {dispatch.docketNumber || "N/A"}
                       </TableCell>
                       <TableCell>
-                        {new Date(dispatch.invoiceDate).toLocaleDateString(
-                          "en-IN",
-                        )}
+                        {formatDisplayDate(dispatch.invoiceDate)}
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(dispatch.status)}>
