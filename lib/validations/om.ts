@@ -90,7 +90,7 @@ export const OMPurchaseOrderItemCreateSchema = z.object({
 // --- OMPurchaseOrder Validation ---
 export const OMPurchaseOrderCreateSchema = z.object({
   clientId: z.string().min(1, "Client ID is required"),
-  locationId: z.string().optional().nullable(),
+  deliveryLocationIds: z.array(z.string()).optional(),
   estimateNumber: z.string().optional().nullable(),
   estimateDate: z
     .string()
@@ -151,6 +151,7 @@ export const OMDispatchOrderCreateSchema = z.object({
     .optional()
     .nullable(),
   logisticsPartnerId: z.string().optional().nullable(),
+  deliveryLocationId: z.string().optional().nullable(),
   docketNumber: z
     .string()
     .transform((val) => (val === "" ? null : val))

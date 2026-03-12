@@ -166,9 +166,11 @@ export interface OMDispatchOrder {
     clientId: string;
     poNumber: string;
     estimateNumber?: string;
-    deliveryLocation?: { name?: string };
+    deliveryLocations?: { name?: string }[];
     client?: { name?: string };
   };
+  deliveryLocationId?: string;
+  deliveryLocation?: { name?: string };
   logisticsPartner?: { name?: string };
   createdAt?: string;
 }
@@ -176,7 +178,6 @@ export interface OMDispatchOrder {
 export interface OMPurchaseOrder {
   id: string;
   clientId: string;
-  locationId: string;
   estimateNumber: string;
   estimateDate: string;
   poNumber: string;
@@ -190,7 +191,7 @@ export interface OMPurchaseOrder {
   items?: OMPurchaseOrderItem[];
   dispatchOrders?: OMDispatchOrder[];
   client?: OMClient;
-  deliveryLocation?: OMDeliveryLocation;
+  deliveryLocations?: OMDeliveryLocation[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -213,7 +214,7 @@ export interface OMDashboardPO {
   id: string;
   clientId: string;
   clientName: string;
-  deliveryLocation: string;
+  deliveryLocations: string[];
   estimateNumber: string;
   estimateDate: string;
   poNumber: string;

@@ -260,10 +260,12 @@ export default function OMPurchaseOrderDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    Delivery Location
+                    Delivery Locations
                   </p>
                   <p className="font-medium">
-                    {po.deliveryLocation?.name || "N/A"}
+                    {po.deliveryLocations && po.deliveryLocations.length > 0
+                      ? po.deliveryLocations.map((loc: any) => loc.name).join(", ")
+                      : "N/A"}
                   </p>
                 </div>
               </div>

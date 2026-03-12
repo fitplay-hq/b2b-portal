@@ -335,7 +335,7 @@ export default function OMDispatchDetail() {
                     PO: {po.poNumber}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Location: {po.deliveryLocation?.name || "Self-Pickup"}
+                    Delivery: {dispatch.deliveryLocation?.name || po.deliveryLocations?.map((l:any) => l.name).join(", ") || "Self-Pickup"}
                   </p>
                 </div>
                 <Link href={`/admin/order-management/purchase-orders/${po.id}`}>

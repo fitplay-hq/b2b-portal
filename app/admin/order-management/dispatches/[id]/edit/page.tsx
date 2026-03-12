@@ -69,6 +69,7 @@ function EditDispatchForm() {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
   const [logisticsPartnerId, setLogisticsPartnerId] = useState("");
+  const [deliveryLocationId, setDeliveryLocationId] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState("");
   const [dispatchDate, setDispatchDate] = useState("");
@@ -156,6 +157,7 @@ function EditDispatchForm() {
               : "",
           );
           setLogisticsPartnerId(dispatch.logisticsPartnerId || "");
+          setDeliveryLocationId(dispatch.deliveryLocationId || "");
           setTrackingNumber(dispatch.docketNumber || "");
           setExpectedDeliveryDate(
             dispatch.expectedDeliveryDate
@@ -502,6 +504,7 @@ function EditDispatchForm() {
         invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
         invoiceDate: invoiceDate ? formatDateForApi(invoiceDate) : null,
         logisticsPartnerId: logisticsPartnerId || null,
+        deliveryLocationId: deliveryLocationId || null,
         docketNumber: trackingNumber || null,
         expectedDeliveryDate: expectedDeliveryDate
           ? formatDateForApi(expectedDeliveryDate)
@@ -671,12 +674,23 @@ function EditDispatchForm() {
                       <strong>Client:</strong> {selectedPO.client?.name}
                     </p>
                     <p>
-                      <strong>Location:</strong>{" "}
-                      {selectedPO.deliveryLocation?.name}
-                    </p>
-                    <p>
                       <strong>PO Number:</strong> {selectedPO.poNumber}
                     </p>
+                    {selectedPO.deliveryLocations && selectedPO.deliveryLocations.length > 0 && (
+                      <div className="mt-4">
+                        <Label className="mb-2 block">Delivery Location</Label>
+                        <SearchableSelect
+                          options={selectedPO.deliveryLocations.map((loc: any) => ({
+                            value: loc.id,
+                            label: loc.name,
+                          }))}
+                          value={deliveryLocationId}
+                          onValueChange={setDeliveryLocationId}
+                          placeholder="Select delivery location"
+                          searchPlaceholder="Search locations..."
+                        />
+                      </div>
+                    )}
                   </div>
                 </AlertDescription>
               </Alert>
@@ -886,20 +900,20 @@ function EditDispatchForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Expected Delivery Date</Label>
-                  <Input
-                    type="date"
-                    value={expectedDeliveryDate}
-                    onChange={(e) => setExpectedDeliveryDate(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label>Dispatch Date</Label>
                   <Input
                     type="date"
                     value={dispatchDate}
                     onChange={(e) => setDispatchDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Expected Delivery Date</Label>
+                  <Input
+                    type="date"
+                    value={expectedDeliveryDate}
+                    onChange={(e) => setExpectedDeliveryDate(e.target.value)}
                   />
                 </div>
 

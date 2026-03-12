@@ -280,31 +280,31 @@ model OMClient {
 }
 
 model OMDeliveryLocation {
-  id        String            @id @default(uuid())
-  name      String            @unique @db.VarChar(100)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  pos       OMPurchaseOrder[]
+  id             String            @id @default(uuid())
+  name           String            @unique @db.VarChar(100)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  purchaseOrders OMPurchaseOrder[] @relation("PurchaseOrderLocations")
+  dispatchOrders OMDispatchOrder[]
 }
 
 model OMPurchaseOrder {
-  id               String                @id @default(uuid())
-  clientId         String
-  locationId       String?
-  estimateNumber   String?
-  estimateDate     DateTime?
-  poNumber         String?               @unique
-  poDate           DateTime?
-  poReceivedDate   DateTime?
-  status           OMPoStatus            @default(DRAFT)
-  totalGst         Float                 @default(0)
-  grandTotal       Float                 @default(0)
+  id                String                @id @default(uuid())
+  clientId          String
+  estimateNumber    String?
+  estimateDate      DateTime?
+  poNumber          String?               @unique
+  poDate            DateTime?
+  poReceivedDate    DateTime?
+  status            OMPoStatus            @default(DRAFT)
+  totalGst          Float                 @default(0)
+  grandTotal        Float                 @default(0)
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
   dispatchOrders   OMDispatchOrder[]
-  client           OMClient              @relation(fields: [clientId], references: [id])
-  deliveryLocation OMDeliveryLocation?   @relation(fields: [locationId], references: [id])
-  items            OMPurchaseOrderItem[]
+  client            OMClient              @relation(fields: [clientId], references: [id])
+  deliveryLocations OMDeliveryLocation[]  @relation("PurchaseOrderLocations")
+  items             OMPurchaseOrderItem[]
 }
 
 model OMProduct {
@@ -369,6 +369,8 @@ model OMDispatchOrder {
   updatedAt            DateTime              @updatedAt
   logisticsPartner     OMLogisticsPartner?   @relation(fields: [logisticsPartnerId], references: [id])
   purchaseOrder        OMPurchaseOrder       @relation(fields: [purchaseOrderId], references: [id])
+  deliveryLocationId   String?
+  deliveryLocation     OMDeliveryLocation?   @relation(fields: [deliveryLocationId], references: [id])
   items                OMDispatchOrderItem[]
   shipmentBoxes        OMShipmentBox[]
 }

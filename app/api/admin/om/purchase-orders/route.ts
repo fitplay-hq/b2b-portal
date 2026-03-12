@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     const {
       clientId,
-      locationId,
+      deliveryLocationIds,
       estimateNumber,
       estimateDate,
       poNumber,
@@ -43,14 +43,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    // Verify locationId if provided
-    if (locationId) {
-      const location = await prisma.oMDeliveryLocation.findUnique({
-        where: { id: locationId },
+    // Verify deliveryLocationIds if provided
+    if (deliveryLocationIds && deliveryLocationIds.length > 0) {
+      const locations = await prisma.oMDeliveryLocation.findMany({
+        where: { id: { in: deliveryLocationIds } },
       });
-      if (!location) {
+      if (locations.length !== deliveryLocationIds.length) {
         return NextResponse.json(
-          { error: "Delivery Location not found" },
+          { error: "One or more Delivery Locations not found" },
           { status: 404 },
         );
       }
@@ -99,7 +99,10 @@ export async function POST(req: NextRequest) {
       const po = await tx.oMPurchaseOrder.create({
         data: {
           clientId,
-          locationId: locationId || null,
+          deliveryLocations:
+            deliveryLocationIds && deliveryLocationIds.length > 0
+              ? { connect: deliveryLocationIds.map((id) => ({ id })) }
+              : undefined,
           estimateNumber: estimateNumber || null,
           estimateDate: estimateDate ? new Date(estimateDate) : null,
           poNumber: poNumber || null,
@@ -182,7 +185,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (locationId) {
-      andFilters.push({ locationId });
+      andFilters.push({
+        deliveryLocations: {
+          some: {
+            id: locationId,
+          },
+        },
+      });
     }
 
     if (status) {
@@ -213,7 +222,7 @@ export async function GET(req: NextRequest) {
         where: whereClause,
         include: {
           client: true,
-          deliveryLocation: true,
+          deliveryLocations: true,
           items: {
             include: {
               dispatchItems: true,

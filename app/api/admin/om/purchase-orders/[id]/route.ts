@@ -26,7 +26,7 @@ export async function GET(
       where: { id },
       include: {
         client: true,
-        deliveryLocation: true,
+        deliveryLocations: true,
         items: {
           include: {
             product: { include: { brands: true } },
@@ -197,7 +197,7 @@ export async function PATCH(
 
     const {
       clientId,
-      locationId,
+      deliveryLocationIds,
       estimateNumber,
       estimateDate,
       poNumber,
@@ -244,7 +244,11 @@ export async function PATCH(
         where: { id },
         data: {
           ...(clientId !== undefined && { clientId }),
-          locationId: locationId ?? null,
+          ...(deliveryLocationIds !== undefined && {
+            deliveryLocations: {
+              set: deliveryLocationIds.map((locId: string) => ({ id: locId })),
+            },
+          }),
           estimateNumber: estimateNumber ?? null,
           estimateDate: estimateDate ? new Date(estimateDate) : null,
           poNumber: poNumber ?? null,
@@ -260,7 +264,7 @@ export async function PATCH(
         include: {
           items: true,
           client: true,
-          deliveryLocation: true,
+          deliveryLocations: true,
         },
       });
     });
