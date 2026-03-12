@@ -2,6 +2,7 @@ export type FilterType =
   | "select"
   | "searchable-select"
   | "date"
+  | "date-range"
   | "text"
   | "number";
 

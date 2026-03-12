@@ -15,6 +15,7 @@ import { formatStatus } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { OMPurchaseOrder, OMPurchaseOrderItem } from "@/types/order-management";
+import { format } from "date-fns";
 
 interface OMPurchaseOrderListTableProps {
   purchaseOrders: OMPurchaseOrder[];
@@ -31,6 +32,7 @@ export function OMPurchaseOrderListTable({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>PO Date</TableHead>
             <TableHead>PO / Estimate</TableHead>
             <TableHead>Client</TableHead>
             <TableHead className="text-right">Total Ordered</TableHead>
@@ -38,14 +40,14 @@ export function OMPurchaseOrderListTable({
             <TableHead className="text-right">Remaining</TableHead>
             <TableHead className="text-right">Total Value</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right w-[100px]">Actions</TableHead>
+            <TableHead className="text-right w-[100px] pr-7">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {purchaseOrders.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={8}
                 className="text-center py-8 text-muted-foreground"
               >
                 No purchase orders found.
@@ -86,6 +88,9 @@ export function OMPurchaseOrderListTable({
                   }
                 >
                   <TableCell>
+                    {po.poDate ? format(po.poDate, "dd MMM yyyy") : "N/A"}
+                  </TableCell>
+                  <TableCell> 
                     <div className="font-medium">
                       {po.poNumber || po.estimateNumber}
                     </div>

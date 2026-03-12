@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
       logisticsPartnerId,
       docketNumber,
       expectedDeliveryDate,
+      dispatchDate,
+      deliveryDate,
       status,
       items,
       shipmentBoxes,
@@ -140,6 +142,12 @@ export async function POST(req: NextRequest) {
           docketNumber: docketNumber || null,
           expectedDeliveryDate: expectedDeliveryDate
             ? new Date(expectedDeliveryDate)
+            : null,
+          dispatchDate: dispatchDate
+            ? new Date(dispatchDate)
+            : null,
+          deliveryDate: deliveryDate
+            ? new Date(deliveryDate)
             : null,
           status,
           items: {

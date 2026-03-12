@@ -16,14 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { format } from "date-fns";
 import {
   Plus,
   Search,
@@ -51,7 +44,6 @@ import {
 } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import {
-  OMSortControl,
   type SortOption,
 } from "@/components/orderManagement/OMSortControl";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
@@ -371,6 +363,7 @@ export default function OMDispatchesList() {
   // Export to CSV/Excel
   const exportToExcel = () => {
     const headers = [
+      "Dispatch Date",
       "Invoice Number",
       "PO Number",
       "Client",
@@ -449,6 +442,7 @@ export default function OMDispatchesList() {
     doc.setTextColor(0, 0, 0);
 
     const tableColumns = [
+      "Dispatch Date",
       "Invoice Number",
       "PO Number",
       "Client",
@@ -593,15 +587,16 @@ export default function OMDispatchesList() {
               <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Invoice Number</TableHead>
-                  <TableHead>PO Number</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead className="text-right">Total Qty</TableHead>
-                  <TableHead>Courier</TableHead>
-                  <TableHead>Tracking Number</TableHead>
-                  <TableHead>Dispatch Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="pr-2">Dispatch Date</TableHead>
+                  <TableHead className="px-2">Invoice Number</TableHead>
+                  <TableHead className="px-2">PO Number</TableHead>
+                  <TableHead className="px-2">Client</TableHead>
+                  <TableHead className="text-right px-2">Total Qty</TableHead>
+                  <TableHead className="px-2">Courier</TableHead>
+                  <TableHead className="px-2">Tracking Number</TableHead>
+                  <TableHead className="px-2">Dispatch Date</TableHead>
+                  <TableHead className="px-2">Status</TableHead>
+                  <TableHead className="text-right pr-7">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -640,7 +635,7 @@ export default function OMDispatchesList() {
                 ) : filteredDispatches.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={9}
+                      colSpan={10}
                       className="text-center py-8 text-muted-foreground"
                     >
                       No dispatches found
@@ -657,33 +652,36 @@ export default function OMDispatchesList() {
                         )
                       }
                     >
-                      <TableCell className="font-medium">
+                      <TableCell className="pr-2">
+                        {dispatch.dispatchDate ? format(dispatch.dispatchDate, "dd MMM yyyy") : "N/A"}
+                      </TableCell>
+                      <TableCell className="px-2 font-medium">
                         {dispatch.invoiceNumber || "N/A"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2">
                         {dispatch.purchaseOrder?.poNumber || "N/A"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2">
                         {dispatch.purchaseOrder?.client?.name || "Unknown"}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right px-2">
                         {getTotalQty(dispatch)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2">
                         {dispatch.logisticsPartner?.name || "N/A"}
                       </TableCell>
-                      <TableCell className="font-mono text-sm">
+                      <TableCell className="font-mono text-sm px-2">
                         {dispatch.docketNumber || "N/A"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2">
                         {formatDisplayDate(dispatch.invoiceDate)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2">
                         <Badge className={getStatusColor(dispatch.status)}>
                           {formatStatus(dispatch.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right pl-2">
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/admin/order-management/dispatches/${dispatch.id}`}

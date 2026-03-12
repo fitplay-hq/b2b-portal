@@ -83,12 +83,16 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const validatedData = OMProductCreateSchema.parse(body);
-    const { brandIds, code, ...prismaData } = validatedData;
+    const { brandIds, code, category, ...prismaData } = validatedData;
     void code;
+    void category;
 
     const product = await prisma.oMProduct.create({
       data: {
         ...prismaData,
+        sku: prismaData.sku ? prismaData.sku.trim() : null,
+        description: prismaData.description ? prismaData.description.trim() : null,
+        price: prismaData.price ?? null,
         ...(brandIds && brandIds.length > 0
           ? {
               brands: {

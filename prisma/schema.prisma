@@ -361,6 +361,8 @@ model OMDispatchOrder {
   invoiceDate          DateTime?
   logisticsPartnerId   String?
   docketNumber         String?
+  dispatchDate         DateTime?
+  deliveryDate         DateTime?
   expectedDeliveryDate DateTime?
   status               OMDispatchStatus      @default(PENDING)
   createdAt            DateTime              @default(now())
