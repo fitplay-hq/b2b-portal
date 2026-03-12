@@ -127,6 +127,8 @@ export async function PUT(
       logisticsPartnerId,
       docketNumber,
       expectedDeliveryDate,
+      dispatchDate,
+      deliveryDate,
       status,
       items,
       shipmentBoxes,
@@ -148,6 +150,8 @@ export async function PUT(
           logisticsPartnerId: logisticsPartnerId || null,
           docketNumber,
           expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
+          dispatchDate: dispatchDate ? new Date(dispatchDate) : null,
+          deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
           status,
           items: {
             create: (items || []).map((item: any) => ({

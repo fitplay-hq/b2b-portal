@@ -72,6 +72,8 @@ function CreateDispatchForm() {
   const [logisticsPartnerId, setLogisticsPartnerId] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState("");
+  const [dispatchDate, setDispatchDate] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
   const [status, setStatus] = useState<
     | "PENDING"
     | "APPROVED"
@@ -436,6 +438,12 @@ function CreateDispatchForm() {
         expectedDeliveryDate: expectedDeliveryDate
           ? formatDateForApi(expectedDeliveryDate)
           : null,
+        dispatchDate: dispatchDate
+          ? formatDateForApi(dispatchDate)
+          : null,
+        deliveryDate: deliveryDate
+          ? formatDateForApi(deliveryDate)
+          : null,
         status,
         items: processedItems,
         shipmentBoxes: shipmentBoxes.map(box => ({
@@ -796,6 +804,24 @@ function CreateDispatchForm() {
                     type="date"
                     value={expectedDeliveryDate}
                     onChange={(e) => setExpectedDeliveryDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Dispatch Date</Label>
+                  <Input
+                    type="date"
+                    value={dispatchDate}
+                    onChange={(e) => setDispatchDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Delivery Date</Label>
+                  <Input
+                    type="date"
+                    value={deliveryDate}
+                    onChange={(e) => setDeliveryDate(e.target.value)}
                   />
                 </div>
 

@@ -161,6 +161,16 @@ export const OMDispatchOrderCreateSchema = z.object({
     .datetime({ message: "Invalid Expected Delivery Date format" })
     .optional()
     .nullable(),
+  dispatchDate: z
+    .string()
+    .datetime({ message: "Invalid Dispatch Date format" })
+    .optional()
+    .nullable(),
+  deliveryDate: z
+    .string()
+    .datetime({ message: "Invalid Delivery Date format" })
+    .optional()
+    .nullable(),
   status: z
     .enum([
       "PENDING",

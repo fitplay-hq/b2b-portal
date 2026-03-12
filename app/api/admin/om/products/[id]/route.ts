@@ -24,13 +24,25 @@ export async function PATCH(
 
     const body = await req.json();
     const validatedData = OMProductUpdateSchema.parse(body);
-    const { brandIds, code, ...prismaData } = validatedData;
+    const { brandIds, code, category, ...prismaData } = validatedData;
     void code;
+    void category;
+
+    const updateData: any = { ...prismaData };
+    if (prismaData.sku !== undefined) {
+      updateData.sku = prismaData.sku ? prismaData.sku.trim() : null;
+    }
+    if (prismaData.description !== undefined) {
+      updateData.description = prismaData.description ? prismaData.description.trim() : null;
+    }
+    if (prismaData.price !== undefined) {
+      updateData.price = prismaData.price ?? null;
+    }
 
     const product = await prisma.oMProduct.update({
       where: { id },
       data: {
-        ...prismaData,
+        ...updateData,
         ...(brandIds !== undefined
           ? {
               brands: {

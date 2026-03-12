@@ -156,6 +156,8 @@ export interface OMDispatchOrder {
   logisticsPartnerId: string;
   docketNumber: string;
   expectedDeliveryDate: string;
+  dispatchDate?: string;
+  deliveryDate?: string;
   status: OMDispatchStatus;
   items?: OMDispatchOrderItem[];
   shipmentBoxes?: OMShipmentBox[];

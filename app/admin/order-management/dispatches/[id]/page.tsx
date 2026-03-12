@@ -270,7 +270,7 @@ export default function OMDispatchDetail() {
             <CardTitle>Dispatch Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Client</p>
                 <p className="font-medium">{po?.client?.name || "Unknown"}</p>
@@ -291,6 +291,18 @@ export default function OMDispatchDetail() {
                 <p className="text-sm text-muted-foreground">Tracking Number</p>
                 <p className="font-mono text-sm">
                   {dispatch.docketNumber || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Dispatch Date</p>
+                <p className="font-medium">
+                  {formatDisplayDate(dispatch.dispatchDate)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Delivery Date</p>
+                <p className="font-medium">
+                  {formatDisplayDate(dispatch.deliveryDate)}
                 </p>
               </div>
               <div>
