@@ -57,6 +57,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate that invoice date is not before PO date
+    if (invoiceDate && purchaseOrder.poDate) {
+      const invDateObj = new Date(invoiceDate);
+      const poDateObj = new Date(purchaseOrder.poDate);
+      
+      // Normalize dates to start of day for accurate comparison if time isn't critical
+      // Assuming exact timestamp comparison might be too strict, but let's do direct comparison first
+      if (invDateObj < poDateObj) {
+        return NextResponse.json(
+          { error: "Invoice Date cannot be earlier than the Purchase Order Date." },
+          { status: 400 },
+        );
+      }
+    }
+
     // 2. Verify Logistics Partner exists if provided
     if (logisticsPartnerId) {
       const logisticsPartner = await prisma.oMLogisticsPartner.findUnique({
