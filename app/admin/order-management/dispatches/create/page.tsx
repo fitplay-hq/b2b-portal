@@ -373,6 +373,17 @@ function CreateDispatchForm() {
       return;
     }
 
+    if (invoiceDate && selectedPO?.poDate) {
+      const invDateObj = new Date(invoiceDate);
+      const poDateObj = new Date(selectedPO.poDate);
+      invDateObj.setHours(0, 0, 0, 0);
+      poDateObj.setHours(0, 0, 0, 0);
+      if (invDateObj < poDateObj) {
+        toast.error("Invoice Date cannot be earlier than the PO Date");
+        return;
+      }
+    }
+
     // Validate packing if boxes are added
     if (shipmentBoxes.length > 0) {
       // Check if all dispatched items are packed

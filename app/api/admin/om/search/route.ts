@@ -43,8 +43,10 @@ export async function GET(req: NextRequest) {
         { estimateNumber: { contains: query, mode: "insensitive" } },
         { client: { name: { contains: query, mode: "insensitive" } } },
         {
-          deliveryLocation: {
-            name: { contains: query, mode: "insensitive" },
+          deliveryLocations: {
+            some: {
+              name: { contains: query, mode: "insensitive" },
+            },
           },
         },
         {
@@ -188,7 +190,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (locationId) {
-      andFilters.push({ deliveryLocationId: locationId });
+      andFilters.push({
+        deliveryLocations: {
+          some: {
+            id: locationId,
+          },
+        },
+      });
     }
 
     if (sku) {
@@ -238,7 +246,7 @@ export async function GET(req: NextRequest) {
       where: whereClause,
       include: {
         client: true,
-        deliveryLocation: true,
+        deliveryLocations: true,
         items: {
           include: {
             product: true,

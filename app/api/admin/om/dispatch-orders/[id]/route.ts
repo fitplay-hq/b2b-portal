@@ -136,6 +136,37 @@ export async function PUT(
       shipmentBoxes,
     } = validatedData;
 
+    // Validate that invoice date is not before PO date
+    if (invoiceDate) {
+      let poId = validatedData.purchaseOrderId;
+      if (!poId) {
+        const existingDispatch = await prisma.oMDispatchOrder.findUnique({
+          where: { id },
+          select: { purchaseOrderId: true },
+        });
+        if (existingDispatch) poId = existingDispatch.purchaseOrderId;
+      }
+
+      if (poId) {
+        const purchaseOrder = await prisma.oMPurchaseOrder.findUnique({
+          where: { id: poId },
+          select: { poDate: true },
+        });
+
+        if (purchaseOrder?.poDate) {
+          const invDateObj = new Date(invoiceDate);
+          const poDateObj = new Date(purchaseOrder.poDate);
+          // Normalize dates to start of day for accurate comparison if time isn't critical
+          if (invDateObj < poDateObj) {
+            return NextResponse.json(
+              { error: "Invoice Date cannot be earlier than the Purchase Order Date." },
+              { status: 400 },
+            );
+          }
+        }
+      }
+    }
+
     // We use a transaction because we need to delete old items and create new ones
     const updatedDispatch = await prisma.$transaction(async (tx) => {
       // 1. Delete existing items for this dispatch

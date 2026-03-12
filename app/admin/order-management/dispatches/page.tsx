@@ -123,7 +123,7 @@ export default function OMDispatchesList() {
   const fetchDispatches = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/admin/om/dispatch-orders?limit=100`);
+      const res = await fetch(`/api/admin/om/dispatch-orders?limit=9999`);
       if (res.ok) {
         const data = await res.json();
         setDispatches(data.data);
@@ -370,7 +370,6 @@ export default function OMDispatchesList() {
       "Total Qty",
       "Courier",
       "Tracking Number",
-      "Dispatch Date",
       "Expected Delivery",
       "Status",
       "Total Value",
@@ -449,7 +448,6 @@ export default function OMDispatchesList() {
       "Total Qty",
       "Courier",
       "Tracking Number",
-      "Dispatch Date",
       "Expected Delivery",
       "Status",
       "Total Value",
@@ -594,7 +592,6 @@ export default function OMDispatchesList() {
                   <TableHead className="text-right px-2">Total Qty</TableHead>
                   <TableHead className="px-2">Courier</TableHead>
                   <TableHead className="px-2">Tracking Number</TableHead>
-                  <TableHead className="px-2">Dispatch Date</TableHead>
                   <TableHead className="px-2">Status</TableHead>
                   <TableHead className="text-right pr-7">Actions</TableHead>
                 </TableRow>
@@ -672,9 +669,6 @@ export default function OMDispatchesList() {
                       </TableCell>
                       <TableCell className="font-mono text-sm px-2">
                         {dispatch.docketNumber || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-2">
-                        {formatDisplayDate(dispatch.invoiceDate)}
                       </TableCell>
                       <TableCell className="px-2">
                         <Badge className={getStatusColor(dispatch.status)}>
