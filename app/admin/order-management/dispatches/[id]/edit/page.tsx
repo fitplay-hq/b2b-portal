@@ -676,21 +676,6 @@ function EditDispatchForm() {
                     <p>
                       <strong>PO Number:</strong> {selectedPO.poNumber}
                     </p>
-                    {selectedPO.deliveryLocations && selectedPO.deliveryLocations.length > 0 && (
-                      <div className="mt-4">
-                        <Label className="mb-2 block">Delivery Location</Label>
-                        <SearchableSelect
-                          options={selectedPO.deliveryLocations.map((loc: any) => ({
-                            value: loc.id,
-                            label: loc.name,
-                          }))}
-                          value={deliveryLocationId}
-                          onValueChange={setDeliveryLocationId}
-                          placeholder="Select delivery location"
-                          searchPlaceholder="Search locations..."
-                        />
-                      </div>
-                    )}
                   </div>
                 </AlertDescription>
               </Alert>
@@ -834,7 +819,7 @@ function EditDispatchForm() {
               <CardTitle>Logistics Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Logistics Partner</Label>
                   <div className="flex gap-2">
@@ -898,6 +883,22 @@ function EditDispatchForm() {
                     placeholder="Enter tracking number"
                   />
                 </div>
+
+                {selectedPO.deliveryLocations && selectedPO.deliveryLocations.length > 0 && (
+                  <div>
+                    <Label className="mb-2 block">Delivery Location</Label>
+                    <SearchableSelect
+                      options={selectedPO.deliveryLocations.map((loc: any) => ({
+                        value: loc.id,
+                        label: loc.name,
+                      }))}
+                      value={deliveryLocationId}
+                      onValueChange={setDeliveryLocationId}
+                      placeholder="Select delivery location"
+                      searchPlaceholder="Search locations..."
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>Dispatch Date</Label>

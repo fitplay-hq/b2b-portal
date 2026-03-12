@@ -282,6 +282,12 @@ export default function OMDispatchDetail() {
                 </p>
               </div>
               <div>
+                <p className="text-sm text-muted-foreground">Delivery Location</p>
+                <p className="font-medium">
+                  {dispatch.deliveryLocation?.name || "N/A"}
+                </p>
+              </div>
+              <div>
                 <p className="text-sm text-muted-foreground">
                   Expected Delivery
                 </p>
