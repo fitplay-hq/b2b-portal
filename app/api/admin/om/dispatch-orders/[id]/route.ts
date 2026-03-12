@@ -31,9 +31,10 @@ export async function GET(
         purchaseOrder: {
           include: {
             client: true,
-            deliveryLocation: true,
+            deliveryLocations: true,
           },
         },
+        deliveryLocation: true,
         logisticsPartner: true,
         items: {
           include: {
@@ -75,7 +76,7 @@ export async function GET(
     // Map shipmentBoxes to match the frontend interface OMShipmentBox safely
     const formattedDispatch = {
       ...dispatchOrder,
-      shipmentBoxes: (dispatchOrder.shipmentBoxes || []).map((box) => ({
+      shipmentBoxes: (dispatchOrder.shipmentBoxes || []).map((box: any) => ({
         boxId: box.id,
         boxNumber: box.boxLabel || `Box ${box.id.slice(0, 4)}`,
         length: box.length,
@@ -83,7 +84,7 @@ export async function GET(
         height: box.height,
         weight: box.weight,
         numberOfBoxes: box.numberOfBoxes,
-        contents: (box.contents || []).map((c) => ({
+        contents: (box.contents || []).map((c: any) => ({
           contentId: c.id,
           itemId: c.dispatchOrderItem?.purchaseOrderItemId || "unknown",
           itemName: c.dispatchOrderItem?.purchaseOrderItem?.product?.name || "Unknown Item",
@@ -129,6 +130,7 @@ export async function PUT(
       expectedDeliveryDate,
       dispatchDate,
       deliveryDate,
+      deliveryLocationId,
       status,
       items,
       shipmentBoxes,
@@ -152,6 +154,7 @@ export async function PUT(
           expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
           dispatchDate: dispatchDate ? new Date(dispatchDate) : null,
           deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
+          deliveryLocationId: deliveryLocationId || null,
           status,
           items: {
             create: (items || []).map((item: any) => ({

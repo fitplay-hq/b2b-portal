@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Plus, Save } from "lucide-react";
-import { SearchableSelect } from "@/components/ui/combobox";
+import { SearchableSelect, MultiSearchableSelect } from "@/components/ui/combobox";
 import { OMClientForm } from "./OMClientForm";
 import {
   Dialog,
@@ -56,7 +56,9 @@ export function OMPurchaseOrderForm({
   onRefreshData,
 }: OMPurchaseOrderFormProps) {
   const [clientId, setClientId] = useState(initialData?.clientId || "");
-  const [locationId, setLocationId] = useState(initialData?.locationId || "");
+  const [deliveryLocationIds, setDeliveryLocationIds] = useState<string[]>(
+    initialData?.deliveryLocations?.map((loc: any) => loc.id) || [],
+  );
 
   const [estimateNumber, setEstimateNumber] = useState(() => {
     const existingEst = initialData?.estimateNumber || "";
@@ -222,7 +224,7 @@ export function OMPurchaseOrderForm({
 
     const payload = {
       clientId,
-      locationId: locationId || null,
+      deliveryLocationIds: deliveryLocationIds,
       estimateNumber: finalEstimateNumber || null,
       estimateDate: estimateDate ? new Date(estimateDate).toISOString() : null,
       poNumber: poNumber || null,
@@ -323,20 +325,22 @@ export function OMPurchaseOrderForm({
             </div>
 
             <div className="space-y-2">
-              <Label>Delivery Location</Label>
+              <Label>Delivery Locations</Label>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <SearchableSelect
+                  <MultiSearchableSelect
                     options={locationOptions}
-                    value={locationId}
-                    onValueChange={setLocationId}
-                    placeholder="Select location"
+                    value={deliveryLocationIds}
+                    onValueChange={setDeliveryLocationIds}
+                    placeholder="Select locations"
                     searchPlaceholder="Search locations..."
                   />
                 </div>
                 <OMNewLocationDialog
                   onLocationAdded={(loc) => {
-                    onRefreshData(true).then(() => setLocationId(loc.id));
+                    onRefreshData(true).then(() =>
+                      setDeliveryLocationIds((prev) => [...prev, loc.id]),
+                    );
                   }}
                 />
               </div>

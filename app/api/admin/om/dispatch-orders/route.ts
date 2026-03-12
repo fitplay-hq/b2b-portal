@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
       invoiceNumber,
       invoiceDate,
       logisticsPartnerId,
+      deliveryLocationId,
       docketNumber,
       expectedDeliveryDate,
       dispatchDate,
@@ -65,6 +66,20 @@ export async function POST(req: NextRequest) {
       if (!logisticsPartner) {
         return NextResponse.json(
           { error: "Logistics Partner not found" },
+          { status: 404 },
+        );
+      }
+    }
+
+    // Verify Delivery Location exists if provided
+    if (deliveryLocationId) {
+      const deliveryLocation = await prisma.oMDeliveryLocation.findUnique({
+        where: { id: deliveryLocationId },
+      });
+
+      if (!deliveryLocation) {
+        return NextResponse.json(
+          { error: "Delivery Location not found" },
           { status: 404 },
         );
       }
@@ -139,6 +154,7 @@ export async function POST(req: NextRequest) {
           invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
           invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
           logisticsPartnerId: logisticsPartnerId || null,
+          deliveryLocationId: deliveryLocationId || null,
           docketNumber: docketNumber || null,
           expectedDeliveryDate: expectedDeliveryDate
             ? new Date(expectedDeliveryDate)
@@ -258,6 +274,7 @@ export async function GET(req: NextRequest) {
     const fromDate = searchParams.get("fromDate");
     const toDate = searchParams.get("toDate");
     const logisticsPartnerId = searchParams.get("logisticsPartnerId");
+    const deliveryLocationId = searchParams.get("deliveryLocationId");
     const invoiceNumber = searchParams.get("invoiceNumber");
 
     const page = parseInt(searchParams.get("page") || "1");
@@ -296,6 +313,10 @@ export async function GET(req: NextRequest) {
       andFilters.push({ logisticsPartnerId });
     }
 
+    if (deliveryLocationId) {
+      andFilters.push({ deliveryLocationId });
+    }
+
     if (invoiceNumber) {
       andFilters.push({
         invoiceNumber: { contains: invoiceNumber, mode: "insensitive" },
@@ -322,10 +343,11 @@ export async function GET(req: NextRequest) {
           purchaseOrder: {
             include: {
               client: true,
-              deliveryLocation: true,
+              deliveryLocations: true,
             },
           },
           logisticsPartner: true,
+          deliveryLocation: true,
           items: {
             include: {
               purchaseOrderItem: {
