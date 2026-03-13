@@ -70,6 +70,7 @@ import {
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { ItemFilters } from "@/components/orderManagement/items/ItemFilters";
+import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 
 function skuBrandPart(brandName: string | undefined): string {
@@ -950,186 +951,139 @@ export default function OMItems() {
           />
         </OMFilterCard>
 
-        <Card>
-          <CardContent>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <OMSortableHeader
-                      title="Item Name"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="name_asc"
-                      descOption="name_desc"
-                    />
-                    <OMSortableHeader
-                      title="Brand"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="brand_asc"
-                      descOption="brand_desc"
-                    />
-                    <OMSortableHeader
-                      title="SKU"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="sku_asc"
-                      descOption="sku_desc"
-                    />
-                    <OMSortableHeader
-                      title="Default Rate"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="rate_asc"
-                      descOption="rate_desc"
-                    />
-                    <OMSortableHeader
-                      title="Default GST"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="gst_asc"
-                      descOption="gst_desc"
-                    />
-                    <OMSortableHeader
-                      title="Total Ordered"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="total_ordered_asc"
-                      descOption="total_ordered_desc"
-                      className="text-right"
-                    />
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    [...Array(5)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <Skeleton className="h-4 w-32" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-40" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-12" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-32" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Skeleton className="h-4 w-16 ml-auto" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : filteredItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="text-center text-muted-foreground py-8"
-                      >
-                        No items found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredItems.map((item) => (
-                      <TableRow
-                        key={item.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleView(item)}
-                      >
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{item.name}</div>
-                            {item.description && (
-                              <div className="text-sm text-muted-foreground">
-                                {item.description}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1 max-w-[200px]">
-                            {item.brands && item.brands.length > 0 ? (
-                              item.brands.map((brand) => (
-                                <span
-                                  key={brand.id}
-                                  className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium border whitespace-nowrap"
-                                >
-                                  {brand.name}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{item.sku || "-"}</TableCell>
-                        <TableCell>
-                          {item.price
-                            ? `₹${item.price.toLocaleString("en-IN")}`
-                            : "-"}
-                        </TableCell>
-                        <TableCell>{item.defaultGstPct}%</TableCell>
-                        <TableCell className="text-right">
-                          {item.totalOrdered ?? 0}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleView(item);
-                              }}
-                              title="View Item"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(item);
-                              }}
-                              title="Edit Item"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(item.id);
-                              }}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+        <OMDataTable
+          data={filteredItems}
+          isLoading={isLoading}
+          columnCount={7}
+          emptyMessage="No items found"
+          header={
+            <TableRow>
+              <OMSortableHeader
+                title="Item Name"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="name_asc"
+                descOption="name_desc"
+              />
+              <OMSortableHeader
+                title="Brand"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="brand_asc"
+                descOption="brand_desc"
+              />
+              <OMSortableHeader
+                title="SKU"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="sku_asc"
+                descOption="sku_desc"
+              />
+              <OMSortableHeader
+                title="Default Rate"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="rate_asc"
+                descOption="rate_desc"
+              />
+              <OMSortableHeader
+                title="Default GST"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="gst_asc"
+                descOption="gst_desc"
+              />
+              <OMSortableHeader
+                title="Total Ordered"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="total_ordered_asc"
+                descOption="total_ordered_desc"
+                className="text-right"
+              />
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          }
+          renderRow={(item: OMProduct) => (
+            <TableRow
+              key={item.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => handleView(item)}
+            >
+              <TableCell>
+                <div>
+                  <div className="font-medium">{item.name}</div>
+                  {item.description && (
+                    <div className="text-sm text-muted-foreground">
+                      {item.description}
+                    </div>
                   )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                  {item.brands && item.brands.length > 0 ? (
+                    item.brands.map((brand) => (
+                      <span
+                        key={brand.id}
+                        className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium border whitespace-nowrap"
+                      >
+                        {brand.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>{item.sku || "-"}</TableCell>
+              <TableCell>
+                {item.price ? `₹${item.price.toLocaleString("en-IN")}` : "-"}
+              </TableCell>
+              <TableCell>{item.defaultGstPct}%</TableCell>
+              <TableCell className="text-right">
+                {item.totalOrdered ?? 0}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleView(item);
+                    }}
+                    title="View Item"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(item);
+                    }}
+                    title="Edit Item"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.id);
+                    }}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+        />
 
         <DeleteConfirmationDialog
           isOpen={isDeleteDialogOpen}

@@ -47,9 +47,8 @@ export function OMFilterCard({
 }: OMFilterCardProps) {
   return (
     <Card className={cn("shadow-sm", className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <div className="space-y-1">
-          {title && <CardTitle className="text-xl font-semibold">{title}</CardTitle>}
+      <CardHeader className="flex flex-row items-center justify-start space-y-0">
+        <div className="">
           {subtitle && (
             <CardDescription className="text-xs">{subtitle}</CardDescription>
           )}

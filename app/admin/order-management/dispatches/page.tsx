@@ -50,6 +50,7 @@ import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { DispatchFilters } from "@/components/orderManagement/dispatches/DispatchFilters";
 import { useMemo } from "react";
+import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 
 export default function OMDispatchesList() {
@@ -621,206 +622,151 @@ export default function OMDispatchesList() {
         </OMFilterCard>
 
         {/* Dispatches Table */}
-        <Card>
-          <CardContent>
-            <div className="border rounded-md overflow-hidden">
-              <Table>
-              <TableHeader>
-                <TableRow>
-                  <OMSortableHeader
-                    title="Dispatch Date"
-                    currentSort={sortBy}
-                    onSort={setSortBy}
-                    ascOption="inv_date_asc"
-                    descOption="inv_date_desc"
-                    className="pr-2"
-                  />
-                  <OMSortableHeader
-                    title="Invoice Number"
-                    currentSort={sortBy}
-                    onSort={setSortBy}
-                    ascOption="inv_number_asc"
-                    descOption="inv_number_desc"
-                    className="px-2"
-                  />
-                  <OMSortableHeader
-                    title="PO Number"
-                    currentSort={sortBy}
-                    onSort={setSortBy}
-                    ascOption="po_num_asc"
-                    descOption="po_num_desc"
-                    className="px-2"
-                  />
-                  <OMSortableHeader
-                    title="Client"
-                    currentSort={sortBy}
-                    onSort={setSortBy}
-                    ascOption="name_asc"
-                    descOption="name_desc"
-                    className="px-2"
-                  />
-                  <OMSortableHeader
-                    title="Total Qty"
-                    currentSort={sortBy}
-                    onSort={setSortBy}
-                    ascOption="qty_asc"
-                    descOption="qty_desc"
-                    className="text-right px-2"
-                  />
-                  <OMSortableHeader
-                    title="Courier"
-                    currentSort={sortBy}
-                    onSort={setSortBy}
-                    ascOption="courier_asc"
-                    descOption="courier_desc"
-                    className="px-2"
-                  />
-                  <OMSortableHeader
-                    title="Tracking Number"
-                    currentSort={sortBy}
-                    onSort={setSortBy}
-                    ascOption="tracking_asc"
-                    descOption="tracking_desc"
-                    className="px-2"
-                  />
-                  <OMSortableHeader
-                    title="Status"
-                    currentSort={sortBy}
-                    onSort={setSortBy}
-                    ascOption="status_asc"
-                    descOption="status_desc"
-                    className="px-2"
-                  />
-                  <TableHead className="text-right pr-7">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  [...Array(5)].map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell>
-                        <Skeleton className="h-4 w-24" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-32" />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Skeleton className="h-4 w-12 ml-auto" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-24" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-32" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-6 w-24 rounded-full" />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Skeleton className="h-8 w-24 ml-auto" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : filteredDispatches.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={10}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      No dispatches found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredDispatches.map((dispatch) => (
-                    <TableRow
-                      key={dispatch.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() =>
-                        router.push(
-                          `/admin/order-management/dispatches/${dispatch.id}`,
-                        )
-                      }
-                    >
-                      <TableCell className="pr-2">
-                        {dispatch.dispatchDate ? format(dispatch.dispatchDate, "dd MMM yyyy") : "N/A"}
-                      </TableCell>
-                      <TableCell className="px-2 font-medium">
-                        {dispatch.invoiceNumber || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-2">
-                        {dispatch.purchaseOrder?.poNumber || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-2">
-                        {dispatch.purchaseOrder?.client?.name || "Unknown"}
-                      </TableCell>
-                      <TableCell className="text-right px-2">
-                        {getTotalQty(dispatch)}
-                      </TableCell>
-                      <TableCell className="px-2">
-                        {dispatch.logisticsPartner?.name || "N/A"}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm px-2">
-                        {dispatch.docketNumber || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-2">
-                        <Badge className={getStatusColor(dispatch.status)}>
-                          {formatStatus(dispatch.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pl-2">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/admin/order-management/dispatches/${dispatch.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="View Dispatch"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Link
-                            href={`/admin/order-management/dispatches/${dispatch.id}/edit`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Edit Dispatch"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(dispatch.id);
-                            }}
-                            className="text-destructive hover:text-destructive"
-                            title="Delete Dispatch"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <OMDataTable
+          data={filteredDispatches}
+          isLoading={isLoading}
+          columnCount={9}
+          emptyMessage="No dispatches found"
+          header={
+            <TableRow>
+              <OMSortableHeader
+                title="Date"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="date_asc"
+                descOption="date_desc"
+                className="pr-2"
+              />
+              <OMSortableHeader
+                title="Invoice Number"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="invoice_asc"
+                descOption="invoice_desc"
+                className="px-2"
+              />
+              <OMSortableHeader
+                title="PO / Estimate"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="po_num_asc"
+                descOption="po_num_desc"
+                className="px-2"
+              />
+              <OMSortableHeader
+                title="Client"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="name_asc"
+                descOption="name_desc"
+                className="px-2"
+              />
+              <OMSortableHeader
+                title="Total Qty"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="qty_asc"
+                descOption="qty_desc"
+                className="text-right px-2"
+              />
+              <OMSortableHeader
+                title="Courier"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="courier_asc"
+                descOption="courier_desc"
+                className="px-2"
+              />
+              <OMSortableHeader
+                title="Tracking Number"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="tracking_asc"
+                descOption="tracking_desc"
+                className="px-2"
+              />
+              <OMSortableHeader
+                title="Status"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="status_asc"
+                descOption="status_desc"
+                className="px-2"
+              />
+              <TableHead className="text-right pr-7">Actions</TableHead>
+            </TableRow>
+          }
+          renderRow={(dispatch) => (
+            <TableRow
+              key={dispatch.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() =>
+                router.push(`/admin/order-management/dispatches/${dispatch.id}`)
+              }
+            >
+              <TableCell className="pr-2">
+                {dispatch.dispatchDate
+                  ? format(dispatch.dispatchDate, "dd MMM yyyy")
+                  : "N/A"}
+              </TableCell>
+              <TableCell className="px-2 font-medium">
+                {dispatch.invoiceNumber || "N/A"}
+              </TableCell>
+              <TableCell className="px-2">
+                {dispatch.purchaseOrder?.poNumber || "N/A"}
+              </TableCell>
+              <TableCell className="px-2">
+                {dispatch.purchaseOrder?.client?.name || "Unknown"}
+              </TableCell>
+              <TableCell className="text-right px-2">
+                {getTotalQty(dispatch)}
+              </TableCell>
+              <TableCell className="px-2">
+                {dispatch.logisticsPartner?.name || "N/A"}
+              </TableCell>
+              <TableCell className="font-mono text-sm px-2">
+                {dispatch.docketNumber || "N/A"}
+              </TableCell>
+              <TableCell className="px-2">
+                <Badge className={getStatusColor(dispatch.status)}>
+                  {formatStatus(dispatch.status)}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right pl-2">
+                <div className="flex items-center justify-end gap-2">
+                  <Link
+                    href={`/admin/order-management/dispatches/${dispatch.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button variant="ghost" size="sm" title="View Dispatch">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link
+                    href={`/admin/order-management/dispatches/${dispatch.id}/edit`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button variant="ghost" size="sm" title="Edit Dispatch">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(dispatch.id);
+                    }}
+                    className="text-destructive hover:text-destructive"
+                    title="Delete Dispatch"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+        />
 
         <DeleteConfirmationDialog
           isOpen={isDeleteDialogOpen}

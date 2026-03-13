@@ -34,6 +34,7 @@ import {
 import type { OMDeliveryLocation } from "@/types/order-management";
 import { useMemo } from "react";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
+import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useDeliveryLocations } from "@/hooks/use-delivery-locations";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
@@ -225,82 +226,57 @@ export default function OMDeliveryLocations() {
           </div>
         </OMFilterCard>
 
-        <Card>
-          <CardContent>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                  <OMSortableHeader
-                      title="Location / City Name"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="name_asc"
-                      descOption="name_desc"
-                    />
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    [...Array(5)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <Skeleton className="h-4 w-full max-w-[200px]" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : filteredLocations.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={2}
-                        className="text-center text-muted-foreground py-12"
-                      >
-                        {searchTerm
-                          ? "No locations matching your search."
-                          : "No delivery locations found."}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredLocations.map((location: OMDeliveryLocation) => (
-                      <TableRow key={location.id} className="group">
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                            {location.name}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(location)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(location.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <OMDataTable
+          data={filteredLocations}
+          isLoading={isLoading}
+          columnCount={2}
+          emptyMessage={
+            searchTerm
+              ? "No locations matching your search."
+              : "No delivery locations found."
+          }
+          header={
+            <TableRow>
+              <OMSortableHeader
+                title="Location / City Name"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="name_asc"
+                descOption="name_desc"
+              />
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          }
+          renderRow={(location: OMDeliveryLocation) => (
+            <TableRow key={location.id} className="group">
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  <MapPin
+                    className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors"
+                  />
+                  {location.name}
+                </div>
+              </TableCell>
+              <TableCell className="text-right flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(location)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(location.id)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          )}
+        />
 
         <DeleteConfirmationDialog
           isOpen={isDeleteDialogOpen}

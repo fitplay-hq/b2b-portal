@@ -60,6 +60,7 @@ import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { LogisticsPartnerFilters } from "@/components/orderManagement/logisticsPartners/LogisticsPartnerFilters";
 import { useMemo } from "react";
+import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useLogisticsPartners } from "@/hooks/use-logistics-partners";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
@@ -619,140 +620,98 @@ export default function OMLogisticsPartners() {
           />
         </OMFilterCard>
 
-        <Card>
-          <CardContent>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <OMSortableHeader
-                      title="Partner Name"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="name_asc"
-                      descOption="name_desc"
-                    />
-                    <OMSortableHeader
-                      title="Contact Person"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="contact_asc"
-                      descOption="contact_desc"
-                    />
-                    <OMSortableHeader
-                      title="Phone"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="phone_asc"
-                      descOption="phone_desc"
-                    />
-                    <OMSortableHeader
-                      title="Email"
-                      currentSort={sortBy}
-                      onSort={setSortBy}
-                      ascOption="email_asc"
-                      descOption="email_desc"
-                    />
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    [...Array(3)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <Skeleton className="h-4 w-40" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-32" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-40" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-6 w-20 rounded-full" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : filteredPartners.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center text-muted-foreground py-8"
-                      >
-                        No logistics partners found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredPartners.map((partner) => (
-                      <TableRow
-                        key={partner.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleView(partner)}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Truck className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{partner.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{partner.contactPerson || "-"}</TableCell>
-                        <TableCell>{partner.phone || "-"}</TableCell>
-                        <TableCell>{partner.email || "-"}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleView(partner);
-                              }}
-                              title="View Partner"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(partner);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(partner.id);
-                              }}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <OMDataTable
+          data={filteredPartners}
+          isLoading={isLoading}
+          columnCount={5}
+          emptyMessage="No logistics partners found"
+          header={
+            <TableRow>
+              <OMSortableHeader
+                title="Partner Name"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="name_asc"
+                descOption="name_desc"
+              />
+              <OMSortableHeader
+                title="Contact Person"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="contact_asc"
+                descOption="contact_desc"
+              />
+              <OMSortableHeader
+                title="Phone"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="phone_asc"
+                descOption="phone_desc"
+              />
+              <OMSortableHeader
+                title="Email"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="email_asc"
+                descOption="email_desc"
+              />
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          }
+          renderRow={(partner: OMLogisticsPartner) => (
+            <TableRow
+              key={partner.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => handleView(partner)}
+            >
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{partner.name}</span>
+                </div>
+              </TableCell>
+              <TableCell>{partner.contactPerson || "-"}</TableCell>
+              <TableCell>{partner.phone || "-"}</TableCell>
+              <TableCell>{partner.email || "-"}</TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleView(partner);
+                    }}
+                    title="View Partner"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(partner);
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(partner.id);
+                    }}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+        />
 
         <DeleteConfirmationDialog
           isOpen={isDeleteDialogOpen}
