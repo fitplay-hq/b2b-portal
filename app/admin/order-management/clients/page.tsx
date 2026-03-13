@@ -515,7 +515,7 @@ export default function OMClients() {
         </div>
 
         <OMFilterCard
-          subtitle={`Total ${clients.length} clients registered`}
+          subtitle={`Showing ${filteredClients.length} of ${clients.length} clients`}
           searchPlaceholder="Search by name, contact, email, or GST number..."
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}

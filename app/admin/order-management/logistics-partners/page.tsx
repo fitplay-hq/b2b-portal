@@ -569,7 +569,7 @@ export default function OMLogisticsPartners() {
         </div>
 
         <OMFilterCard
-          subtitle={`Total ${partners.length} logistics partners registered`}
+          subtitle={`Showing ${filteredPartners.length} of ${partners.length} logistics partners`}
           searchPlaceholder="Search by name, contact person, or email..."
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}

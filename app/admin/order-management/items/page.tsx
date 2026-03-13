@@ -873,7 +873,7 @@ export default function OMItems() {
         </div>
 
         <OMFilterCard
-          subtitle={`Total ${items.length} items registered`}
+          subtitle={`Showing ${filteredItems.length} of ${items.length} items`}
           searchPlaceholder="Search by name or SKU..."
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
