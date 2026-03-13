@@ -30,6 +30,14 @@ interface POFiltersProps {
   locationOptions: ComboboxOption[];
 }
 
+const PO_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  CONFIRMED: "Confirmed",
+  PARTIALLY_DISPATCHED: "Partially Dispatched",
+  FULLY_DISPATCHED: "Fully Dispatched",
+  CLOSED: "Closed",
+};
+
 export function POFilters({
   filters,
   setFilters,
@@ -54,7 +62,7 @@ export function POFilters({
             value={filters.fromDate}
             max={filters.toDate || new Date().toISOString().split("T")[0]}
             onChange={(e) => updateFilter("fromDate", e.target.value)}
-            className="pl-10 h-10 text-sm focus-visible:ring-blue-500"
+            className="pl-10 h-10 text-sm focus-visible:ring-neutral-900"
           />
         </div>
       </div>
@@ -71,7 +79,7 @@ export function POFilters({
             min={filters.fromDate}
             max={new Date().toISOString().split("T")[0]}
             onChange={(e) => updateFilter("toDate", e.target.value)}
-            className="pl-10 h-10 text-sm focus-visible:ring-blue-500"
+            className="pl-10 h-10 text-sm focus-visible:ring-neutral-900"
           />
         </div>
       </div>
@@ -91,20 +99,7 @@ export function POFilters({
 
       <div className="space-y-2">
         <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1.5 block ml-1">
-          PO Number
-        </Label>
-        <SearchableSelect
-          options={poOptions}
-          value={filters.poNumber}
-          onValueChange={(val) => updateFilter("poNumber", val)}
-          placeholder="Select PO #..."
-          className="h-10 text-sm"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1.5 block ml-1">
-          Delivery Location
+          Location
         </Label>
         <SearchableSelect
           options={locationOptions}
@@ -123,18 +118,16 @@ export function POFilters({
           value={filters.status}
           onValueChange={(val) => updateFilter("status", val)}
         >
-          <SelectTrigger className="h-10 text-sm focus:ring-blue-500">
+          <SelectTrigger className="h-10 text-sm focus:ring-neutral-900">
             <SelectValue placeholder="Select status..." />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="DRAFT">Draft</SelectItem>
-            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-            <SelectItem value="PARTIALLY_DISPATCHED">
-              Partially Dispatched
-            </SelectItem>
-            <SelectItem value="FULLY_DISPATCHED">Fully Dispatched</SelectItem>
-            <SelectItem value="CLOSED">Closed</SelectItem>
+            {Object.entries(PO_STATUS_LABELS).map(([key, label]) => (
+              <SelectItem key={key} value={key}>
+                {label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

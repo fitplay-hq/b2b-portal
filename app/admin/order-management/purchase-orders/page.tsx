@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, Trash2, Plus, FileDown, FileSpreadsheet, Download, Loader2 } from "lucide-react";
+import { Eye, Edit, Trash2, Plus, FileDown, FileSpreadsheet, Download, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
@@ -20,7 +20,6 @@ import {
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { POFilters } from "@/components/orderManagement/purchaseOrders/POFilters";
-
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
 import {
   DropdownMenu,
@@ -28,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SearchableSelect, ComboboxOption } from "@/components/ui/combobox";
+import { SearchableSelect, type ComboboxOption } from "@/components/ui/combobox";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -39,12 +38,12 @@ import {
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { useMemo } from "react";
+import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import type {
   OMPurchaseOrder,
   OMClient,
-  OMPaginationMeta,
 } from "@/types/order-management";
+import { useOMFilters } from "@/hooks/use-om-filters";
 
 const PO_STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -58,24 +57,40 @@ export default function OMPurchaseOrdersList() {
   const router = useRouter();
   const { purchaseOrders, isLoading, mutate } = usePurchaseOrders();
   const [searchTerm, setSearchTerm] = useState("");
-  const [clients, setClients] = useState<OMClient[]>([]);
-  const [sortBy, setSortBy] = useState<string>("newest");
+  const [sortBy, setSortBy] = useState<SortOption>("po_date_desc");
+  const [showFilters, setShowFilters] = useState(false);
 
   const [deletePo, setDeletePo] = useState<OMPurchaseOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    fromDate: "",
-    toDate: "",
-    clientName: "",
-    poNumber: "",
-    status: "all",
-    locationId: "",
-  });
+  const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
+    useOMFilters({
+      initialFilters: {
+        fromDate: "",
+        toDate: "",
+        clientName: "",
+        poNumber: "",
+        status: "all",
+        locationId: "",
+      },
+      labels: {
+        fromDate: "From",
+        toDate: "To",
+        clientName: "Client",
+        poNumber: "PO #",
+        locationId: "Location",
+        status: "Status",
+      },
+      valueLabels: {
+        status: (val) => PO_STATUS_LABELS[val] || val,
+        locationId: (val) =>
+          locationOptions.find((o) => o.value === val)?.label || val,
+      },
+    });
 
   const [locationOptions, setLocationOptions] = useState<ComboboxOption[]>([]);
   const [poOptions, setPoOptions] = useState<ComboboxOption[]>([]);
+  const [clients, setClients] = useState<OMClient[]>([]);
 
   const fetchOptions = async () => {
     try {
@@ -221,59 +236,6 @@ export default function OMPurchaseOrdersList() {
     // Client-side search, no need to fetch
   };
 
-  const resetFilters = () => {
-    setFilters({
-      fromDate: "",
-      toDate: "",
-      clientName: "",
-      poNumber: "",
-      status: "all",
-      locationId: "",
-    });
-    setSearchTerm("");
-  };
-
-  const removeFilter = (key: string) => {
-    setFilters((prev: any) => ({
-      ...prev,
-      [key]: key === "status" ? "all" : "",
-    }));
-  };
-
-  const activeFilters = useMemo(() => {
-    const active = [];
-    if (filters.fromDate)
-      active.push({ key: "fromDate", label: "From", value: filters.fromDate });
-    if (filters.toDate)
-      active.push({ key: "toDate", label: "To", value: filters.toDate });
-    if (filters.clientName)
-      active.push({
-        key: "clientName",
-        label: "Client",
-        value: filters.clientName,
-      });
-    if (filters.poNumber)
-      active.push({ key: "poNumber", label: "PO #", value: filters.poNumber });
-    if (filters.locationId) {
-      const label = locationOptions.find(
-        (o) => o.value === filters.locationId,
-      )?.label;
-      active.push({
-        key: "locationId",
-        label: "Location",
-        value: label || filters.locationId,
-      });
-    }
-    if (filters.status && filters.status !== "all") {
-      active.push({
-        key: "status",
-        label: "Status",
-        value: PO_STATUS_LABELS[filters.status] || filters.status,
-      });
-    }
-    return active;
-  }, [filters, locationOptions]);
-
   const clientOptions = useMemo(() => {
     return clients.map((c) => ({ value: c.name, label: c.name }));
   }, [clients]);
@@ -337,7 +299,10 @@ export default function OMPurchaseOrdersList() {
           sortNameLabel="PO Date"
           showFilters={showFilters}
           setShowFilters={setShowFilters}
-          onReset={resetFilters}
+          onReset={() => {
+            setSearchTerm("");
+            resetFilters();
+          }}
         >
           <POFilters
             filters={filters}
@@ -349,7 +314,10 @@ export default function OMPurchaseOrdersList() {
           <OMActiveFilters
             activeFilters={activeFilters}
             onRemove={removeFilter}
-            onClearAll={resetFilters}
+            onClearAll={() => {
+              setSearchTerm("");
+              resetFilters();
+            }}
           />
         </OMFilterCard>
 

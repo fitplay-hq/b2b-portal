@@ -59,6 +59,7 @@ import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFil
 import { ItemFilters } from "@/components/orderManagement/items/ItemFilters";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
+import { useOMFilters } from "@/hooks/use-om-filters";
 
 function skuBrandPart(brandName: string | undefined): string {
   return brandName
@@ -81,23 +82,45 @@ export default function OMItems() {
   const [items, setItems] = useState<OMProduct[]>([]);
   const [brands, setBrands] = useState<OMBrand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<OMProduct | null>(null);
   const [viewingItem, setViewingItem] = useState<OMProduct | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("name_asc");
-
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    brandIds: [] as string[],
-    minPrice: "",
-    maxPrice: "",
-    gst: "all",
-    minTotalOrdered: "",
-    maxTotalOrdered: "",
-  });
+
+  const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
+    useOMFilters({
+      initialFilters: {
+        brandIds: [] as string[],
+        minPrice: "",
+        maxPrice: "",
+        gst: "all",
+        minTotalOrdered: "",
+        maxTotalOrdered: "",
+      },
+      labels: {
+        brandIds: "Brand",
+        minPrice: "Min Price",
+        maxPrice: "Max Price",
+        gst: "GST",
+        minTotalOrdered: "Min Ordered",
+        maxTotalOrdered: "Max Ordered",
+      },
+      valueLabels: {
+        brandIds: (val) => {
+          if (Array.isArray(val)) {
+            return val
+              .map((id) => brands.find((b) => b.id === id)?.name || id)
+              .join(", ");
+          }
+          return brands.find((b) => b.id === val)?.name || val;
+        },
+        gst: (val) => (val === "all" ? "All" : `${val}%`),
+      },
+    });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -274,15 +297,14 @@ export default function OMItems() {
     }
   };
 
+  const resetFiltersAll = () => {
+    setSearchTerm("");
+    resetFilters();
+  };
+
   const filteredItems = useMemo(() => {
     return items
       .filter((item) => {
-        // Text search
-        const matchesSearch =
-          !searchQuery ||
-          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (item.sku || "").toLowerCase().includes(searchQuery.toLowerCase());
-
         // Advanced filters
         const matchesBrands =
           filters.brandIds.length === 0 ||
@@ -306,14 +328,20 @@ export default function OMItems() {
           !filters.maxTotalOrdered ||
           (item.totalOrdered || 0) <= parseInt(filters.maxTotalOrdered);
 
+        if (
+          !matchesBrands ||
+          !matchesMinPrice ||
+          !matchesMaxPrice ||
+          !matchesGst ||
+          !matchesMinTotalOrdered ||
+          !matchesMaxTotalOrdered
+        )
+          return false;
+
+        const searchLower = searchTerm.toLowerCase();
         return (
-          matchesSearch &&
-          matchesBrands &&
-          matchesMinPrice &&
-          matchesMaxPrice &&
-          matchesGst &&
-          matchesMinTotalOrdered &&
-          matchesMaxTotalOrdered
+          item.name.toLowerCase().includes(searchLower) ||
+          (item.sku || "").toLowerCase().includes(searchLower)
         );
       })
       .sort((a, b) => {
@@ -364,7 +392,7 @@ export default function OMItems() {
           );
         return 0;
       });
-  }, [items, searchQuery, filters, sortBy]);
+  }, [items, searchTerm, filters, sortBy]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -372,75 +400,6 @@ export default function OMItems() {
     }
   };
 
-  const resetFilters = () => {
-    setFilters({
-      brandIds: [],
-      minPrice: "",
-      maxPrice: "",
-      gst: "all",
-      minTotalOrdered: "",
-      maxTotalOrdered: "",
-    });
-    setSearchQuery("");
-  };
-
-  const removeFilter = (key: string, value?: string) => {
-    setFilters((prev: any) => {
-      if (key === "brandIds" && value) {
-        return {
-          ...prev,
-          brandIds: prev.brandIds.filter((id: string) => id !== value),
-        };
-      }
-      // For other filters, reset to their default empty/all state
-      if (key === "gst") {
-        return { ...prev, [key]: "all" };
-      }
-      return { ...prev, [key]: "" };
-    });
-  };
-
-  const activeFilters = useMemo(() => {
-    const active = [];
-    if (filters.brandIds.length > 0) {
-      filters.brandIds.forEach((id) => {
-        const brand = brands.find((b) => b.id === id);
-        active.push({
-          key: "brandIds",
-          label: "Brand",
-          value: brand?.name || id,
-          id,
-        });
-      });
-    }
-    if (filters.minPrice)
-      active.push({
-        key: "minPrice",
-        label: "Min Price",
-        value: `₹${filters.minPrice}`,
-      });
-    if (filters.maxPrice) {
-      active.push({ key: "maxPrice", label: "Max ₹", value: filters.maxPrice });
-    }
-    if (filters.gst !== "all") {
-      active.push({ key: "gst", label: "GST", value: `${filters.gst}%` });
-    }
-    if (filters.minTotalOrdered) {
-      active.push({
-        key: "minTotalOrdered",
-        label: "Min Total Ordered",
-        value: filters.minTotalOrdered,
-      });
-    }
-    if (filters.maxTotalOrdered) {
-      active.push({
-        key: "maxTotalOrdered",
-        label: "Max Total Ordered",
-        value: filters.maxTotalOrdered,
-      });
-    }
-    return active;
-  }, [filters, brands]);
 
   // Export to CSV/Excel
   const exportToExcel = () => {
@@ -914,17 +873,16 @@ export default function OMItems() {
         </div>
 
         <OMFilterCard
-          title="Filters"
-          subtitle={`Showing ${filteredItems.length} of ${items.length} products`}
+          subtitle={`Total ${items.length} items registered`}
           searchPlaceholder="Search by name or SKU..."
-          searchTerm={searchQuery}
-          onSearchChange={setSearchQuery}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
           sortBy={sortBy}
           onSortChange={setSortBy}
           sortNameLabel="Item Name"
           showFilters={showFilters}
           setShowFilters={setShowFilters}
-          onReset={resetFilters}
+          onReset={resetFiltersAll}
         >
           <ItemFilters
             filters={filters}
@@ -934,7 +892,7 @@ export default function OMItems() {
           <OMActiveFilters
             activeFilters={activeFilters}
             onRemove={removeFilter}
-            onClearAll={resetFilters}
+            onClearAll={resetFiltersAll}
           />
         </OMFilterCard>
 
