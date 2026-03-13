@@ -76,7 +76,7 @@ export default function OMLogisticsPartners() {
   const [viewingPartner, setViewingPartner] =
     useState<OMLogisticsPartner | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     partnerName: "",

@@ -98,7 +98,7 @@ export default function OMItems() {
   const [editingItem, setEditingItem] = useState<OMProduct | null>(null);
   const [viewingItem, setViewingItem] = useState<OMProduct | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [sortBy, setSortBy] = useState<SortOption>("name_asc");
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({

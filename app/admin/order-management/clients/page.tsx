@@ -68,7 +68,7 @@ export default function OMClients() {
   const [editingClient, setEditingClient] = useState<OMClient | null>(null);
   const [viewingClient, setViewingClient] = useState<OMClient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     clientName: "",

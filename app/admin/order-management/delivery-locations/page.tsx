@@ -44,7 +44,7 @@ export default function OMDeliveryLocations() {
   const [locationName, setLocationName] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
 
   const [isDeleting, setIsDeleting] = useState(false);
