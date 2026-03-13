@@ -13,16 +13,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Plus, Loader2, Trash2, ArrowLeft, Edit, MapPin } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import {
@@ -34,17 +27,19 @@ import {
 import type { OMDeliveryLocation } from "@/types/order-management";
 import { useMemo } from "react";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
+import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
+import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
+import { useDeliveryLocations } from "@/hooks/use-delivery-locations";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
 
 export default function OMDeliveryLocations() {
   const router = useRouter();
-  const [locations, setLocations] = useState<OMDeliveryLocation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { locations, isLoading, mutate } = useDeliveryLocations();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locationName, setLocationName] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -52,27 +47,13 @@ export default function OMDeliveryLocations() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const [editingLocation, setEditingLocation] = useState<OMDeliveryLocation | null>(null);
+  const [editingLocation, setEditingLocation] =
+    useState<OMDeliveryLocation | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editName, setEditName] = useState("");
 
-  const fetchLocations = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/admin/om/delivery-locations");
-      if (res.ok) {
-        setLocations(await res.json());
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load delivery locations");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchLocations();
+    // Other initializations if needed
   }, []);
 
   const filteredLocations = useMemo(() => {
@@ -114,7 +95,7 @@ export default function OMDeliveryLocations() {
         toast.success("Delivery location added successfully");
         setLocationName("");
         setIsAddDialogOpen(false);
-        fetchLocations();
+        mutate();
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to add delivery location");
@@ -138,15 +119,18 @@ export default function OMDeliveryLocations() {
     if (!editingLocation || !editName.trim()) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/admin/om/delivery-locations/${editingLocation.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName.trim() }),
-      });
+      const res = await fetch(
+        `/api/admin/om/delivery-locations/${editingLocation.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: editName.trim() }),
+        },
+      );
       if (res.ok) {
         toast.success("Delivery location updated successfully");
         setIsEditDialogOpen(false);
-        fetchLocations();
+        mutate();
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to update delivery location");
@@ -173,7 +157,8 @@ export default function OMDeliveryLocations() {
       });
       if (res.ok) {
         toast.success("Delivery location deleted successfully");
-        fetchLocations();
+        mutate();
+
         setIsDeleteDialogOpen(false);
       } else {
         const error = await res.json();
@@ -234,82 +219,57 @@ export default function OMDeliveryLocations() {
           </div>
         </OMFilterCard>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Location List</CardTitle>
-            <CardDescription>
-              {locations.length} location{locations.length !== 1 ? "s" : ""} registered
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Location / City Name</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    [...Array(5)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <Skeleton className="h-4 w-full max-w-[200px]" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : filteredLocations.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={2}
-                        className="text-center text-muted-foreground py-12"
-                      >
-                        {searchTerm
-                          ? "No locations matching your search."
-                          : "No delivery locations found."}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredLocations.map((location) => (
-                      <TableRow key={location.id} className="group">
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                             <MapPin className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                             {location.name}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(location)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(location.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <OMDataTable
+          data={filteredLocations}
+          isLoading={isLoading}
+          columnCount={2}
+          emptyMessage={
+            searchTerm
+              ? "No locations matching your search."
+              : "No delivery locations found."
+          }
+          header={
+            <TableRow>
+              <OMSortableHeader
+                title="Location / City Name"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="name_asc"
+                descOption="name_desc"
+              />
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          }
+          renderRow={(location: OMDeliveryLocation) => (
+            <TableRow key={location.id} className="group">
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  <MapPin
+                    className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors"
+                  />
+                  {location.name}
+                </div>
+              </TableCell>
+              <TableCell className="text-right flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(location)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(location.id)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          )}
+        />
 
         <DeleteConfirmationDialog
           isOpen={isDeleteDialogOpen}

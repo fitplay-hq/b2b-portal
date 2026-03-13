@@ -19,21 +19,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+
 import {
   Plus,
   Search,
@@ -52,31 +39,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { toast } from "sonner";
 import type { OMLogisticsPartner } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import {
-  OMSortControl,
-  type SortOption,
-} from "@/components/orderManagement/OMSortControl";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { LogisticsPartnerFilters } from "@/components/orderManagement/logisticsPartners/LogisticsPartnerFilters";
 import { useMemo } from "react";
+import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
+import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
+import { useLogisticsPartners } from "@/hooks/use-logistics-partners";
+import type { SortOption } from "@/components/orderManagement/OMSortControl";
 
 export default function OMLogisticsPartners() {
-  const [partners, setPartners] = useState<OMLogisticsPartner[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { partners, isLoading, mutate } = useLogisticsPartners();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingPartner, setEditingPartner] =
     useState<OMLogisticsPartner | null>(null);
   const [viewingPartner, setViewingPartner] =
     useState<OMLogisticsPartner | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     partnerName: "",
@@ -90,24 +77,8 @@ export default function OMLogisticsPartners() {
     defaultMode: "Surface" as "Air" | "Surface" | "Road",
   });
 
-  const fetchPartners = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/admin/om/logistics-partners");
-      if (res.ok) {
-        const data = await res.json();
-        setPartners(data);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load logistics partners");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchPartners();
+    // fetchOptions or other initializations if needed
   }, []);
 
   const resetForm = () => {
@@ -144,7 +115,7 @@ export default function OMLogisticsPartners() {
         );
         setIsAddDialogOpen(false);
         resetForm();
-        fetchPartners();
+        mutate();
       } else {
         const error = await res.json();
         toast.error(error.error || "Something went wrong");
@@ -193,7 +164,8 @@ export default function OMLogisticsPartners() {
 
       if (res.ok) {
         toast.success("Logistics partner deleted successfully");
-        fetchPartners();
+        mutate();
+
         setIsDeleteDialogOpen(false);
       } else {
         const error = await res.json();
@@ -231,6 +203,40 @@ export default function OMLogisticsPartners() {
       .sort((a, b) => {
         if (sortBy === "name_asc") return a.name.localeCompare(b.name);
         if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+
+        if (sortBy === "contact_asc") {
+          const aCp = a.contactPerson || "";
+          const bCp = b.contactPerson || "";
+          return aCp.localeCompare(bCp);
+        }
+        if (sortBy === "contact_desc") {
+          const aCp = a.contactPerson || "";
+          const bCp = b.contactPerson || "";
+          return bCp.localeCompare(aCp);
+        }
+
+        if (sortBy === "phone_asc") {
+          const aPhone = a.phone || "";
+          const bPhone = b.phone || "";
+          return aPhone.localeCompare(bPhone);
+        }
+        if (sortBy === "phone_desc") {
+          const aPhone = a.phone || "";
+          const bPhone = b.phone || "";
+          return bPhone.localeCompare(aPhone);
+        }
+
+        if (sortBy === "email_asc") {
+          const aEmail = a.email || "";
+          const bEmail = b.email || "";
+          return aEmail.localeCompare(bEmail);
+        }
+        if (sortBy === "email_desc") {
+          const aEmail = a.email || "";
+          const bEmail = b.email || "";
+          return bEmail.localeCompare(aEmail);
+        }
+
         if (sortBy === "newest")
           return (
             new Date(b.createdAt || 0).getTime() -
@@ -601,116 +607,95 @@ export default function OMLogisticsPartners() {
           />
         </OMFilterCard>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Partner Name</TableHead>
-                    <TableHead>Contact Person</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    [...Array(3)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <Skeleton className="h-4 w-40" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-32" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-40" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-6 w-20 rounded-full" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : filteredPartners.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center text-muted-foreground py-8"
-                      >
-                        No logistics partners found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredPartners.map((partner) => (
-                      <TableRow
-                        key={partner.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleView(partner)}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Truck className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{partner.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{partner.contactPerson || "-"}</TableCell>
-                        <TableCell>{partner.phone || "-"}</TableCell>
-                        <TableCell>{partner.email || "-"}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleView(partner);
-                              }}
-                              title="View Partner"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(partner);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(partner.id);
-                              }}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <OMDataTable
+          data={filteredPartners}
+          isLoading={isLoading}
+          columnCount={5}
+          emptyMessage="No logistics partners found"
+          onRowClick={(partner) => handleView(partner)}
+          header={
+            <TableRow>
+              <OMSortableHeader
+                title="Partner Name"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="name_asc"
+                descOption="name_desc"
+              />
+              <OMSortableHeader
+                title="Contact Person"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="contact_asc"
+                descOption="contact_desc"
+              />
+              <OMSortableHeader
+                title="Phone"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="phone_asc"
+                descOption="phone_desc"
+              />
+              <OMSortableHeader
+                title="Email"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="email_asc"
+                descOption="email_desc"
+              />
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          }
+          renderRow={(partner: OMLogisticsPartner) => (
+            <TableRow key={partner.id}>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{partner.name}</span>
+                </div>
+              </TableCell>
+              <TableCell>{partner.contactPerson || "-"}</TableCell>
+              <TableCell>{partner.phone || "-"}</TableCell>
+              <TableCell>{partner.email || "-"}</TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleView(partner);
+                    }}
+                    title="View Partner"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(partner);
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(partner.id);
+                    }}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+        />
 
         <DeleteConfirmationDialog
           isOpen={isDeleteDialogOpen}

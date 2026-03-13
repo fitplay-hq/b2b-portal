@@ -121,7 +121,7 @@ useEffect(() => {
 
   if (status === "loading" || isLoading || analyticsLoading) {
     return (
-      <Layout title="Dashboard" isClient>
+      <Layout isClient>
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -132,7 +132,7 @@ useEffect(() => {
   // Handle unauthenticated users
   if (status === "unauthenticated" || !session?.user) {
     return (
-      <Layout title="Dashboard" isClient>
+      <Layout isClient>
         <div className="text-center py-8">
           <p className="text-muted-foreground">
             Please sign in to access your dashboard
@@ -144,7 +144,7 @@ useEffect(() => {
 
   if (error) {
     return (
-      <Layout title="Dashboard" isClient>
+      <Layout isClient>
         <div className="text-center text-destructive">
           Failed to load dashboard data. Please try again later.
         </div>
@@ -154,7 +154,7 @@ useEffect(() => {
 
   if (!analytics) {
     return (
-      <Layout title="Dashboard" isClient>
+      <Layout isClient>
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -162,10 +162,10 @@ useEffect(() => {
     );
   }
   return (
-    <Layout title="Dashboard" isClient>
+    <Layout isClient>
       <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
         {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 sm:p-6">
+        <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg p-4 sm:p-6">
           <h1 className="text-xl sm:text-2xl font-bold mb-2">
             Welcome back, {user?.name}!
           </h1>

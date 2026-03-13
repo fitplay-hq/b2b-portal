@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -13,16 +14,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Plus, Loader2, Trash2, ArrowLeft, Edit } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import {
@@ -207,77 +201,44 @@ export default function OMBrands() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Brand List</CardTitle>
-            <CardDescription>
-              {brands.length} brand{brands.length !== 1 ? "s" : ""} registered
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Brand Name</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    [...Array(3)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <Skeleton className="h-4 w-full" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : brands.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={2}
-                        className="text-center text-muted-foreground py-8"
-                      >
-                        No brands found. Add one above.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    brands.map((brand) => (
-                      <TableRow key={brand.id}>
-                        <TableCell className="font-medium">
-                          {brand.name}
-                        </TableCell>
-                        <TableCell className="text-right flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(brand)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(brand.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <OMDataTable
+          title="Brand List"
+          subtitle={`${brands.length} brand${
+            brands.length !== 1 ? "s" : ""
+          } registered`}
+          data={brands}
+          isLoading={isLoading}
+          columnCount={2}
+          emptyMessage="No brands found. Add one above."
+          header={
+            <TableRow>
+              <TableHead>Brand Name</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          }
+          renderRow={(brand: OMBrand) => (
+            <TableRow key={brand.id}>
+              <TableCell className="font-medium">{brand.name}</TableCell>
+              <TableCell className="text-right flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(brand)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(brand.id)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          )}
+        />
 
         <DeleteConfirmationDialog
           isOpen={isDeleteDialogOpen}

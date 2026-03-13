@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,27 +13,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+
 import {
   Plus,
-  Search,
   Edit,
   Trash2,
-  Loader2,
   Eye,
   FileDown,
   FileSpreadsheet,
@@ -45,30 +30,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { toast } from "sonner";
 import type { OMClient } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { OMClientForm } from "@/components/orderManagement/OMClientForm";
-import {
-  OMSortControl,
-  type SortOption,
-} from "@/components/orderManagement/OMSortControl";
+import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { ClientFilters } from "@/components/orderManagement/clients/ClientFilters";
-import { useMemo } from "react";
+import { useClients } from "@/hooks/use-clients";
+import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
+import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 
 export default function OMClients() {
-  const [clients, setClients] = useState<OMClient[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { clients, isLoading, mutate } = useClients();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<OMClient | null>(null);
   const [viewingClient, setViewingClient] = useState<OMClient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     clientName: "",
@@ -83,26 +66,6 @@ export default function OMClients() {
     gstNumber: "",
     notes: "",
   });
-
-  const fetchClients = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/admin/om/clients");
-      if (res.ok) {
-        const data = await res.json();
-        setClients(data);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load clients");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchClients();
-  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -140,7 +103,7 @@ export default function OMClients() {
         );
         setIsAddDialogOpen(false);
         resetForm();
-        fetchClients();
+        mutate();
       } else {
         const error = await res.json();
         toast.error(error.error || "Something went wrong");
@@ -191,7 +154,7 @@ export default function OMClients() {
 
       if (res.ok) {
         toast.success("Client deleted successfully");
-        fetchClients();
+        mutate();
         setIsDeleteDialogOpen(false);
       } else {
         const errorData = await res.json();
@@ -230,8 +193,6 @@ export default function OMClients() {
         return matchesSearch && matchesClient;
       })
       .sort((a, b) => {
-        if (sortBy === "name_asc") return a.name.localeCompare(b.name);
-        if (sortBy === "name_desc") return b.name.localeCompare(a.name);
         if (sortBy === "newest")
           return (
             new Date(b.createdAt || 0).getTime() -
@@ -247,7 +208,24 @@ export default function OMClients() {
             new Date(b.updatedAt || 0).getTime() -
             new Date(a.updatedAt || 0).getTime()
           );
-        return 0;
+
+        const [field, direction] = sortBy.split("_");
+        const modifier = direction === "desc" ? -1 : 1;
+
+        // Map SortOption field to OMClient property
+        const fieldMap: Record<string, keyof OMClient> = {
+          name: "name",
+          contact: "contactPerson",
+          email: "email",
+          phone: "phone",
+          gst: "gstNumber",
+        };
+
+        const property = fieldMap[field] || (field as keyof OMClient);
+        const valA = String(a[property] || "").toLowerCase();
+        const valB = String(b[property] || "").toLowerCase();
+
+        return valA.localeCompare(valB) * modifier;
       });
   }, [clients, searchQuery, filters, sortBy]);
 
@@ -581,114 +559,99 @@ export default function OMClients() {
           />
         </OMFilterCard>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client Name</TableHead>
-                    <TableHead>Contact Person</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>GST Number</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    [...Array(5)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <Skeleton className="h-4 w-32" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-28" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-40" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-32" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                            <Skeleton className="h-8 w-8" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : filteredClients.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center text-muted-foreground py-8"
-                      >
-                        No clients found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredClients.map((client) => (
-                      <TableRow
-                        key={client.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleView(client)}
-                      >
-                        <TableCell>{client.name}</TableCell>
-                        <TableCell>{client.contactPerson || "-"}</TableCell>
-                        <TableCell>{client.email || "-"}</TableCell>
-                        <TableCell>{client.phone || "-"}</TableCell>
-                        <TableCell>{client.gstNumber || "-"}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleView(client);
-                              }}
-                              title="View Client"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(client);
-                              }}
-                              title="Edit Client"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(client.id);
-                              }}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <OMDataTable
+          data={filteredClients}
+          isLoading={isLoading}
+          columnCount={6}
+          emptyMessage="No clients found"
+          onRowClick={(client) => handleView(client)}
+          header={
+            <TableRow>
+              <OMSortableHeader
+                title="Client Name"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="name_asc"
+                descOption="name_desc"
+              />
+              <OMSortableHeader
+                title="Contact Person"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="contact_asc"
+                descOption="contact_desc"
+              />
+              <OMSortableHeader
+                title="Email"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="email_asc"
+                descOption="email_desc"
+              />
+              <OMSortableHeader
+                title="Phone"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="phone_asc"
+                descOption="phone_desc"
+              />
+              <OMSortableHeader
+                title="GST Number"
+                currentSort={sortBy}
+                onSort={setSortBy}
+                ascOption="gst_asc"
+                descOption="gst_desc"
+              />
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          }
+          renderRow={(client: OMClient) => (
+            <TableRow key={client.id}>
+              <TableCell>{client.name}</TableCell>
+              <TableCell>{client.contactPerson || "-"}</TableCell>
+              <TableCell>{client.email || "-"}</TableCell>
+              <TableCell>{client.phone || "-"}</TableCell>
+              <TableCell>{client.gstNumber || "-"}</TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleView(client);
+                    }}
+                    title="View Client"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(client);
+                    }}
+                    title="Edit Client"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(client.id);
+                    }}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+        />
 
         <DeleteConfirmationDialog
           isOpen={isDeleteDialogOpen}

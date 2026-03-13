@@ -16,15 +16,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { OMPurchaseOrder, OMPurchaseOrderItem } from "@/types/order-management";
 import { format } from "date-fns";
+import { OMSortableHeader } from "./shared/OMSortableHeader";
 
 interface OMPurchaseOrderListTableProps {
   purchaseOrders: OMPurchaseOrder[];
   onDeleteRequest: (po: OMPurchaseOrder) => void;
+  sortBy: string;
+  onSort: (val: string) => void;
 }
 
 export function OMPurchaseOrderListTable({
   purchaseOrders,
   onDeleteRequest,
+  sortBy,
+  onSort,
 }: OMPurchaseOrderListTableProps) {
   const router = useRouter();
   return (
@@ -32,14 +37,66 @@ export function OMPurchaseOrderListTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>PO Date</TableHead>
-            <TableHead>PO / Estimate</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead className="text-right">Total Ordered</TableHead>
-            <TableHead className="text-right">Dispatched</TableHead>
-            <TableHead className="text-right">Remaining</TableHead>
-            <TableHead className="text-right">Total Value</TableHead>
-            <TableHead>Status</TableHead>
+            <OMSortableHeader
+              title="PO Date"
+              currentSort={sortBy}
+              onSort={onSort}
+              ascOption="po_date_asc"
+              descOption="po_date_desc"
+            />
+            <OMSortableHeader
+              title="PO / Estimate"
+              currentSort={sortBy}
+              onSort={onSort}
+              ascOption="po_number_asc"
+              descOption="po_number_desc"
+            />
+            <OMSortableHeader
+              title="Client"
+              currentSort={sortBy}
+              onSort={onSort}
+              ascOption="client_asc"
+              descOption="client_desc"
+            />
+            <OMSortableHeader
+              title="Total Ordered"
+              currentSort={sortBy}
+              onSort={onSort}
+              ascOption="ordered_asc"
+              descOption="ordered_desc"
+              className="text-right"
+            />
+            <OMSortableHeader
+              title="Dispatched"
+              currentSort={sortBy}
+              onSort={onSort}
+              ascOption="dispatched_asc"
+              descOption="dispatched_desc"
+              className="text-right"
+            />
+            <OMSortableHeader
+              title="Remaining"
+              currentSort={sortBy}
+              onSort={onSort}
+              ascOption="remaining_asc"
+              descOption="remaining_desc"
+              className="text-right"
+            />
+            <OMSortableHeader
+              title="Total Value"
+              currentSort={sortBy}
+              onSort={onSort}
+              ascOption="value_asc"
+              descOption="value_desc"
+              className="text-right"
+            />
+            <OMSortableHeader
+              title="Status"
+              currentSort={sortBy}
+              onSort={onSort}
+              ascOption="status_asc"
+              descOption="status_desc"
+            />
             <TableHead className="text-right w-[100px] pr-7">Actions</TableHead>
           </TableRow>
         </TableHeader>
