@@ -199,53 +199,6 @@ export default function OMClients() {
         return matchesSearch && matchesClient;
       })
       .sort((a, b) => {
-        if (sortBy === "name_asc") return a.name.localeCompare(b.name);
-        if (sortBy === "name_desc") return b.name.localeCompare(a.name);
-
-        if (sortBy === "contact_asc") {
-          const aCp = a.contactPerson || "";
-          const bCp = b.contactPerson || "";
-          return aCp.localeCompare(bCp);
-        }
-        if (sortBy === "contact_desc") {
-          const aCp = a.contactPerson || "";
-          const bCp = b.contactPerson || "";
-          return bCp.localeCompare(aCp);
-        }
-
-        if (sortBy === "email_asc") {
-          const aEmail = a.email || "";
-          const bEmail = b.email || "";
-          return aEmail.localeCompare(bEmail);
-        }
-        if (sortBy === "email_desc") {
-          const aEmail = a.email || "";
-          const bEmail = b.email || "";
-          return bEmail.localeCompare(aEmail);
-        }
-
-        if (sortBy === "phone_asc") {
-          const aPhone = a.phone || "";
-          const bPhone = b.phone || "";
-          return aPhone.localeCompare(bPhone);
-        }
-        if (sortBy === "phone_desc") {
-          const aPhone = a.phone || "";
-          const bPhone = b.phone || "";
-          return bPhone.localeCompare(aPhone);
-        }
-
-        if (sortBy === "gst_asc") {
-          const aGst = a.gstNumber || "";
-          const bGst = b.gstNumber || "";
-          return aGst.localeCompare(bGst);
-        }
-        if (sortBy === "gst_desc") {
-          const aGst = a.gstNumber || "";
-          const bGst = b.gstNumber || "";
-          return bGst.localeCompare(aGst);
-        }
-
         if (sortBy === "newest")
           return (
             new Date(b.createdAt || 0).getTime() -
@@ -261,7 +214,24 @@ export default function OMClients() {
             new Date(b.updatedAt || 0).getTime() -
             new Date(a.updatedAt || 0).getTime()
           );
-        return 0;
+
+        const [field, direction] = sortBy.split("_");
+        const modifier = direction === "desc" ? -1 : 1;
+
+        // Map SortOption field to OMClient property
+        const fieldMap: Record<string, keyof OMClient> = {
+          name: "name",
+          contact: "contactPerson",
+          email: "email",
+          phone: "phone",
+          gst: "gstNumber",
+        };
+
+        const property = fieldMap[field] || (field as keyof OMClient);
+        const valA = String(a[property] || "").toLowerCase();
+        const valB = String(b[property] || "").toLowerCase();
+
+        return valA.localeCompare(valB) * modifier;
       });
   }, [clients, searchQuery, filters, sortBy]);
 
@@ -596,14 +566,7 @@ export default function OMClients() {
         </OMFilterCard>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Clients List</CardTitle>
-          </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground mb-4 italic">
-              * Click a column heading to toggle between ascending and
-              descending order.
-            </p>
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>

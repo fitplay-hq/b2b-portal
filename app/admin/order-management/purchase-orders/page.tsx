@@ -350,14 +350,7 @@ export default function OMPurchaseOrdersList() {
         </OMFilterCard>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Purchase Order List</CardTitle>
-          </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground mb-4 italic">
-              * Click a column heading to toggle between ascending and
-              descending order.
-            </p>
             {isLoading ? (
               <div className="space-y-4">
                 <div className="border rounded-md">

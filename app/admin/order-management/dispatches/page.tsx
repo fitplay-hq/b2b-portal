@@ -622,14 +622,7 @@ export default function OMDispatchesList() {
 
         {/* Dispatches Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Dispatch List</CardTitle>
-          </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground mb-4 italic">
-              * Click a column heading to toggle between ascending and
-              descending order.
-            </p>
             <div className="border rounded-md overflow-hidden">
               <Table>
               <TableHeader>

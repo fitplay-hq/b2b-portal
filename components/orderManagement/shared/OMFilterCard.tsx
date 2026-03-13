@@ -31,6 +31,7 @@ interface OMFilterCardProps {
 }
 
 export function OMFilterCard({
+  title,
   subtitle,
   searchPlaceholder = "Search...",
   searchTerm,
@@ -45,33 +46,19 @@ export function OMFilterCard({
   className,
 }: OMFilterCardProps) {
   return (
-    <Card className={cn("shadow-sm pt-3 pb-5 ", className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <div>
+    <Card className={cn("shadow-sm", className)}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <div className="space-y-1">
+          {title && <CardTitle className="text-xl font-semibold">{title}</CardTitle>}
           {subtitle && (
-            <CardDescription className="text-xs">
-              {subtitle}
-            </CardDescription>
+            <CardDescription className="text-xs">{subtitle}</CardDescription>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowFilters(!showFilters)}
-          className="h-8 flex gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <Filter className="h-4 w-4" />
-          {showFilters ? "Hide Filters" : "Show Filters"}
-          {showFilters ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
-        </Button>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 w-full space-y-1.5">
+        <div className="flex items-end gap-4 w-full">
+          {/* Search Field */}
+          <div className="flex-1 space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground ml-1">
               Search
             </Label>
@@ -81,17 +68,43 @@ export function OMFilterCard({
                 placeholder={searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-10 h-10"
+                className="pl-10 h-9"
               />
             </div>
           </div>
-          <div className="w-full md:w-60">
+
+          {/* Sort Control */}
+          <div className="w-60 space-y-1.5 shrink-0">
+            <Label className="text-xs font-medium text-muted-foreground ml-1">
+              Sort By
+            </Label>
             <OMSortControl
               value={sortBy}
               onValueChange={onSortChange}
               nameLabel={sortNameLabel}
               className="h-10"
             />
+          </div>
+
+          {/* Filter Toggle Button */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-transparent select-none pointer-events-none">
+              Filter
+            </Label>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="h-10 flex gap-2 text-muted-foreground hover:text-foreground border border-transparent hover:border-muted-foreground/10 transition-all font-medium"
+            >
+              <Filter className="h-4 w-4" />
+              {showFilters ? "Hide Filters" : "Show Filters"}
+              {showFilters ? (
+                <ChevronUp className="h-4 w-4 ml-1 opacity-50" />
+              ) : (
+                <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
+              )}
+            </Button>
           </div>
         </div>
 
