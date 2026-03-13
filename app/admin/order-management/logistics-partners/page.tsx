@@ -19,21 +19,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+
 import {
   Plus,
   Search,
@@ -52,7 +39,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { toast } from "sonner";
 import type { OMLogisticsPartner } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
@@ -625,6 +612,7 @@ export default function OMLogisticsPartners() {
           isLoading={isLoading}
           columnCount={5}
           emptyMessage="No logistics partners found"
+          onRowClick={(partner) => handleView(partner)}
           header={
             <TableRow>
               <OMSortableHeader
@@ -659,11 +647,7 @@ export default function OMLogisticsPartners() {
             </TableRow>
           }
           renderRow={(partner: OMLogisticsPartner) => (
-            <TableRow
-              key={partner.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => handleView(partner)}
-            >
+            <TableRow key={partner.id}>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Truck className="h-4 w-4 text-muted-foreground" />

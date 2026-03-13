@@ -20,7 +20,7 @@ import {
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { POFilters } from "@/components/orderManagement/purchaseOrders/POFilters";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
 import {
   DropdownMenu,
@@ -358,6 +358,9 @@ export default function OMPurchaseOrdersList() {
           isLoading={isLoading}
           columnCount={9}
           emptyMessage="No purchase orders found."
+          onRowClick={(po) =>
+            router.push(`/admin/order-management/purchase-orders/${po.id}`)
+          }
           header={
             <TableRow>
               <OMSortableHeader
@@ -441,15 +444,7 @@ export default function OMPurchaseOrdersList() {
               po.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
 
             return (
-              <TableRow
-                key={po.id}
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() =>
-                  router.push(
-                    `/admin/order-management/purchase-orders/${po.id}`,
-                  )
-                }
-              >
+              <TableRow key={po.id}>
                 <TableCell>
                   {po.poDate ? format(po.poDate, "dd MMM yyyy") : "N/A"}
                 </TableCell>

@@ -13,15 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+
 import {
   Plus,
   Edit,
@@ -37,7 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { toast } from "sonner";
 import type { OMClient } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
@@ -571,6 +564,7 @@ export default function OMClients() {
           isLoading={isLoading}
           columnCount={6}
           emptyMessage="No clients found"
+          onRowClick={(client) => handleView(client)}
           header={
             <TableRow>
               <OMSortableHeader
@@ -612,11 +606,7 @@ export default function OMClients() {
             </TableRow>
           }
           renderRow={(client: OMClient) => (
-            <TableRow
-              key={client.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => handleView(client)}
-            >
+            <TableRow key={client.id}>
               <TableCell>{client.name}</TableCell>
               <TableCell>{client.contactPerson || "-"}</TableCell>
               <TableCell>{client.email || "-"}</TableCell>

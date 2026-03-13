@@ -23,21 +23,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+
 import {
   Plus,
   Search,
@@ -56,7 +43,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
@@ -956,6 +943,7 @@ export default function OMItems() {
           isLoading={isLoading}
           columnCount={7}
           emptyMessage="No items found"
+          onRowClick={(item) => handleView(item)}
           header={
             <TableRow>
               <OMSortableHeader
@@ -1005,11 +993,7 @@ export default function OMItems() {
             </TableRow>
           }
           renderRow={(item: OMProduct) => (
-            <TableRow
-              key={item.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => handleView(item)}
-            >
+            <TableRow key={item.id}>
               <TableCell>
                 <div>
                   <div className="font-medium">{item.name}</div>

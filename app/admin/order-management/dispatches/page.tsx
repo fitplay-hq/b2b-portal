@@ -5,16 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import {
@@ -627,6 +620,9 @@ export default function OMDispatchesList() {
           isLoading={isLoading}
           columnCount={9}
           emptyMessage="No dispatches found"
+          onRowClick={(dispatch) =>
+            router.push(`/admin/order-management/dispatches/${dispatch.id}`)
+          }
           header={
             <TableRow>
               <OMSortableHeader
@@ -643,7 +639,7 @@ export default function OMDispatchesList() {
                 onSort={setSortBy}
                 ascOption="invoice_asc"
                 descOption="invoice_desc"
-                className="px-2"
+                className="px-3"
               />
               <OMSortableHeader
                 title="PO / Estimate"
@@ -651,7 +647,7 @@ export default function OMDispatchesList() {
                 onSort={setSortBy}
                 ascOption="po_num_asc"
                 descOption="po_num_desc"
-                className="px-2"
+                className="px-3"
               />
               <OMSortableHeader
                 title="Client"
@@ -659,7 +655,7 @@ export default function OMDispatchesList() {
                 onSort={setSortBy}
                 ascOption="name_asc"
                 descOption="name_desc"
-                className="px-2"
+                className="px-3"
               />
               <OMSortableHeader
                 title="Total Qty"
@@ -667,7 +663,7 @@ export default function OMDispatchesList() {
                 onSort={setSortBy}
                 ascOption="qty_asc"
                 descOption="qty_desc"
-                className="text-right px-2"
+                className="text-right px-3"
               />
               <OMSortableHeader
                 title="Courier"
@@ -675,7 +671,7 @@ export default function OMDispatchesList() {
                 onSort={setSortBy}
                 ascOption="courier_asc"
                 descOption="courier_desc"
-                className="px-2"
+                className="px-3"
               />
               <OMSortableHeader
                 title="Tracking Number"
@@ -683,7 +679,7 @@ export default function OMDispatchesList() {
                 onSort={setSortBy}
                 ascOption="tracking_asc"
                 descOption="tracking_desc"
-                className="px-2"
+                className="px-3"
               />
               <OMSortableHeader
                 title="Status"
@@ -691,43 +687,37 @@ export default function OMDispatchesList() {
                 onSort={setSortBy}
                 ascOption="status_asc"
                 descOption="status_desc"
-                className="px-2"
+                className="px-3"
               />
               <TableHead className="text-right pr-7">Actions</TableHead>
             </TableRow>
           }
           renderRow={(dispatch) => (
-            <TableRow
-              key={dispatch.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() =>
-                router.push(`/admin/order-management/dispatches/${dispatch.id}`)
-              }
-            >
+            <TableRow key={dispatch.id}>
               <TableCell className="pr-2">
                 {dispatch.dispatchDate
                   ? format(dispatch.dispatchDate, "dd MMM yyyy")
                   : "N/A"}
               </TableCell>
-              <TableCell className="px-2 font-medium">
+              <TableCell className="px-3 font-medium">
                 {dispatch.invoiceNumber || "N/A"}
               </TableCell>
-              <TableCell className="px-2">
+              <TableCell className="px-3">
                 {dispatch.purchaseOrder?.poNumber || "N/A"}
               </TableCell>
-              <TableCell className="px-2">
+              <TableCell className="px-3">
                 {dispatch.purchaseOrder?.client?.name || "Unknown"}
               </TableCell>
-              <TableCell className="text-right px-2">
+              <TableCell className="text-left px-3">
                 {getTotalQty(dispatch)}
               </TableCell>
-              <TableCell className="px-2">
+              <TableCell className="px-3">
                 {dispatch.logisticsPartner?.name || "N/A"}
               </TableCell>
-              <TableCell className="font-mono text-sm px-2">
+              <TableCell className="font-mono text-sm px-3 max-w-32 wrap-break-word">
                 {dispatch.docketNumber || "N/A"}
               </TableCell>
-              <TableCell className="px-2">
+              <TableCell className="px-3">
                 <Badge className={getStatusColor(dispatch.status)}>
                   {formatStatus(dispatch.status)}
                 </Badge>
