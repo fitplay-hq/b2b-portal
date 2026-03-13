@@ -31,7 +31,6 @@ interface OMFilterCardProps {
 }
 
 export function OMFilterCard({
-  title = "Filters",
   subtitle,
   searchPlaceholder = "Search...",
   searchTerm,
@@ -46,12 +45,11 @@ export function OMFilterCard({
   className,
 }: OMFilterCardProps) {
   return (
-    <Card className={cn("shadow-sm", className)}>
-      <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+    <Card className={cn("shadow-sm pt-3 pb-5 ", className)}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <div>
-          <CardTitle className="text-lg font-bold">{title}</CardTitle>
           {subtitle && (
-            <CardDescription className="text-xs mt-1">
+            <CardDescription className="text-xs">
               {subtitle}
             </CardDescription>
           )}

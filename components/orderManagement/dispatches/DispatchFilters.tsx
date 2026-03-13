@@ -54,7 +54,7 @@ export function DispatchFilters({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
       <div className="space-y-2">
         <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1.5 block ml-1">
           From Date
@@ -163,28 +163,6 @@ export function DispatchFilters({
                 {config.label}
               </SelectItem>
             ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1.5 block ml-1">
-          Sort By
-        </Label>
-        <Select
-          value={sortBy}
-          onValueChange={onSortChange}
-        >
-          <SelectTrigger className="h-10 text-sm focus:ring-neutral-900">
-            <SelectValue placeholder="Sort by..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Newest First</SelectItem>
-            <SelectItem value="oldest">Oldest First</SelectItem>
-            <SelectItem value="inv_date_desc">Invoice Date (Newest)</SelectItem>
-            <SelectItem value="inv_date_asc">Invoice Date (Oldest)</SelectItem>
-            <SelectItem value="name_asc">Client Name (A-Z)</SelectItem>
-            <SelectItem value="name_desc">Client Name (Z-A)</SelectItem>
           </SelectContent>
         </Select>
       </div>

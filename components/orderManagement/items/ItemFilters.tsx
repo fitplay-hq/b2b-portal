@@ -37,8 +37,8 @@ export function ItemFilters({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <div className="space-y-2 lg:col-span-2">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+      <div className="space-y-2 lg:col-span-1">
         <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1.5 block ml-1">
           Brands
         </Label>
@@ -88,7 +88,7 @@ export function ItemFilters({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1.5 block ml-1">
+        <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1.5 ml-1 grid-span-1">
           Default GST
         </Label>
         <Select

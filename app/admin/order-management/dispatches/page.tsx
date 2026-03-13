@@ -546,7 +546,6 @@ export default function OMDispatchesList() {
         </div>
 
         <OMFilterCard
-          title="Filters"
           subtitle={`Showing ${filteredDispatches.length} of ${dispatches.length} dispatch orders`}
           searchPlaceholder="Search by Invoice, PO, Client, or Tracking..."
           searchTerm={searchTerm}
