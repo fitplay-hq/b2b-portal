@@ -1225,8 +1225,8 @@ export default function OMDashboard() {
               {/* Purchase Order Context Results */}
               {searchResults.pos.length > 0 && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-neutral-100 rounded-xl p-2" onClick={() => toggleSection("pos")}>
+                    <h3 className="text-lg font-bold flex items-center gap-2 pl-2" >
                       <Package className="h-5 w-5 text-primary" />
                       Matching Purchase Orders
                     </h3>
@@ -1317,8 +1317,8 @@ export default function OMDashboard() {
               {/* Dispatch Context Results */}
               {searchResults.dispatches.length > 0 && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-neutral-100 rounded-xl p-2" onClick={() => toggleSection("dispatches")}>
+                    <h3 className="text-lg font-bold flex items-center gap-2 pl-2">
                       <Truck className="h-5 w-5 text-primary" />
                       Matching Dispatches
                     </h3>
@@ -1414,8 +1414,8 @@ export default function OMDashboard() {
               {/* SKU / Item Results */}
               {searchResults.items.length > 0 && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-neutral-100 rounded-xl p-2" onClick={() => toggleSection("items")}>
+                    <h3 className="text-lg font-bold flex items-center gap-2 pl-2">
                       <Box className="h-5 w-5 text-primary" />
                       Matching Items
                     </h3>
