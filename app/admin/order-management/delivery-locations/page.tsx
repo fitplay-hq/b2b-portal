@@ -34,12 +34,13 @@ import {
 import type { OMDeliveryLocation } from "@/types/order-management";
 import { useMemo } from "react";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
+import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
+import { useDeliveryLocations } from "@/hooks/use-delivery-locations";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
 
 export default function OMDeliveryLocations() {
   const router = useRouter();
-  const [locations, setLocations] = useState<OMDeliveryLocation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { locations, isLoading, mutate } = useDeliveryLocations();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locationName, setLocationName] = useState("");
 
@@ -52,27 +53,13 @@ export default function OMDeliveryLocations() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const [editingLocation, setEditingLocation] = useState<OMDeliveryLocation | null>(null);
+  const [editingLocation, setEditingLocation] =
+    useState<OMDeliveryLocation | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editName, setEditName] = useState("");
 
-  const fetchLocations = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/admin/om/delivery-locations");
-      if (res.ok) {
-        setLocations(await res.json());
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load delivery locations");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchLocations();
+    // Other initializations if needed
   }, []);
 
   const filteredLocations = useMemo(() => {
@@ -114,7 +101,7 @@ export default function OMDeliveryLocations() {
         toast.success("Delivery location added successfully");
         setLocationName("");
         setIsAddDialogOpen(false);
-        fetchLocations();
+        mutate();
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to add delivery location");
@@ -138,15 +125,18 @@ export default function OMDeliveryLocations() {
     if (!editingLocation || !editName.trim()) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/admin/om/delivery-locations/${editingLocation.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName.trim() }),
-      });
+      const res = await fetch(
+        `/api/admin/om/delivery-locations/${editingLocation.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: editName.trim() }),
+        },
+      );
       if (res.ok) {
         toast.success("Delivery location updated successfully");
         setIsEditDialogOpen(false);
-        fetchLocations();
+        mutate();
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to update delivery location");
@@ -173,7 +163,8 @@ export default function OMDeliveryLocations() {
       });
       if (res.ok) {
         toast.success("Delivery location deleted successfully");
-        fetchLocations();
+        mutate();
+
         setIsDeleteDialogOpen(false);
       } else {
         const error = await res.json();
@@ -235,18 +226,25 @@ export default function OMDeliveryLocations() {
         </OMFilterCard>
 
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader>
             <CardTitle>Location List</CardTitle>
-            <CardDescription>
-              {locations.length} location{locations.length !== 1 ? "s" : ""} registered
-            </CardDescription>
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-4 italic">
+              * Click a column heading to toggle between ascending and
+              descending order.
+            </p>
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Location / City Name</TableHead>
+                    <OMSortableHeader
+                      title="Location / City Name"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="name_asc"
+                      descOption="name_desc"
+                    />
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -277,12 +275,12 @@ export default function OMDeliveryLocations() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredLocations.map((location) => (
+                    filteredLocations.map((location: OMDeliveryLocation) => (
                       <TableRow key={location.id} className="group">
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                             <MapPin className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                             {location.name}
+                            <MapPin className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                            {location.name}
                           </div>
                         </TableCell>
                         <TableCell className="text-right flex justify-end gap-2">

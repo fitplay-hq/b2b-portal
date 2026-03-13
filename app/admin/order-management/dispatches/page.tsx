@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -50,6 +50,7 @@ import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { DispatchFilters } from "@/components/orderManagement/dispatches/DispatchFilters";
 import { useMemo } from "react";
+import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 
 export default function OMDispatchesList() {
   const router = useRouter();
@@ -206,6 +207,51 @@ export default function OMDispatchesList() {
           return aClientName.localeCompare(bClientName);
         if (sortBy === "name_desc")
           return bClientName.localeCompare(aClientName);
+
+        if (sortBy === "inv_number_asc")
+          return a.invoiceNumber.localeCompare(b.invoiceNumber);
+        if (sortBy === "inv_number_desc")
+          return b.invoiceNumber.localeCompare(a.invoiceNumber);
+
+        if (sortBy === "po_num_asc") {
+          const aPoNum = a.purchaseOrder?.poNumber || "";
+          const bPoNum = b.purchaseOrder?.poNumber || "";
+          return aPoNum.localeCompare(bPoNum);
+        }
+        if (sortBy === "po_num_desc") {
+          const aPoNum = a.purchaseOrder?.poNumber || "";
+          const bPoNum = b.purchaseOrder?.poNumber || "";
+          return bPoNum.localeCompare(aPoNum);
+        }
+
+        if (sortBy === "qty_asc") return getTotalQty(a) - getTotalQty(b);
+        if (sortBy === "qty_desc") return getTotalQty(b) - getTotalQty(a);
+
+        if (sortBy === "courier_asc") {
+          const aCourier = a.logisticsPartner?.name || "";
+          const bCourier = b.logisticsPartner?.name || "";
+          return aCourier.localeCompare(bCourier);
+        }
+        if (sortBy === "courier_desc") {
+          const aCourier = a.logisticsPartner?.name || "";
+          const bCourier = b.logisticsPartner?.name || "";
+          return bCourier.localeCompare(aCourier);
+        }
+
+        if (sortBy === "tracking_asc") {
+          const aTracking = a.docketNumber || "";
+          const bTracking = b.docketNumber || "";
+          return aTracking.localeCompare(bTracking);
+        }
+        if (sortBy === "tracking_desc") {
+          const aTracking = a.docketNumber || "";
+          const bTracking = b.docketNumber || "";
+          return bTracking.localeCompare(aTracking);
+        }
+
+        if (sortBy === "status_asc") return a.status.localeCompare(b.status);
+        if (sortBy === "status_desc") return b.status.localeCompare(a.status);
+
         if (sortBy === "inv_date_desc")
           return (
             new Date(b.invoiceDate).getTime() -
@@ -580,18 +626,78 @@ export default function OMDispatchesList() {
             <CardTitle>Dispatch List</CardTitle>
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-4 italic">
+              * Click a column heading to toggle between ascending and
+              descending order.
+            </p>
             <div className="border rounded-md overflow-hidden">
               <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pr-2">Dispatch Date</TableHead>
-                  <TableHead className="px-2">Invoice Number</TableHead>
-                  <TableHead className="px-2">PO Number</TableHead>
-                  <TableHead className="px-2">Client</TableHead>
-                  <TableHead className="text-right px-2">Total Qty</TableHead>
-                  <TableHead className="px-2">Courier</TableHead>
-                  <TableHead className="px-2">Tracking Number</TableHead>
-                  <TableHead className="px-2">Status</TableHead>
+                  <OMSortableHeader
+                    title="Dispatch Date"
+                    currentSort={sortBy}
+                    onSort={setSortBy}
+                    ascOption="inv_date_asc"
+                    descOption="inv_date_desc"
+                    className="pr-2"
+                  />
+                  <OMSortableHeader
+                    title="Invoice Number"
+                    currentSort={sortBy}
+                    onSort={setSortBy}
+                    ascOption="inv_number_asc"
+                    descOption="inv_number_desc"
+                    className="px-2"
+                  />
+                  <OMSortableHeader
+                    title="PO Number"
+                    currentSort={sortBy}
+                    onSort={setSortBy}
+                    ascOption="po_num_asc"
+                    descOption="po_num_desc"
+                    className="px-2"
+                  />
+                  <OMSortableHeader
+                    title="Client"
+                    currentSort={sortBy}
+                    onSort={setSortBy}
+                    ascOption="name_asc"
+                    descOption="name_desc"
+                    className="px-2"
+                  />
+                  <OMSortableHeader
+                    title="Total Qty"
+                    currentSort={sortBy}
+                    onSort={setSortBy}
+                    ascOption="qty_asc"
+                    descOption="qty_desc"
+                    className="text-right px-2"
+                  />
+                  <OMSortableHeader
+                    title="Courier"
+                    currentSort={sortBy}
+                    onSort={setSortBy}
+                    ascOption="courier_asc"
+                    descOption="courier_desc"
+                    className="px-2"
+                  />
+                  <OMSortableHeader
+                    title="Tracking Number"
+                    currentSort={sortBy}
+                    onSort={setSortBy}
+                    ascOption="tracking_asc"
+                    descOption="tracking_desc"
+                    className="px-2"
+                  />
+                  <OMSortableHeader
+                    title="Status"
+                    currentSort={sortBy}
+                    onSort={setSortBy}
+                    ascOption="status_asc"
+                    descOption="status_desc"
+                    className="px-2"
+                  />
                   <TableHead className="text-right pr-7">Actions</TableHead>
                 </TableRow>
               </TableHeader>

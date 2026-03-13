@@ -70,6 +70,7 @@ import {
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { ItemFilters } from "@/components/orderManagement/items/ItemFilters";
+import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 
 function skuBrandPart(brandName: string | undefined): string {
   return brandName
@@ -330,6 +331,34 @@ export default function OMItems() {
       .sort((a, b) => {
         if (sortBy === "name_asc") return a.name.localeCompare(b.name);
         if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+
+        if (sortBy === "sku_asc")
+          return (a.sku || "").localeCompare(b.sku || "");
+        if (sortBy === "sku_desc")
+          return (b.sku || "").localeCompare(a.sku || "");
+
+        if (sortBy === "brand_asc") {
+          const aBrand = a.brands?.[0]?.name || "";
+          const bBrand = b.brands?.[0]?.name || "";
+          return aBrand.localeCompare(bBrand);
+        }
+        if (sortBy === "brand_desc") {
+          const aBrand = a.brands?.[0]?.name || "";
+          const bBrand = b.brands?.[0]?.name || "";
+          return bBrand.localeCompare(aBrand);
+        }
+
+        if (sortBy === "rate_asc") return (a.price || 0) - (b.price || 0);
+        if (sortBy === "rate_desc") return (b.price || 0) - (a.price || 0);
+
+        if (sortBy === "gst_asc") return a.defaultGstPct - b.defaultGstPct;
+        if (sortBy === "gst_desc") return b.defaultGstPct - a.defaultGstPct;
+
+        if (sortBy === "total_ordered_asc")
+          return (a.totalOrdered || 0) - (b.totalOrdered || 0);
+        if (sortBy === "total_ordered_desc")
+          return (b.totalOrdered || 0) - (a.totalOrdered || 0);
+
         if (sortBy === "newest")
           return (
             new Date(a.createdAt || 0).getTime() -
@@ -924,21 +953,59 @@ export default function OMItems() {
         <Card>
           <CardHeader>
             <CardTitle>Item List</CardTitle>
-            <CardDescription>
-              Total {items.length} items in catalog
-            </CardDescription>
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-4 italic">
+              * Click a column heading to toggle between ascending and
+              descending order.
+            </p>
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Item Name</TableHead>
-                    <TableHead>Brand</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Default Rate</TableHead>
-                    <TableHead>Default GST</TableHead>
-                    <TableHead className="text-right">Total Ordered</TableHead>
+                    <OMSortableHeader
+                      title="Item Name"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="name_asc"
+                      descOption="name_desc"
+                    />
+                    <OMSortableHeader
+                      title="Brand"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="brand_asc"
+                      descOption="brand_desc"
+                    />
+                    <OMSortableHeader
+                      title="SKU"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="sku_asc"
+                      descOption="sku_desc"
+                    />
+                    <OMSortableHeader
+                      title="Default Rate"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="rate_asc"
+                      descOption="rate_desc"
+                    />
+                    <OMSortableHeader
+                      title="Default GST"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="gst_asc"
+                      descOption="gst_desc"
+                    />
+                    <OMSortableHeader
+                      title="Total Ordered"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="total_ordered_asc"
+                      descOption="total_ordered_desc"
+                      className="text-right"
+                    />
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>

@@ -56,20 +56,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { OMLogisticsPartner } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import {
-  OMSortControl,
-  type SortOption,
-} from "@/components/orderManagement/OMSortControl";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { LogisticsPartnerFilters } from "@/components/orderManagement/logisticsPartners/LogisticsPartnerFilters";
 import { useMemo } from "react";
+import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
+import { useLogisticsPartners } from "@/hooks/use-logistics-partners";
+import type { SortOption } from "@/components/orderManagement/OMSortControl";
 
 export default function OMLogisticsPartners() {
-  const [partners, setPartners] = useState<OMLogisticsPartner[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { partners, isLoading, mutate } = useLogisticsPartners();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingPartner, setEditingPartner] =
     useState<OMLogisticsPartner | null>(null);
@@ -90,24 +89,8 @@ export default function OMLogisticsPartners() {
     defaultMode: "Surface" as "Air" | "Surface" | "Road",
   });
 
-  const fetchPartners = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/admin/om/logistics-partners");
-      if (res.ok) {
-        const data = await res.json();
-        setPartners(data);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load logistics partners");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchPartners();
+    // fetchOptions or other initializations if needed
   }, []);
 
   const resetForm = () => {
@@ -144,7 +127,7 @@ export default function OMLogisticsPartners() {
         );
         setIsAddDialogOpen(false);
         resetForm();
-        fetchPartners();
+        mutate();
       } else {
         const error = await res.json();
         toast.error(error.error || "Something went wrong");
@@ -193,7 +176,8 @@ export default function OMLogisticsPartners() {
 
       if (res.ok) {
         toast.success("Logistics partner deleted successfully");
-        fetchPartners();
+        mutate();
+
         setIsDeleteDialogOpen(false);
       } else {
         const error = await res.json();
@@ -231,6 +215,40 @@ export default function OMLogisticsPartners() {
       .sort((a, b) => {
         if (sortBy === "name_asc") return a.name.localeCompare(b.name);
         if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+
+        if (sortBy === "contact_asc") {
+          const aCp = a.contactPerson || "";
+          const bCp = b.contactPerson || "";
+          return aCp.localeCompare(bCp);
+        }
+        if (sortBy === "contact_desc") {
+          const aCp = a.contactPerson || "";
+          const bCp = b.contactPerson || "";
+          return bCp.localeCompare(aCp);
+        }
+
+        if (sortBy === "phone_asc") {
+          const aPhone = a.phone || "";
+          const bPhone = b.phone || "";
+          return aPhone.localeCompare(bPhone);
+        }
+        if (sortBy === "phone_desc") {
+          const aPhone = a.phone || "";
+          const bPhone = b.phone || "";
+          return bPhone.localeCompare(aPhone);
+        }
+
+        if (sortBy === "email_asc") {
+          const aEmail = a.email || "";
+          const bEmail = b.email || "";
+          return aEmail.localeCompare(bEmail);
+        }
+        if (sortBy === "email_desc") {
+          const aEmail = a.email || "";
+          const bEmail = b.email || "";
+          return bEmail.localeCompare(aEmail);
+        }
+
         if (sortBy === "newest")
           return (
             new Date(b.createdAt || 0).getTime() -
@@ -602,15 +620,46 @@ export default function OMLogisticsPartners() {
         </OMFilterCard>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardHeader>
+            <CardTitle>Logistics Partner</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-4 italic">
+              * Click a column heading to toggle between ascending and
+              descending order.
+            </p>
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Partner Name</TableHead>
-                    <TableHead>Contact Person</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Email</TableHead>
+                    <OMSortableHeader
+                      title="Partner Name"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="name_asc"
+                      descOption="name_desc"
+                    />
+                    <OMSortableHeader
+                      title="Contact Person"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="contact_asc"
+                      descOption="contact_desc"
+                    />
+                    <OMSortableHeader
+                      title="Phone"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="phone_asc"
+                      descOption="phone_desc"
+                    />
+                    <OMSortableHeader
+                      title="Email"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="email_asc"
+                      descOption="email_desc"
+                    />
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>

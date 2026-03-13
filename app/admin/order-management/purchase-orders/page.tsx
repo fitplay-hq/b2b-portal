@@ -6,12 +6,10 @@ import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Search,
   Plus,
   FileDown,
   FileSpreadsheet,
   Download,
-  Package,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,10 +19,7 @@ import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { POFilters } from "@/components/orderManagement/purchaseOrders/POFilters";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  OMSortControl,
-  type SortOption,
-} from "@/components/orderManagement/OMSortControl";
+import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,29 +52,13 @@ const PO_STATUS_LABELS: Record<string, string> = {
 };
 
 export default function OMPurchaseOrdersList() {
+  const { purchaseOrders, isLoading, mutate } = usePurchaseOrders();
   const [searchTerm, setSearchTerm] = useState("");
-  const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>([]);
   const [clients, setClients] = useState<OMClient[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [meta, setMeta] = useState<OMPaginationMeta | null>(null);
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [sortBy, setSortBy] = useState<string>("newest");
 
-  const observer = useRef<IntersectionObserver | null>(null);
-  const lastElementRef = useCallback(
-    (node: HTMLDivElement) => {
-      if (isLoading) return;
-      if (observer.current) observer.current.disconnect();
-      observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          setPage((prevPage) => prevPage + 1);
-        }
-      });
-      if (node) observer.current.observe(node);
-    },
-    [isLoading, hasMore],
-  );
+  const [deletePo, setDeletePo] = useState<OMPurchaseOrder | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -93,9 +72,6 @@ export default function OMPurchaseOrdersList() {
 
   const [locationOptions, setLocationOptions] = useState<ComboboxOption[]>([]);
   const [poOptions, setPoOptions] = useState<ComboboxOption[]>([]);
-
-  const [deletePo, setDeletePo] = useState<OMPurchaseOrder | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchOptions = async () => {
     try {
@@ -124,58 +100,9 @@ export default function OMPurchaseOrdersList() {
     }
   };
 
-  const fetchPurchaseOrders = async (isNextPage = false) => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.append("page", (isNextPage ? page : 1).toString());
-      params.append("limit", "50");
-
-      if (filters.status !== "all") params.append("status", filters.status);
-      if (filters.clientName) {
-        const client = clients.find((c) => c.name === filters.clientName);
-        if (client) params.append("clientId", client.id);
-      }
-      if (filters.fromDate) params.append("fromDate", filters.fromDate);
-      if (filters.toDate) params.append("toDate", filters.toDate);
-      if (filters.poNumber) params.append("poNumber", filters.poNumber);
-      if (filters.locationId) params.append("locationId", filters.locationId);
-
-      const res = await fetch(
-        `/api/admin/om/purchase-orders?${params.toString()}`,
-      );
-      if (res.ok) {
-        const result = await res.json();
-        if (isNextPage) {
-          setPurchaseOrders((prev) => [...prev, ...result.data]);
-        } else {
-          setPurchaseOrders(result.data);
-        }
-        setMeta(result.meta);
-        setHasMore(result.meta.page < result.meta.totalPages);
-      }
-    } catch (err) {
-      console.error("Failed to fetch POs", err);
-      toast.error("Failed to load purchase orders");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchOptions();
   }, []);
-
-  useEffect(() => {
-    setPage(1);
-    fetchPurchaseOrders(false);
-  }, [filters]);
-
-  useEffect(() => {
-    if (page > 1) {
-      fetchPurchaseOrders(true);
-    }
-  }, [page]);
 
   const handleDeletePO = async () => {
     if (!deletePo) return;
@@ -186,7 +113,7 @@ export default function OMPurchaseOrdersList() {
       });
       if (res.ok) {
         toast.success("Purchase Order deleted successfully");
-        fetchPurchaseOrders();
+        mutate();
         setDeletePo(null);
       } else {
         toast.error("Failed to delete Purchase Order");
@@ -198,45 +125,96 @@ export default function OMPurchaseOrdersList() {
     }
   };
 
-  const filteredPOs = purchaseOrders
-    .filter((po) => {
-      const searchLower = searchTerm.toLowerCase();
-      const poNum = (po.poNumber || "").toLowerCase();
-      const estNum = (po.estimateNumber || "").toLowerCase();
-      const clientName = (po.client?.name || "").toLowerCase();
-      return (
-        poNum.includes(searchLower) ||
-        estNum.includes(searchLower) ||
-        clientName.includes(searchLower)
-      );
-    })
-    .sort((a, b) => {
-      if (sortBy === "name_asc")
-        return (a.client?.name || "").localeCompare(b.client?.name || "");
-      if (sortBy === "name_desc")
-        return (b.client?.name || "").localeCompare(a.client?.name || "");
-      if (sortBy === "newest")
+  const filteredPOs = useMemo(() => {
+    return purchaseOrders
+      .filter((po) => {
+        // Advanced filters
+        if (filters.status !== "all" && po.status !== filters.status)
+          return false;
+        if (
+          filters.poNumber &&
+          !po.poNumber?.toLowerCase().includes(filters.poNumber.toLowerCase())
+        )
+          return false;
+        if (
+          filters.fromDate &&
+          new Date(po.poDate) < new Date(filters.fromDate)
+        )
+          return false;
+        if (filters.toDate && new Date(po.poDate) > new Date(filters.toDate))
+          return false;
+        if (filters.clientName && po.client?.name !== filters.clientName)
+          return false;
+
+        const searchLower = searchTerm.toLowerCase();
+        const poNum = (po.poNumber || "").toLowerCase();
+        const estNum = (po.estimateNumber || "").toLowerCase();
+        const clientName = (po.client?.name || "").toLowerCase();
+
         return (
-          new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime()
+          poNum.includes(searchLower) ||
+          estNum.includes(searchLower) ||
+          clientName.includes(searchLower)
         );
-      if (sortBy === "oldest")
-        return (
-          new Date(a.createdAt || 0).getTime() -
-          new Date(b.createdAt || 0).getTime()
-        );
-      if (sortBy === "latest_update")
-        return (
-          new Date(b.updatedAt || 0).getTime() -
-          new Date(a.updatedAt || 0).getTime()
-        );
-      return 0;
-    });
+      })
+      .sort((a, b) => {
+        // PO Date
+        if (sortBy === "po_date_asc")
+          return new Date(a.poDate).getTime() - new Date(b.poDate).getTime();
+        if (sortBy === "po_date_desc")
+          return new Date(b.poDate).getTime() - new Date(a.poDate).getTime();
+
+        // PO Number
+        if (sortBy === "po_number_asc")
+          return (a.poNumber || "").localeCompare(b.poNumber || "");
+        if (sortBy === "po_number_desc")
+          return (b.poNumber || "").localeCompare(a.poNumber || "");
+
+        // Client
+        if (sortBy === "client_asc")
+          return (a.client?.name || "").localeCompare(b.client?.name || "");
+        if (sortBy === "client_desc")
+          return (b.client?.name || "").localeCompare(a.client?.name || "");
+
+        // Status
+        if (sortBy === "status_asc") return a.status.localeCompare(b.status);
+        if (sortBy === "status_desc") return b.status.localeCompare(a.status);
+
+        // Helper to get total qty
+        const getQty = (po: OMPurchaseOrder) =>
+          po.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
+        const getDispatched = (po: OMPurchaseOrder) =>
+          po.items?.reduce(
+            (sum, i) =>
+              sum +
+              (i.dispatchItems?.reduce((acc, d) => acc + d.quantity, 0) || 0),
+            0,
+          ) || 0;
+        const getValue = (po: OMPurchaseOrder) =>
+          po.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
+
+        if (sortBy === "ordered_asc") return getQty(a) - getQty(b);
+        if (sortBy === "ordered_desc") return getQty(b) - getQty(a);
+
+        if (sortBy === "dispatched_asc")
+          return getDispatched(a) - getDispatched(b);
+        if (sortBy === "dispatched_desc")
+          return getDispatched(b) - getDispatched(a);
+
+        if (sortBy === "remaining_asc")
+          return getQty(a) - getDispatched(a) - (getQty(b) - getDispatched(b));
+        if (sortBy === "remaining_desc")
+          return getQty(b) - getDispatched(b) - (getQty(a) - getDispatched(a));
+
+        if (sortBy === "value_asc") return getValue(a) - getValue(b);
+        if (sortBy === "value_desc") return getValue(b) - getValue(a);
+
+        return 0;
+      });
+  }, [purchaseOrders, searchTerm, filters, sortBy]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      fetchPurchaseOrders();
-    }
+    // Client-side search, no need to fetch
   };
 
   const resetFilters = () => {
@@ -346,13 +324,13 @@ export default function OMPurchaseOrdersList() {
 
         <OMFilterCard
           title="Filters"
-          subtitle={`Showing ${filteredPOs.length} of ${meta?.total || purchaseOrders.length} purchase orders`}
+          subtitle={`Showing ${filteredPOs.length} of ${purchaseOrders.length} purchase orders`}
           searchPlaceholder="Search by PO/Estimate #, client name..."
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          sortNameLabel="Client Name"
+          sortBy={sortBy as any}
+          onSortChange={setSortBy as any}
+          sortNameLabel="PO Date"
           showFilters={showFilters}
           setShowFilters={setShowFilters}
           onReset={resetFilters}
@@ -376,6 +354,10 @@ export default function OMPurchaseOrdersList() {
             <CardTitle>Purchase Order List</CardTitle>
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-4 italic">
+              * Click a column heading to toggle between ascending and
+              descending order.
+            </p>
             {isLoading ? (
               <div className="space-y-4">
                 <div className="border rounded-md">
@@ -401,17 +383,9 @@ export default function OMPurchaseOrdersList() {
                 <OMPurchaseOrderListTable
                   purchaseOrders={filteredPOs}
                   onDeleteRequest={setDeletePo}
+                  sortBy={sortBy}
+                  onSort={setSortBy}
                 />
-                {(hasMore || isLoading) && (
-                  <div
-                    ref={lastElementRef}
-                    className="flex justify-center p-4"
-                  >
-                    {isLoading && (
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    )}
-                  </div>
-                )}
               </div>
             )}
           </CardContent>

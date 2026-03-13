@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,19 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Plus,
-  Search,
   Edit,
   Trash2,
-  Loader2,
   Eye,
   FileDown,
   FileSpreadsheet,
@@ -50,18 +42,15 @@ import { toast } from "sonner";
 import type { OMClient } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { OMClientForm } from "@/components/orderManagement/OMClientForm";
-import {
-  OMSortControl,
-  type SortOption,
-} from "@/components/orderManagement/OMSortControl";
+import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { ClientFilters } from "@/components/orderManagement/clients/ClientFilters";
-import { useMemo } from "react";
+import { useClients } from "@/hooks/use-clients";
+import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 
 export default function OMClients() {
-  const [clients, setClients] = useState<OMClient[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { clients, isLoading, mutate } = useClients();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -83,26 +72,6 @@ export default function OMClients() {
     gstNumber: "",
     notes: "",
   });
-
-  const fetchClients = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/admin/om/clients");
-      if (res.ok) {
-        const data = await res.json();
-        setClients(data);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load clients");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchClients();
-  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -140,7 +109,7 @@ export default function OMClients() {
         );
         setIsAddDialogOpen(false);
         resetForm();
-        fetchClients();
+        mutate();
       } else {
         const error = await res.json();
         toast.error(error.error || "Something went wrong");
@@ -191,7 +160,7 @@ export default function OMClients() {
 
       if (res.ok) {
         toast.success("Client deleted successfully");
-        fetchClients();
+        mutate();
         setIsDeleteDialogOpen(false);
       } else {
         const errorData = await res.json();
@@ -232,6 +201,51 @@ export default function OMClients() {
       .sort((a, b) => {
         if (sortBy === "name_asc") return a.name.localeCompare(b.name);
         if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+
+        if (sortBy === "contact_asc") {
+          const aCp = a.contactPerson || "";
+          const bCp = b.contactPerson || "";
+          return aCp.localeCompare(bCp);
+        }
+        if (sortBy === "contact_desc") {
+          const aCp = a.contactPerson || "";
+          const bCp = b.contactPerson || "";
+          return bCp.localeCompare(aCp);
+        }
+
+        if (sortBy === "email_asc") {
+          const aEmail = a.email || "";
+          const bEmail = b.email || "";
+          return aEmail.localeCompare(bEmail);
+        }
+        if (sortBy === "email_desc") {
+          const aEmail = a.email || "";
+          const bEmail = b.email || "";
+          return bEmail.localeCompare(aEmail);
+        }
+
+        if (sortBy === "phone_asc") {
+          const aPhone = a.phone || "";
+          const bPhone = b.phone || "";
+          return aPhone.localeCompare(bPhone);
+        }
+        if (sortBy === "phone_desc") {
+          const aPhone = a.phone || "";
+          const bPhone = b.phone || "";
+          return bPhone.localeCompare(aPhone);
+        }
+
+        if (sortBy === "gst_asc") {
+          const aGst = a.gstNumber || "";
+          const bGst = b.gstNumber || "";
+          return aGst.localeCompare(bGst);
+        }
+        if (sortBy === "gst_desc") {
+          const aGst = a.gstNumber || "";
+          const bGst = b.gstNumber || "";
+          return bGst.localeCompare(aGst);
+        }
+
         if (sortBy === "newest")
           return (
             new Date(b.createdAt || 0).getTime() -
@@ -582,16 +596,53 @@ export default function OMClients() {
         </OMFilterCard>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardHeader>
+            <CardTitle>Clients List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-4 italic">
+              * Click a column heading to toggle between ascending and
+              descending order.
+            </p>
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Client Name</TableHead>
-                    <TableHead>Contact Person</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>GST Number</TableHead>
+                    <OMSortableHeader
+                      title="Client Name"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="name_asc"
+                      descOption="name_desc"
+                    />
+                    <OMSortableHeader
+                      title="Contact Person"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="contact_asc"
+                      descOption="contact_desc"
+                    />
+                    <OMSortableHeader
+                      title="Email"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="email_asc"
+                      descOption="email_desc"
+                    />
+                    <OMSortableHeader
+                      title="Phone"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="phone_asc"
+                      descOption="phone_desc"
+                    />
+                    <OMSortableHeader
+                      title="GST Number"
+                      currentSort={sortBy}
+                      onSort={setSortBy}
+                      ascOption="gst_asc"
+                      descOption="gst_desc"
+                    />
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
