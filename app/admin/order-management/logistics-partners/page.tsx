@@ -51,10 +51,11 @@ import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useLogisticsPartners } from "@/hooks/use-logistics-partners";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
+import { useOMFilters } from "@/hooks/use-om-filters";
 
 export default function OMLogisticsPartners() {
   const { partners, isLoading, mutate } = useLogisticsPartners();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -65,9 +66,16 @@ export default function OMLogisticsPartners() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    partnerName: "",
-  });
+
+  const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
+    useOMFilters({
+      initialFilters: {
+        partnerName: "",
+      },
+      labels: {
+        partnerName: "Partner",
+      },
+    });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -180,25 +188,24 @@ export default function OMLogisticsPartners() {
     }
   };
 
+  const resetFiltersAll = () => {
+    setSearchTerm("");
+    resetFilters();
+  };
+
   const filteredPartners = useMemo(() => {
     return partners
       .filter((partner) => {
-        // Text search
-        const matchesSearch =
-          !searchQuery ||
-          partner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (partner.contactPerson || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          (partner.email || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase());
-
         // Advanced filters
-        const matchesPartner =
-          !filters.partnerName || partner.name === filters.partnerName;
+        if (filters.partnerName && partner.name !== filters.partnerName)
+          return false;
 
-        return matchesSearch && matchesPartner;
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          partner.name.toLowerCase().includes(searchLower) ||
+          (partner.contactPerson || "").toLowerCase().includes(searchLower) ||
+          (partner.email || "").toLowerCase().includes(searchLower)
+        );
       })
       .sort((a, b) => {
         if (sortBy === "name_asc") return a.name.localeCompare(b.name);
@@ -254,28 +261,7 @@ export default function OMLogisticsPartners() {
           );
         return 0;
       });
-  }, [partners, searchQuery, filters, sortBy]);
-
-  const resetFilters = () => {
-    setFilters({ partnerName: "" });
-    setSearchQuery("");
-  };
-
-  const removeFilter = (key: string) => {
-    setFilters((prev: any) => ({ ...prev, [key]: "" }));
-  };
-
-  const activeFilters = useMemo(() => {
-    const active = [];
-    if (filters.partnerName) {
-      active.push({
-        key: "partnerName",
-        label: "Partner",
-        value: filters.partnerName,
-      });
-    }
-    return active;
-  }, [filters]);
+  }, [partners, searchTerm, filters, sortBy]);
 
   const partnerOptions = useMemo(() => {
     return Array.from(new Set(partners.map((p) => p.name))).map((name) => ({
@@ -583,17 +569,16 @@ export default function OMLogisticsPartners() {
         </div>
 
         <OMFilterCard
-          title="Filters"
-          subtitle={`Total ${partners.length} logistics partners registered`}
+          subtitle={`Showing ${filteredPartners.length} of ${partners.length} logistics partners`}
           searchPlaceholder="Search by name, contact person, or email..."
-          searchTerm={searchQuery}
-          onSearchChange={setSearchQuery}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
           sortBy={sortBy}
           onSortChange={setSortBy}
           sortNameLabel="Partner Name"
           showFilters={showFilters}
           setShowFilters={setShowFilters}
-          onReset={resetFilters}
+          onReset={resetFiltersAll}
         >
           <LogisticsPartnerFilters
             filters={filters}
@@ -603,7 +588,7 @@ export default function OMLogisticsPartners() {
           <OMActiveFilters
             activeFilters={activeFilters}
             onRemove={removeFilter}
-            onClearAll={resetFilters}
+            onClearAll={resetFiltersAll}
           />
         </OMFilterCard>
 

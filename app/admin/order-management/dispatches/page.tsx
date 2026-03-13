@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
@@ -19,6 +18,7 @@ import {
   Trash2,
   Edit,
   ChevronDown,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatStatus, formatDisplayDate } from "@/lib/utils";
@@ -28,11 +28,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SearchableSelect, ComboboxOption } from "@/components/ui/combobox";
+import { SearchableSelect, type ComboboxOption } from "@/components/ui/combobox";
 import {
   type OMDispatchOrder,
   type OMDispatchOrderItem,
   type OMClient,
+  type OMDispatchStatus,
+  OM_DISPATCH_STATUS_CONFIG,
   getDispatchStatusVisuals,
 } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
@@ -42,185 +44,191 @@ import {
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { DispatchFilters } from "@/components/orderManagement/dispatches/DispatchFilters";
-import { useMemo } from "react";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
+import { useOMFilters } from "@/hooks/use-om-filters";
+import { useDispatches } from "@/hooks/use-dispatches";
 
-export default function OMDispatchesList() {
+export default function OMDispatches() {
   const router = useRouter();
+  const { dispatches, isLoading, mutate } = useDispatches();
   const [searchTerm, setSearchTerm] = useState("");
-  const [dispatches, setDispatches] = useState<OMDispatchOrder[]>([]);
-  const [clients, setClients] = useState<OMClient[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
-
+  const [sortBy, setSortBy] = useState<SortOption>("dispatch_date_desc");
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    fromDate: "",
-    toDate: "",
-    clientName: "",
-    logisticsPartnerId: "",
-    status: "all",
-    invoiceNumber: "",
-    docketNumber: "",
-  });
 
-  const [logisticsOptions, setLogisticsOptions] = useState<ComboboxOption[]>(
-    [],
-  );
+  const [clientOptions, setClientOptions] = useState<ComboboxOption[]>([]);
+  const [logisticsOptions, setLogisticsOptions] = useState<ComboboxOption[]>([]);
   const [invoiceOptions, setInvoiceOptions] = useState<ComboboxOption[]>([]);
   const [docketOptions, setDocketOptions] = useState<ComboboxOption[]>([]);
 
-  const fetchDynamicOptions = async () => {
+  const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
+    useOMFilters({
+      initialFilters: {
+        fromDate: "",
+        toDate: "",
+        clientName: "",
+        logisticsPartnerId: "",
+        status: "all",
+        invoiceNumber: "",
+        docketNumber: "",
+      },
+      labels: {
+        fromDate: "From",
+        toDate: "To",
+        clientName: "Client",
+        logisticsPartnerId: "Logistics",
+        status: "Status",
+        invoiceNumber: "Invoice #",
+        docketNumber: "Tracking #",
+      },
+      valueLabels: {
+        status: (val) =>
+          OM_DISPATCH_STATUS_CONFIG[val as OMDispatchStatus]?.label || val,
+        logisticsPartnerId: (val) =>
+          logisticsOptions.find((o) => o.value === val)?.label || val,
+      },
+    });
+
+  const fetchFilters = async () => {
     try {
-      const clientParam = filters.clientName
-        ? `?clientName=${encodeURIComponent(filters.clientName)}`
-        : "";
-      const [invRes, docketRes] = await Promise.all([
-        fetch(`/api/admin/om/dispatch-orders/options${clientParam}`),
-        fetch(
-          `/api/admin/om/dispatch-orders/options${clientParam}${clientParam ? "&" : "?"}type=docket`,
-        ),
-      ]);
-
-      if (invRes.ok) setInvoiceOptions(await invRes.json());
-      if (docketRes.ok) setDocketOptions(await docketRes.json());
-    } catch (err) {
-      console.error("Failed to fetch dynamic options", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchDynamicOptions();
-  }, [filters.clientName]);
-
-  const fetchOptions = async () => {
-    try {
-      const [clientsRes, logisticsRes] = await Promise.all([
-        fetch("/api/admin/om/clients"),
-        fetch("/api/admin/om/logistics-partners"),
-      ]);
+      const [clientsRes, logisticsRes, invoicesRes, docketsRes] =
+        await Promise.all([
+          fetch("/api/admin/om/clients"),
+          fetch("/api/admin/om/logistics-partners"),
+          fetch("/api/admin/om/dispatches/invoice-options"),
+          fetch("/api/admin/om/dispatches/docket-options"),
+        ]);
 
       if (clientsRes.ok) {
-        setClients(await clientsRes.json());
-      }
-      if (logisticsRes.ok) {
-        const logistics = await logisticsRes.json();
-        setLogisticsOptions(
-          logistics.map((l: any) => ({ value: l.id, label: l.name })),
+        const data = await clientsRes.json();
+        setClientOptions(
+          data.map((c: any) => ({ value: c.name, label: c.name })),
         );
       }
-    } catch (err) {
-      console.error("Failed to fetch options", err);
-    }
-  };
-
-  const fetchDispatches = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/admin/om/dispatch-orders?limit=9999`);
-      if (res.ok) {
-        const data = await res.json();
-        setDispatches(data.data);
+      if (logisticsRes.ok) {
+        const data = await logisticsRes.json();
+        setLogisticsOptions(
+          data.map((l: any) => ({ value: l.id, label: l.name })),
+        );
+      }
+      if (invoicesRes.ok) {
+        const data = await invoicesRes.json();
+        setInvoiceOptions(data);
+      }
+      if (docketsRes.ok) {
+        const data = await docketsRes.json();
+        setDocketOptions(data);
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to load dispatches");
-    } finally {
-      setIsLoading(false);
+      console.error("Failed to fetch filters", err);
     }
   };
 
   useEffect(() => {
-    fetchOptions();
-    fetchDispatches();
+    fetchFilters();
   }, []);
 
-  // Filter dispatches client-side
+  const resetFiltersAll = () => {
+    setSearchTerm("");
+    resetFilters();
+  };
+
+  const getTotalQty = (dispatch: OMDispatchOrder) => {
+    return (dispatch.items || []).reduce((sum, item) => sum + item.quantity, 0);
+  };
+
+  const getGrandTotal = (dispatch: OMDispatchOrder) => {
+    return (dispatch.items || []).reduce(
+      (sum, item) => sum + (item.totalAmount || 0),
+      0,
+    );
+  };
+
   const filteredDispatches = useMemo(() => {
+    
     return dispatches
-      .filter((dispatch) => {
-        const clientName = dispatch.purchaseOrder?.client?.name || "Unknown";
-        const poNumber = dispatch.purchaseOrder?.poNumber || "N/A";
-        const invoiceDate = new Date(dispatch.invoiceDate);
-
-        // Text search
-        const matchesSearch =
-          !searchTerm ||
-          dispatch.invoiceNumber
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (dispatch.docketNumber || "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
-
+      .filter((dispatch: OMDispatchOrder) => {
         // Advanced filters
-        const matchesClient =
-          !filters.clientName || clientName === filters.clientName;
-        const matchesStatus =
-          filters.status === "all" || dispatch.status === filters.status;
-        const matchesLogistics =
-          !filters.logisticsPartnerId ||
-          dispatch.logisticsPartnerId === filters.logisticsPartnerId;
-        const matchesInvoice =
-          !filters.invoiceNumber ||
-          dispatch.invoiceNumber === filters.invoiceNumber;
-        const matchesDocket =
-          !filters.docketNumber ||
-          (dispatch.docketNumber || "")
-            .toLowerCase()
-            .includes(filters.docketNumber.toLowerCase());
+        if (filters.status !== "all" && dispatch.status !== filters.status)
+          return false;
+        if (
+          filters.invoiceNumber &&
+          dispatch.invoiceNumber !== filters.invoiceNumber
+        )
+          return false;
+        if (
+          filters.docketNumber &&
+          dispatch.docketNumber !== filters.docketNumber
+        )
+          return false;
+        if (
+          filters.clientName &&
+          dispatch.purchaseOrder?.client?.name !== filters.clientName
+        )
+          return false;
+        if (
+          filters.logisticsPartnerId &&
+          dispatch.logisticsPartnerId !== filters.logisticsPartnerId
+        )
+          return false;
 
-        const matchesFromDate =
-          !filters.fromDate || invoiceDate >= new Date(filters.fromDate);
-        const matchesToDate =
-          !filters.toDate ||
-          (() => {
-            const to = new Date(filters.toDate);
-            to.setHours(23, 59, 59, 999);
-            return invoiceDate <= to;
-          })();
+        const date = dispatch.dispatchDate
+          ? new Date(dispatch.dispatchDate)
+          : null;
+        if (filters.fromDate && date && date < new Date(filters.fromDate))
+          return false;
+        if (filters.toDate && date && date > new Date(filters.toDate))
+          return false;
 
+        const searchLower = searchTerm.toLowerCase();
         return (
-          matchesSearch &&
-          matchesClient &&
-          matchesStatus &&
-          matchesLogistics &&
-          matchesInvoice &&
-          matchesDocket &&
-          matchesFromDate &&
-          matchesToDate
+          (dispatch.invoiceNumber || "").toLowerCase().includes(searchLower) ||
+          (dispatch.docketNumber || "").toLowerCase().includes(searchLower) ||
+          (dispatch.purchaseOrder?.client?.name || "")
+            .toLowerCase()
+            .includes(searchLower) ||
+          (dispatch.purchaseOrder?.poNumber || "")
+            .toLowerCase()
+            .includes(searchLower)
         );
       })
-      .sort((a, b) => {
-        const aClientName = a.purchaseOrder?.client?.name || "";
-        const bClientName = b.purchaseOrder?.client?.name || "";
-        if (sortBy === "name_asc")
-          return aClientName.localeCompare(bClientName);
-        if (sortBy === "name_desc")
-          return bClientName.localeCompare(aClientName);
-
+      .sort((a: OMDispatchOrder, b: OMDispatchOrder) => {
+        if (sortBy === "dispatch_date_asc") {
+          return (
+            new Date(a.dispatchDate || 0).getTime() -
+            new Date(b.dispatchDate || 0).getTime()
+          );
+        }
+        if (sortBy === "dispatch_date_desc") {
+          return (
+            new Date(b.dispatchDate || 0).getTime() -
+            new Date(a.dispatchDate || 0).getTime()
+          );
+        }
         if (sortBy === "inv_number_asc")
-          return a.invoiceNumber.localeCompare(b.invoiceNumber);
+          return (a.invoiceNumber || "").localeCompare(b.invoiceNumber || "");
         if (sortBy === "inv_number_desc")
-          return b.invoiceNumber.localeCompare(a.invoiceNumber);
-
-        if (sortBy === "po_num_asc") {
-          const aPoNum = a.purchaseOrder?.poNumber || "";
-          const bPoNum = b.purchaseOrder?.poNumber || "";
-          return aPoNum.localeCompare(bPoNum);
-        }
-        if (sortBy === "po_num_desc") {
-          const aPoNum = a.purchaseOrder?.poNumber || "";
-          const bPoNum = b.purchaseOrder?.poNumber || "";
-          return bPoNum.localeCompare(aPoNum);
-        }
-
+          return (b.invoiceNumber || "").localeCompare(a.invoiceNumber || "");
+        if (sortBy === "po_num_asc")
+          return (a.purchaseOrder?.poNumber || "").localeCompare(
+            b.purchaseOrder?.poNumber || "",
+          );
+        if (sortBy === "po_num_desc")
+          return (b.purchaseOrder?.poNumber || "").localeCompare(
+            a.purchaseOrder?.poNumber || "",
+          );
+        if (sortBy === "name_asc")
+          return (a.purchaseOrder?.client?.name || "").localeCompare(
+            b.purchaseOrder?.client?.name || "",
+          );
+        if (sortBy === "name_desc")
+          return (b.purchaseOrder?.client?.name || "").localeCompare(
+            a.purchaseOrder?.client?.name || "",
+          );
+        if (sortBy === "status_asc") return a.status.localeCompare(b.status);
+        if (sortBy === "status_desc") return b.status.localeCompare(a.status);
         if (sortBy === "qty_asc") return getTotalQty(a) - getTotalQty(b);
         if (sortBy === "qty_desc") return getTotalQty(b) - getTotalQty(a);
-
         if (sortBy === "courier_asc") {
           const aCourier = a.logisticsPartner?.name || "";
           const bCourier = b.logisticsPartner?.name || "";
@@ -231,7 +239,6 @@ export default function OMDispatchesList() {
           const bCourier = b.logisticsPartner?.name || "";
           return bCourier.localeCompare(aCourier);
         }
-
         if (sortBy === "tracking_asc") {
           const aTracking = a.docketNumber || "";
           const bTracking = b.docketNumber || "";
@@ -242,107 +249,9 @@ export default function OMDispatchesList() {
           const bTracking = b.docketNumber || "";
           return bTracking.localeCompare(aTracking);
         }
-
-        if (sortBy === "status_asc") return a.status.localeCompare(b.status);
-        if (sortBy === "status_desc") return b.status.localeCompare(a.status);
-
-        if (sortBy === "inv_date_desc")
-          return (
-            new Date(b.invoiceDate).getTime() -
-            new Date(a.invoiceDate).getTime()
-          );
-        if (sortBy === "inv_date_asc")
-          return (
-            new Date(a.invoiceDate).getTime() -
-            new Date(b.invoiceDate).getTime()
-          );
-        if (sortBy === "newest")
-          return (
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime()
-          );
-        if (sortBy === "oldest")
-          return (
-            new Date(a.createdAt || 0).getTime() -
-            new Date(b.createdAt || 0).getTime()
-          );
         return 0;
       });
   }, [dispatches, searchTerm, filters, sortBy]);
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      // Logic for enter key if needed
-    }
-  };
-
-  const resetFilters = () => {
-    setFilters({
-      fromDate: "",
-      toDate: "",
-      clientName: "",
-      logisticsPartnerId: "",
-      status: "all",
-      invoiceNumber: "",
-      docketNumber: "",
-    });
-    setSearchTerm("");
-  };
-
-  const removeFilter = (key: string) => {
-    setFilters((prev: any) => ({
-      ...prev,
-      [key]: key === "status" ? "all" : "",
-    }));
-  };
-
-  const activeFilters = useMemo(() => {
-    const active = [];
-    if (filters.fromDate)
-      active.push({ key: "fromDate", label: "From", value: filters.fromDate });
-    if (filters.toDate)
-      active.push({ key: "toDate", label: "To", value: filters.toDate });
-    if (filters.clientName)
-      active.push({
-        key: "clientName",
-        label: "Client",
-        value: filters.clientName,
-      });
-    if (filters.logisticsPartnerId) {
-      const label = logisticsOptions.find(
-        (o) => o.value === filters.logisticsPartnerId,
-      )?.label;
-      active.push({
-        key: "logisticsPartnerId",
-        label: "Logistics",
-        value: label || filters.logisticsPartnerId,
-      });
-    }
-    if (filters.invoiceNumber)
-      active.push({
-        key: "invoiceNumber",
-        label: "Invoice #",
-        value: filters.invoiceNumber,
-      });
-    if (filters.docketNumber)
-      active.push({
-        key: "docketNumber",
-        label: "Tracking #",
-        value: filters.docketNumber,
-      });
-    if (filters.status && filters.status !== "all") {
-      active.push({
-        key: "status",
-        label: "Status",
-        value: filters.status.charAt(0) + filters.status.slice(1).toLowerCase(),
-      });
-    }
-    return active;
-  }, [filters, logisticsOptions]);
-
-  const clientOptions = useMemo(() => {
-    return clients.map((c) => ({ value: c.name, label: c.name }));
-  }, [clients]);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -363,7 +272,7 @@ export default function OMDispatchesList() {
 
       if (res.ok) {
         toast.success("Dispatch order deleted successfully");
-        fetchDispatches();
+        mutate();
         setIsDeleteDialogOpen(false);
       } else {
         const error = await res.json();
@@ -382,24 +291,6 @@ export default function OMDispatchesList() {
     return getDispatchStatusVisuals(status).color;
   };
 
-  const getTotalQty = (dispatch: OMDispatchOrder) => {
-    return (
-      dispatch.items?.reduce(
-        (sum: number, i: OMDispatchOrderItem) => sum + i.quantity,
-        0,
-      ) || 0
-    );
-  };
-
-  const getGrandTotal = (dispatch: OMDispatchOrder) => {
-    return (
-      dispatch.items?.reduce(
-        (sum: number, i: OMDispatchOrderItem) => sum + i.totalAmount,
-        0,
-      ) || 0
-    );
-  };
-
   // Export to CSV/Excel
   const exportToExcel = () => {
     const headers = [
@@ -415,18 +306,18 @@ export default function OMDispatchesList() {
       "Total Value",
     ];
 
-    const rows = filteredDispatches.map((dispatch) => {
+    const rows = filteredDispatches.map((dispatch: OMDispatchOrder) => {
       const totalQty = getTotalQty(dispatch);
       const grandTotal = getGrandTotal(dispatch);
       return [
-        dispatch.invoiceNumber,
+        dispatch.dispatchDate ? format(new Date(dispatch.dispatchDate), "dd MMM yyyy") : "N/A",
+        dispatch.invoiceNumber || "N/A",
         dispatch.purchaseOrder?.poNumber || "N/A",
         dispatch.purchaseOrder?.client?.name || "Unknown",
         totalQty,
         dispatch.logisticsPartner?.name || "N/A",
         dispatch.docketNumber || "N/A",
-        formatDisplayDate(dispatch.invoiceDate),
-        formatDisplayDate(dispatch.expectedDeliveryDate),
+        dispatch.expectedDeliveryDate ? format(new Date(dispatch.expectedDeliveryDate), "dd MMM yyyy") : "N/A",
         dispatch.status,
         grandTotal,
       ];
@@ -434,7 +325,7 @@ export default function OMDispatchesList() {
 
     const csvContent = [
       headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+      ...rows.map((row: (string | number)[]) => row.map((cell) => `"${cell}"`).join(",")),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -493,18 +384,18 @@ export default function OMDispatchesList() {
       "Total Value",
     ];
 
-    const tableRows = filteredDispatches.map((dispatch) => {
+    const tableRows = filteredDispatches.map((dispatch: OMDispatchOrder) => {
       const totalQty = getTotalQty(dispatch);
       const grandTotal = getGrandTotal(dispatch);
       return [
-        dispatch.invoiceNumber,
+        dispatch.dispatchDate ? format(new Date(dispatch.dispatchDate), "dd MMM yyyy") : "N/A",
+        dispatch.invoiceNumber || "N/A",
         dispatch.purchaseOrder?.poNumber || "N/A",
         dispatch.purchaseOrder?.client?.name || "Unknown",
         totalQty.toString(),
         dispatch.logisticsPartner?.name || "N/A",
         dispatch.docketNumber || "N/A",
-        formatDisplayDate(dispatch.invoiceDate),
-        formatDisplayDate(dispatch.expectedDeliveryDate),
+        dispatch.expectedDeliveryDate ? format(new Date(dispatch.expectedDeliveryDate), "dd MMM yyyy") : "N/A",
         dispatch.status,
         `₹${grandTotal.toLocaleString("en-IN")}`,
       ];
@@ -595,7 +486,7 @@ export default function OMDispatchesList() {
           sortNameLabel="Client Name"
           showFilters={showFilters}
           setShowFilters={setShowFilters}
-          onReset={resetFilters}
+          onReset={resetFiltersAll}
         >
           <DispatchFilters
             filters={filters}
@@ -610,7 +501,7 @@ export default function OMDispatchesList() {
           <OMActiveFilters
             activeFilters={activeFilters}
             onRemove={removeFilter}
-            onClearAll={resetFilters}
+            onClearAll={resetFiltersAll}
           />
         </OMFilterCard>
 
@@ -620,7 +511,7 @@ export default function OMDispatchesList() {
           isLoading={isLoading}
           columnCount={9}
           emptyMessage="No dispatches found"
-          onRowClick={(dispatch) =>
+          onRowClick={(dispatch: OMDispatchOrder) =>
             router.push(`/admin/order-management/dispatches/${dispatch.id}`)
           }
           header={
@@ -629,16 +520,16 @@ export default function OMDispatchesList() {
                 title="Date"
                 currentSort={sortBy}
                 onSort={setSortBy}
-                ascOption="date_asc"
-                descOption="date_desc"
+                ascOption="dispatch_date_asc"
+                descOption="dispatch_date_desc"
                 className="pr-2"
               />
               <OMSortableHeader
                 title="Invoice Number"
                 currentSort={sortBy}
                 onSort={setSortBy}
-                ascOption="invoice_asc"
-                descOption="invoice_desc"
+                ascOption="inv_number_asc"
+                descOption="inv_number_desc"
                 className="px-3"
               />
               <OMSortableHeader
@@ -663,7 +554,7 @@ export default function OMDispatchesList() {
                 onSort={setSortBy}
                 ascOption="qty_asc"
                 descOption="qty_desc"
-                className="text-right px-3"
+                className="text-left px-3"
               />
               <OMSortableHeader
                 title="Courier"
@@ -692,11 +583,11 @@ export default function OMDispatchesList() {
               <TableHead className="text-right pr-7">Actions</TableHead>
             </TableRow>
           }
-          renderRow={(dispatch) => (
-            <TableRow key={dispatch.id}>
+          renderRow={(dispatch: OMDispatchOrder) => (
+            <TableRow key={dispatch.id} className="cursor-pointer">
               <TableCell className="pr-2">
                 {dispatch.dispatchDate
-                  ? format(dispatch.dispatchDate, "dd MMM yyyy")
+                  ? format(new Date(dispatch.dispatchDate), "dd MMM yyyy")
                   : "N/A"}
               </TableCell>
               <TableCell className="px-3 font-medium">
@@ -722,7 +613,7 @@ export default function OMDispatchesList() {
                   {formatStatus(dispatch.status)}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right pl-2">
+              <TableCell className="text-right pr-2">
                 <div className="flex items-center justify-end gap-2">
                   <Link
                     href={`/admin/order-management/dispatches/${dispatch.id}`}

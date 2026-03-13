@@ -61,7 +61,9 @@ export type SortOption =
   | "ordered_asc"
   | "ordered_desc"
   | "dispatched_asc"
-  | "dispatched_desc";
+  | "dispatched_desc"
+  | "dispatch_date_asc"
+  | "dispatch_date_desc";
 
 interface OMSortControlProps {
   value: SortOption;
@@ -112,6 +114,7 @@ export function OMSortControl({
           phone: "Phone",
           ordered: "Ordered",
           dispatched: "Dispatched",
+          dispatch_date: "Dispatch Date",
         };
 
         const [field, direction] = (option as string).split("_");

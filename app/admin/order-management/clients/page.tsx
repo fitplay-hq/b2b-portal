@@ -42,10 +42,11 @@ import { ClientFilters } from "@/components/orderManagement/clients/ClientFilter
 import { useClients } from "@/hooks/use-clients";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
+import { useOMFilters } from "@/hooks/use-om-filters";
 
 export default function OMClients() {
   const { clients, isLoading, mutate } = useClients();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<OMClient | null>(null);
@@ -53,9 +54,16 @@ export default function OMClients() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    clientName: "",
-  });
+
+  const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
+    useOMFilters({
+      initialFilters: {
+        clientName: "",
+      },
+      labels: {
+        clientName: "Client",
+      },
+    });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -169,46 +177,28 @@ export default function OMClients() {
     }
   };
 
+  const resetFiltersAll = () => {
+    setSearchTerm("");
+    resetFilters();
+  };
+
   const filteredClients = useMemo(() => {
     return clients
       .filter((client) => {
-        // Text search
-        const matchesSearch =
-          !searchQuery ||
-          client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (client.contactPerson || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          (client.email || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          (client.gstNumber || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase());
-
         // Advanced filters
-        const matchesClient =
-          !filters.clientName || client.name === filters.clientName;
+        if (filters.clientName && client.name !== filters.clientName)
+          return false;
 
-        return matchesSearch && matchesClient;
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          client.name.toLowerCase().includes(searchLower) ||
+          (client.contactPerson || "").toLowerCase().includes(searchLower) ||
+          (client.email || "").toLowerCase().includes(searchLower) ||
+          (client.phone || "").toLowerCase().includes(searchLower) ||
+          (client.gstNumber || "").toLowerCase().includes(searchLower)
+        );
       })
       .sort((a, b) => {
-        if (sortBy === "newest")
-          return (
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime()
-          );
-        if (sortBy === "oldest")
-          return (
-            new Date(a.createdAt || 0).getTime() -
-            new Date(b.createdAt || 0).getTime()
-          );
-        if (sortBy === "latest_update")
-          return (
-            new Date(b.updatedAt || 0).getTime() -
-            new Date(a.updatedAt || 0).getTime()
-          );
-
         const [field, direction] = sortBy.split("_");
         const modifier = direction === "desc" ? -1 : 1;
 
@@ -225,32 +215,22 @@ export default function OMClients() {
         const valA = String(a[property] || "").toLowerCase();
         const valB = String(b[property] || "").toLowerCase();
 
+        if (sortBy === "newest")
+          return (
+            (new Date(b.createdAt || 0).getTime() -
+              new Date(a.createdAt || 0).getTime()) *
+            modifier
+          );
+        if (sortBy === "oldest")
+          return (
+            (new Date(a.createdAt || 0).getTime() -
+              new Date(b.createdAt || 0).getTime()) *
+            modifier
+          );
+
         return valA.localeCompare(valB) * modifier;
       });
-  }, [clients, searchQuery, filters, sortBy]);
-
-  const resetFilters = () => {
-    setFilters({
-      clientName: "",
-    });
-    setSearchQuery("");
-  };
-
-  const removeFilter = (key: string) => {
-    setFilters((prev: any) => ({ ...prev, [key]: "" }));
-  };
-
-  const activeFilters = useMemo(() => {
-    const active = [];
-    if (filters.clientName) {
-      active.push({
-        key: "clientName",
-        label: "Client",
-        value: filters.clientName,
-      });
-    }
-    return active;
-  }, [filters]);
+  }, [clients, searchTerm, filters, sortBy]);
 
   const clientOptions = useMemo(() => {
     return Array.from(new Set(clients.map((c) => c.name))).map((name) => ({
@@ -535,17 +515,16 @@ export default function OMClients() {
         </div>
 
         <OMFilterCard
-          title="Filters"
-          subtitle={`Total ${clients.length} clients registered`}
+          subtitle={`Showing ${filteredClients.length} of ${clients.length} clients`}
           searchPlaceholder="Search by name, contact, email, or GST number..."
-          searchTerm={searchQuery}
-          onSearchChange={setSearchQuery}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
           sortBy={sortBy}
           onSortChange={setSortBy}
           sortNameLabel="Client Name"
           showFilters={showFilters}
           setShowFilters={setShowFilters}
-          onReset={resetFilters}
+          onReset={resetFiltersAll}
         >
           <ClientFilters
             filters={filters}
@@ -555,7 +534,7 @@ export default function OMClients() {
           <OMActiveFilters
             activeFilters={activeFilters}
             onRemove={removeFilter}
-            onClearAll={resetFilters}
+            onClearAll={resetFiltersAll}
           />
         </OMFilterCard>
 

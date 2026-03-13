@@ -293,7 +293,7 @@ export async function GET(req: NextRequest) {
     const invoiceNumber = searchParams.get("invoiceNumber");
 
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const limit = parseInt(searchParams.get("limit") || "999");
     const skip = (page - 1) * limit;
 
     const andFilters: any[] = [];

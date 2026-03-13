@@ -31,6 +31,10 @@ import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useDeliveryLocations } from "@/hooks/use-delivery-locations";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
+import { useOMFilters } from "@/hooks/use-om-filters";
+import { LocationFilters } from "@/components/orderManagement/deliveryLocations/LocationFilters";
+import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
+import { ComboboxOption } from "@/components/ui/combobox";
 
 export default function OMDeliveryLocations() {
   const router = useRouter();
@@ -42,6 +46,16 @@ export default function OMDeliveryLocations() {
   const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
 
+  const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
+    useOMFilters({
+      initialFilters: {
+        cityName: "",
+      },
+      labels: {
+        cityName: "City",
+      },
+    });
+
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -52,9 +66,14 @@ export default function OMDeliveryLocations() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editName, setEditName] = useState("");
 
-  useEffect(() => {
-    // Other initializations if needed
-  }, []);
+  const cityOptions = useMemo<ComboboxOption[]>(() => {
+    return Array.from(new Set(locations.map((loc) => loc.name))).map(
+      (name) => ({
+        value: name,
+        label: name,
+      }),
+    );
+  }, [locations]);
 
   const filteredLocations = useMemo(() => {
     return locations
@@ -62,7 +81,10 @@ export default function OMDeliveryLocations() {
         const matchesSearch =
           !searchTerm ||
           loc.name.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesSearch;
+
+        const matchesCity = !filters.cityName || loc.name === filters.cityName;
+
+        return matchesSearch && matchesCity;
       })
       .sort((a, b) => {
         if (sortBy === "name_asc") return a.name.localeCompare(b.name);
@@ -79,7 +101,7 @@ export default function OMDeliveryLocations() {
           );
         return 0;
       });
-  }, [locations, searchTerm, sortBy]);
+  }, [locations, searchTerm, sortBy, filters.cityName]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,12 +233,20 @@ export default function OMDeliveryLocations() {
           setShowFilters={setShowFilters}
           onReset={() => {
             setSearchTerm("");
-            setSortBy("newest");
+            setSortBy("name_asc");
+            resetFilters();
           }}
         >
-          <div className="text-sm text-muted-foreground">
-            More filters can be added here if needed.
-          </div>
+          <LocationFilters
+            filters={filters}
+            setFilters={setFilters}
+            cityOptions={cityOptions}
+          />
+          <OMActiveFilters
+            activeFilters={activeFilters}
+            onRemove={removeFilter}
+            onClearAll={resetFilters}
+          />
         </OMFilterCard>
 
         <OMDataTable
@@ -250,6 +280,7 @@ export default function OMDeliveryLocations() {
                   {location.name}
                 </div>
               </TableCell>
+
               <TableCell className="text-right flex justify-end gap-2">
                 <Button
                   variant="ghost"

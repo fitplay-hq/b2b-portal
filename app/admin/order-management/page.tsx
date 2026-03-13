@@ -141,6 +141,18 @@ export default function OMDashboard() {
   const [docketOptions, setDocketOptions] = useState<ComboboxOption[]>([]);
   const [locationOptions, setLocationOptions] = useState<ComboboxOption[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [expandedSections, setExpandedSections] = useState({
+    pos: true,
+    dispatches: true,
+    items: true,
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
 
   const filteredBrandOptions = useMemo(() => {
     if (!advancedFilters.itemName) return brandOptions;
@@ -725,17 +737,6 @@ export default function OMDashboard() {
     };
   }, [omPurchaseOrders, omDispatches, searchQuery]);
 
-  // Calculate if search query looks like a specific field
-  const isSkuSearch =
-    /^[A-Z0-9-]+$/i.test(searchQuery) &&
-    searchQuery.length > 4 &&
-    searchResults.items.length > 0;
-  const isPoSearch =
-    searchQuery.toLowerCase().startsWith("po-") ||
-    (searchResults.pos.length === 1 && !isSkuSearch);
-  const isDispatchSearch =
-    searchQuery.toLowerCase().startsWith("inv-") ||
-    (searchResults.dispatches.length === 1 && !isSkuSearch);
 
   // Calculate search result summaries
   const searchSummary =
@@ -1222,246 +1223,287 @@ export default function OMDashboard() {
               )}
 
               {/* Purchase Order Context Results */}
-              {searchResults.pos.length > 0 && !isSkuSearch && (
-                <div className="space-y-6">
-                  {searchResults.pos.map((po) => (
-                    <div
-                      key={po.id}
-                      className="space-y-4 p-4 border rounded-xl bg-card shadow-sm border-muted"
+              {searchResults.pos.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-neutral-100 rounded-xl p-2" onClick={() => toggleSection("pos")}>
+                    <h3 className="text-lg font-bold flex items-center gap-2 pl-2" >
+                      <Package className="h-5 w-5 text-primary" />
+                      Matching Purchase Orders
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSection("pos")}
                     >
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                          <h3 className="text-lg font-bold flex items-center gap-2">
-                            <Package className="h-5 w-5 text-primary" />
-                            PO: {po.poNumber || "N/A"}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            Client: {po.clientName} | Estimate:{" "}
-                            {po.estimateNumber}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge className={getPoStatusClass(po.status)}>
-                            {PO_STATUS_LABELS[po.status] ?? po.status}
-                          </Badge>
-                          <Link
-                            href={`/admin/order-management/purchase-orders/${po.id}`}
-                          >
-                            <Button variant="outline" size="sm">
-                              View Details
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-
-                      {/* Associated Item Table for PO */}
-                      <div className="border rounded-lg overflow-hidden">
-                        <Table>
-                          <TableHeader className="bg-muted/50">
-                            <TableRow>
-                              <TableHead className="w-[40%] text-left pr-3 pl-0 wrap-break-word">
-                                Item Name
-                              </TableHead>
-                              <TableHead className="text-left pr-3 pl-0">
-                                Ordered
-                              </TableHead>
-                              <TableHead className="text-left pr-3 pl-0">
-                                Rate
-                              </TableHead>
-                              <TableHead className="text-left pr-3 pl-0">
-                                GST %
-                              </TableHead>
-                              <TableHead className="text-left pr-3 pl-0">
-                                Total (Inc. GST)
-                              </TableHead>
+                      {expandedSections.pos ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {expandedSections.pos && (
+                    <div className="border rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+                      <Table>
+                        <TableHeader className="bg-muted/50">
+                          <TableRow>
+                            <TableHead className="text-left px-3">Date</TableHead>
+                            <TableHead className="text-left px-3">
+                              PO Number
+                            </TableHead>
+                            <TableHead className="text-left px-3">
+                              Client
+                            </TableHead>
+                            <TableHead className="text-left px-3">Qty</TableHead>
+                            <TableHead className="text-left px-3">Value</TableHead>
+                            <TableHead className="text-left px-3">
+                              Status
+                            </TableHead>
+                            <TableHead className="text-right pr-6">
+                              Action
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {searchResults.pos.map((po) => (
+                            <TableRow key={po.id}>
+                              <TableCell className="text-left px-3 text-xs">
+                                {po.poDate
+                                  ? new Date(po.poDate).toLocaleDateString(
+                                      "en-IN",
+                                    )
+                                  : "N/A"}
+                              </TableCell>
+                              <TableCell className="text-left px-3 font-medium">
+                                <Link
+                                  href={`/admin/order-management/purchase-orders/${po.id}`}
+                                  className=" hover:underline cursor-pointer"
+                                >
+                                  {po.poNumber || po.estimateNumber}
+                                </Link>
+                              </TableCell>
+                              <TableCell className="text-left px-3 max-w-[150px] truncate">
+                                {po.clientName}
+                              </TableCell>
+                              <TableCell className="text-left px-3">
+                                {po.totalQuantity}
+                              </TableCell>
+                              <TableCell className="text-left px-3">
+                                ₹{po.grandTotal.toLocaleString("en-IN")}
+                              </TableCell>
+                              <TableCell className="text-left px-3">
+                                <Badge className={getPoStatusClass(po.status)}>
+                                  {PO_STATUS_LABELS[po.status] ?? po.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right pr-6">
+                                <Link
+                                  href={`/admin/order-management/purchase-orders/${po.id}`}
+                                >
+                                  <Button variant="outline" size="sm">
+                                    View
+                                  </Button>
+                                </Link>
+                              </TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {po.lineItems.map((item) => (
-                              <TableRow key={item.id}>
-                                <TableCell className="text-left pr-3 pl-0 font-medium wrap-break-word">
-                                  {item.itemName}
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Dispatch Context Results */}
+              {searchResults.dispatches.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-neutral-100 rounded-xl p-2" onClick={() => toggleSection("dispatches")}>
+                    <h3 className="text-lg font-bold flex items-center gap-2 pl-2">
+                      <Truck className="h-5 w-5 text-primary" />
+                      Matching Dispatches
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSection("dispatches")}
+                    >
+                      {expandedSections.dispatches ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {expandedSections.dispatches && (
+                    <div className="border rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+                      <Table>
+                        <TableHeader className="bg-muted/50">
+                          <TableRow>
+                            <TableHead className="text-left px-3">
+                              Invoice #
+                            </TableHead>
+                            <TableHead className="text-left px-3">
+                              PO Number
+                            </TableHead>
+                            <TableHead className="text-left px-3">
+                              Client
+                            </TableHead>
+                            <TableHead className="text-left px-3">Qty</TableHead>
+                            <TableHead className="text-left px-3">
+                              Courier
+                            </TableHead>
+                            <TableHead className="text-left px-3">
+                              Status
+                            </TableHead>
+                            <TableHead className="text-right pr-6">
+                              Action
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {searchResults.dispatches.map((dispatch) => (
+                            <TableRow key={dispatch.id}>
+                              <TableCell className="text-left px-3 font-medium">
+                                <Link
+                                  href={`/admin/order-management/dispatches/${dispatch.id}`}
+                                  className=" hover:underline cursor-pointer"
+                                >
+                                  {dispatch.invoiceNumber}
+                                </Link>
+                              </TableCell>
+                              <TableCell className="text-left px-3">
+                                {dispatch.poNumber}
+                              </TableCell>
+                              <TableCell className="text-left px-3 max-w-[150px] truncate">
+                                {dispatch.clientName}
+                              </TableCell>
+                              <TableCell className="text-left px-3">
+                                {dispatch.totalDispatchQty}
+                              </TableCell>
+                              <TableCell className="text-left px-3">
+                                {dispatch.logisticsPartnerName}
+                              </TableCell>
+                              <TableCell className="text-left px-3">
+                                <Badge
+                                  className={getDispatchStatusClass(
+                                    dispatch.status,
+                                  )}
+                                >
+                                  {dispatch.status.charAt(0).toUpperCase() +
+                                    dispatch.status.slice(1).toLowerCase()}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right pr-6">
+                                <Link
+                                  href={`/admin/order-management/dispatches/${dispatch.id}`}
+                                >
+                                  <Button variant="outline" size="sm">
+                                    View
+                                  </Button>
+                                </Link>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* SKU / Item Results */}
+              {searchResults.items.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-neutral-100 rounded-xl p-2" onClick={() => toggleSection("items")}>
+                    <h3 className="text-lg font-bold flex items-center gap-2 pl-2">
+                      <Box className="h-5 w-5 text-primary" />
+                      Matching Items
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSection("items")}
+                    >
+                      {expandedSections.items ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {expandedSections.items && (
+                    <div className="border rounded-lg animate-in fade-in slide-in-from-top-4 duration-300">
+                      <Table>
+                        <TableHeader className="bg-muted/50">
+                          <TableRow>
+                            <TableHead className="text-left px-3 wrap-break-word">
+                              Item Name
+                            </TableHead>
+                            <TableHead className="text-left px-3">
+                              Total Ordered
+                            </TableHead>
+                            <TableHead className="text-left px-3">
+                              Total Dispatched
+                            </TableHead>
+                            <TableHead className="text-left px-3">
+                              Remaining
+                            </TableHead>
+                            <TableHead className="text-center pr-6 pl-0">
+                              Fulfillment
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {searchResults.items.map((item, index) => {
+                            const fulfillment =
+                              item.ordered > 0
+                                ? (
+                                    (item.dispatched / item.ordered) *
+                                    100
+                                  ).toFixed(1)
+                                : "0";
+                            return (
+                              <TableRow key={index}>
+                                <TableCell className="text-left px-3 font-medium wrap-break-word">
+                                  <Link
+                                    href={`/admin/order-management/items?search=${encodeURIComponent(item.itemName)}`}
+                                    className=" hover:underline cursor-pointer"
+                                  >
+                                    {item.itemName}
+                                  </Link>
                                   {item.itemSku && (
                                     <span className="block text-[10px] text-muted-foreground font-mono">
                                       {item.itemSku}
                                     </span>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-left pr-3 pl-0">
-                                  {item.quantity}
+                                <TableCell className="text-left px-3">
+                                  {item.ordered}
                                 </TableCell>
-                                <TableCell className="text-left pr-3 pl-0">
-                                  ₹{item.rate.toLocaleString("en-IN")}
+                                <TableCell className="text-left px-3">
+                                  {item.dispatched}
                                 </TableCell>
-                                <TableCell className="text-left pr-3 pl-0">
-                                  {item.gstPercentage}%
+                                <TableCell className="text-left px-3">
+                                  {item.remaining}
                                 </TableCell>
-                                <TableCell className="text-left pr-3 pl-0 font-semibold">
-                                  ₹{item.totalAmount.toLocaleString("en-IN")}
+                                <TableCell className="text-center pr-6 pl-0">
+                                  <Badge
+                                    variant={
+                                      parseFloat(fulfillment) === 100
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                  >
+                                    {fulfillment}%
+                                  </Badge>
                                 </TableCell>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Dispatch Context Results */}
-              {searchResults.dispatches.length > 0 &&
-                !isSkuSearch &&
-                !isPoSearch && (
-                  <div className="space-y-6">
-                    {searchResults.dispatches.map((dispatch) => (
-                      <div
-                        key={dispatch.id}
-                        className="space-y-4 p-4 border rounded-xl bg-card shadow-sm border-muted"
-                      >
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                          <div>
-                            <h3 className="text-lg font-bold flex items-center gap-2">
-                              <Truck className="h-5 w-5 text-primary" />
-                              Invoice: {dispatch.invoiceNumber}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              Client: {dispatch.clientName} | PO:{" "}
-                              {dispatch.poNumber}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Badge
-                              className={getDispatchStatusClass(
-                                dispatch.status,
-                              )}
-                            >
-                              {dispatch.status.charAt(0).toUpperCase() +
-                                dispatch.status.slice(1).toLowerCase()}
-                            </Badge>
-                            <Link
-                              href={`/admin/order-management/dispatches/${dispatch.id}`}
-                            >
-                              <Button variant="outline" size="sm">
-                                View Dispatch
-                              </Button>
-                            </Link>
-                          </div>
-                        </div>
-
-                        {/* Associated Item Table for Dispatch */}
-                        <div className="border rounded-lg overflow-hidden">
-                          <Table>
-                            <TableHeader className="bg-muted/50">
-                              <TableRow>
-                                <TableHead className="w-[60%] text-left pr-3 pl-0 wrap-break-word">
-                                  Item Name
-                                </TableHead>
-                                <TableHead className="text-left pr-3 pl-0">
-                                  Dispatched Qty
-                                </TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {dispatch.lineItems.map((item, idx) => (
-                                <TableRow key={idx}>
-                                  <TableCell className="text-left pr-3 pl-0 font-medium wrap-break-word">
-                                    {item.itemName}
-                                    {item.itemSku && (
-                                      <span className="block text-[10px] text-muted-foreground font-mono">
-                                        {item.itemSku}
-                                      </span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-left pr-3 pl-0">
-                                    {item.dispatchQty}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-              {/* SKU / Item Results */}
-              {(isSkuSearch ||
-                (searchResults.items.length > 0 &&
-                  !isPoSearch &&
-                  !isDispatchSearch)) && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold flex items-center gap-2">
-                    <Box className="h-5 w-5 text-primary" />
-                    Matching Items
-                  </h3>
-                  <div className="border rounded-lg">
-                    <Table>
-                      <TableHeader className="bg-muted/50">
-                        <TableRow>
-                          <TableHead className="text-left pr-3 pl-0 wrap-break-word">
-                            Item Name
-                          </TableHead>
-                          <TableHead className="text-left pr-3 pl-0">
-                            Total Ordered
-                          </TableHead>
-                          <TableHead className="text-left pr-3 pl-0">
-                            Total Dispatched
-                          </TableHead>
-                          <TableHead className="text-left pr-3 pl-0">
-                            Remaining
-                          </TableHead>
-                          <TableHead className="text-center pr-6 pl-0">
-                            Fulfillment
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {searchResults.items.map((item, index) => {
-                          const fulfillment =
-                            item.ordered > 0
-                              ? (
-                                  (item.dispatched / item.ordered) *
-                                  100
-                                ).toFixed(1)
-                              : "0";
-                          return (
-                            <TableRow key={index}>
-                              <TableCell className="text-left pr-3 pl-0 font-medium wrap-break-word">
-                                {item.itemName}
-                                {item.itemSku && (
-                                  <span className="block text-[10px] text-muted-foreground font-mono">
-                                    {item.itemSku}
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-left pr-3 pl-0">
-                                {item.ordered}
-                              </TableCell>
-                              <TableCell className="text-left pr-3 pl-0">
-                                {item.dispatched}
-                              </TableCell>
-                              <TableCell className="text-left pr-3 pl-0">
-                                {item.remaining}
-                              </TableCell>
-                              <TableCell className="text-center pr-6 pl-0">
-                                <Badge
-                                  variant={
-                                    parseFloat(fulfillment) === 100
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                >
-                                  {fulfillment}%
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -1661,25 +1703,25 @@ export default function OMDashboard() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-left pr-3 pl-0">
+                        <TableHead className="text-left px-3">
                           Date
                         </TableHead>
-                        <TableHead className="text-left pr-3 pl-0">
+                        <TableHead className="text-left px-3">
                           PO Number
                         </TableHead>
-                        <TableHead className="text-left pr-3 pl-0">
+                        <TableHead className="text-left px-3">
                           Client
                         </TableHead>
-                        <TableHead className="text-left pr-3 pl-0">
+                        <TableHead className="text-left px-3">
                           Qty
                         </TableHead>
-                        <TableHead className="text-left pr-3 pl-0">
+                        <TableHead className="text-left px-3">
                           Value
                         </TableHead>
-                        <TableHead className="text-left pr-3 pl-0">
+                        <TableHead className="text-left px-3">
                           Status
                         </TableHead>
-                        <TableHead className="text-left pr-3 pl-0">
+                        <TableHead className="text-left px-3">
                           Action
                         </TableHead>
                       </TableRow>
@@ -1687,29 +1729,29 @@ export default function OMDashboard() {
                     <TableBody>
                       {dashboardPOs.slice(0, 10).map((po) => (
                         <TableRow key={po.id}>
-                          <TableCell className="text-left pr-3 pl-0 text-xs">
+                          <TableCell className="text-left px-3 text-xs">
                             {po.poDate
                               ? new Date(po.poDate).toLocaleDateString()
                               : "Draft"}
                           </TableCell>
-                          <TableCell className="text-left pr-3 pl-0 font-medium">
+                          <TableCell className="text-left px-3 font-medium">
                             {po.poNumber || po.estimateNumber}
                           </TableCell>
-                          <TableCell className="text-left pr-3 pl-0 max-w-[150px] truncate">
+                          <TableCell className="text-left px-3 max-w-[150px] truncate">
                             {po.clientName}
                           </TableCell>
-                          <TableCell className="text-left pr-3 pl-0">
+                          <TableCell className="text-left px-3">
                             {po.totalQuantity}
                           </TableCell>
-                          <TableCell className="text-left pr-3 pl-0">
+                          <TableCell className="text-left px-3">
                             ₹{po.grandTotal.toLocaleString("en-IN")}
                           </TableCell>
-                          <TableCell className="text-left pr-3 pl-0">
+                          <TableCell className="text-left px-3">
                             <Badge className={getPoStatusClass(po.status)}>
                               {PO_STATUS_LABELS[po.status] ?? po.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-left pr-3 pl-0">
+                          <TableCell className="text-left px-3">
                             <Link
                               href={`/admin/order-management/purchase-orders/${po.id}`}
                             >
