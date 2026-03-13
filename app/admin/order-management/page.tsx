@@ -201,7 +201,8 @@ export default function OMDashboard() {
         id: po.id,
         clientId: po.clientId,
         clientName: po.client?.name || "Unknown",
-        deliveryLocation: po.deliveryLocation?.name || "",
+        deliveryLocations:
+          po.deliveryLocations?.map((l: any) => l.name) || [],
         estimateNumber: po.estimateNumber,
         estimateDate: po.estimateDate,
         poNumber: po.poNumber,
@@ -651,9 +652,9 @@ export default function OMDashboard() {
           .toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
         (po.poNumber ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (po.deliveryLocation ?? "")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
+        po.deliveryLocations.some((loc) =>
+          loc.toLowerCase().includes(searchQuery.toLowerCase()),
+        ) ||
         po.lineItems.some(
           (item) =>
             (item.itemName ?? "")
@@ -1258,17 +1259,19 @@ export default function OMDashboard() {
                         <Table>
                           <TableHeader className="bg-muted/50">
                             <TableRow>
-                              <TableHead className="w-[40%]">
+                              <TableHead className="w-[40%] text-left pr-3 pl-0 wrap-break-word">
                                 Item Name
                               </TableHead>
-                              <TableHead className="text-right">
+                              <TableHead className="text-left pr-3 pl-0">
                                 Ordered
                               </TableHead>
-                              <TableHead className="text-right">Rate</TableHead>
-                              <TableHead className="text-right">
+                              <TableHead className="text-left pr-3 pl-0">
+                                Rate
+                              </TableHead>
+                              <TableHead className="text-left pr-3 pl-0">
                                 GST %
                               </TableHead>
-                              <TableHead className="text-right">
+                              <TableHead className="text-left pr-3 pl-0">
                                 Total (Inc. GST)
                               </TableHead>
                             </TableRow>
@@ -1276,7 +1279,7 @@ export default function OMDashboard() {
                           <TableBody>
                             {po.lineItems.map((item) => (
                               <TableRow key={item.id}>
-                                <TableCell className="font-medium">
+                                <TableCell className="text-left pr-3 pl-0 font-medium wrap-break-word">
                                   {item.itemName}
                                   {item.itemSku && (
                                     <span className="block text-[10px] text-muted-foreground font-mono">
@@ -1284,16 +1287,16 @@ export default function OMDashboard() {
                                     </span>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-left pr-3 pl-0">
                                   {item.quantity}
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-left pr-3 pl-0">
                                   ₹{item.rate.toLocaleString("en-IN")}
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-left pr-3 pl-0">
                                   {item.gstPercentage}%
                                 </TableCell>
-                                <TableCell className="text-right font-semibold">
+                                <TableCell className="text-left pr-3 pl-0 font-semibold">
                                   ₹{item.totalAmount.toLocaleString("en-IN")}
                                 </TableCell>
                               </TableRow>
@@ -1351,10 +1354,10 @@ export default function OMDashboard() {
                           <Table>
                             <TableHeader className="bg-muted/50">
                               <TableRow>
-                                <TableHead className="w-[60%]">
+                                <TableHead className="w-[60%] text-left pr-3 pl-0 wrap-break-word">
                                   Item Name
                                 </TableHead>
-                                <TableHead className="text-right">
+                                <TableHead className="text-left pr-3 pl-0">
                                   Dispatched Qty
                                 </TableHead>
                               </TableRow>
@@ -1362,7 +1365,7 @@ export default function OMDashboard() {
                             <TableBody>
                               {dispatch.lineItems.map((item, idx) => (
                                 <TableRow key={idx}>
-                                  <TableCell className="font-medium">
+                                  <TableCell className="text-left pr-3 pl-0 font-medium wrap-break-word">
                                     {item.itemName}
                                     {item.itemSku && (
                                       <span className="block text-[10px] text-muted-foreground font-mono">
@@ -1370,7 +1373,7 @@ export default function OMDashboard() {
                                       </span>
                                     )}
                                   </TableCell>
-                                  <TableCell className="text-right">
+                                  <TableCell className="text-left pr-3 pl-0">
                                     {item.dispatchQty}
                                   </TableCell>
                                 </TableRow>
@@ -1397,17 +1400,19 @@ export default function OMDashboard() {
                     <Table>
                       <TableHeader className="bg-muted/50">
                         <TableRow>
-                          <TableHead>Item Name</TableHead>
-                          <TableHead className="text-right">
+                          <TableHead className="text-left pr-3 pl-0 wrap-break-word">
+                            Item Name
+                          </TableHead>
+                          <TableHead className="text-left pr-3 pl-0">
                             Total Ordered
                           </TableHead>
-                          <TableHead className="text-right">
+                          <TableHead className="text-left pr-3 pl-0">
                             Total Dispatched
                           </TableHead>
-                          <TableHead className="text-right">
+                          <TableHead className="text-left pr-3 pl-0">
                             Remaining
                           </TableHead>
-                          <TableHead className="text-center">
+                          <TableHead className="text-center pr-6 pl-0">
                             Fulfillment
                           </TableHead>
                         </TableRow>
@@ -1423,7 +1428,7 @@ export default function OMDashboard() {
                               : "0";
                           return (
                             <TableRow key={index}>
-                              <TableCell className="font-medium">
+                              <TableCell className="text-left pr-3 pl-0 font-medium wrap-break-word">
                                 {item.itemName}
                                 {item.itemSku && (
                                   <span className="block text-[10px] text-muted-foreground font-mono">
@@ -1431,16 +1436,16 @@ export default function OMDashboard() {
                                   </span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-left pr-3 pl-0">
                                 {item.ordered}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-left pr-3 pl-0">
                                 {item.dispatched}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-left pr-3 pl-0">
                                 {item.remaining}
                               </TableCell>
-                              <TableCell className="text-center">
+                              <TableCell className="text-center pr-6 pl-0">
                                 <Badge
                                   variant={
                                     parseFloat(fulfillment) === 100
@@ -1656,41 +1661,55 @@ export default function OMDashboard() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>PO Number</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Value</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
+                        <TableHead className="text-left pr-3 pl-0">
+                          Date
+                        </TableHead>
+                        <TableHead className="text-left pr-3 pl-0">
+                          PO Number
+                        </TableHead>
+                        <TableHead className="text-left pr-3 pl-0">
+                          Client
+                        </TableHead>
+                        <TableHead className="text-left pr-3 pl-0">
+                          Qty
+                        </TableHead>
+                        <TableHead className="text-left pr-3 pl-0">
+                          Value
+                        </TableHead>
+                        <TableHead className="text-left pr-3 pl-0">
+                          Status
+                        </TableHead>
+                        <TableHead className="text-left pr-3 pl-0">
+                          Action
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {dashboardPOs.slice(0, 10).map((po) => (
                         <TableRow key={po.id}>
-                          <TableCell className="text-xs">
+                          <TableCell className="text-left pr-3 pl-0 text-xs">
                             {po.poDate
                               ? new Date(po.poDate).toLocaleDateString()
                               : "Draft"}
                           </TableCell>
-                          <TableCell className="font-medium">
+                          <TableCell className="text-left pr-3 pl-0 font-medium">
                             {po.poNumber || po.estimateNumber}
                           </TableCell>
-                          <TableCell className="max-w-[150px] truncate">
+                          <TableCell className="text-left pr-3 pl-0 max-w-[150px] truncate">
                             {po.clientName}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-left pr-3 pl-0">
                             {po.totalQuantity}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-left pr-3 pl-0">
                             ₹{po.grandTotal.toLocaleString("en-IN")}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-left pr-3 pl-0">
                             <Badge className={getPoStatusClass(po.status)}>
                               {PO_STATUS_LABELS[po.status] ?? po.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-left pr-3 pl-0">
                             <Link
                               href={`/admin/order-management/purchase-orders/${po.id}`}
                             >
