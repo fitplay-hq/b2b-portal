@@ -486,7 +486,6 @@ export default function OMDispatches() {
           onSortChange={setSortBy}
           sortOptions={DISPATCH_SORT_OPTIONS}
           sortNameLabel="Client Name"
-          hideNameSort={false} 
           showFilters={showFilters}
           setShowFilters={setShowFilters}
           onReset={resetFiltersAll}

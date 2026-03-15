@@ -23,7 +23,6 @@ interface OMFilterCardProps {
   onSortChange: (value: SortOption) => void;
   sortOptions?: SortOption[];
   sortNameLabel?: string;
-  hideNameSort?: boolean;
   showFilters: boolean;
   setShowFilters: (show: boolean) => void;
   onReset?: () => void;
@@ -41,7 +40,6 @@ export function OMFilterCard({
   onSortChange,
   sortOptions,
   sortNameLabel,
-  hideNameSort,
   showFilters,
   setShowFilters,
   onReset,
@@ -85,7 +83,6 @@ export function OMFilterCard({
               onValueChange={onSortChange}
               options={sortOptions}
               nameLabel={sortNameLabel}
-              hideNameSort={hideNameSort}
               className="h-9"
             />
           </div>

@@ -291,7 +291,6 @@ export default function OMPurchaseOrdersList() {
           onSortChange={setSortBy as any}
           sortOptions={PO_SORT_OPTIONS}
           sortNameLabel="PO Date"
-          hideNameSort={true}
           showFilters={showFilters}
           setShowFilters={setShowFilters}
           onReset={() => {

@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ArrowUpDown } from "lucide-react";
-import { BASE_SORT_OPTIONS } from "@/constants/om-sort-options";
 
 export type SortOption =
   | "name_asc"
@@ -70,7 +69,6 @@ interface OMSortControlProps {
   onValueChange: (value: SortOption) => void;
   options?: SortOption[];
   nameLabel?: string;
-  hideNameSort?: boolean;
   className?: string;
 }
 
@@ -79,7 +77,6 @@ export function OMSortControl({
   onValueChange,
   options: providedOptions,
   nameLabel = "Name",
-  hideNameSort = false,
   className,
 }: OMSortControlProps) {
   // Helper to get human-friendly labels
@@ -161,36 +158,25 @@ export function OMSortControl({
   const currentOptions = useMemo(() => {
     const list: SortOption[] = [];
 
-    // 1. Add the current value and its opposite to the top if they are NOT default/provided
-    // This ensures header-clicked options appear "on top" as requested
+    // 1. Add provided options (High priority - these are the individual order choices)
+    if (providedOptions) {
+      providedOptions.forEach((opt) => {
+        if (!list.includes(opt)) list.push(opt);
+      });
+    }
+
+    // 2. Add the current value and its opposite (dynamically added from header clicks)
     if (value) {
       if (!list.includes(value)) list.push(value);
-      
+
       const opposite = getOppositeOption(value);
       if (opposite && opposite !== value && !list.includes(opposite)) {
         list.push(opposite);
       }
     }
 
-    // 2. Add provided options (high priority)
-    if (providedOptions) {
-      providedOptions.forEach(opt => {
-        if (!list.includes(opt)) list.push(opt);
-      });
-    }
-
-    // 3. Add default options (base list)
-    let defaults = [...BASE_SORT_OPTIONS];
-    if (hideNameSort) {
-      defaults = defaults.filter(opt => opt !== "name_asc" && opt !== "name_desc");
-    }
-    
-    defaults.forEach(opt => {
-      if (!list.includes(opt)) list.push(opt);
-    });
-
     return Array.from(new Set(list));
-  }, [value, providedOptions, hideNameSort]);
+  }, [value, providedOptions]);
 
   return (
     <div className={cn("relative w-full", className)}>
