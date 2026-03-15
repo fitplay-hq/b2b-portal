@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, X, Loader2 } from "lucide-react";
+import { Search, X, Loader2, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -11,6 +11,7 @@ interface MasterSearchInputProps {
   onClear: () => void;
   onFocus: () => void;
   isSearching: boolean;
+  isFetching?: boolean;
   onKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
@@ -21,6 +22,7 @@ export function MasterSearchInput({
   onClear,
   onFocus,
   isSearching,
+  isFetching,
   onKeyDown,
 }: MasterSearchInputProps) {
   return (
@@ -36,29 +38,43 @@ export function MasterSearchInput({
           className="pl-10 h-10"
         />
       </div>
-      
-      {searchQuery && (
-        <Button 
-          variant="outline" 
-          size="icon" 
+
+      {searchQuery && !isSearching && (
+        <Button
+          variant="outline"
+          size="icon"
           onClick={onClear}
-          className="h-10 w-10 shrink-0"
+          className="h-10 w-10 shrink-0 border-neutral-300"
         >
           <X className="h-4 w-4" />
         </Button>
       )}
-      
-      <Button 
-        onClick={() => onSearch(searchQuery)} 
-        disabled={isSearching}
-        className="h-10 px-6 shrink-0"
-      >
-        {isSearching ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          "Search"
-        )}
-      </Button>
+
+      {isSearching ? (
+        <Button
+          variant="outline"
+          onClick={onClear}
+          disabled={isFetching}
+          className="h-10 px-4 shrink-0 flex gap-2 items-center bg-[#1a1a1a] text-white border border-neutral-700 hover:bg-[#2a2a2a] transition-all duration-200"
+        >
+          {isFetching ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back</span>
+            </>
+          )}
+        </Button>
+      ) : (
+        <Button
+          onClick={() => searchQuery.trim() && onSearch(searchQuery)}
+          disabled={!searchQuery.trim() || isFetching}
+          className="h-10 px-6 shrink-0 bg-[#1a1a1a] text-white border border-neutral-700 hover:bg-[#2a2a2a] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+        </Button>
+      )}
     </div>
   );
 }

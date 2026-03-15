@@ -1,13 +1,38 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { MasterSearch } from "@/components/dashboard/master-search/MasterSearch";
+import { useMasterSearch } from "@/components/dashboard/master-search/useMasterSearch";
+import { useOMFilters } from "@/hooks/use-om-filters";
+import {
+  OMDashboardDispatch,
+  OMDashboardPO,
+  OMClientSummary,
+  OMItemSummary,
+  OMPurchaseOrder,
+  OMPurchaseOrderItem,
+  OMDispatchOrder,
+  OMDispatchOrderItem,
+} from "@/types/order-management";
+
+import { SummaryCards } from "@/components/dashboard/order-management/SummaryCards";
+import { DashboardCharts } from "@/components/dashboard/order-management/DashboardCharts";
+import { SearchResultsList } from "@/components/dashboard/order-management/SearchResultsList";
+import {
+  getPoStatusClass,
+  getDispatchStatusClass,
+  PO_STATUS_LABELS,
+} from "@/constants/order-management";
 import Layout from "@/components/layout";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -16,6 +41,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ComboboxOption, SearchableSelect } from "@/components/ui/combobox";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -23,87 +52,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import {
-  Package,
-  TrendingUp,
-  ShoppingCart,
-  Truck,
-  AlertCircle,
-  CheckCircle,
   Search,
-  X,
-  Calendar,
-  Filter,
-  RotateCcw,
+  Package,
+  Truck,
   Box,
-  ChevronDown,
   ChevronUp,
+  ChevronDown,
+  ShoppingCart,
+  TrendingUp,
+  CheckCircle,
+  AlertCircle,
+  Calendar,
+  RotateCcw,
+  X,
 } from "lucide-react";
-
 import {
+  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  ResponsiveContainer,
+  Tooltip,
   BarChart,
-  Bar,
   XAxis,
   YAxis,
-  Tooltip,
+  Bar,
 } from "recharts";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { SearchableSelect, ComboboxOption } from "@/components/ui/combobox";
-import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
-import { useOMFilters } from "@/hooks/use-om-filters";
-import { MasterSearch } from "@/components/dashboard/master-search/MasterSearch";
-import { useMasterSearch } from "@/components/dashboard/master-search/useMasterSearch";
-import { type OMDashboardPO,
-  type OMDashboardDispatch,
-  type OMClientSummary,
-  type OMItemSummary,
-  type OMPurchaseOrder,
-  type OMPurchaseOrderItem,
-  type OMDispatchOrder,
-  type OMDispatchOrderItem,
-  OM_DISPATCH_STATUS_CONFIG,
-  getDispatchStatusVisuals,
-} from "@/types/order-management";
-
-// Maps raw DB enum values to display labels
-const PO_STATUS_LABELS: Record<string, string> = {
-  DRAFT: "Draft",
-  CONFIRMED: "Confirmed",
-  PARTIALLY_DISPATCHED: "Partially Dispatched",
-  FULLY_DISPATCHED: "Fully Dispatched",
-  CLOSED: "Closed",
-};
-
-// Returns Tailwind classes for each PO status
-const getPoStatusClass = (status: string) => {
-  switch (status) {
-    case "DRAFT":
-      return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
-    case "CONFIRMED":
-      return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent";
-    case "PARTIALLY_DISPATCHED":
-      return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent";
-    case "FULLY_DISPATCHED":
-      return "bg-green-100 text-green-800 hover:bg-green-100 border-transparent";
-    case "CLOSED":
-      return "bg-red-100 text-red-800 hover:bg-red-100 border-transparent";
-    default:
-      return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent";
-  }
-};
-
-// Returns Tailwind classes for each Dispatch status
-const getDispatchStatusClass = (status: string) => {
-  return getDispatchStatusVisuals(status).color;
-};
 
 export default function OMDashboard() {
   const [omPurchaseOrders, setPurchaseOrders] = useState<OMDashboardPO[]>([]);
@@ -180,10 +154,10 @@ export default function OMDashboard() {
     items: true,
   });
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
+  const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
       ...prev,
-      [section]: !prev[section],
+      [section]: !prev[section as keyof typeof expandedSections],
     }));
   };
 
@@ -245,8 +219,7 @@ export default function OMDashboard() {
         id: po.id,
         clientId: po.clientId,
         clientName: po.client?.name || "Unknown",
-        deliveryLocations:
-          po.deliveryLocations?.map((l: any) => l.name) || [],
+        deliveryLocations: po.deliveryLocations?.map((l: any) => l.name) || [],
         estimateNumber: po.estimateNumber,
         estimateDate: po.estimateDate,
         poNumber: po.poNumber,
@@ -277,7 +250,8 @@ export default function OMDashboard() {
             gstPercentage: item.gstPercentage,
             gstAmount: item.gstAmount,
             totalAmount: item.totalAmount,
-            brandName: item.OMBrand?.name || item.product?.brands?.[0]?.name || null,
+            brandName:
+              item.OMBrand?.name || item.product?.brands?.[0]?.name || null,
           })) || [],
       }));
 
@@ -306,7 +280,11 @@ export default function OMDashboard() {
                 dispatchQty: i.quantity,
                 itemName: i.purchaseOrderItem?.product?.name || "Unknown",
                 itemSku: i.purchaseOrderItem?.product?.sku || null,
-                brandName: i.brandName || i.purchaseOrderItem?.OMBrand?.name || i.purchaseOrderItem?.product?.brands?.[0]?.name || null,
+                brandName:
+                  i.brandName ||
+                  i.purchaseOrderItem?.OMBrand?.name ||
+                  i.purchaseOrderItem?.product?.brands?.[0]?.name ||
+                  null,
               })) || [],
           });
         });
@@ -335,8 +313,6 @@ export default function OMDashboard() {
   } = useMasterSearch({
     omPurchaseOrders,
     omDispatches,
-    advancedFilters,
-    timeRange,
     onManualSearch: fetchData,
   });
 
@@ -415,10 +391,9 @@ export default function OMDashboard() {
     fetchStaticOptions();
   }, []);
 
-  // fetchData is now only called once on mount or when timeRange changes
   useEffect(() => {
-    fetchData();
-  }, [timeRange]);
+    fetchData(searchQuery);
+  }, [advancedFilters]);
 
   // Load persistence for searchQuery
   useEffect(() => {
@@ -431,7 +406,11 @@ export default function OMDashboard() {
     }
   }, [setSearchQuery, setIsSearching]);
 
-  // Removed debouncedSearchQuery trigger to rely on local filtering
+  useEffect(() => {
+    if (debouncedSearchQuery) {
+      fetchData(debouncedSearchQuery);
+    }
+  }, [debouncedSearchQuery]);
 
   const getTotalDispatchedForPO = (poId: string) => {
     return omDispatches
@@ -439,8 +418,33 @@ export default function OMDashboard() {
       .reduce((sum, d) => sum + d.totalDispatchQty, 0);
   };
 
-  const dashboardPOs = searchResults.pos;
-  const dashboardDispatches = searchResults.dispatches;
+  const getTotalDispatchedForItem = (poLineItemId: string) => {
+    return omDispatches
+      .flatMap((d) => d.lineItems)
+      .filter((li) => li.poLineItemId === poLineItemId)
+      .reduce((sum, li) => sum + (li.dispatchQty || 0), 0);
+  };
+
+  const getFilteredPOs = () => {
+    if (timeRange === "all") return omPurchaseOrders;
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+
+    return omPurchaseOrders.filter((po) => {
+      const dateStr = po.poDate || po.estimateDate;
+      if (!dateStr) return false;
+      const poDate = new Date(dateStr);
+      const diffTime = Math.abs(now.getTime() - poDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (timeRange === "today") return diffDays <= 1;
+      if (timeRange === "7d") return diffDays <= 7;
+      if (timeRange === "30d") return diffDays <= 30;
+      return true;
+    });
+  };
+
+  const dashboardPOs = getFilteredPOs();
 
   // Summary calculations
   const totalActivePOs = dashboardPOs.filter(
@@ -502,7 +506,7 @@ export default function OMDashboard() {
             remaining: 0,
           };
         }
-        const dispatchedForItem = dashboardDispatches
+        const dispatchedForItem = omDispatches
           .filter((d) => d.poId === po.id)
           .reduce((sum, dispatch) => {
             const dispatchItem = dispatch.lineItems.find(
@@ -554,9 +558,6 @@ export default function OMDashboard() {
   ].filter((item) => item.value > 0);
 
   // No changes needed here, just context
-
-
-
 
   const getActiveFilters = () => {
     const active = [];
@@ -660,7 +661,6 @@ export default function OMDashboard() {
       });
     return active;
   };
-
 
   if (isLoading && isFirstLoad) {
     return (
@@ -779,7 +779,7 @@ export default function OMDashboard() {
               <div className="h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin ease-linear ml-2" />
             )}
           </div>
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             {!isFirstLoad && isLoading && (
               <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin ease-linear ml-2" />
             )}
@@ -804,6 +804,7 @@ export default function OMDashboard() {
           onSearch={handleManualSearch}
           onClear={clearSearch}
           isSearching={isSearching}
+          isFetching={isLoading}
           showAdvancedFilters={showAdvancedFilters}
           setShowAdvancedFilters={setShowAdvancedFilters}
           matchedItems={searchResults.items}
@@ -824,7 +825,7 @@ export default function OMDashboard() {
                         advancedFilters.toDate ||
                         new Date().toISOString().split("T")[0]
                       }
-                      onChange={(e) =>
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setAdvancedFilters((prev) => ({
                           ...prev,
                           fromDate: e.target.value,
@@ -846,7 +847,7 @@ export default function OMDashboard() {
                       value={advancedFilters.toDate}
                       min={advancedFilters.fromDate}
                       max={new Date().toISOString().split("T")[0]}
-                      onChange={(e) =>
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setAdvancedFilters((prev) => ({
                           ...prev,
                           toDate: e.target.value,
@@ -990,13 +991,11 @@ export default function OMDashboard() {
                       <SelectValue placeholder="Select status..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(PO_STATUS_LABELS).map(
-                        ([val, label]) => (
-                          <SelectItem key={val} value={val}>
-                            {label}
-                          </SelectItem>
-                        ),
-                      )}
+                      {Object.entries(PO_STATUS_LABELS).map(([val, label]) => (
+                        <SelectItem key={val} value={val}>
+                          {label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1054,661 +1053,192 @@ export default function OMDashboard() {
         <div className="space-y-6">
           {/* Search Results */}
           {isSearching && searchQuery && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Search Results for &quot;{searchQuery}&quot;
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-8 pt-6">
-              {/* Dynamic Results Header */}
-              {searchSummary && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg border border-muted">
+            <SearchResultsList
+              searchResults={searchResults}
+              searchSummary={searchSummary}
+              searchQuery={searchQuery}
+              expandedSections={expandedSections}
+              toggleSection={toggleSection}
+              getTotalDispatchedForItem={getTotalDispatchedForItem}
+              omPurchaseOrders={omPurchaseOrders}
+            />
+          )}
+
+          {/* Show default dashboard when not searching */}
+          {!isSearching && (
+            <>
+              <SummaryCards
+                totalActivePOs={totalActivePOs}
+                totalOrderValue={totalOrderValue}
+                overallFulfillment={overallFulfillment}
+                totalOrderedQty={totalOrderedQty}
+                totalDispatchedQty={totalDispatchedQty}
+                totalRemainingQty={totalRemainingQty}
+              />
+
+              <DashboardCharts
+                statusBreakdown={statusBreakdown}
+                clientSummaryArray={clientSummaryArray}
+              />
+
+              {/* Purchase Orders Table */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Found POs</p>
-                    <p className="text-2xl font-bold">
-                      {searchSummary?.totalPOs}
-                    </p>
+                    <CardTitle>Recent Purchase Orders</CardTitle>
+                    <CardDescription>
+                      Main order activity across all clients
+                    </CardDescription>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Found Dispatches
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {searchSummary?.totalDispatches}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Value</p>
-                    <p className="text-2xl font-bold">
-                      ₹{searchSummary?.totalValue.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Purchase Order Context Results */}
-              {searchResults.pos.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-neutral-100 rounded-xl p-2" onClick={() => toggleSection("pos")}>
-                    <h3 className="text-lg font-bold flex items-center gap-2 pl-2" >
-                      <Package className="h-5 w-5 text-primary" />
-                      Matching Purchase Orders
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSection("pos")}
-                    >
-                      {expandedSections.pos ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
+                  <Link href="/admin/order-management/purchase-orders">
+                    <Button variant="outline" size="sm">
+                      View All
                     </Button>
-                  </div>
-                  {expandedSections.pos && (
-                    <div className="border rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-                      <Table>
-                        <TableHeader className="bg-muted/50">
-                          <TableRow>
-                            <TableHead className="text-left px-3">Date</TableHead>
-                            <TableHead className="text-left px-3">
-                              PO Number
-                            </TableHead>
-                            <TableHead className="text-left px-3">
-                              Client
-                            </TableHead>
-                            <TableHead className="text-left px-3">Qty</TableHead>
-                            <TableHead className="text-left px-3">Value</TableHead>
-                            <TableHead className="text-left px-3">
-                              Status
-                            </TableHead>
-                            <TableHead className="text-right pr-6">
-                              Action
-                            </TableHead>
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-left px-3">Date</TableHead>
+                          <TableHead className="text-left px-3">
+                            PO Number
+                          </TableHead>
+                          <TableHead className="text-left px-3">
+                            Client
+                          </TableHead>
+                          <TableHead className="text-left px-3">
+                            Total Qty
+                          </TableHead>
+                          <TableHead className="text-left px-3">
+                            Value
+                          </TableHead>
+                          <TableHead className="text-left px-3">
+                            Status
+                          </TableHead>
+                          <TableHead className="text-left px-3">
+                            Action
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dashboardPOs.slice(0, 10).map((po) => (
+                          <TableRow key={po.id}>
+                            <TableCell className="text-left px-3 text-xs">
+                              {po.poDate
+                                ? new Date(po.poDate).toLocaleDateString()
+                                : "Draft"}
+                            </TableCell>
+                            <TableCell className="text-left px-3 font-medium">
+                              {po.poNumber || po.estimateNumber}
+                            </TableCell>
+                            <TableCell className="text-left px-3 max-w-[150px] truncate">
+                              {po.clientName || "N/A"}
+                            </TableCell>
+                            <TableCell className="text-left px-3">
+                              {po.totalQuantity}
+                            </TableCell>
+                            <TableCell className="text-left px-3">
+                              ₹{po.grandTotal.toLocaleString("en-IN")}
+                            </TableCell>
+                            <TableCell className="text-left px-3">
+                              <Badge className={getPoStatusClass(po.status)}>
+                                {PO_STATUS_LABELS[po.status] ?? po.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-left px-3">
+                              <Link
+                                href={`/admin/order-management/purchase-orders/${po.id}`}
+                              >
+                                <Button variant="ghost" size="sm">
+                                  View
+                                </Button>
+                              </Link>
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {searchResults.pos.map((po) => (
-                            <TableRow key={po.id}>
-                              <TableCell className="text-left px-3 text-xs">
-                                {po.poDate
-                                  ? new Date(po.poDate).toLocaleDateString(
-                                      "en-IN",
-                                    )
-                                  : "N/A"}
-                              </TableCell>
-                              <TableCell className="text-left px-3 font-medium">
-                                <Link
-                                  href={`/admin/order-management/purchase-orders/${po.id}`}
-                                  className=" hover:underline cursor-pointer"
-                                >
-                                  {po.poNumber || po.estimateNumber}
-                                </Link>
-                              </TableCell>
-                              <TableCell className="text-left px-3 max-w-[150px] truncate">
-                                {po.clientName}
-                              </TableCell>
-                              <TableCell className="text-left px-3">
-                                {po.totalQuantity}
-                              </TableCell>
-                              <TableCell className="text-left px-3">
-                                ₹{po.grandTotal.toLocaleString("en-IN")}
-                              </TableCell>
-                              <TableCell className="text-left px-3">
-                                <Badge className={getPoStatusClass(po.status)}>
-                                  {PO_STATUS_LABELS[po.status] ?? po.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right pr-6">
-                                <Link
-                                  href={`/admin/order-management/purchase-orders/${po.id}`}
-                                >
-                                  <Button variant="outline" size="sm">
-                                    View
-                                  </Button>
-                                </Link>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Dispatch Context Results */}
-              {searchResults.dispatches.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-neutral-100 rounded-xl p-2" onClick={() => toggleSection("dispatches")}>
-                    <h3 className="text-lg font-bold flex items-center gap-2 pl-2">
-                      <Truck className="h-5 w-5 text-primary" />
-                      Matching Dispatches
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSection("dispatches")}
-                    >
-                      {expandedSections.dispatches ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  {expandedSections.dispatches && (
-                    <div className="border rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-                      <Table>
-                        <TableHeader className="bg-muted/50">
-                          <TableRow>
-                            <TableHead className="text-left px-3">
-                              Invoice #
-                            </TableHead>
-                            <TableHead className="text-left px-3">
-                              PO Number
-                            </TableHead>
-                            <TableHead className="text-left px-3">
-                              Client
-                            </TableHead>
-                            <TableHead className="text-left px-3">Qty</TableHead>
-                            <TableHead className="text-left px-3">
-                              Courier
-                            </TableHead>
-                            <TableHead className="text-left px-3">
-                              Status
-                            </TableHead>
-                            <TableHead className="text-right pr-6">
-                              Action
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {searchResults.dispatches.map((dispatch) => (
-                            <TableRow key={dispatch.id}>
-                              <TableCell className="text-left px-3 font-medium">
-                                <Link
-                                  href={`/admin/order-management/dispatches/${dispatch.id}`}
-                                  className=" hover:underline cursor-pointer"
-                                >
-                                  {dispatch.invoiceNumber}
-                                </Link>
-                              </TableCell>
-                              <TableCell className="text-left px-3">
-                                {dispatch.poNumber}
-                              </TableCell>
-                              <TableCell className="text-left px-3 max-w-[150px] truncate">
-                                {dispatch.clientName}
-                              </TableCell>
-                              <TableCell className="text-left px-3">
-                                {dispatch.totalDispatchQty}
-                              </TableCell>
-                              <TableCell className="text-left px-3">
-                                {dispatch.logisticsPartnerName}
-                              </TableCell>
-                              <TableCell className="text-left px-3">
-                                <Badge
-                                  className={getDispatchStatusClass(
-                                    dispatch.status,
-                                  )}
-                                >
-                                  {dispatch.status.charAt(0).toUpperCase() +
-                                    dispatch.status.slice(1).toLowerCase()}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right pr-6">
-                                <Link
-                                  href={`/admin/order-management/dispatches/${dispatch.id}`}
-                                >
-                                  <Button variant="outline" size="sm">
-                                    View
-                                  </Button>
-                                </Link>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* SKU / Item Results */}
-              {searchResults.items.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-neutral-100 rounded-xl p-2" onClick={() => toggleSection("items")}>
-                    <h3 className="text-lg font-bold flex items-center gap-2 pl-2">
-                      <Box className="h-5 w-5 text-primary" />
-                      Matching Items
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSection("items")}
-                    >
-                      {expandedSections.items ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  {expandedSections.items && (
-                    <div className="border rounded-lg animate-in fade-in slide-in-from-top-4 duration-300">
-                      <Table>
-                        <TableHeader className="bg-muted/50">
-                          <TableRow>
-                            <TableHead className="text-left px-3 wrap-break-word">
-                              Item Name
-                            </TableHead>
-                            <TableHead className="text-left px-3">
-                              Total Ordered
-                            </TableHead>
-                            <TableHead className="text-left px-3">
-                              Total Dispatched
-                            </TableHead>
-                            <TableHead className="text-left px-3">
-                              Remaining
-                            </TableHead>
-                            <TableHead className="text-center pr-6 pl-0">
-                              Fulfillment
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {searchResults.items.map((item, index) => {
-                            const fulfillment =
-                              item.ordered > 0
-                                ? (
-                                    (item.dispatched / item.ordered) *
-                                    100
-                                  ).toFixed(1)
-                                : "0";
-                            return (
-                              <TableRow key={index}>
-                                <TableCell className="text-left px-3 font-medium wrap-break-word">
-                                  <Link
-                                    href={`/admin/order-management/items?search=${encodeURIComponent(item.itemName)}`}
-                                    className=" hover:underline cursor-pointer"
-                                  >
-                                    {item.itemName}
-                                  </Link>
-                                  {item.itemSku && (
-                                    <span className="block text-[10px] text-muted-foreground font-mono">
-                                      {item.itemSku}
-                                    </span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-left px-3">
-                                  {item.ordered}
-                                </TableCell>
-                                <TableCell className="text-left px-3">
-                                  {item.dispatched}
-                                </TableCell>
-                                <TableCell className="text-left px-3">
-                                  {item.remaining}
-                                </TableCell>
-                                <TableCell className="text-center pr-6 pl-0">
-                                  <Badge
-                                    variant={
-                                      parseFloat(fulfillment) === 100
-                                        ? "default"
-                                        : "secondary"
-                                    }
-                                  >
-                                    {fulfillment}%
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {searchResults.pos.length === 0 &&
-                searchResults.dispatches.length === 0 &&
-                searchResults.items.length === 0 && (
-                  <div className="text-center py-12 border-2 border-dashed rounded-xl border-muted">
-                    <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium text-muted-foreground">
-                      No results found for &quot;{searchQuery}&quot;
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Try searching by SKU, PO #, or Invoice #
-                    </p>
-                  </div>
-                )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Show default dashboard when not searching */}
-        {!isSearching && (
-          <>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Active POs
-                  </CardTitle>
-                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {searchSummary?.totalPOs ?? totalActivePOs}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Purchase orders in progress
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Order Value
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    ₹{(searchSummary?.totalValue ?? totalOrderValue).toLocaleString("en-IN")}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Grand total of all orders
-                  </p>
-                </CardContent>
-              </Card>
-
-                            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Overall Fulfillment
-                  </CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {overallFulfillment}%
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Order completion rate
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Ordered Quantity
-                  </CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalOrderedQty}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Total items ordered
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Dispatched
-                  </CardTitle>
-                  <Truck className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalDispatchedQty}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Items dispatched
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Remaining
-                  </CardTitle>
-                  <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalRemainingQty}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Items pending dispatch
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Status Breakdown */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Status Breakdown</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={statusBreakdown}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: ${value}`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {statusBreakdown.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Top Clients by Value */}
+              {/* Recent Dispatches Table */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Client Order Value</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Recent Dispatches</CardTitle>
+                    <CardDescription>
+                      Track latest fulfillment activity
+                    </CardDescription>
+                  </div>
+                  <Link href="/admin/order-management/dispatches">
+                    <Button variant="outline" size="sm">
+                      View All
+                    </Button>
+                  </Link>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={clientSummaryArray}>
-                      <XAxis
-                        dataKey="clientName"
-                        tickMargin={10}
-                        height={60}
-                        fontSize={12}
-                      />
-                      <YAxis />
-                      <Tooltip
-                        formatter={(value: any) =>
-                          typeof value === "number"
-                            ? `₹${value.toLocaleString("en-IN")}`
-                            : value
-                        }
-                      />
-                      <Bar dataKey="value" fill="#3b82f6" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Invoice #</TableHead>
+                          <TableHead>PO Number</TableHead>
+                          <TableHead>Client</TableHead>
+                          <TableHead className="text-right">
+                            Total Qty
+                          </TableHead>
+                          <TableHead>Courier</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {omDispatches.slice(0, 10).map((dispatch) => (
+                          <TableRow key={dispatch.id}>
+                            <TableCell className="font-medium">
+                              {dispatch.invoiceNumber}
+                            </TableCell>
+                            <TableCell>{dispatch.poNumber}</TableCell>
+                            <TableCell className="max-w-[150px] truncate">
+                              {dispatch.clientName || "N/A"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {dispatch.totalDispatchQty}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {dispatch.logisticsPartnerName || "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={getDispatchStatusClass(
+                                  dispatch.status,
+                                )}
+                              >
+                                {dispatch.status.charAt(0).toUpperCase() +
+                                  dispatch.status.slice(1).toLowerCase()}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Link
+                                href={`/admin/order-management/dispatches/${dispatch.id}`}
+                              >
+                                <Button variant="ghost" size="sm">
+                                  View
+                                </Button>
+                              </Link>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
-            </div>
-
-            {/* Purchase Orders Table */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Recent Purchase Orders</CardTitle>
-                  <CardDescription>
-                    Main order activity across all clients
-                  </CardDescription>
-                </div>
-                <Link href="/admin/order-management/purchase-orders">
-                  <Button variant="outline" size="sm">
-                    View All
-                  </Button>
-                </Link>
-              </CardHeader>
-              <CardContent>
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-left px-3">
-                          Date
-                        </TableHead>
-                        <TableHead className="text-left px-3">
-                          PO Number
-                        </TableHead>
-                        <TableHead className="text-left px-3">
-                          Client
-                        </TableHead>
-                        <TableHead className="text-left px-3">
-                          Qty
-                        </TableHead>
-                        <TableHead className="text-left px-3">
-                          Value
-                        </TableHead>
-                        <TableHead className="text-left px-3">
-                          Status
-                        </TableHead>
-                        <TableHead className="text-left px-3">
-                          Action
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {dashboardPOs.slice(0, 10).map((po) => (
-                        <TableRow key={po.id}>
-                          <TableCell className="text-left px-3 text-xs">
-                            {po.poDate
-                              ? new Date(po.poDate).toLocaleDateString()
-                              : "Draft"}
-                          </TableCell>
-                          <TableCell className="text-left px-3 font-medium">
-                            {po.poNumber || po.estimateNumber}
-                          </TableCell>
-                          <TableCell className="text-left px-3 max-w-[150px] truncate">
-                            {po.clientName}
-                          </TableCell>
-                          <TableCell className="text-left px-3">
-                            {po.totalQuantity}
-                          </TableCell>
-                          <TableCell className="text-left px-3">
-                            ₹{po.grandTotal.toLocaleString("en-IN")}
-                          </TableCell>
-                          <TableCell className="text-left px-3">
-                            <Badge className={getPoStatusClass(po.status)}>
-                              {PO_STATUS_LABELS[po.status] ?? po.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-left px-3">
-                            <Link
-                              href={`/admin/order-management/purchase-orders/${po.id}`}
-                            >
-                              <Button variant="ghost" size="sm">
-                                View
-                              </Button>
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Dispatches Table */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Recent Dispatches</CardTitle>
-                  <CardDescription>
-                    Track latest fulfillment activity
-                  </CardDescription>
-                </div>
-                <Link href="/admin/order-management/dispatches">
-                  <Button variant="outline" size="sm">
-                    View All
-                  </Button>
-                </Link>
-              </CardHeader>
-              <CardContent>
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice #</TableHead>
-                        <TableHead>PO Number</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead>Courier</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {omDispatches.slice(0, 10).map((dispatch) => (
-                        <TableRow key={dispatch.id}>
-                          <TableCell className="font-medium">
-                            {dispatch.invoiceNumber}
-                          </TableCell>
-                          <TableCell>{dispatch.poNumber}</TableCell>
-                          <TableCell className="max-w-[150px] truncate">
-                            {dispatch.clientName}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {dispatch.totalDispatchQty}
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {dispatch.logisticsPartnerName}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              className={getDispatchStatusClass(
-                                dispatch.status,
-                              )}
-                            >
-                              {dispatch.status.charAt(0).toUpperCase() +
-                                dispatch.status.slice(1).toLowerCase()}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Link
-                              href={`/admin/order-management/dispatches/${dispatch.id}`}
-                            >
-                              <Button variant="ghost" size="sm">
-                                View
-                              </Button>
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
+            </>
+          )}
         </div>
       </div>
     </Layout>

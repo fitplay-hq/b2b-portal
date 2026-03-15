@@ -13,6 +13,7 @@ interface MasterSearchProps {
   onSearch: (val: string) => void;
   onClear: () => void;
   isSearching: boolean;
+  isFetching?: boolean;
   showAdvancedFilters: boolean;
   setShowAdvancedFilters: (val: boolean) => void;
   matchedItems: any[];
@@ -25,6 +26,7 @@ export function MasterSearch({
   onSearch,
   onClear,
   isSearching,
+  isFetching,
   showAdvancedFilters,
   setShowAdvancedFilters,
   matchedItems,
@@ -32,11 +34,14 @@ export function MasterSearch({
 }: MasterSearchProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   // Handlers for closing dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setShowDropdown(false);
       }
     }
@@ -45,15 +50,17 @@ export function MasterSearch({
   }, []);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && searchQuery.trim()) {
       onSearch(searchQuery);
       setShowDropdown(false);
     }
   };
 
   const handleManualSearch = (query: string) => {
-    onSearch(query);
-    setShowDropdown(false);
+    if (query.trim()) {
+      onSearch(query);
+      setShowDropdown(false);
+    }
   };
 
   return (
@@ -86,9 +93,10 @@ export function MasterSearch({
           onClear={onClear}
           onFocus={() => setShowDropdown(true)}
           isSearching={isSearching}
+          isFetching={isFetching}
           onKeyDown={handleKeyPress}
         />
-        
+
         {showDropdown && (
           <MasterSearchDropdown
             ref={dropdownRef}
