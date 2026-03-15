@@ -92,6 +92,21 @@ export default function OMItems() {
   const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
 
+  const valueLabels = useMemo(
+    () => ({
+      brandIds: (val: any) => {
+        if (Array.isArray(val)) {
+          return val
+            .map((id) => brands.find((b) => b.id === id)?.name || id)
+            .join(", ");
+        }
+        return brands.find((b) => b.id === val)?.name || val;
+      },
+      gst: (val: string) => (val === "all" ? "All" : `${val}%`),
+    }),
+    [brands],
+  );
+
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
       initialFilters: {
@@ -110,17 +125,7 @@ export default function OMItems() {
         minTotalOrdered: "Min Ordered",
         maxTotalOrdered: "Max Ordered",
       },
-      valueLabels: {
-        brandIds: (val) => {
-          if (Array.isArray(val)) {
-            return val
-              .map((id) => brands.find((b) => b.id === id)?.name || id)
-              .join(", ");
-          }
-          return brands.find((b) => b.id === val)?.name || val;
-        },
-        gst: (val) => (val === "all" ? "All" : `${val}%`),
-      },
+      valueLabels,
     });
 
   const [formData, setFormData] = useState({

@@ -87,6 +87,32 @@ export default function OMDashboard() {
   const [timeRange, setTimeRange] = useState("all");
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [clientOptions, setClientOptions] = useState<ComboboxOption[]>([]);
+  const [itemOptions, setItemOptions] = useState<ComboboxOption[]>([]);
+  const [brandOptions, setBrandOptions] = useState<ComboboxOption[]>([]);
+  const [logisticsOptions, setLogisticsOptions] = useState<ComboboxOption[]>(
+    [],
+  );
+  const [poOptions, setPoOptions] = useState<ComboboxOption[]>([]);
+  const [invoiceOptions, setInvoiceOptions] = useState<ComboboxOption[]>([]);
+  const [docketOptions, setDocketOptions] = useState<ComboboxOption[]>([]);
+  const [locationOptions, setLocationOptions] = useState<ComboboxOption[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+
+  const valueLabels = useMemo(
+    () => ({
+      status: (val: string) => PO_STATUS_LABELS[val] || val,
+      gstPercentage: (val: string) => `${val}%`,
+      minAmount: (val: string) => `₹${val}`,
+      maxAmount: (val: string) => `₹${val}`,
+      logisticsPartnerId: (val: string) =>
+        logisticsOptions.find((o) => o.value === val)?.label || val,
+      locationId: (val: string) =>
+        locationOptions.find((o) => o.value === val)?.label || val,
+    }),
+    [logisticsOptions, locationOptions],
+  );
+
   const {
     filters: advancedFilters,
     setFilters: setAdvancedFilters,
@@ -128,26 +154,9 @@ export default function OMDashboard() {
       maxAmount: "Max Amount",
       status: "Status",
     },
-    valueLabels: {
-      status: (val) => PO_STATUS_LABELS[val] || val,
-      gstPercentage: (val) => `${val}%`,
-      minAmount: (val) => `₹${val}`,
-      maxAmount: (val) => `₹${val}`,
-    },
+    valueLabels,
     persistenceKey: "om-dashboard-filters",
   });
-
-  const [clientOptions, setClientOptions] = useState<ComboboxOption[]>([]);
-  const [itemOptions, setItemOptions] = useState<ComboboxOption[]>([]);
-  const [brandOptions, setBrandOptions] = useState<ComboboxOption[]>([]);
-  const [logisticsOptions, setLogisticsOptions] = useState<ComboboxOption[]>(
-    [],
-  );
-  const [poOptions, setPoOptions] = useState<ComboboxOption[]>([]);
-  const [invoiceOptions, setInvoiceOptions] = useState<ComboboxOption[]>([]);
-  const [docketOptions, setDocketOptions] = useState<ComboboxOption[]>([]);
-  const [locationOptions, setLocationOptions] = useState<ComboboxOption[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
   const [expandedSections, setExpandedSections] = useState({
     pos: true,
     dispatches: true,
@@ -177,7 +186,7 @@ export default function OMDashboard() {
   }, [advancedFilters.itemName, products, brandOptions]);
 
   const fetchData = async (query: string = "") => {
-    if (isFirstLoad) setIsLoading(true);
+    setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (query) params.append("q", query);
@@ -559,108 +568,80 @@ export default function OMDashboard() {
 
   // No changes needed here, just context
 
-  const getActiveFilters = () => {
-    const active = [];
-    if (advancedFilters.fromDate)
-      active.push({
-        key: "fromDate",
-        label: "From",
-        value: advancedFilters.fromDate,
-      });
-    if (advancedFilters.toDate)
-      active.push({
-        key: "toDate",
-        label: "To",
-        value: advancedFilters.toDate,
-      });
-    if (advancedFilters.clientName)
-      active.push({
-        key: "clientName",
-        label: "Client",
-        value: advancedFilters.clientName,
-      });
-    if (advancedFilters.itemName)
-      active.push({
-        key: "itemName",
-        label: "Item",
-        value: advancedFilters.itemName,
-      });
-    if (advancedFilters.brandName)
-      active.push({
-        key: "brandName",
-        label: "Brand",
-        value: advancedFilters.brandName,
-      });
-    if (advancedFilters.logisticsPartnerId) {
-      const label = logisticsOptions.find(
-        (o) => o.value === advancedFilters.logisticsPartnerId,
-      )?.label;
-      active.push({
-        key: "logisticsPartnerId",
-        label: "Logistics",
-        value: label || advancedFilters.logisticsPartnerId,
-      });
-    }
-    if (advancedFilters.poNumber) {
-      active.push({
-        key: "poNumber",
-        label: "PO #",
-        value: advancedFilters.poNumber,
-      });
-    }
-    if (advancedFilters.invoiceNumber) {
-      active.push({
-        key: "invoiceNumber",
-        label: "Invoice #",
-        value: advancedFilters.invoiceNumber,
-      });
-    }
-    if (advancedFilters.locationId) {
-      const label = locationOptions.find(
-        (o) => o.value === advancedFilters.locationId,
-      )?.label;
-      active.push({
-        key: "locationId",
-        label: "Location",
-        value: label || advancedFilters.locationId,
-      });
-    }
-    if (advancedFilters.sku)
-      active.push({ key: "sku", label: "SKU", value: advancedFilters.sku });
-    if (advancedFilters.docketNumber)
-      active.push({
-        key: "docketNumber",
-        label: "Tracking #",
-        value: advancedFilters.docketNumber,
-      });
-    if (advancedFilters.gstPercentage)
-      active.push({
-        key: "gstPercentage",
-        label: "GST %",
-        value: advancedFilters.gstPercentage + "%",
-      });
-    if (advancedFilters.minAmount)
-      active.push({
-        key: "minAmount",
-        label: "Min Amount",
-        value: "₹" + advancedFilters.minAmount,
-      });
-    if (advancedFilters.maxAmount)
-      active.push({
-        key: "maxAmount",
-        label: "Max Amount",
-        value: "₹" + advancedFilters.maxAmount,
-      });
 
-    if (advancedFilters.status && advancedFilters.status !== "ALL")
-      active.push({
-        key: "status",
-        label: "Status",
-        value:
-          PO_STATUS_LABELS[advancedFilters.status] || advancedFilters.status,
-      });
-    return active;
-  };
+function DashboardContentSkeleton() {
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Summary Cards Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-2">
+              <Skeleton className="h-4 w-28" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-20 mb-1" />
+              <Skeleton className="h-3 w-40" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader className="pb-0">
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent className="h-[300px] flex items-center justify-center pt-6">
+            <Skeleton className="h-56 w-56 rounded-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-0">
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent className="h-[300px] flex items-end gap-2 pt-6">
+            {[...Array(10)].map((_, i) => (
+              <Skeleton
+                key={i}
+                className="flex-1"
+                style={{ height: `${20 + ((i * 7) % 80)}%` }}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tables Skeleton */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {[...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-0">
+              <Skeleton className="h-6 w-48" />
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-4 gap-4 py-2 border-b">
+                  {[...Array(4)].map((_, j) => (
+                    <Skeleton key={j} className="h-4 w-full" />
+                  ))}
+                </div>
+                {[...Array(4)].map((_, j) => (
+                  <div key={j} className="grid grid-cols-4 gap-4 py-3 border-b">
+                    {[...Array(4)].map((_, k) => (
+                      <Skeleton key={k} className="h-4 w-full" />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
 
   if (isLoading && isFirstLoad) {
     return (
@@ -686,76 +667,7 @@ export default function OMDashboard() {
             </CardContent>
           </Card>
 
-          {/* Summary Cards Skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i}>
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-28" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-20 mb-1" />
-                  <Skeleton className="h-3 w-40" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Charts Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="pb-0">
-                <Skeleton className="h-6 w-48" />
-              </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center pt-6">
-                <Skeleton className="h-56 w-56 rounded-full" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-0">
-                <Skeleton className="h-6 w-48" />
-              </CardHeader>
-              <CardContent className="h-[300px] flex items-end gap-2 pt-6">
-                {[...Array(10)].map((_, i) => (
-                  <Skeleton
-                    key={i}
-                    className="flex-1"
-                    style={{ height: `${20 + ((i * 7) % 80)}%` }}
-                  />
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Tables Skeleton */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {[...Array(2)].map((_, i) => (
-              <Card key={i}>
-                <CardHeader className="pb-0">
-                  <Skeleton className="h-6 w-48" />
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-4 gap-4 py-2 border-b">
-                      {[...Array(4)].map((_, j) => (
-                        <Skeleton key={j} className="h-4 w-full" />
-                      ))}
-                    </div>
-                    {[...Array(4)].map((_, j) => (
-                      <div
-                        key={j}
-                        className="grid grid-cols-4 gap-4 py-3 border-b"
-                      >
-                        {[...Array(4)].map((_, k) => (
-                          <Skeleton key={k} className="h-4 w-full" />
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <DashboardContentSkeleton />
         </div>
       </Layout>
     );
@@ -775,14 +687,8 @@ export default function OMDashboard() {
                 Overview of all purchase orders and dispatches
               </p>
             </div>
-            {!isFirstLoad && isLoading && (
-              <div className="h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin ease-linear ml-2" />
-            )}
           </div>
           <div className="flex items-center gap-2">
-            {!isFirstLoad && isLoading && (
-              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin ease-linear ml-2" />
-            )}
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <Select value={timeRange} onValueChange={setTimeRange}>
               <SelectTrigger className="w-[140px]">
@@ -797,7 +703,6 @@ export default function OMDashboard() {
             </Select>
           </div>
         </div>
-
         <MasterSearch
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -1049,194 +954,216 @@ export default function OMDashboard() {
           )}
         </MasterSearch>
 
-        {/* Content Area with localized loading */}
+        {/* Content Area with skeleton loading */}
         <div className="space-y-6">
-          {/* Search Results */}
-          {isSearching && searchQuery && (
-            <SearchResultsList
-              searchResults={searchResults}
-              searchSummary={searchSummary}
-              searchQuery={searchQuery}
-              expandedSections={expandedSections}
-              toggleSection={toggleSection}
-              getTotalDispatchedForItem={getTotalDispatchedForItem}
-              omPurchaseOrders={omPurchaseOrders}
-            />
-          )}
-
-          {/* Show default dashboard when not searching */}
-          {!isSearching && (
+          {isLoading && !isFirstLoad ? (
+            <DashboardContentSkeleton />
+          ) : (
             <>
-              <SummaryCards
-                totalActivePOs={totalActivePOs}
-                totalOrderValue={totalOrderValue}
-                overallFulfillment={overallFulfillment}
-                totalOrderedQty={totalOrderedQty}
-                totalDispatchedQty={totalDispatchedQty}
-                totalRemainingQty={totalRemainingQty}
-              />
+              {/* Search Results */}
+              {isSearching && searchQuery && (
+                <SearchResultsList
+                  searchResults={searchResults}
+                  searchSummary={searchSummary}
+                  searchQuery={searchQuery}
+                  expandedSections={expandedSections}
+                  toggleSection={toggleSection}
+                  getTotalDispatchedForItem={getTotalDispatchedForItem}
+                  omPurchaseOrders={omPurchaseOrders}
+                />
+              )}
 
-              <DashboardCharts
-                statusBreakdown={statusBreakdown}
-                clientSummaryArray={clientSummaryArray}
-              />
+              {/* Show default dashboard when not searching */}
+              {!isSearching && (
+                <>
+                  <SummaryCards
+                    totalActivePOs={totalActivePOs}
+                    totalOrderValue={totalOrderValue}
+                    overallFulfillment={overallFulfillment}
+                    totalOrderedQty={totalOrderedQty}
+                    totalDispatchedQty={totalDispatchedQty}
+                    totalRemainingQty={totalRemainingQty}
+                  />
 
-              {/* Purchase Orders Table */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Recent Purchase Orders</CardTitle>
-                    <CardDescription>
-                      Main order activity across all clients
-                    </CardDescription>
-                  </div>
-                  <Link href="/admin/order-management/purchase-orders">
-                    <Button variant="outline" size="sm">
-                      View All
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent>
-                  <div className="border rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-left px-3">Date</TableHead>
-                          <TableHead className="text-left px-3">
-                            PO Number
-                          </TableHead>
-                          <TableHead className="text-left px-3">
-                            Client
-                          </TableHead>
-                          <TableHead className="text-left px-3">
-                            Total Qty
-                          </TableHead>
-                          <TableHead className="text-left px-3">
-                            Value
-                          </TableHead>
-                          <TableHead className="text-left px-3">
-                            Status
-                          </TableHead>
-                          <TableHead className="text-left px-3">
-                            Action
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dashboardPOs.slice(0, 10).map((po) => (
-                          <TableRow key={po.id}>
-                            <TableCell className="text-left px-3 text-xs">
-                              {po.poDate
-                                ? new Date(po.poDate).toLocaleDateString()
-                                : "Draft"}
-                            </TableCell>
-                            <TableCell className="text-left px-3 font-medium">
-                              {po.poNumber || po.estimateNumber}
-                            </TableCell>
-                            <TableCell className="text-left px-3 max-w-[150px] truncate">
-                              {po.clientName || "N/A"}
-                            </TableCell>
-                            <TableCell className="text-left px-3">
-                              {po.totalQuantity}
-                            </TableCell>
-                            <TableCell className="text-left px-3">
-                              ₹{po.grandTotal.toLocaleString("en-IN")}
-                            </TableCell>
-                            <TableCell className="text-left px-3">
-                              <Badge className={getPoStatusClass(po.status)}>
-                                {PO_STATUS_LABELS[po.status] ?? po.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-left px-3">
-                              <Link
-                                href={`/admin/order-management/purchase-orders/${po.id}`}
-                              >
-                                <Button variant="ghost" size="sm">
-                                  View
-                                </Button>
-                              </Link>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
+                  <DashboardCharts
+                    statusBreakdown={statusBreakdown}
+                    clientSummaryArray={clientSummaryArray}
+                  />
 
-              {/* Recent Dispatches Table */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Recent Dispatches</CardTitle>
-                    <CardDescription>
-                      Track latest fulfillment activity
-                    </CardDescription>
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    {/* Purchase Orders Table */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle>Recent Purchase Orders</CardTitle>
+                          <CardDescription>
+                            Main order activity across all clients
+                          </CardDescription>
+                        </div>
+                        <Link href="/admin/order-management/purchase-orders">
+                          <Button variant="outline" size="sm">
+                            View All
+                          </Button>
+                        </Link>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="border rounded-lg">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
+                                  Date
+                                </TableHead>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
+                                  PO Number
+                                </TableHead>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
+                                  Client
+                                </TableHead>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
+                                  Qty
+                                </TableHead>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
+                                  Value
+                                </TableHead>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider text-center">
+                                  Status
+                                </TableHead>
+                                <TableHead className="text-center px-3 text-xs uppercase tracking-wider">
+                                  Action
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {omPurchaseOrders
+                                .slice(0, 5)
+                                .map((po: OMDashboardPO) => (
+                                  <TableRow key={po.id} className="text-xs">
+                                    <TableCell className="px-3">
+                                      {po.poDate
+                                        ? new Date(
+                                            po.poDate,
+                                          ).toLocaleDateString("en-IN")
+                                        : "N/A"}
+                                    </TableCell>
+                                    <TableCell className="font-medium px-3">
+                                      {po.poNumber || po.estimateNumber}
+                                    </TableCell>
+                                    <TableCell className="px-3 max-w-[120px] truncate">
+                                      {po.clientName}
+                                    </TableCell>
+                                    <TableCell className="px-3">
+                                      {po.totalQuantity}
+                                    </TableCell>
+                                    <TableCell className="px-3">
+                                      ₹{po.grandTotal.toLocaleString("en-IN")}
+                                    </TableCell>
+                                    <TableCell className="px-3 text-center">
+                                      <Badge
+                                        className={getPoStatusClass(po.status)}
+                                      >
+                                        {PO_STATUS_LABELS[po.status] ??
+                                          po.status}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="px-3 text-center">
+                                      <Link
+                                        href={`/admin/order-management/purchase-orders/${po.id}`}
+                                      >
+                                        <Button variant="ghost" size="sm">
+                                          View
+                                        </Button>
+                                      </Link>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Recent Dispatches Table */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle>Recent Dispatches</CardTitle>
+                          <CardDescription>
+                            Track latest fulfillment activity
+                          </CardDescription>
+                        </div>
+                        <Link href="/admin/order-management/dispatches">
+                          <Button variant="outline" size="sm">
+                            View All
+                          </Button>
+                        </Link>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="border rounded-lg">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-xs uppercase tracking-wider">
+                                  Invoice #
+                                </TableHead>
+                                <TableHead className="text-xs uppercase tracking-wider">
+                                  PO #
+                                </TableHead>
+                                <TableHead className="text-xs uppercase tracking-wider">
+                                  Client
+                                </TableHead>
+                                <TableHead className="text-right text-xs uppercase tracking-wider">
+                                  Qty
+                                </TableHead>
+                                <TableHead className="text-xs uppercase tracking-wider">
+                                  Status
+                                </TableHead>
+                                <TableHead className="text-right text-xs uppercase tracking-wider">
+                                  Action
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {omDispatches.slice(0, 5).map((dispatch) => (
+                                <TableRow key={dispatch.id} className="text-xs">
+                                  <TableCell className="font-medium">
+                                    {dispatch.invoiceNumber || "N/A"}
+                                  </TableCell>
+                                  <TableCell>{dispatch.poNumber}</TableCell>
+                                  <TableCell className="max-w-[120px] truncate">
+                                    {dispatch.clientName}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {dispatch.totalDispatchQty}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      className={getDispatchStatusClass(
+                                        dispatch.status,
+                                      )}
+                                    >
+                                      {dispatch.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Link
+                                      href={`/admin/order-management/dispatches/${dispatch.id}`}
+                                    >
+                                      <Button variant="ghost" size="sm">
+                                        View
+                                      </Button>
+                                    </Link>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                  <Link href="/admin/order-management/dispatches">
-                    <Button variant="outline" size="sm">
-                      View All
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent>
-                  <div className="border rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Invoice #</TableHead>
-                          <TableHead>PO Number</TableHead>
-                          <TableHead>Client</TableHead>
-                          <TableHead className="text-right">
-                            Total Qty
-                          </TableHead>
-                          <TableHead>Courier</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {omDispatches.slice(0, 10).map((dispatch) => (
-                          <TableRow key={dispatch.id}>
-                            <TableCell className="font-medium">
-                              {dispatch.invoiceNumber}
-                            </TableCell>
-                            <TableCell>{dispatch.poNumber}</TableCell>
-                            <TableCell className="max-w-[150px] truncate">
-                              {dispatch.clientName || "N/A"}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {dispatch.totalDispatchQty}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {dispatch.logisticsPartnerName || "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                className={getDispatchStatusClass(
-                                  dispatch.status,
-                                )}
-                              >
-                                {dispatch.status.charAt(0).toUpperCase() +
-                                  dispatch.status.slice(1).toLowerCase()}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Link
-                                href={`/admin/order-management/dispatches/${dispatch.id}`}
-                              >
-                                <Button variant="ghost" size="sm">
-                                  View
-                                </Button>
-                              </Link>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
+                </>
+              )}
             </>
           )}
         </div>

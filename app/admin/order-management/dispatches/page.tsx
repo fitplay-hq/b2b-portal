@@ -62,6 +62,16 @@ export default function OMDispatches() {
   const [invoiceOptions, setInvoiceOptions] = useState<ComboboxOption[]>([]);
   const [docketOptions, setDocketOptions] = useState<ComboboxOption[]>([]);
 
+  const valueLabels = useMemo(
+    () => ({
+      status: (val: string) =>
+        OM_DISPATCH_STATUS_CONFIG[val as OMDispatchStatus]?.label || val,
+      logisticsPartnerId: (val: string) =>
+        logisticsOptions.find((o) => o.value === val)?.label || val,
+    }),
+    [logisticsOptions],
+  );
+
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
       initialFilters: {
@@ -82,12 +92,7 @@ export default function OMDispatches() {
         invoiceNumber: "Invoice #",
         docketNumber: "Tracking #",
       },
-      valueLabels: {
-        status: (val) =>
-          OM_DISPATCH_STATUS_CONFIG[val as OMDispatchStatus]?.label || val,
-        logisticsPartnerId: (val) =>
-          logisticsOptions.find((o) => o.value === val)?.label || val,
-      },
+      valueLabels,
     });
 
   const fetchFilters = async () => {
@@ -96,8 +101,8 @@ export default function OMDispatches() {
         await Promise.all([
           fetch("/api/admin/om/clients"),
           fetch("/api/admin/om/logistics-partners"),
-          fetch("/api/admin/om/dispatches/invoice-options"),
-          fetch("/api/admin/om/dispatches/docket-options"),
+          fetch("/api/admin/om/dispatch-orders/options?type=invoice"),
+          fetch("/api/admin/om/dispatch-orders/options?type=docket"),
         ]);
 
       if (clientsRes.ok) {

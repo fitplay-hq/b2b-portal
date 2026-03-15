@@ -53,8 +53,21 @@ export default function OMPurchaseOrdersList() {
   const [sortBy, setSortBy] = useState<SortOption>("po_date_desc");
   const [showFilters, setShowFilters] = useState(false);
 
+  const [locationOptions, setLocationOptions] = useState<ComboboxOption[]>([]);
+  const [poOptions, setPoOptions] = useState<ComboboxOption[]>([]);
+  const [clients, setClients] = useState<OMClient[]>([]);
+
   const [deletePo, setDeletePo] = useState<OMPurchaseOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const valueLabels = useMemo(
+    () => ({
+      status: (val: string) => PO_STATUS_LABELS[val] || val,
+      locationId: (val: string) =>
+        locationOptions.find((o) => o.value === val)?.label || val,
+    }),
+    [locationOptions],
+  );
 
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
@@ -74,16 +87,8 @@ export default function OMPurchaseOrdersList() {
         locationId: "Location",
         status: "Status",
       },
-      valueLabels: {
-        status: (val) => PO_STATUS_LABELS[val] || val,
-        locationId: (val) =>
-          locationOptions.find((o) => o.value === val)?.label || val,
-      },
+      valueLabels,
     });
-
-  const [locationOptions, setLocationOptions] = useState<ComboboxOption[]>([]);
-  const [poOptions, setPoOptions] = useState<ComboboxOption[]>([]);
-  const [clients, setClients] = useState<OMClient[]>([]);
 
   const fetchOptions = async () => {
     try {

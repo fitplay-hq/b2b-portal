@@ -52,7 +52,7 @@ export function useMasterSearch({
     [omDispatches, getTotalDispatchedForPO],
   );
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 2000);
+  const debouncedSearchQuery = useDebounce(searchQuery, 1500);
 
   const searchResults = useMemo(() => {
     const pos = filterPOs(omPurchaseOrders, searchQuery);

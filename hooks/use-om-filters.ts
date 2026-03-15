@@ -90,6 +90,7 @@ export function useOMFilters<T extends Record<string, any>>({
         key,
         label,
         value: displayValue,
+        id: String(value),
       });
     });
 

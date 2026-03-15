@@ -152,7 +152,11 @@ export function OMSortControl({
 
     const field = (option as string).substring(0, lastUnderscoreIndex);
     const direction = (option as string).substring(lastUnderscoreIndex + 1);
-    return (direction === "asc" ? `${field}_desc` : `${field}_asc`) as SortOption;
+
+    if (direction === "asc") return `${field}_desc` as SortOption;
+    if (direction === "desc") return `${field}_asc` as SortOption;
+
+    return null;
   };
 
   const currentOptions = useMemo(() => {

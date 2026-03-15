@@ -27,6 +27,8 @@ import {
   ChevronDown, 
   FileSpreadsheet 
 } from "lucide-react";
+import { useOMFilters } from "@/hooks/use-om-filters";
+import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 
 export default function InventoryLogsPage() {
   const { RESOURCES } = usePermissions();
@@ -41,13 +43,34 @@ export default function InventoryLogsPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [advancedFilters, setAdvancedFilters] = useState({
-    dateFrom: "",
-    dateTo: "",
-    productName: "",
-    sku: "",
-    reason: "",
+
+  const { filters: advancedFilters, setFilters: setAdvancedFilters, resetFilters: resetAdvancedFilters, activeFilters, removeFilter: removeAdvancedFilter } = useOMFilters({
+    initialFilters: {
+      dateFrom: "",
+      dateTo: "",
+      productName: "",
+      sku: "",
+      reason: "",
+    },
+    labels: {
+      dateFrom: "From Date",
+      dateTo: "To Date",
+      productName: "Product",
+      sku: "SKU",
+      reason: "Reason",
+    },
+    valueLabels: {
+      dateFrom: (val) => new Date(val).toLocaleDateString('en-GB'),
+      dateTo: (val) => new Date(val).toLocaleDateString('en-GB'),
+    }
   });
+
+  const activeFiltersWithIcons = useMemo(() => {
+    return activeFilters.map((f) => ({
+      ...f,
+      icon: f.key.includes("date") ? Calendar : f.key === "reason" ? FileText : Package,
+    }));
+  }, [activeFilters]);
 
   // Debounce search term for API call - waits 500ms after user stops typing
   useEffect(() => {
@@ -99,17 +122,8 @@ export default function InventoryLogsPage() {
   };
 
   const handleFilterChange = (newFilters: Record<string, string>) => {
-    const cleanFilters = Object.fromEntries(
-      Object.entries(newFilters).filter(([, value]) => value !== "")
-    );
-    
     setAdvancedFilters(prev => ({ ...prev, ...newFilters }));
-    
-    setFilters(prev => ({
-      ...prev,
-      ...cleanFilters,
-      page: 1, // Reset to first page when filters change
-    }));
+    setFilters(prev => ({ ...prev, page: 1 }));
   };
 
   const resetFilters = () => {
@@ -119,101 +133,17 @@ export default function InventoryLogsPage() {
       sortBy: "date",
       sortOrder: "desc",
     });
-    setAdvancedFilters({
-      dateFrom: "",
-      dateTo: "",
-      productName: "",
-      sku: "",
-      reason: "",
-    });
-    setSearchTerm(""); // Clear search as well
-  };
-
-  // Get active filters for display (excluding search)
-  const getActiveFilters = () => {
-    const activeFilters = [];
-    
-    // Don't include search in active filters - it's for instant filtering
-    
-    if (advancedFilters.dateFrom) {
-      activeFilters.push({
-        key: 'dateFrom',
-        label: 'From Date',
-        value: new Date(advancedFilters.dateFrom).toLocaleDateString('en-GB'),
-        icon: Calendar
-      });
-    }
-    
-    if (advancedFilters.dateTo) {
-      activeFilters.push({
-        key: 'dateTo',
-        label: 'To Date',
-        value: new Date(advancedFilters.dateTo).toLocaleDateString('en-GB'),
-        icon: Calendar
-      });
-    }
-    
-    if (advancedFilters.productName) {
-      activeFilters.push({
-        key: 'productName',
-        label: 'Product',
-        value: advancedFilters.productName,
-        icon: Package
-      });
-    }
-    
-    if (advancedFilters.sku) {
-      activeFilters.push({
-        key: 'sku',
-        label: 'SKU',
-        value: advancedFilters.sku,
-        icon: Package
-      });
-    }
-    
-    if (advancedFilters.reason) {
-      activeFilters.push({
-        key: 'reason',
-        label: 'Reason',
-        value: advancedFilters.reason,
-        icon: FileText
-      });
-    }
-    
-    return activeFilters;
-  };
-
-  const removeFilter = (filterKey: string) => {
-    // Update advanced filters state
-    const updatedAdvancedFilters = { ...advancedFilters, [filterKey]: '' };
-    setAdvancedFilters(updatedAdvancedFilters);
-    
-    // Update main filters state to trigger API call
-    setFilters(prev => ({
-      ...prev,
-      [filterKey]: '', // Set to empty string to ensure object reference changes
-      page: 1, // Reset to first page
-    }));
+    resetAdvancedFilters();
+    setSearchTerm("");
   };
 
   const handleExport = async (format: 'xlsx' | 'pdf') => {
-    // Use searchTerm directly to capture the current search value
-    // (debouncedSearch might not have updated yet if user just typed)
     const currentSearch = searchTerm || debouncedSearch;
-    
-    // Convert current filters to export format matching /api/inventoryLogs expectations
     const exportFilters = {
-      dateFrom: advancedFilters.dateFrom || undefined,
-      dateTo: advancedFilters.dateTo || undefined,
+      ...advancedFilters,
       search: currentSearch || undefined,
-      reason: advancedFilters.reason || undefined,
-      // The /api/inventoryLogs endpoint uses different filter names than admin hooks
-      productId: undefined, // We don't have direct product ID filter in the UI
       period: !advancedFilters.dateFrom && !advancedFilters.dateTo ? 'all' : undefined,
     };
-
-    console.log('Admin Export Filters:', exportFilters);
-    // Toast notifications are handled inside the exportData function
     await exportData(format, exportFilters);
   };
 
@@ -244,7 +174,7 @@ export default function InventoryLogsPage() {
                   variant="outline" 
                   size="sm" 
                   onClick={resetFilters}
-                  disabled={getActiveFilters().length === 0}
+                  disabled={activeFilters.length === 0}
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Reset Filters
@@ -277,77 +207,13 @@ export default function InventoryLogsPage() {
           </div>
 
           {/* Active Filters Display */}
-          {getActiveFilters().length > 0 ? (
-            <Card className="bg-linear-to-r from-blue-50 to-purple-50 border-blue-200 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-900">
-                      Active Filters ({getActiveFilters().length})
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetFilters}
-                    className="h-6 px-2 text-xs text-blue-700 hover:text-blue-900 hover:bg-blue-100"
-                  >
-                    Clear All
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {getActiveFilters().map((filter) => {
-                    const IconComponent = filter.icon;
-                    return (
-                      <Badge
-                        key={filter.key}
-                        variant="secondary"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-blue-200 text-blue-800 hover:bg-blue-50 group cursor-pointer transition-all"
-                      >
-                        <IconComponent className="h-3 w-3" />
-                        <span className="text-xs font-medium">{filter.label}:</span>
-                        <span className="text-xs max-w-32 truncate">{filter.value}</span>
-                        <button
-                          onClick={() => removeFilter(filter.key)}
-                          className="ml-1 opacity-60 hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    );
-                  })}
-                </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="text-xs text-blue-600">
-                    Showing {logs?.length || 0} results with applied filters
-                  </div>
-                  <div className="text-xs text-blue-500">
-                    Showing filtered results
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-linear-to-r from-gray-50 to-slate-50 border-gray-200">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">
-                      No Filters Applied
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Showing all logs
-                  </div>
-                </div>
-                <div className="mt-2 text-xs text-gray-600">
-                  🔍 Use the search bar or click &quot;Filters&quot; in the table below to narrow down results by date, product, or reason
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <div className="-mt-4">
+            <OMActiveFilters
+              activeFilters={activeFilters}
+              onRemove={removeAdvancedFilter}
+              onClearAll={resetFilters}
+            />
+          </div>
 
           <div className="flex-1">
             <InventoryLogsTable
@@ -368,7 +234,7 @@ export default function InventoryLogsPage() {
               description="Track every inventory change across your entire product catalog"
               searchValue={searchTerm}
               onResetFilters={resetFilters}
-              activeFilters={getActiveFilters()}
+              activeFilters={activeFiltersWithIcons}
               currentFilters={advancedFilters}
             />
           </div>
