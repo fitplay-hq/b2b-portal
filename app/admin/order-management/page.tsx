@@ -58,8 +58,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SearchableSelect, ComboboxOption } from "@/components/ui/combobox";
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import {
-  type OMDashboardPO,
+import { useOMFilters } from "@/hooks/use-om-filters";
+import { MasterSearch } from "@/components/dashboard/master-search/MasterSearch";
+import { useMasterSearch } from "@/components/dashboard/master-search/useMasterSearch";
+import { type OMDashboardPO,
   type OMDashboardDispatch,
   type OMClientSummary,
   type OMItemSummary,
@@ -104,30 +106,61 @@ const getDispatchStatusClass = (status: string) => {
 };
 
 export default function OMDashboard() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
   const [omPurchaseOrders, setPurchaseOrders] = useState<OMDashboardPO[]>([]);
   const [omDispatches, setDispatches] = useState<OMDashboardDispatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [timeRange, setTimeRange] = useState("all");
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState({
-    fromDate: "",
-    toDate: "",
-    clientName: "",
-    itemName: "",
-    brandName: "",
-    logisticsPartnerId: "",
-    poNumber: "",
-    invoiceNumber: "",
-    locationId: "",
-    sku: "",
-    docketNumber: "",
-    gstPercentage: "",
-    minAmount: "",
-    maxAmount: "",
-    status: "",
+  const {
+    filters: advancedFilters,
+    setFilters: setAdvancedFilters,
+    resetFilters,
+    removeFilter,
+    activeFilters,
+  } = useOMFilters({
+    initialFilters: {
+      fromDate: "",
+      toDate: "",
+      clientName: "",
+      itemName: "",
+      brandName: "",
+      logisticsPartnerId: "",
+      poNumber: "",
+      invoiceNumber: "",
+      locationId: "",
+      sku: "",
+      docketNumber: "",
+      gstPercentage: "",
+      minAmount: "",
+      maxAmount: "",
+      status: "",
+    },
+    labels: {
+      fromDate: "From",
+      toDate: "To",
+      clientName: "Client",
+      itemName: "Item",
+      brandName: "Brand",
+      logisticsPartnerId: "Logistics",
+      poNumber: "PO #",
+      invoiceNumber: "Invoice #",
+      locationId: "Location",
+      sku: "SKU",
+      docketNumber: "Tracking #",
+      gstPercentage: "GST %",
+      minAmount: "Min Amount",
+      maxAmount: "Max Amount",
+      status: "Status",
+    },
+    valueLabels: {
+      status: (val) => PO_STATUS_LABELS[val] || val,
+      gstPercentage: (val) => `${val}%`,
+      minAmount: (val) => `₹${val}`,
+      maxAmount: (val) => `₹${val}`,
+    },
+    persistenceKey: "om-dashboard-filters",
   });
 
   const [clientOptions, setClientOptions] = useState<ComboboxOption[]>([]);
@@ -160,18 +193,17 @@ export default function OMDashboard() {
     const selectedProduct = products.find(
       (p) => p.name === advancedFilters.itemName,
     );
-    if (!selectedProduct) return [];
 
     return (
-      selectedProduct.brands?.map((b: any) => ({
+      selectedProduct?.brands?.map((b: any) => ({
         value: b.name,
         label: b.name,
-      })) || []
+      })) || brandOptions
     );
   }, [advancedFilters.itemName, products, brandOptions]);
 
   const fetchData = async (query: string = "") => {
-    setIsLoading(true);
+    if (isFirstLoad) setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (query) params.append("q", query);
@@ -245,6 +277,7 @@ export default function OMDashboard() {
             gstPercentage: item.gstPercentage,
             gstAmount: item.gstAmount,
             totalAmount: item.totalAmount,
+            brandName: item.OMBrand?.name || item.product?.brands?.[0]?.name || null,
           })) || [],
       }));
 
@@ -273,6 +306,7 @@ export default function OMDashboard() {
                 dispatchQty: i.quantity,
                 itemName: i.purchaseOrderItem?.product?.name || "Unknown",
                 itemSku: i.purchaseOrderItem?.product?.sku || null,
+                brandName: i.brandName || i.purchaseOrderItem?.OMBrand?.name || i.purchaseOrderItem?.product?.brands?.[0]?.name || null,
               })) || [],
           });
         });
@@ -284,8 +318,27 @@ export default function OMDashboard() {
       console.error(err);
     } finally {
       setIsLoading(false);
+      setIsFirstLoad(false);
     }
   };
+
+  const {
+    searchQuery,
+    setSearchQuery,
+    debouncedSearchQuery,
+    isSearching,
+    setIsSearching,
+    searchResults,
+    searchSummary,
+    handleManualSearch,
+    clearSearch,
+  } = useMasterSearch({
+    omPurchaseOrders,
+    omDispatches,
+    advancedFilters,
+    timeRange,
+    onManualSearch: fetchData,
+  });
 
   const fetchDynamicOptions = async () => {
     try {
@@ -362,9 +415,23 @@ export default function OMDashboard() {
     fetchStaticOptions();
   }, []);
 
+  // fetchData is now only called once on mount or when timeRange changes
   useEffect(() => {
-    fetchData(searchQuery);
-  }, [advancedFilters]);
+    fetchData();
+  }, [timeRange]);
+
+  // Load persistence for searchQuery
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("om-master-search-query");
+      if (saved) {
+        setSearchQuery(saved);
+        if (setIsSearching) setIsSearching(true);
+      }
+    }
+  }, [setSearchQuery, setIsSearching]);
+
+  // Removed debouncedSearchQuery trigger to rely on local filtering
 
   const getTotalDispatchedForPO = (poId: string) => {
     return omDispatches
@@ -372,26 +439,8 @@ export default function OMDashboard() {
       .reduce((sum, d) => sum + d.totalDispatchQty, 0);
   };
 
-  const getFilteredPOs = () => {
-    if (timeRange === "all") return omPurchaseOrders;
-    const now = new Date();
-    now.setHours(23, 59, 59, 999);
-
-    return omPurchaseOrders.filter((po) => {
-      const dateStr = po.poDate || po.estimateDate;
-      if (!dateStr) return false;
-      const poDate = new Date(dateStr);
-      const diffTime = Math.abs(now.getTime() - poDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (timeRange === "today") return diffDays <= 1;
-      if (timeRange === "7d") return diffDays <= 7;
-      if (timeRange === "30d") return diffDays <= 30;
-      return true;
-    });
-  };
-
-  const dashboardPOs = getFilteredPOs();
+  const dashboardPOs = searchResults.pos;
+  const dashboardDispatches = searchResults.dispatches;
 
   // Summary calculations
   const totalActivePOs = dashboardPOs.filter(
@@ -453,7 +502,7 @@ export default function OMDashboard() {
             remaining: 0,
           };
         }
-        const dispatchedForItem = omDispatches
+        const dispatchedForItem = dashboardDispatches
           .filter((d) => d.poId === po.id)
           .reduce((sum, dispatch) => {
             const dispatchItem = dispatch.lineItems.find(
@@ -504,51 +553,10 @@ export default function OMDashboard() {
     },
   ].filter((item) => item.value > 0);
 
-  // Search functionality
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      setIsSearching(true);
-      fetchData(searchQuery);
-    }
-  };
+  // No changes needed here, just context
 
-  const clearSearch = () => {
-    setSearchQuery("");
-    setIsSearching(false);
-    fetchData("");
-  };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSearch();
-    }
-  };
 
-  const resetFilters = () => {
-    setAdvancedFilters({
-      fromDate: "",
-      toDate: "",
-      clientName: "",
-      itemName: "",
-      brandName: "",
-      logisticsPartnerId: "",
-      poNumber: "",
-      invoiceNumber: "",
-      locationId: "",
-      sku: "",
-      docketNumber: "",
-      gstPercentage: "",
-      minAmount: "",
-      maxAmount: "",
-      status: "",
-    });
-    setSearchQuery("");
-    setIsSearching(false);
-  };
-
-  const removeFilter = (key: string) => {
-    setAdvancedFilters((prev) => ({ ...prev, [key]: "" }));
-  };
 
   const getActiveFilters = () => {
     const active = [];
@@ -653,114 +661,8 @@ export default function OMDashboard() {
     return active;
   };
 
-  // Filter results based on search query
-  const searchResults = useMemo(() => {
-    const pos = omPurchaseOrders.filter(
-      (po) =>
-        (po.clientName ?? "")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        (po.estimateNumber ?? "")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        (po.poNumber ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        po.deliveryLocations.some((loc) =>
-          loc.toLowerCase().includes(searchQuery.toLowerCase()),
-        ) ||
-        po.lineItems.some(
-          (item) =>
-            (item.itemName ?? "")
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase()) ||
-            item.itemSku?.toLowerCase().includes(searchQuery.toLowerCase()),
-        ),
-    );
 
-    const dispatches = omDispatches.filter(
-      (d) =>
-        (d.clientName ?? "")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        (d.invoiceNumber ?? "")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        (d.poNumber ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.lineItems.some(
-          (item) =>
-            (item.itemName ?? "")
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase()) ||
-            item.itemSku?.toLowerCase().includes(searchQuery.toLowerCase()),
-        ),
-    );
-
-    // Sum up items matching the search query across all POs
-    const itemsMap = new Map<string, any>();
-    omPurchaseOrders.forEach((po) => {
-      po.lineItems.forEach((item) => {
-        if (
-          (item.itemName ?? "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          item.itemSku?.toLowerCase().includes(searchQuery.toLowerCase())
-        ) {
-          const existing = itemsMap.get(item.itemName) || {
-            itemName: item.itemName,
-            itemSku: item.itemSku,
-            ordered: 0,
-            dispatched: 0,
-            remaining: 0,
-          };
-
-          existing.ordered += item.quantity;
-          // Calculate dispatched for this item in this PO
-          const itemDispatched = omDispatches
-            .filter((d) => d.poId === po.id)
-            .reduce((sum, d) => {
-              const dItem = d.lineItems.find(
-                (di) => di.itemName === item.itemName,
-              );
-              return sum + (dItem?.dispatchQty || 0);
-            }, 0);
-
-          existing.dispatched += itemDispatched;
-          existing.remaining = existing.ordered - existing.dispatched;
-          itemsMap.set(item.itemName, existing);
-        }
-      });
-    });
-
-    return {
-      pos,
-      dispatches,
-      items: Array.from(itemsMap.values()),
-    };
-  }, [omPurchaseOrders, omDispatches, searchQuery]);
-
-
-  // Calculate search result summaries
-  const searchSummary =
-    searchResults.pos.length > 0 || searchResults.dispatches.length > 0
-      ? {
-          totalPOs: searchResults.pos.length,
-          totalDispatches: searchResults.dispatches.length,
-          totalOrdered: searchResults.pos.reduce(
-            (sum: number, po: OMDashboardPO) => sum + po.totalQuantity,
-            0,
-          ),
-          totalDispatched: searchResults.pos.reduce(
-            (sum: number, po: OMDashboardPO) =>
-              sum + getTotalDispatchedForPO(po.id),
-            0,
-          ),
-          totalValue: searchResults.pos.reduce(
-            (sum: number, po: OMDashboardPO) => sum + po.grandTotal,
-            0,
-          ),
-        }
-      : null;
-
-  if (isLoading) {
+  if (isLoading && isFirstLoad) {
     return (
       <Layout isClient={false}>
         <div className="space-y-6">
@@ -862,16 +764,25 @@ export default function OMDashboard() {
   return (
     <Layout isClient={false}>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold">
-              Order Management Dashboard
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Overview of all purchase orders and dispatches
-            </p>
+          <div className="min-w-0 flex-1 flex items-center gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold">
+                Order Management Dashboard
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Overview of all purchase orders and dispatches
+              </p>
+            </div>
+            {!isFirstLoad && isLoading && (
+              <div className="h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin ease-linear ml-2" />
+            )}
           </div>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+            {!isFirstLoad && isLoading && (
+              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin ease-linear ml-2" />
+            )}
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <Select value={timeRange} onValueChange={setTimeRange}>
               <SelectTrigger className="w-[140px]">
@@ -887,307 +798,262 @@ export default function OMDashboard() {
           </div>
         </div>
 
-        {/* Master Search Bar */}
-        <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Master Search</CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="h-8 flex gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <Filter className="h-4 w-4" />
-              {showAdvancedFilters ? "Hide Filters" : "Show Filters"}
-              {showAdvancedFilters ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by client, item, PO/Estimate #, invoice, location, SKU"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="pl-10"
-                />
-              </div>
-              {isSearching && (
-                <Button variant="outline" size="icon" onClick={clearSearch}>
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-              <Button onClick={handleSearch}>Search</Button>
-            </div>
-
-            {showAdvancedFilters && (
-              <div className="mt-6 pt-6 border-t animate-in fade-in slide-in-from-top-4 duration-300">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
-                      From Date
-                    </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                      <Input
-                        type="date"
-                        value={advancedFilters.fromDate}
-                        max={
-                          advancedFilters.toDate ||
-                          new Date().toISOString().split("T")[0]
-                        }
-                        onChange={(e) =>
-                          setAdvancedFilters((prev) => ({
-                            ...prev,
-                            fromDate: e.target.value,
-                          }))
-                        }
-                        className="pl-9 text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
-                      To Date
-                    </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                      <Input
-                        type="date"
-                        value={advancedFilters.toDate}
-                        min={advancedFilters.fromDate}
-                        max={new Date().toISOString().split("T")[0]}
-                        onChange={(e) =>
-                          setAdvancedFilters((prev) => ({
-                            ...prev,
-                            toDate: e.target.value,
-                          }))
-                        }
-                        className="pl-9 text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Client Name
-                    </label>
-                    <SearchableSelect
-                      options={clientOptions}
-                      value={advancedFilters.clientName}
-                      onValueChange={(val) =>
+        <MasterSearch
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onSearch={handleManualSearch}
+          onClear={clearSearch}
+          isSearching={isSearching}
+          showAdvancedFilters={showAdvancedFilters}
+          setShowAdvancedFilters={setShowAdvancedFilters}
+          matchedItems={searchResults.items}
+        >
+          {showAdvancedFilters && (
+            <div className="mt-6 pt-6 border-t animate-in fade-in slide-in-from-top-4 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+                    From Date
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                    <Input
+                      type="date"
+                      value={advancedFilters.fromDate}
+                      max={
+                        advancedFilters.toDate ||
+                        new Date().toISOString().split("T")[0]
+                      }
+                      onChange={(e) =>
                         setAdvancedFilters((prev) => ({
                           ...prev,
-                          clientName: val,
+                          fromDate: e.target.value,
                         }))
                       }
-                      placeholder="Select client..."
+                      className="pl-9 text-xs"
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Item Name
-                    </label>
-                    <SearchableSelect
-                      options={itemOptions}
-                      value={advancedFilters.itemName}
-                      onValueChange={(val) => {
-                        setAdvancedFilters((prev) => {
-                          const newState = { ...prev, itemName: val };
-                          if (val) {
-                            const selectedProduct = products.find(
-                              (p) => p.name === val,
-                            );
-                            const availableBrands =
-                              selectedProduct?.brands?.map(
-                                (b: any) => b.name,
-                              ) || [];
-                            if (!availableBrands.includes(prev.brandName)) {
-                              newState.brandName = "";
-                            }
-                          }
-                          return newState;
-                        });
-                      }}
-                      placeholder="Select item..."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Brand Name
-                    </label>
-                    <SearchableSelect
-                      options={filteredBrandOptions}
-                      value={advancedFilters.brandName}
-                      onValueChange={(val) =>
-                        setAdvancedFilters((prev) => ({
-                          ...prev,
-                          brandName: val,
-                        }))
-                      }
-                      placeholder={
-                        advancedFilters.itemName
-                          ? "Select brand..."
-                          : "Select item first..."
-                      }
-                      disabled={!advancedFilters.itemName}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Logistics Partner
-                    </label>
-                    <SearchableSelect
-                      options={logisticsOptions}
-                      value={advancedFilters.logisticsPartnerId}
-                      onValueChange={(val) =>
-                        setAdvancedFilters((prev) => ({
-                          ...prev,
-                          logisticsPartnerId: val,
-                        }))
-                      }
-                      placeholder="Select partner..."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      PO Number
-                    </label>
-                    <SearchableSelect
-                      options={poOptions}
-                      value={advancedFilters.poNumber}
-                      onValueChange={(val) =>
-                        setAdvancedFilters((prev) => ({
-                          ...prev,
-                          poNumber: val,
-                        }))
-                      }
-                      placeholder="Select PO #..."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Invoice Number
-                    </label>
-                    <SearchableSelect
-                      options={invoiceOptions}
-                      value={advancedFilters.invoiceNumber}
-                      onValueChange={(val) =>
-                        setAdvancedFilters((prev) => ({
-                          ...prev,
-                          invoiceNumber: val,
-                        }))
-                      }
-                      placeholder="Select Invoice #..."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Tracking/Docket #
-                    </label>
-                    <SearchableSelect
-                      options={docketOptions}
-                      value={advancedFilters.docketNumber}
-                      onValueChange={(val) =>
-                        setAdvancedFilters((prev) => ({
-                          ...prev,
-                          docketNumber: val,
-                        }))
-                      }
-                      placeholder="Select tracking #..."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </label>
-                    <Select
-                      value={advancedFilters.status}
-                      onValueChange={(val) =>
-                        setAdvancedFilters((prev) => ({ ...prev, status: val }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(PO_STATUS_LABELS).map(
-                          ([val, label]) => (
-                            <SelectItem key={val} value={val}>
-                              {label}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-end lg:col-span-1 xl:col-start-4">
-                    <Button
-                      variant="outline"
-                      className="w-full flex gap-2"
-                      onClick={resetFilters}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      Reset All Filters
-                    </Button>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {getActiveFilters().length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2 items-center">
-                <span className="text-xs text-muted-foreground font-medium mr-1">
-                  Active Filters:
-                </span>
-                {getActiveFilters().map((filter) => (
-                  <Badge
-                    key={filter.key}
-                    variant="secondary"
-                    className="flex gap-1 items-center px-2 py-1 bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 transition-colors"
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+                    To Date
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                    <Input
+                      type="date"
+                      value={advancedFilters.toDate}
+                      min={advancedFilters.fromDate}
+                      max={new Date().toISOString().split("T")[0]}
+                      onChange={(e) =>
+                        setAdvancedFilters((prev) => ({
+                          ...prev,
+                          toDate: e.target.value,
+                        }))
+                      }
+                      className="pl-9 text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Client Name
+                  </label>
+                  <SearchableSelect
+                    options={clientOptions}
+                    value={advancedFilters.clientName}
+                    onValueChange={(val) =>
+                      setAdvancedFilters((prev) => ({
+                        ...prev,
+                        clientName: val,
+                      }))
+                    }
+                    placeholder="Select client..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Item Name
+                  </label>
+                  <SearchableSelect
+                    options={itemOptions}
+                    value={advancedFilters.itemName}
+                    onValueChange={(val) => {
+                      setAdvancedFilters((prev) => ({
+                        ...prev,
+                        itemName: val,
+                      }));
+                    }}
+                    placeholder="Select item..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Brand Name
+                  </label>
+                  <SearchableSelect
+                    options={filteredBrandOptions}
+                    value={advancedFilters.brandName}
+                    onValueChange={(val) =>
+                      setAdvancedFilters((prev) => ({
+                        ...prev,
+                        brandName: val,
+                      }))
+                    }
+                    placeholder="Select brand..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Logistics Partner
+                  </label>
+                  <SearchableSelect
+                    options={logisticsOptions}
+                    value={advancedFilters.logisticsPartnerId}
+                    onValueChange={(val) =>
+                      setAdvancedFilters((prev) => ({
+                        ...prev,
+                        logisticsPartnerId: val,
+                      }))
+                    }
+                    placeholder="Select partner..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    PO Number
+                  </label>
+                  <SearchableSelect
+                    options={poOptions}
+                    value={advancedFilters.poNumber}
+                    onValueChange={(val) =>
+                      setAdvancedFilters((prev) => ({
+                        ...prev,
+                        poNumber: val,
+                      }))
+                    }
+                    placeholder="Select PO #..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Invoice Number
+                  </label>
+                  <SearchableSelect
+                    options={invoiceOptions}
+                    value={advancedFilters.invoiceNumber}
+                    onValueChange={(val) =>
+                      setAdvancedFilters((prev) => ({
+                        ...prev,
+                        invoiceNumber: val,
+                      }))
+                    }
+                    placeholder="Select Invoice #..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Tracking/Docket #
+                  </label>
+                  <SearchableSelect
+                    options={docketOptions}
+                    value={advancedFilters.docketNumber}
+                    onValueChange={(val) =>
+                      setAdvancedFilters((prev) => ({
+                        ...prev,
+                        docketNumber: val,
+                      }))
+                    }
+                    placeholder="Select tracking #..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Status
+                  </label>
+                  <Select
+                    value={advancedFilters.status}
+                    onValueChange={(val) =>
+                      setAdvancedFilters((prev) => ({ ...prev, status: val }))
+                    }
                   >
-                    <span className="font-bold opacity-70 uppercase text-[10px]">
-                      {filter.label}:
-                    </span>
-                    <span>{filter.value}</span>
-                    <button
-                      onClick={() => removeFilter(filter.key)}
-                      className="ml-1 hover:text-blue-900 rounded-full hover:bg-blue-200 transition-colors"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={resetFilters}
-                  className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
-                >
-                  Clear all
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PO_STATUS_LABELS).map(
+                        ([val, label]) => (
+                          <SelectItem key={val} value={val}>
+                            {label}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        {/* Search Results */}
-        {isSearching && searchQuery && (
+                <div className="flex items-end lg:col-span-1 xl:col-start-4">
+                  <Button
+                    variant="outline"
+                    className="w-full flex gap-2"
+                    onClick={resetFilters}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Reset All Filters
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeFilters.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-muted-foreground font-medium mr-1">
+                Active Filters:
+              </span>
+              {activeFilters.map((filter) => (
+                <Badge
+                  key={filter.key}
+                  variant="secondary"
+                  className="flex gap-1 items-center px-2 py-1 bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 transition-colors"
+                >
+                  <span className="font-bold opacity-70 uppercase text-[10px]">
+                    {filter.label}:
+                  </span>
+                  <span>{filter.value}</span>
+                  <button
+                    onClick={() => removeFilter(filter.key)}
+                    className="ml-1 hover:text-blue-900 rounded-full hover:bg-blue-200 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
+        </MasterSearch>
+
+        {/* Content Area with localized loading */}
+        <div className="space-y-6">
+          {/* Search Results */}
+          {isSearching && searchQuery && (
           <Card>
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
@@ -1202,7 +1068,7 @@ export default function OMDashboard() {
                   <div>
                     <p className="text-sm text-muted-foreground">Found POs</p>
                     <p className="text-2xl font-bold">
-                      {searchSummary.totalPOs}
+                      {searchSummary?.totalPOs}
                     </p>
                   </div>
                   <div>
@@ -1210,13 +1076,13 @@ export default function OMDashboard() {
                       Found Dispatches
                     </p>
                     <p className="text-2xl font-bold">
-                      {searchSummary.totalDispatches}
+                      {searchSummary?.totalDispatches}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Total Value</p>
                     <p className="text-2xl font-bold">
-                      ₹{searchSummary.totalValue.toLocaleString("en-IN")}
+                      ₹{searchSummary?.totalValue.toLocaleString("en-IN")}
                     </p>
                   </div>
                 </div>
@@ -1537,7 +1403,9 @@ export default function OMDashboard() {
                   <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{totalActivePOs}</div>
+                  <div className="text-2xl font-bold">
+                    {searchSummary?.totalPOs ?? totalActivePOs}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Purchase orders in progress
                   </p>
@@ -1553,7 +1421,7 @@ export default function OMDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    ₹{totalOrderValue.toLocaleString("en-IN")}
+                    ₹{(searchSummary?.totalValue ?? totalOrderValue).toLocaleString("en-IN")}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Grand total of all orders
@@ -1841,6 +1709,7 @@ export default function OMDashboard() {
             </Card>
           </>
         )}
+        </div>
       </div>
     </Layout>
   );

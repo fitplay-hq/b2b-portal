@@ -130,6 +130,7 @@ export interface OMPurchaseOrderItem {
     sku?: string | null;
     brandId?: string | null;
     OMBrand?: OMBrand | null;
+    brands?: OMBrand[];
   };
   OMBrand?: OMBrand | null;
   dispatchItems?: { quantity: number }[];
@@ -144,8 +145,12 @@ export interface OMDispatchOrderItem {
   gstPercentage: number;
   gstAmount: number;
   totalAmount: number;
-  purchaseOrderItem?: { product?: { name?: string; sku?: string | null } };
+  purchaseOrderItem?: {
+    product?: { name?: string; sku?: string | null; brands?: OMBrand[] };
+    OMBrand?: OMBrand | null;
+  };
   product?: { name?: string; sku?: string | null };
+  brandName?: string | null;
 }
 
 export interface OMDispatchOrder {
@@ -208,6 +213,7 @@ export interface OMDashboardLineItem {
   gstPercentage: number;
   gstAmount: number;
   totalAmount: number;
+  brandName?: string | null;
 }
 
 export interface OMDashboardPO {
@@ -313,6 +319,7 @@ export interface OMDashboardDispatchLineItem {
   dispatchQty: number;
   itemName: string;
   itemSku?: string | null;
+  brandName?: string | null;
 }
 
 export interface OMDashboardDispatch {
@@ -340,6 +347,8 @@ export interface OMClientSummary {
 
 export interface OMItemSummary {
   itemName: string;
+  itemSku?: string | null;
+  brandName?: string | null;
   ordered: number;
   dispatched: number;
   remaining: number;
