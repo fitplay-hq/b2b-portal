@@ -712,7 +712,7 @@ function DashboardContentSkeleton() {
           isFetching={isLoading}
           showAdvancedFilters={showAdvancedFilters}
           setShowAdvancedFilters={setShowAdvancedFilters}
-          matchedItems={searchResults.items}
+          dropdownMatches={searchResults.dropdownMatches}
         >
           {showAdvancedFilters && (
             <div className="mt-6 pt-6 border-t animate-in fade-in slide-in-from-top-4 duration-300">

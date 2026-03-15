@@ -6,6 +6,7 @@ import {
   filterDispatches,
   calculateItemMatches,
   calculateSearchSummary,
+  calculateDropdownMatches,
 } from "./masterSearchUtils";
 
 interface UseMasterSearchProps {
@@ -39,6 +40,10 @@ export function useMasterSearch({
     if (typeof window !== "undefined") {
       localStorage.setItem("om-master-search-query", searchQuery);
     }
+    // If query is empty, stop searching to show default dashboard
+    if (!searchQuery.trim()) {
+      setIsSearching(false);
+    }
   }, [searchQuery]);
 
   // Default implementation if not provided
@@ -62,8 +67,13 @@ export function useMasterSearch({
       omDispatches,
       searchQuery,
     );
+    const dropdownMatches = calculateDropdownMatches(
+      omPurchaseOrders,
+      omDispatches,
+      searchQuery,
+    );
 
-    return { pos, dispatches, items };
+    return { pos, dispatches, items, dropdownMatches };
   }, [omPurchaseOrders, omDispatches, searchQuery]);
 
   const searchSummary = useMemo(() => {

@@ -16,7 +16,14 @@ interface MasterSearchProps {
   isFetching?: boolean;
   showAdvancedFilters: boolean;
   setShowAdvancedFilters: (val: boolean) => void;
-  matchedItems: any[];
+  dropdownMatches: {
+    clients: any[];
+    locations: any[];
+    items: any[];
+    pos: any[];
+    dispatches: any[];
+    logistics: any[];
+  };
   children?: React.ReactNode;
 }
 
@@ -29,7 +36,7 @@ export function MasterSearch({
   isFetching,
   showAdvancedFilters,
   setShowAdvancedFilters,
-  matchedItems,
+  dropdownMatches,
   children,
 }: MasterSearchProps) {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -58,6 +65,7 @@ export function MasterSearch({
 
   const handleManualSearch = (query: string) => {
     if (query.trim()) {
+      setSearchQuery(query);
       onSearch(query);
       setShowDropdown(false);
     }
@@ -101,7 +109,7 @@ export function MasterSearch({
           <MasterSearchDropdown
             ref={dropdownRef}
             searchQuery={searchQuery}
-            matchedItems={matchedItems}
+            dropdownMatches={dropdownMatches}
             onSearch={handleManualSearch}
             onItemClick={() => setShowDropdown(false)}
           />

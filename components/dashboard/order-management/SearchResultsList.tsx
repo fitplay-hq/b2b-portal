@@ -129,6 +129,7 @@ export function SearchResultsList({
                       </TableHead>
                       <TableHead className="text-left px-3">Value</TableHead>
                       <TableHead className="text-left px-3">Status</TableHead>
+                      <TableHead className="text-left px-3">Location</TableHead>
                       <TableHead className="text-right pr-6">Action</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -178,6 +179,9 @@ export function SearchResultsList({
                               <Badge className={getPoStatusClass(po.status)}>
                                 {PO_STATUS_LABELS[po.status] ?? po.status}
                               </Badge>
+                            </TableCell>
+                            <TableCell className="text-left px-3 text-[10px] text-muted-foreground whitespace-nowrap">
+                              {po.deliveryLocations.join(", ") || "N/A"}
                             </TableCell>
                             <TableCell className="text-right pr-6">
                               <Link
@@ -246,7 +250,8 @@ export function SearchResultsList({
                       <TableHead className="text-left px-3">
                         Remaining
                       </TableHead>
-                      <TableHead className="text-left px-3">Courier</TableHead>
+                       <TableHead className="text-left px-3">Courier</TableHead>
+                      <TableHead className="text-left px-3">Docket #</TableHead>
                       <TableHead className="text-left px-3">Status</TableHead>
                       <TableHead className="text-right pr-6">Action</TableHead>
                     </TableRow>
@@ -294,8 +299,11 @@ export function SearchResultsList({
                             >
                               {remaining}
                             </TableCell>
-                            <TableCell className="text-left px-3">
+                             <TableCell className="text-left px-3">
                               {dispatch.logisticsPartnerName || "N/A"}
+                            </TableCell>
+                            <TableCell className="text-left px-3 font-mono text-[10px]">
+                              {dispatch.docketNumber || "N/A"}
                             </TableCell>
                             <TableCell className="text-left px-3">
                               <Badge
