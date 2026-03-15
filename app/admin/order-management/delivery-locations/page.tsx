@@ -34,6 +34,7 @@ import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import { useOMFilters } from "@/hooks/use-om-filters";
 import { LocationFilters } from "@/components/orderManagement/deliveryLocations/LocationFilters";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
+import { LOCATION_SORT_OPTIONS } from "@/constants/om-sort-options";
 import { ComboboxOption } from "@/components/ui/combobox";
 
 export default function OMDeliveryLocations() {
@@ -228,6 +229,7 @@ export default function OMDeliveryLocations() {
           onSearchChange={setSearchTerm}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          sortOptions={LOCATION_SORT_OPTIONS}
           sortNameLabel="City Name"
           showFilters={showFilters}
           setShowFilters={setShowFilters}

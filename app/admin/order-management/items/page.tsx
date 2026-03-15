@@ -60,6 +60,7 @@ import { ItemFilters } from "@/components/orderManagement/items/ItemFilters";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useOMFilters } from "@/hooks/use-om-filters";
+import { ITEM_SORT_OPTIONS } from "@/constants/om-sort-options";
 
 function skuBrandPart(brandName: string | undefined): string {
   return brandName
@@ -377,8 +378,8 @@ export default function OMItems() {
 
         if (sortBy === "newest")
           return (
-            new Date(a.createdAt || 0).getTime() -
-            new Date(b.createdAt || 0).getTime()
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime()
           );
         if (sortBy === "oldest")
           return (
@@ -879,6 +880,7 @@ export default function OMItems() {
           onSearchChange={setSearchTerm}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          sortOptions={ITEM_SORT_OPTIONS}
           sortNameLabel="Item Name"
           showFilters={showFilters}
           setShowFilters={setShowFilters}

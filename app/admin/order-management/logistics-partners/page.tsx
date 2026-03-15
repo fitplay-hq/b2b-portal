@@ -52,6 +52,7 @@ import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortable
 import { useLogisticsPartners } from "@/hooks/use-logistics-partners";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import { useOMFilters } from "@/hooks/use-om-filters";
+import { LOGISTICS_SORT_OPTIONS } from "@/constants/om-sort-options";
 
 export default function OMLogisticsPartners() {
   const { partners, isLoading, mutate } = useLogisticsPartners();
@@ -575,6 +576,7 @@ export default function OMLogisticsPartners() {
           onSearchChange={setSearchTerm}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          sortOptions={LOGISTICS_SORT_OPTIONS}
           sortNameLabel="Partner Name"
           showFilters={showFilters}
           setShowFilters={setShowFilters}

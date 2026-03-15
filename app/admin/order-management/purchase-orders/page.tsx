@@ -27,23 +27,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SearchableSelect, type ComboboxOption } from "@/components/ui/combobox";
+import { type ComboboxOption } from "@/components/ui/combobox";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-import { Input } from "@/components/ui/input";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import type {
   OMPurchaseOrder,
   OMClient,
 } from "@/types/order-management";
 import { useOMFilters } from "@/hooks/use-om-filters";
+import { PO_SORT_OPTIONS } from "@/constants/om-sort-options";
 
 const PO_STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -178,10 +171,10 @@ export default function OMPurchaseOrdersList() {
       })
       .sort((a, b) => {
         // PO Date
-        if (sortBy === "po_date_asc")
-          return new Date(a.poDate).getTime() - new Date(b.poDate).getTime();
-        if (sortBy === "po_date_desc")
-          return new Date(b.poDate).getTime() - new Date(a.poDate).getTime();
+        if (sortBy === "po_date_asc" || sortBy === "oldest")
+          return new Date(a.poDate || 0).getTime() - new Date(b.poDate || 0).getTime();
+        if (sortBy === "po_date_desc" || sortBy === "newest")
+          return new Date(b.poDate || 0).getTime() - new Date(a.poDate || 0).getTime();
 
         // PO Number
         if (sortBy === "po_number_asc")
@@ -296,7 +289,9 @@ export default function OMPurchaseOrdersList() {
           onSearchChange={setSearchTerm}
           sortBy={sortBy as any}
           onSortChange={setSortBy as any}
+          sortOptions={PO_SORT_OPTIONS}
           sortNameLabel="PO Date"
+          hideNameSort={true}
           showFilters={showFilters}
           setShowFilters={setShowFilters}
           onReset={() => {

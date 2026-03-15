@@ -48,6 +48,7 @@ import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useOMFilters } from "@/hooks/use-om-filters";
 import { useDispatches } from "@/hooks/use-dispatches";
+import { DISPATCH_SORT_OPTIONS } from "@/constants/om-sort-options";
 
 export default function OMDispatches() {
   const router = useRouter();
@@ -193,13 +194,13 @@ export default function OMDispatches() {
         );
       })
       .sort((a: OMDispatchOrder, b: OMDispatchOrder) => {
-        if (sortBy === "dispatch_date_asc") {
+        if (sortBy === "dispatch_date_asc" || sortBy === "oldest") {
           return (
             new Date(a.dispatchDate || 0).getTime() -
             new Date(b.dispatchDate || 0).getTime()
           );
         }
-        if (sortBy === "dispatch_date_desc") {
+        if (sortBy === "dispatch_date_desc" || sortBy === "newest") {
           return (
             new Date(b.dispatchDate || 0).getTime() -
             new Date(a.dispatchDate || 0).getTime()
@@ -483,7 +484,9 @@ export default function OMDispatches() {
           onSearchChange={setSearchTerm}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          sortOptions={DISPATCH_SORT_OPTIONS}
           sortNameLabel="Client Name"
+          hideNameSort={false} 
           showFilters={showFilters}
           setShowFilters={setShowFilters}
           onReset={resetFiltersAll}

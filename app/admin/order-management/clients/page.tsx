@@ -43,6 +43,7 @@ import { useClients } from "@/hooks/use-clients";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useOMFilters } from "@/hooks/use-om-filters";
+import { CLIENT_SORT_OPTIONS } from "@/constants/om-sort-options";
 
 export default function OMClients() {
   const { clients, isLoading, mutate } = useClients();
@@ -521,6 +522,7 @@ export default function OMClients() {
           onSearchChange={setSearchTerm}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          sortOptions={CLIENT_SORT_OPTIONS}
           sortNameLabel="Client Name"
           showFilters={showFilters}
           setShowFilters={setShowFilters}
