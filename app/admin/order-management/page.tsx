@@ -72,6 +72,7 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
+import { formatStatus, formatDateToYYYYMMDD } from "@/lib/utils";
 import {
   ResponsiveContainer,
   PieChart,
@@ -738,7 +739,7 @@ function DashboardContentSkeleton() {
                       value={advancedFilters.fromDate}
                       max={
                         advancedFilters.toDate ||
-                        new Date().toISOString().split("T")[0]
+                        formatDateToYYYYMMDD(new Date())
                       }
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setAdvancedFilters((prev) => ({
@@ -761,7 +762,7 @@ function DashboardContentSkeleton() {
                       type="date"
                       value={advancedFilters.toDate}
                       min={advancedFilters.fromDate}
-                      max={new Date().toISOString().split("T")[0]}
+                      max={formatDateToYYYYMMDD(new Date())}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setAdvancedFilters((prev) => ({
                           ...prev,

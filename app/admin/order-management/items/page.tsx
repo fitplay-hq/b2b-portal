@@ -48,6 +48,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
 import type { OMProduct, OMBrand } from "@/types/order-management";
+import { formatDateToYYYYMMDD } from "@/lib/utils";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { OMNewItemDialog } from "@/components/orderManagement/OMNewItemDialog";
 import {
@@ -434,7 +435,7 @@ export default function OMItems() {
     link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute(
       "download",
-      `items_${new Date().toISOString().split("T")[0]}.csv`,
+      `items_${formatDateToYYYYMMDD(new Date())}.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -510,7 +511,7 @@ export default function OMItems() {
         );
       },
     });
-    doc.save(`items_${new Date().toISOString().split("T")[0]}.pdf`);
+    doc.save(`items_${formatDateToYYYYMMDD(new Date())}.pdf`);
     toast.success("Items exported to PDF");
   };
 
