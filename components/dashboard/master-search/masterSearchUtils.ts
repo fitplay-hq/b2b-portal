@@ -182,7 +182,7 @@ export const calculateDropdownMatches = (
   // 1. Match Clients
   const clientsMap = new Map<string, any>();
   pos.forEach(po => {
-    if (po.clientName.toLowerCase().includes(lowerQuery)) {
+    if ((po.clientName ?? "").toLowerCase().includes(lowerQuery)) {
       clientsMap.set(po.clientName, { name: po.clientName });
     }
   });
@@ -203,8 +203,8 @@ export const calculateDropdownMatches = (
   // 4. Match PO numbers
   const poMatches = pos
     .filter(po => 
-      po.poNumber.toLowerCase().includes(lowerQuery) || 
-      po.estimateNumber.toLowerCase().includes(lowerQuery)
+      (po.poNumber ?? "").toLowerCase().includes(lowerQuery) || 
+      (po.estimateNumber ?? "").toLowerCase().includes(lowerQuery)
     )
     .slice(0, 5)
     .map(po => ({
@@ -216,8 +216,8 @@ export const calculateDropdownMatches = (
   // 5. Match Dispatch numbers
   const dispatchMatches = dispatches
     .filter(d => 
-      d.invoiceNumber.toLowerCase().includes(lowerQuery) || 
-      d.docketNumber.toLowerCase().includes(lowerQuery)
+      (d.invoiceNumber ?? "").toLowerCase().includes(lowerQuery) || 
+      (d.docketNumber ?? "").toLowerCase().includes(lowerQuery)
     )
     .slice(0, 5)
     .map(d => ({
@@ -230,7 +230,7 @@ export const calculateDropdownMatches = (
   // 6. Match Logistics Partners
   const logisticsMap = new Map<string, any>();
   dispatches.forEach(d => {
-    if (d.logisticsPartnerName.toLowerCase().includes(lowerQuery)) {
+    if ((d.logisticsPartnerName ?? "").toLowerCase().includes(lowerQuery)) {
       logisticsMap.set(d.logisticsPartnerName, { name: d.logisticsPartnerName });
     }
   });

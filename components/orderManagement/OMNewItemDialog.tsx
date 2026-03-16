@@ -96,7 +96,7 @@ export function OMNewItemDialog({
           name,
           sku: finalSku,
           code: codePart,
-          price: rate ? parseFloat(rate) : undefined,
+          price: rate ? parseFloat(rate) : null,
           brandIds,
           defaultGstPct: parseFloat(gstPct),
           description: description || null,
