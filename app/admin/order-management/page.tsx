@@ -44,7 +44,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ComboboxOption, SearchableSelect } from "@/components/ui/combobox";
+import {
+  ComboboxOption,
+  SearchableSelect,
+  MultiSearchableSelect,
+} from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -103,7 +107,8 @@ export default function OMDashboard() {
 
   const valueLabels = useMemo(
     () => ({
-      status: (val: string) => PO_STATUS_LABELS[val] || val,
+      status: (val: string[]) =>
+        val.map((v) => PO_STATUS_LABELS[v] || v).join(", "),
       gstPercentage: (val: string) => `${val}%`,
       minAmount: (val: string) => `₹${val}`,
       maxAmount: (val: string) => `₹${val}`,
@@ -137,7 +142,7 @@ export default function OMDashboard() {
       gstPercentage: "",
       minAmount: "",
       maxAmount: "",
-      status: "",
+      status: [] as string[],
     },
     labels: {
       fromDate: "From",
@@ -154,7 +159,7 @@ export default function OMDashboard() {
       gstPercentage: "GST %",
       minAmount: "Min Amount",
       maxAmount: "Max Amount",
-      status: "Status",
+      status: "Statuses",
     },
     valueLabels,
     persistenceKey: "om-dashboard-filters",
@@ -219,8 +224,9 @@ export default function OMDashboard() {
         params.append("minAmount", advancedFilters.minAmount);
       if (advancedFilters.maxAmount)
         params.append("maxAmount", advancedFilters.maxAmount);
-      if (advancedFilters.status)
-        params.append("status", advancedFilters.status);
+      if (advancedFilters.status && advancedFilters.status.length > 0) {
+        advancedFilters.status.forEach((s: string) => params.append("status", s));
+      }
 
       const res = await fetch(`/api/admin/om/search?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch");
@@ -888,25 +894,19 @@ function DashboardContentSkeleton() {
 
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Status
+                    Statuses
                   </label>
-                  <Select
+                  <MultiSearchableSelect
+                    options={Object.entries(PO_STATUS_LABELS).map(([val, label]) => ({
+                      value: val,
+                      label: label,
+                    }))}
                     value={advancedFilters.status}
-                    onValueChange={(val) =>
+                    onValueChange={(val: string[]) =>
                       setAdvancedFilters((prev) => ({ ...prev, status: val }))
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(PO_STATUS_LABELS).map(([val, label]) => (
-                        <SelectItem key={val} value={val}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Select statuses..."
+                  />
                 </div>
 
                 <div className="flex items-end lg:col-span-1 xl:col-start-4">

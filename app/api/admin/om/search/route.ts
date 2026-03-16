@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     const invoiceNumber = searchParams.get("invoiceNumber");
     const logisticsPartnerId = searchParams.get("logisticsPartnerId");
     const locationId = searchParams.get("locationId");
-    const status = searchParams.get("status");
+    const statuses = searchParams.getAll("status");
     const sku = searchParams.get("sku");
     const docketNumber = searchParams.get("docketNumber");
     const minAmount = searchParams.get("minAmount");
@@ -236,8 +236,8 @@ export async function GET(req: NextRequest) {
       andFilters.push({ grandTotal: amountFilter });
     }
 
-    if (status) {
-      andFilters.push({ status });
+    if (statuses.length > 0) {
+      andFilters.push({ status: { in: statuses } });
     }
 
     const whereClause = andFilters.length > 0 ? { AND: andFilters } : {};

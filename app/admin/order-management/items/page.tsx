@@ -211,7 +211,7 @@ export default function OMItems() {
     const submissionData = {
       ...formData,
       sku: finalSku,
-      price: formData.price ? parseFloat(formData.price) : undefined,
+      price: formData.price ? parseFloat(formData.price) : null,
       defaultGstPct: parseFloat(formData.defaultGstPct),
       brandIds: formData.brandIds.length > 0 ? formData.brandIds : [],
     };
