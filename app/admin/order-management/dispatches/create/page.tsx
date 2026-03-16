@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Save, AlertCircle, Info, Loader2, ArrowLeft, Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { formatDateForApi } from "@/lib/utils";
+import { formatDateForApi, formatDateToYYYYMMDD } from "@/lib/utils";
 import { getFinancialYearString } from "@/lib/utils/financial-year";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -732,7 +732,7 @@ function CreateDispatchForm() {
                     type="date"
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
-                    min={selectedPO?.poDate ? new Date(selectedPO.poDate).toISOString().split("T")[0] : undefined}
+                    min={selectedPO?.poDate ? formatDateToYYYYMMDD(selectedPO.poDate) : undefined}
                   />
                 </div>
               </div>

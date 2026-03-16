@@ -21,7 +21,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatStatus, formatDisplayDate } from "@/lib/utils";
+import { formatStatus, formatDisplayDate, formatDateToYYYYMMDD } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -340,7 +340,7 @@ export default function OMDispatches() {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `dispatches_${new Date().toISOString().split("T")[0]}.csv`,
+      `dispatches_${formatDateToYYYYMMDD(new Date())}.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -438,7 +438,7 @@ export default function OMDispatches() {
       },
     });
 
-    doc.save(`dispatches_${new Date().toISOString().split("T")[0]}.pdf`);
+    doc.save(`dispatches_${formatDateToYYYYMMDD(new Date())}.pdf`);
     toast.success("Dispatches exported to PDF");
   };
 

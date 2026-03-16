@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Save, AlertCircle, Info, Loader2, ArrowLeft, Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { formatDateForApi } from "@/lib/utils";
+import { formatStatus, formatDateForApi, formatDateToYYYYMMDD } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -151,31 +151,13 @@ function EditDispatchForm() {
           const dispatch = await res.json();
           setPoId(dispatch.purchaseOrderId || "");
           setInvoiceNumber(dispatch.invoiceNumber || "");
-          setInvoiceDate(
-            dispatch.invoiceDate
-              ? new Date(dispatch.invoiceDate).toISOString().split("T")[0]
-              : "",
-          );
+          setInvoiceDate(formatDateToYYYYMMDD(dispatch.invoiceDate));
           setLogisticsPartnerId(dispatch.logisticsPartnerId || "");
           setDeliveryLocationId(dispatch.deliveryLocationId || "");
           setTrackingNumber(dispatch.docketNumber || "");
-          setExpectedDeliveryDate(
-            dispatch.expectedDeliveryDate
-              ? new Date(dispatch.expectedDeliveryDate)
-                  .toISOString()
-                  .split("T")[0]
-              : "",
-          );
-          setDispatchDate(
-            dispatch.dispatchDate
-              ? new Date(dispatch.dispatchDate).toISOString().split("T")[0]
-              : "",
-          );
-          setDeliveryDate(
-            dispatch.deliveryDate
-              ? new Date(dispatch.deliveryDate).toISOString().split("T")[0]
-              : "",
-          );
+          setExpectedDeliveryDate(formatDateToYYYYMMDD(dispatch.expectedDeliveryDate));
+          setDispatchDate(formatDateToYYYYMMDD(dispatch.dispatchDate));
+          setDeliveryDate(formatDateToYYYYMMDD(dispatch.deliveryDate));
           setStatus(dispatch.status || "DISPATCHED");
           setShipmentBoxes(dispatch.shipmentBoxes || []);
           

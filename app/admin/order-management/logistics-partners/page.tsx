@@ -50,6 +50,7 @@ import { useMemo } from "react";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useLogisticsPartners } from "@/hooks/use-logistics-partners";
+import { formatDateToYYYYMMDD } from "@/lib/utils";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import { useOMFilters } from "@/hooks/use-om-filters";
 import { LOGISTICS_SORT_OPTIONS } from "@/constants/om-sort-options";
@@ -290,7 +291,7 @@ export default function OMLogisticsPartners() {
     link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute(
       "download",
-      `logistics_partners_${new Date().toISOString().split("T")[0]}.csv`,
+      `logistics_partners_${formatDateToYYYYMMDD(new Date())}.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -356,9 +357,7 @@ export default function OMLogisticsPartners() {
         );
       },
     });
-    doc.save(
-      `logistics_partners_${new Date().toISOString().split("T")[0]}.pdf`,
-    );
+    doc.save(`logistics_partners_${formatDateToYYYYMMDD(new Date())}.pdf`);
     toast.success("Logistics Partners exported to PDF");
   };
 
