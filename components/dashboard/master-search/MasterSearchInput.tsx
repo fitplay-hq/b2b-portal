@@ -55,7 +55,7 @@ export function MasterSearchInput({
           variant="outline"
           onClick={onClear}
           disabled={isFetching}
-          className="h-10 px-4 shrink-0 flex gap-2 items-center bg-[#1a1a1a] text-white border border-neutral-700 hover:bg-[#2a2a2a] transition-all duration-200"
+          className="h-10 px-4 shrink-0 flex gap-2 items-center bg-[#1a1a1a] text-white border border-neutral-700 hover:bg-[#2a2a2a] transition-all duration-200 hover:text-white"
         >
           {isFetching ? (
             <Loader2 className="h-4 w-4 animate-spin" />

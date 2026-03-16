@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MasterSearch } from "@/components/dashboard/master-search/MasterSearch";
 import { useMasterSearch } from "@/components/dashboard/master-search/useMasterSearch";
@@ -80,6 +81,7 @@ import {
 } from "recharts";
 
 export default function OMDashboard() {
+  const router = useRouter();
   const [omPurchaseOrders, setPurchaseOrders] = useState<OMDashboardPO[]>([]);
   const [omDispatches, setDispatches] = useState<OMDashboardDispatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -274,6 +276,8 @@ export default function OMDashboard() {
             clientId: po.clientId,
             clientName: po.client?.name || "Unknown",
             invoiceNumber: d.invoiceNumber,
+            invoiceDate: d.invoiceDate,
+            dispatchDate: d.dispatchDate,
             docketNumber: d.docketNumber || "",
             totalDispatchQty:
               d.items?.reduce(
@@ -990,7 +994,7 @@ function DashboardContentSkeleton() {
                     clientSummaryArray={clientSummaryArray}
                   />
 
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     {/* Purchase Orders Table */}
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between">
@@ -1021,13 +1025,25 @@ function DashboardContentSkeleton() {
                                   Client
                                 </TableHead>
                                 <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
-                                  Qty
+                                  Item Name
+                                </TableHead>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
+                                  Total Qty
+                                </TableHead>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
+                                  Dispatched
+                                </TableHead>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
+                                  Remaining
                                 </TableHead>
                                 <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
                                   Value
                                 </TableHead>
                                 <TableHead className="text-left px-3 text-xs uppercase tracking-wider text-center">
                                   Status
+                                </TableHead>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
+                                  Location
                                 </TableHead>
                                 <TableHead className="text-center px-3 text-xs uppercase tracking-wider">
                                   Action
@@ -1037,46 +1053,77 @@ function DashboardContentSkeleton() {
                             <TableBody>
                               {omPurchaseOrders
                                 .slice(0, 5)
-                                .map((po: OMDashboardPO) => (
-                                  <TableRow key={po.id} className="text-xs">
-                                    <TableCell className="px-3">
-                                      {po.poDate
-                                        ? new Date(
-                                            po.poDate,
-                                          ).toLocaleDateString("en-IN")
-                                        : "N/A"}
-                                    </TableCell>
-                                    <TableCell className="font-medium px-3">
-                                      {po.poNumber || po.estimateNumber}
-                                    </TableCell>
-                                    <TableCell className="px-3 max-w-[120px] truncate">
-                                      {po.clientName}
-                                    </TableCell>
-                                    <TableCell className="px-3">
-                                      {po.totalQuantity}
-                                    </TableCell>
-                                    <TableCell className="px-3">
-                                      ₹{po.grandTotal.toLocaleString("en-IN")}
-                                    </TableCell>
-                                    <TableCell className="px-3 text-center">
-                                      <Badge
-                                        className={getPoStatusClass(po.status)}
+                                .flatMap((po: OMDashboardPO) =>
+                                  po.lineItems.map((item) => {
+                                    const dispatched =
+                                      getTotalDispatchedForItem(item.id);
+                                    const remaining = item.quantity - dispatched;
+                                    return (
+                                      <TableRow
+                                        key={item.id}
+                                        className="text-xs cursor-pointer hover:bg-muted/50 transition-colors"
+                                        onClick={() =>
+                                          router.push(
+                                            `/admin/order-management/purchase-orders/${po.id}`,
+                                          )
+                                        }
                                       >
-                                        {PO_STATUS_LABELS[po.status] ??
-                                          po.status}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell className="px-3 text-center">
-                                      <Link
-                                        href={`/admin/order-management/purchase-orders/${po.id}`}
-                                      >
-                                        <Button variant="ghost" size="sm">
-                                          View
-                                        </Button>
-                                      </Link>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
+                                        <TableCell className="px-3">
+                                          {po.poDate
+                                            ? new Date(
+                                                po.poDate,
+                                              ).toLocaleDateString("en-IN")
+                                            : "N/A"}
+                                        </TableCell>
+                                        <TableCell className="font-medium px-3">
+                                          {po.poNumber || po.estimateNumber}
+                                        </TableCell>
+                                        <TableCell className="px-3 max-w-[120px] truncate">
+                                          {po.clientName}
+                                        </TableCell>
+                                        <TableCell className="px-3 font-medium text-xs max-w-[150px] truncate">
+                                          {item.itemName}
+                                        </TableCell>
+                                        <TableCell className="px-3">
+                                          {item.quantity}
+                                        </TableCell>
+                                        <TableCell className="px-3 text-blue-600 font-medium">
+                                          {dispatched}
+                                        </TableCell>
+                                        <TableCell
+                                          className={`px-3 font-medium ${remaining > 0 ? "text-amber-600" : "text-green-600"}`}
+                                        >
+                                          {remaining}
+                                        </TableCell>
+                                        <TableCell className="px-3">
+                                          ₹
+                                          {item.totalAmount.toLocaleString(
+                                            "en-IN",
+                                          )}
+                                        </TableCell>
+                                        <TableCell className="px-3 text-center">
+                                          <Badge
+                                            className={getPoStatusClass(
+                                              po.status,
+                                            )}
+                                          >
+                                            {PO_STATUS_LABELS[po.status] ??
+                                              po.status}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell className="px-3 text-[10px] text-muted-foreground whitespace-nowrap">
+                                          {po.deliveryLocations.join(", ") ||
+                                            "N/A"}
+                                        </TableCell>
+                                        <TableCell className="px-3 text-center">
+                                          <Button variant="ghost" size="sm">
+                                            View
+                                          </Button>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  }),
+                                )}
                             </TableBody>
                           </Table>
                         </div>
@@ -1103,6 +1150,9 @@ function DashboardContentSkeleton() {
                           <Table>
                             <TableHeader>
                               <TableRow>
+                                <TableHead className="text-left px-3 text-xs uppercase tracking-wider">
+                                  Date
+                                </TableHead>
                                 <TableHead className="text-xs uppercase tracking-wider">
                                   Invoice #
                                 </TableHead>
@@ -1112,8 +1162,20 @@ function DashboardContentSkeleton() {
                                 <TableHead className="text-xs uppercase tracking-wider">
                                   Client
                                 </TableHead>
+                                <TableHead className="text-xs uppercase tracking-wider">
+                                  Item Name
+                                </TableHead>
                                 <TableHead className="text-right text-xs uppercase tracking-wider">
-                                  Qty
+                                  Total Qty
+                                </TableHead>
+                                <TableHead className="text-right text-xs uppercase tracking-wider">
+                                  Dispatched
+                                </TableHead>
+                                <TableHead className="text-right text-xs uppercase tracking-wider">
+                                  Remaining
+                                </TableHead>
+                                <TableHead className="text-xs uppercase tracking-wider">
+                                  Courier
                                 </TableHead>
                                 <TableHead className="text-xs uppercase tracking-wider">
                                   Status
@@ -1124,38 +1186,82 @@ function DashboardContentSkeleton() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {omDispatches.slice(0, 5).map((dispatch) => (
-                                <TableRow key={dispatch.id} className="text-xs">
-                                  <TableCell className="font-medium">
-                                    {dispatch.invoiceNumber || "N/A"}
-                                  </TableCell>
-                                  <TableCell>{dispatch.poNumber}</TableCell>
-                                  <TableCell className="max-w-[120px] truncate">
-                                    {dispatch.clientName}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    {dispatch.totalDispatchQty}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      className={getDispatchStatusClass(
-                                        dispatch.status,
-                                      )}
+                              {omDispatches.slice(0, 5).flatMap((dispatch) =>
+                                dispatch.lineItems.map((item, idx) => {
+                                  const dispatchedSoFar =
+                                    getTotalDispatchedForItem(
+                                      item.poLineItemId || "",
+                                    );
+                                  const parentPOItem = omPurchaseOrders
+                                    .flatMap((po) => po.lineItems)
+                                    .find((pi) => pi.id === item.poLineItemId);
+                                  const orderedQty =
+                                    parentPOItem?.quantity || item.dispatchQty;
+                                  const remaining =
+                                    orderedQty - dispatchedSoFar;
+
+                                  return (
+                                    <TableRow
+                                      key={`${dispatch.id}-${idx}`}
+                                      className="text-xs cursor-pointer hover:bg-muted/50 transition-colors"
+                                      onClick={() =>
+                                        router.push(
+                                          `/admin/order-management/dispatches/${dispatch.id}`,
+                                        )
+                                      }
                                     >
-                                      {dispatch.status}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <Link
-                                      href={`/admin/order-management/dispatches/${dispatch.id}`}
-                                    >
-                                      <Button variant="ghost" size="sm">
-                                        View
-                                      </Button>
-                                    </Link>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                                      <TableCell className="px-3">
+                                        {dispatch.dispatchDate ||
+                                        dispatch.invoiceDate
+                                          ? new Date(
+                                              dispatch.dispatchDate ||
+                                                dispatch.invoiceDate ||
+                                                "",
+                                            ).toLocaleDateString("en-IN")
+                                          : "N/A"}
+                                      </TableCell>
+                                      <TableCell className="font-medium">
+                                        {dispatch.invoiceNumber || "N/A"}
+                                      </TableCell>
+                                      <TableCell>{dispatch.poNumber}</TableCell>
+                                      <TableCell className="max-w-[120px] truncate">
+                                        {dispatch.clientName}
+                                      </TableCell>
+                                      <TableCell className="font-medium text-xs max-w-[150px] truncate">
+                                        {item.itemName}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        {orderedQty}
+                                      </TableCell>
+                                      <TableCell className="text-right text-blue-600 font-medium">
+                                        {item.dispatchQty}
+                                      </TableCell>
+                                      <TableCell
+                                        className={`text-right font-medium ${remaining > 0 ? "text-amber-600" : "text-green-600"}`}
+                                      >
+                                        {remaining}
+                                      </TableCell>
+                                      <TableCell>
+                                        {dispatch.logisticsPartnerName || "N/A"}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge
+                                          className={getDispatchStatusClass(
+                                            dispatch.status,
+                                          )}
+                                        >
+                                          {dispatch.status}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <Button variant="ghost" size="sm">
+                                          View
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                }),
+                              )}
                             </TableBody>
                           </Table>
                         </div>

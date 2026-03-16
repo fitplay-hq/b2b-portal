@@ -231,6 +231,7 @@ export function SearchResultsList({
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
+                      <TableHead className="text-left px-3">Date</TableHead>
                       <TableHead className="text-left px-3">
                         Invoice #
                       </TableHead>
@@ -250,8 +251,7 @@ export function SearchResultsList({
                       <TableHead className="text-left px-3">
                         Remaining
                       </TableHead>
-                       <TableHead className="text-left px-3">Courier</TableHead>
-                      <TableHead className="text-left px-3">Docket #</TableHead>
+                      <TableHead className="text-left px-3">Courier</TableHead>
                       <TableHead className="text-left px-3">Status</TableHead>
                       <TableHead className="text-right pr-6">Action</TableHead>
                     </TableRow>
@@ -271,6 +271,15 @@ export function SearchResultsList({
 
                         return (
                           <TableRow key={`${dispatch.id}-${idx}`}>
+                            <TableCell className="text-left px-3 text-xs">
+                              {dispatch.dispatchDate || dispatch.invoiceDate
+                                ? new Date(
+                                    dispatch.dispatchDate ||
+                                      dispatch.invoiceDate ||
+                                      "",
+                                  ).toLocaleDateString("en-IN")
+                                : "N/A"}
+                            </TableCell>
                             <TableCell className="text-left px-3 font-medium">
                               <Link
                                 href={`/admin/order-management/dispatches/${dispatch.id}`}
@@ -301,9 +310,6 @@ export function SearchResultsList({
                             </TableCell>
                              <TableCell className="text-left px-3">
                               {dispatch.logisticsPartnerName || "N/A"}
-                            </TableCell>
-                            <TableCell className="text-left px-3 font-mono text-[10px]">
-                              {dispatch.docketNumber || "N/A"}
                             </TableCell>
                             <TableCell className="text-left px-3">
                               <Badge

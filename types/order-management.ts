@@ -329,6 +329,8 @@ export interface OMDashboardDispatch {
   clientId: string;
   clientName: string;
   invoiceNumber: string;
+  invoiceDate?: string;
+  dispatchDate?: string;
   totalDispatchQty: number;
   logisticsPartnerName: string;
   docketNumber: string;
