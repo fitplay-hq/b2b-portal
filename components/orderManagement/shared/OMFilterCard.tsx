@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
   CardDescription,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -22,6 +21,7 @@ interface OMFilterCardProps {
   onSearchChange: (value: string) => void;
   sortBy: SortOption;
   onSortChange: (value: SortOption) => void;
+  sortOptions?: SortOption[];
   sortNameLabel?: string;
   showFilters: boolean;
   setShowFilters: (show: boolean) => void;
@@ -38,6 +38,7 @@ export function OMFilterCard({
   onSearchChange,
   sortBy,
   onSortChange,
+  sortOptions,
   sortNameLabel,
   showFilters,
   setShowFilters,
@@ -80,8 +81,9 @@ export function OMFilterCard({
             <OMSortControl
               value={sortBy}
               onValueChange={onSortChange}
+              options={sortOptions}
               nameLabel={sortNameLabel}
-              className="h-10"
+              className="h-9"
             />
           </div>
 

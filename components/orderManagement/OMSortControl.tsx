@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import {
   Select,
   SelectContent,
@@ -8,9 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ArrowUpDown } from "lucide-react";
 
 export type SortOption =
   | "name_asc"
@@ -68,17 +67,17 @@ export type SortOption =
 interface OMSortControlProps {
   value: SortOption;
   onValueChange: (value: SortOption) => void;
+  options?: SortOption[];
   nameLabel?: string;
   className?: string;
-  hideLabel?: boolean;
 }
 
 export function OMSortControl({
   value,
   onValueChange,
+  options: providedOptions,
   nameLabel = "Name",
   className,
-  hideLabel = false,
 }: OMSortControlProps) {
   // Helper to get human-friendly labels
   const getSortLabel = (option: SortOption): string => {
@@ -117,66 +116,90 @@ export function OMSortControl({
           dispatch_date: "Dispatch Date",
         };
 
-        const [field, direction] = (option as string).split("_");
+        const lastUnderscoreIndex = (option as string).lastIndexOf("_");
+        if (lastUnderscoreIndex === -1) return option;
+
+        const field = (option as string).substring(0, lastUnderscoreIndex);
+        const direction = (option as string).substring(lastUnderscoreIndex + 1);
+
         if (!field || !direction) return option;
 
         const friendlyField =
           fieldMapping[field] ||
-          field.charAt(0).toUpperCase() + field.slice(1).replace("_", " ");
-        const friendlyDirection = direction === "asc" ? "A-Z" : "Z-A";
+          field
+            .split("_")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+
+        let friendlyDirection = "";
+        if (["newest", "oldest", "po_date", "inv_date", "dispatch_date"].includes(field)) {
+          friendlyDirection = direction === "asc" ? "Oldest" : "Newest";
+        } else if (["qty", "total_ordered", "rate", "value", "remaining", "ordered", "dispatched"].includes(field)) {
+          friendlyDirection = direction === "asc" ? "Low to High" : "High to Low";
+        } else {
+          friendlyDirection = direction === "asc" ? "A-Z" : "Z-A";
+        }
 
         return `${friendlyField} (${friendlyDirection})`;
       }
     }
   };
 
-  // Base options that are always shown
-  const baseOptions: SortOption[] = [
-    "name_asc",
-    "name_desc",
-    "newest",
-    "oldest",
-    "latest_update",
-  ];
+  // Helper to get the opposite sort direction for a field
+  const getOppositeOption = (option: SortOption): SortOption | null => {
+    const lastUnderscoreIndex = (option as string).lastIndexOf("_");
+    if (lastUnderscoreIndex === -1) return null;
 
-  // Dynamic options including the current value
+    const field = (option as string).substring(0, lastUnderscoreIndex);
+    const direction = (option as string).substring(lastUnderscoreIndex + 1);
+
+    if (direction === "asc") return `${field}_desc` as SortOption;
+    if (direction === "desc") return `${field}_asc` as SortOption;
+
+    return null;
+  };
+
   const currentOptions = useMemo(() => {
-    const options = [...baseOptions];
+    const list: SortOption[] = [];
 
-    // If current value is not in base options, add it and its counterpart
-    if (value && !baseOptions.includes(value)) {
-      options.push(value);
-      const [field, direction] = (value as string).split("_");
-      if (field && direction) {
-        const opposite = (direction === "asc"
-          ? `${field}_desc`
-          : `${field}_asc`) as SortOption;
-        // Check if opposite exists in the type (heuristic)
-        if (!options.includes(opposite)) {
-          options.push(opposite);
-        }
+    // 1. Add provided options (High priority - these are the individual order choices)
+    if (providedOptions) {
+      providedOptions.forEach((opt) => {
+        if (!list.includes(opt)) list.push(opt);
+      });
+    }
+
+    // 2. Add the current value and its opposite (dynamically added from header clicks)
+    if (value) {
+      if (!list.includes(value)) list.push(value);
+
+      const opposite = getOppositeOption(value);
+      if (opposite && opposite !== value && !list.includes(opposite)) {
+        list.push(opposite);
       }
     }
-    return Array.from(new Set(options));
-  }, [value, nameLabel]);
+
+    return Array.from(new Set(list));
+  }, [value, providedOptions]);
 
   return (
-    <Select
-      value={value}
-      onValueChange={(val) => onValueChange(val as SortOption)}
-    >
-      <SelectTrigger className={cn("pl-10 relative h-10 w-full", className)}>
-        <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <SelectValue placeholder="Sort By" />
-      </SelectTrigger>
-      <SelectContent>
-        {currentOptions.map((opt: SortOption) => (
-          <SelectItem key={opt} value={opt}>
-            {getSortLabel(opt)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className={cn("relative w-full", className)}>
+      <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+      <Select
+        value={value}
+        onValueChange={(val) => onValueChange(val as SortOption)}
+      >
+        <SelectTrigger className="pl-10 h-10 w-full bg-background relative">
+          <SelectValue placeholder="Sort By" />
+        </SelectTrigger>
+        <SelectContent>
+          {currentOptions.map((opt) => (
+            <SelectItem key={opt} value={opt}>
+              {getSortLabel(opt)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
-

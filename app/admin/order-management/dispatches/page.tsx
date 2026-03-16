@@ -48,6 +48,7 @@ import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useOMFilters } from "@/hooks/use-om-filters";
 import { useDispatches } from "@/hooks/use-dispatches";
+import { DISPATCH_SORT_OPTIONS } from "@/constants/om-sort-options";
 
 export default function OMDispatches() {
   const router = useRouter();
@@ -60,6 +61,16 @@ export default function OMDispatches() {
   const [logisticsOptions, setLogisticsOptions] = useState<ComboboxOption[]>([]);
   const [invoiceOptions, setInvoiceOptions] = useState<ComboboxOption[]>([]);
   const [docketOptions, setDocketOptions] = useState<ComboboxOption[]>([]);
+
+  const valueLabels = useMemo(
+    () => ({
+      status: (val: string) =>
+        OM_DISPATCH_STATUS_CONFIG[val as OMDispatchStatus]?.label || val,
+      logisticsPartnerId: (val: string) =>
+        logisticsOptions.find((o) => o.value === val)?.label || val,
+    }),
+    [logisticsOptions],
+  );
 
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
@@ -81,12 +92,7 @@ export default function OMDispatches() {
         invoiceNumber: "Invoice #",
         docketNumber: "Tracking #",
       },
-      valueLabels: {
-        status: (val) =>
-          OM_DISPATCH_STATUS_CONFIG[val as OMDispatchStatus]?.label || val,
-        logisticsPartnerId: (val) =>
-          logisticsOptions.find((o) => o.value === val)?.label || val,
-      },
+      valueLabels,
     });
 
   const fetchFilters = async () => {
@@ -95,8 +101,8 @@ export default function OMDispatches() {
         await Promise.all([
           fetch("/api/admin/om/clients"),
           fetch("/api/admin/om/logistics-partners"),
-          fetch("/api/admin/om/dispatches/invoice-options"),
-          fetch("/api/admin/om/dispatches/docket-options"),
+          fetch("/api/admin/om/dispatch-orders/options?type=invoice"),
+          fetch("/api/admin/om/dispatch-orders/options?type=docket"),
         ]);
 
       if (clientsRes.ok) {
@@ -193,13 +199,13 @@ export default function OMDispatches() {
         );
       })
       .sort((a: OMDispatchOrder, b: OMDispatchOrder) => {
-        if (sortBy === "dispatch_date_asc") {
+        if (sortBy === "dispatch_date_asc" || sortBy === "oldest") {
           return (
             new Date(a.dispatchDate || 0).getTime() -
             new Date(b.dispatchDate || 0).getTime()
           );
         }
-        if (sortBy === "dispatch_date_desc") {
+        if (sortBy === "dispatch_date_desc" || sortBy === "newest") {
           return (
             new Date(b.dispatchDate || 0).getTime() -
             new Date(a.dispatchDate || 0).getTime()
@@ -483,6 +489,7 @@ export default function OMDispatches() {
           onSearchChange={setSearchTerm}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          sortOptions={DISPATCH_SORT_OPTIONS}
           sortNameLabel="Client Name"
           showFilters={showFilters}
           setShowFilters={setShowFilters}

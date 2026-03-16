@@ -318,7 +318,10 @@ export default function OMPurchaseOrderDetail() {
               <CardTitle>Dispatch History</CardTitle>
             </CardHeader>
             <CardContent>
-              <OMDispatchHistory dispatches={po.dispatchOrders || []} />
+              <OMDispatchHistory 
+                dispatches={po.dispatchOrders || []} 
+                poItems={po.items || []}
+              />
             </CardContent>
           </Card>
         </div>

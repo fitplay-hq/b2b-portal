@@ -249,8 +249,13 @@ export async function GET(req: NextRequest) {
         deliveryLocations: true,
         items: {
           include: {
-            product: true,
+            product: {
+              include: {
+                brands: true,
+              },
+            },
             dispatchItems: true,
+            OMBrand: true,
           },
         },
         dispatchOrders: {
@@ -260,7 +265,12 @@ export async function GET(req: NextRequest) {
               include: {
                 purchaseOrderItem: {
                   include: {
-                    product: true,
+                    product: {
+                      include: {
+                        brands: true,
+                      },
+                    },
+                    OMBrand: true,
                   },
                 },
               },
@@ -268,7 +278,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      take: query || andFilters.length > 0 ? 50 : 100,
+      take: query || andFilters.length > 0 ? 100 : 200,
       orderBy: { createdAt: "desc" },
     });
 

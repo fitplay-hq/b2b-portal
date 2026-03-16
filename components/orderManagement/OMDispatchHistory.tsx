@@ -1,94 +1,270 @@
-"use client";
-
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useState, useMemo } from "react";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatStatus } from "@/lib/utils";
-import { OMDispatchOrder, OMDispatchOrderItem } from "@/types/order-management";
+import {
+  OMDispatchOrder,
+  OMDispatchOrderItem,
+  OMPurchaseOrderItem,
+  getDispatchStatusVisuals,
+} from "@/types/order-management";
+import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
+import { format } from "date-fns";
+import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 
 interface OMDispatchHistoryProps {
   dispatches: OMDispatchOrder[];
+  poItems: OMPurchaseOrderItem[];
 }
 
-export function OMDispatchHistory({ dispatches }: OMDispatchHistoryProps) {
-  if (!dispatches || dispatches.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/20">
-        No dispatch history found for this purchase order.
-      </div>
-    );
-  }
+interface FlattenedDispatchItem {
+  id: string;
+  invoiceNumber: string;
+  date: string;
+  itemName: string;
+  itemSku: string;
+  quantity: number;
+  totalOrdered: number;
+  remainingQty: number;
+  logisticsPartner: string;
+  trackingNumber: string;
+  status: string;
+}
+
+type HistorySortOption =
+  | "date_asc"
+  | "date_desc"
+  | "inv_asc"
+  | "inv_desc"
+  | "item_asc"
+  | "item_desc"
+  | "total_asc"
+  | "total_desc"
+  | "dispatch_asc"
+  | "dispatch_desc"
+  | "rem_asc"
+  | "rem_desc"
+  | "log_asc"
+  | "log_desc"
+  | "track_asc"
+  | "track_desc"
+  | "status_asc"
+  | "status_desc";
+
+export function OMDispatchHistory({
+  dispatches,
+  poItems,
+}: OMDispatchHistoryProps) {
+  const [sortBy, setSortBy] = useState<HistorySortOption>("date_desc");
+
+  // Flatten dispatches into item-level rows
+  const flattenedItems: FlattenedDispatchItem[] = useMemo(() => {
+    return dispatches.flatMap((dispatch) => {
+      return (
+        dispatch.items?.map((item: OMDispatchOrderItem) => {
+          const poItem = poItems.find(
+            (pi) => pi.id === item.purchaseOrderItemId,
+          );
+
+          const totalDispatchedForItem = dispatches.reduce((sum, d) => {
+            const di = d.items?.find(
+              (i) => i.purchaseOrderItemId === item.purchaseOrderItemId,
+            );
+            return sum + (di?.quantity || 0);
+          }, 0);
+
+          const remainingQty = Math.max(
+            0,
+            (poItem?.quantity || 0) - totalDispatchedForItem,
+          );
+
+          return {
+            id: item.id,
+            invoiceNumber: dispatch.invoiceNumber,
+            date: dispatch.dispatchDate || dispatch.invoiceDate,
+            itemName:
+              poItem?.product?.name ||
+              item.product?.name ||
+              item.purchaseOrderItem?.product?.name ||
+              "Unknown Product",
+            itemSku:
+              poItem?.product?.sku ||
+              item.product?.sku ||
+              item.purchaseOrderItem?.product?.sku ||
+              "N/A",
+            quantity: item.quantity,
+            totalOrdered: poItem?.quantity || 0,
+            remainingQty: remainingQty,
+            logisticsPartner: dispatch.logisticsPartner?.name || "N/A",
+            trackingNumber: dispatch.docketNumber || "N/A",
+            status: dispatch.status,
+          };
+        }) || []
+      );
+    });
+  }, [dispatches, poItems]);
+
+  // Sort the flattened items
+  const sortedItems = useMemo(() => {
+    return [...flattenedItems].sort((a, b) => {
+      switch (sortBy) {
+        case "date_asc":
+          return new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime();
+        case "date_desc":
+          return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+        case "inv_asc":
+          return (a.invoiceNumber || "").localeCompare(b.invoiceNumber || "");
+        case "inv_desc":
+          return (b.invoiceNumber || "").localeCompare(a.invoiceNumber || "");
+        case "item_asc":
+          return a.itemName.localeCompare(b.itemName);
+        case "item_desc":
+          return b.itemName.localeCompare(a.itemName);
+        case "total_asc":
+          return a.totalOrdered - b.totalOrdered;
+        case "total_desc":
+          return b.totalOrdered - a.totalOrdered;
+        case "dispatch_asc":
+          return a.quantity - b.quantity;
+        case "dispatch_desc":
+          return b.quantity - a.quantity;
+        case "rem_asc":
+          return a.remainingQty - b.remainingQty;
+        case "rem_desc":
+          return b.remainingQty - a.remainingQty;
+        case "log_asc":
+          return a.logisticsPartner.localeCompare(b.logisticsPartner);
+        case "log_desc":
+          return b.logisticsPartner.localeCompare(a.logisticsPartner);
+        case "track_asc":
+          return a.trackingNumber.localeCompare(b.trackingNumber);
+        case "track_desc":
+          return b.trackingNumber.localeCompare(a.trackingNumber);
+        case "status_asc":
+          return a.status.localeCompare(b.status);
+        case "status_desc":
+          return b.status.localeCompare(a.status);
+        default:
+          return 0;
+      }
+    });
+  }, [flattenedItems, sortBy]);
+
+  const getStatusColor = (status: string) => {
+    return getDispatchStatusVisuals(status).color;
+  };
 
   return (
-    <Accordion type="single" collapsible className="w-full">
-      {dispatches.map((dispatch: OMDispatchOrder) => (
-        <AccordionItem key={dispatch.id} value={dispatch.id}>
-          <AccordionTrigger className="hover:no-underline">
-            <div className="flex flex-1 items-center justify-between text-left pr-4">
-              <div className="flex items-center gap-4">
-                <span className="font-bold">{dispatch.invoiceNumber}</span>
-                <span className="text-muted-foreground text-sm">
-                  {dispatch.invoiceDate
-                    ? new Date(dispatch.invoiceDate).toLocaleDateString()
-                    : "N/A"}
-                </span>
-                <Badge variant="outline">{formatStatus(dispatch.status)}</Badge>
-              </div>
-              <div className="text-sm font-medium">
-                {dispatch.items?.reduce(
-                  (sum: number, i: OMDispatchOrderItem) => sum + i.quantity,
-                  0,
-                )}{" "}
-                Items
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="px-4 pb-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {dispatch.items?.map((item: OMDispatchOrderItem) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">
-                        {item.product?.name ||
-                          item.purchaseOrderItem?.product?.name ||
-                          "Unknown Product"}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {item.product?.sku ||
-                          item.purchaseOrderItem?.product?.sku ||
-                          "N/A"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.quantity}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
+    <OMDataTable
+      data={sortedItems}
+      isLoading={false}
+      columnCount={9}
+      emptyMessage="No dispatch history found for this purchase order."
+      header={
+        <TableRow>
+          <OMSortableHeader
+            title="Date"
+            currentSort={sortBy}
+            onSort={setSortBy}
+            ascOption="date_asc"
+            descOption="date_desc"
+          />
+          <OMSortableHeader
+            title="Invoice Number"
+            currentSort={sortBy}
+            onSort={setSortBy}
+            ascOption="inv_asc"
+            descOption="inv_desc"
+            className="px-3"
+          />
+          <OMSortableHeader
+            title="Item Name"
+            currentSort={sortBy}
+            onSort={setSortBy}
+            ascOption="item_asc"
+            descOption="item_desc"
+            className="px-3"
+          />
+          <OMSortableHeader
+            title="Total Qty"
+            currentSort={sortBy}
+            onSort={setSortBy}
+            ascOption="total_asc"
+            descOption="total_desc"
+            className="px-3"
+          />
+          <OMSortableHeader
+            title="Dispatched Qty"
+            currentSort={sortBy}
+            onSort={setSortBy}
+            ascOption="dispatch_asc"
+            descOption="dispatch_desc"
+            className="px-3"
+          />
+          <OMSortableHeader
+            title="Remaining Qty"
+            currentSort={sortBy}
+            onSort={setSortBy}
+            ascOption="rem_asc"
+            descOption="rem_desc"
+            className="px-3"
+          />
+          <OMSortableHeader
+            title="Logistics Partner"
+            currentSort={sortBy}
+            onSort={setSortBy}
+            ascOption="log_asc"
+            descOption="log_desc"
+            className="px-3"
+          />
+          <OMSortableHeader
+            title="Tracking Number"
+            currentSort={sortBy}
+            onSort={setSortBy}
+            ascOption="track_asc"
+            descOption="track_desc"
+            className="px-3"
+          />
+          <OMSortableHeader
+            title="Status"
+            currentSort={sortBy}
+            onSort={setSortBy}
+            ascOption="status_asc"
+            descOption="status_desc"
+            className="px-3 text-center"
+          />
+        </TableRow>
+      }
+      renderRow={(item: FlattenedDispatchItem) => (
+        <TableRow key={item.id}>
+          <TableCell className="pr-2">
+            {item.date ? format(new Date(item.date), "dd MMM yyyy") : "N/A"}
+          </TableCell>
+          <TableCell className="px-3 font-medium">
+            {item.invoiceNumber || "N/A"}
+          </TableCell>
+          <TableCell className="px-3">
+            <div className="font-medium">{item.itemName}</div>
+          </TableCell>
+          <TableCell className="px-3 text-right">{item.totalOrdered}</TableCell>
+          <TableCell className="px-3 text-right font-medium text-blue-600">
+            {item.quantity}
+          </TableCell>
+          <TableCell className="px-3 text-right text-muted-foreground">
+            {item.remainingQty}
+          </TableCell>
+          <TableCell className="px-3">{item.logisticsPartner}</TableCell>
+          <TableCell className="px-3 font-mono text-sm max-w-[120px] truncate">
+            {item.trackingNumber}
+          </TableCell>
+          <TableCell className="px-3 text-center">
+            <Badge className={getStatusColor(item.status)}>
+              {formatStatus(item.status)}
+            </Badge>
+          </TableCell>
+        </TableRow>
+      )}
+    />
   );
 }
+

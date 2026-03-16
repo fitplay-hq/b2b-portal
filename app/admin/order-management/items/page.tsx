@@ -60,6 +60,7 @@ import { ItemFilters } from "@/components/orderManagement/items/ItemFilters";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useOMFilters } from "@/hooks/use-om-filters";
+import { ITEM_SORT_OPTIONS } from "@/constants/om-sort-options";
 
 function skuBrandPart(brandName: string | undefined): string {
   return brandName
@@ -91,6 +92,21 @@ export default function OMItems() {
   const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [showFilters, setShowFilters] = useState(false);
 
+  const valueLabels = useMemo(
+    () => ({
+      brandIds: (val: any) => {
+        if (Array.isArray(val)) {
+          return val
+            .map((id) => brands.find((b) => b.id === id)?.name || id)
+            .join(", ");
+        }
+        return brands.find((b) => b.id === val)?.name || val;
+      },
+      gst: (val: string) => (val === "all" ? "All" : `${val}%`),
+    }),
+    [brands],
+  );
+
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
       initialFilters: {
@@ -109,17 +125,7 @@ export default function OMItems() {
         minTotalOrdered: "Min Ordered",
         maxTotalOrdered: "Max Ordered",
       },
-      valueLabels: {
-        brandIds: (val) => {
-          if (Array.isArray(val)) {
-            return val
-              .map((id) => brands.find((b) => b.id === id)?.name || id)
-              .join(", ");
-          }
-          return brands.find((b) => b.id === val)?.name || val;
-        },
-        gst: (val) => (val === "all" ? "All" : `${val}%`),
-      },
+      valueLabels,
     });
 
   const [formData, setFormData] = useState({
@@ -377,8 +383,8 @@ export default function OMItems() {
 
         if (sortBy === "newest")
           return (
-            new Date(a.createdAt || 0).getTime() -
-            new Date(b.createdAt || 0).getTime()
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime()
           );
         if (sortBy === "oldest")
           return (
@@ -879,6 +885,7 @@ export default function OMItems() {
           onSearchChange={setSearchTerm}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          sortOptions={ITEM_SORT_OPTIONS}
           sortNameLabel="Item Name"
           showFilters={showFilters}
           setShowFilters={setShowFilters}
