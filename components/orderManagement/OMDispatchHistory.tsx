@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatStatus } from "@/lib/utils";
@@ -19,6 +20,7 @@ interface OMDispatchHistoryProps {
 
 interface FlattenedDispatchItem {
   id: string;
+  dispatchId: string;
   invoiceNumber: string;
   date: string;
   itemName: string;
@@ -55,6 +57,7 @@ export function OMDispatchHistory({
   dispatches,
   poItems,
 }: OMDispatchHistoryProps) {
+  const router = useRouter();
   const [sortBy, setSortBy] = useState<HistorySortOption>("date_desc");
 
   // Flatten dispatches into item-level rows
@@ -80,6 +83,7 @@ export function OMDispatchHistory({
 
           return {
             id: item.id,
+            dispatchId: dispatch.id,
             invoiceNumber: dispatch.invoiceNumber,
             date: dispatch.dispatchDate || dispatch.invoiceDate,
             itemName:
@@ -159,6 +163,7 @@ export function OMDispatchHistory({
       data={sortedItems}
       isLoading={false}
       columnCount={9}
+      onRowClick={(item) => router.push(`/admin/order-management/dispatches/${item.dispatchId}`)}
       emptyMessage="No dispatch history found for this purchase order."
       header={
         <TableRow>
@@ -236,7 +241,9 @@ export function OMDispatchHistory({
         </TableRow>
       }
       renderRow={(item: FlattenedDispatchItem) => (
-        <TableRow key={item.id}>
+        <TableRow
+          key={item.id}
+        >
           <TableCell className="pr-2">
             {item.date ? format(new Date(item.date), "dd MMM yyyy") : "N/A"}
           </TableCell>

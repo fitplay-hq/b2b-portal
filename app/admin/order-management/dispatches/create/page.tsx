@@ -590,6 +590,9 @@ function CreateDispatchForm() {
                     <p>
                       <strong>PO Number:</strong> {selectedPO.poNumber}
                     </p>
+                    <p>
+                      <strong>PO Date:</strong> {selectedPO.poDate ? new Date(selectedPO.poDate).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' }) : "N/A"}
+                    </p>
                   </div>
                 </AlertDescription>
               </Alert>
@@ -729,6 +732,7 @@ function CreateDispatchForm() {
                     type="date"
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
+                    min={selectedPO?.poDate ? new Date(selectedPO.poDate).toISOString().split("T")[0] : undefined}
                   />
                 </div>
               </div>

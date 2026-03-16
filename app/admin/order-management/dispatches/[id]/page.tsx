@@ -337,8 +337,11 @@ export default function OMDispatchDetail() {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="font-medium">{po.estimateNumber || "N/A"}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p>
                     PO: {po.poNumber}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    PO Date: {po.poDate ? formatDisplayDate(po.poDate) : "N/A"}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Delivery: {dispatch.deliveryLocation?.name || po.deliveryLocations?.map((l:any) => l.name).join(", ") || "Self-Pickup"}

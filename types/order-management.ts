@@ -170,6 +170,7 @@ export interface OMDispatchOrder {
     id: string;
     clientId: string;
     poNumber: string;
+    poDate?: string;
     estimateNumber?: string;
     deliveryLocations?: { name?: string }[];
     client?: { name?: string };
