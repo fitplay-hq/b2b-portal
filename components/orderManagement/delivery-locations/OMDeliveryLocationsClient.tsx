@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,11 @@ export function OMDeliveryLocationsClient({
   const [showFilters, setShowFilters] = useState(false);
   const [totalCount, setTotalCount] = useState(initialData.meta.total);
   const [isHydrating, setIsHydrating] = useState(false);
+  // Store initial values to prevent redundant fetches on mount due to state initialization
+  const initialValues = useRef({
+    sortBy: "name_asc" as SortOption,
+    searchTerm: "",
+  });
 
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
@@ -180,6 +185,10 @@ export function OMDeliveryLocationsClient({
 
 
   useEffect(() => {
+    // Only fetch if sortBy has actually changed from its initial value
+    if (sortBy === initialValues.current.sortBy) {
+      return;
+    }
     const timer = setTimeout(() => {
       fetchLocations();
     }, 500);

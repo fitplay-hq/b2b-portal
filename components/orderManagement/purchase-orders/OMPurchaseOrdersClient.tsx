@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,19 @@ export function OMPurchaseOrdersClient({
   const [showFilters, setShowFilters] = useState(false);
   const [totalCount, setTotalCount] = useState(initialData.meta.total);
   const [isHydrating, setIsHydrating] = useState(false);
+  // Store initial values to prevent redundant fetches on mount due to state initialization
+  const initialValues = useRef({
+    sortBy: "po_date_desc" as SortOption,
+    searchTerm: "",
+    filters: {
+      fromDate: "",
+      toDate: "",
+      clientName: "",
+      poNumber: "",
+      status: "all",
+      locationId: "",
+    },
+  });
 
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
@@ -161,6 +174,11 @@ export function OMPurchaseOrdersClient({
   };
 
   useEffect(() => {
+    // Only fetch if we don't have initial count or if we need fresh counts regularly
+    // For now, if we have initialData, we can skip the immediate fetch on mount
+    if (initialData.meta.total !== undefined && totalCount === initialData.meta.total) {
+      return;
+    }
     const fetchTotalCount = async () => {
       try {
         const res = await fetch("/api/admin/om/counts");
@@ -218,6 +236,11 @@ export function OMPurchaseOrdersClient({
   }, [searchTerm, filters, hasMore, isHydrating, hydrateData]);
 
   useEffect(() => {
+    // Only fetch if sortBy has actually changed from its initial value
+    // This prevents the dual fetch on mount
+    if (sortBy === initialValues.current.sortBy) {
+      return;
+    }
     const timer = setTimeout(() => {
       fetchPurchaseOrders();
     }, 500);

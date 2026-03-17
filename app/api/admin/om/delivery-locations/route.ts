@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
@@ -51,6 +52,8 @@ export async function POST(req: NextRequest) {
     const location = await prisma.oMDeliveryLocation.create({
       data: validatedData,
     });
+
+    revalidateTag("om-delivery-locations", "page");
 
     return NextResponse.json(
       {

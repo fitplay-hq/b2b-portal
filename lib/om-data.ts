@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import prisma from "@/lib/prisma";
 import {
   OMDashboardPO,
@@ -353,22 +354,28 @@ export async function getOMDashboardData(params: GetOMDashboardDataParams) {
 }
 
 export async function getOMStaticOptions() {
-  const [clients, products, brands, logistics, locations] = await Promise.all([
-    prisma.oMClient.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true }, take: 50 }),
-    prisma.oMProduct.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, include: { brands: true }, take: 50 }),
-    prisma.oMBrand.findMany({ orderBy: { name: "asc" }, take: 50 }),
-    prisma.oMLogisticsPartner.findMany({ orderBy: { name: "asc" }, take: 50 }),
-    prisma.oMDeliveryLocation.findMany({ orderBy: { name: "asc" }, take: 50 }),
-  ]);
+  return unstable_cache(
+    async () => {
+      const [clients, products, brands, logistics, locations] = await Promise.all([
+        prisma.oMClient.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true }, take: 50 }),
+        prisma.oMProduct.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, include: { brands: true }, take: 50 }),
+        prisma.oMBrand.findMany({ orderBy: { name: "asc" }, take: 50 }),
+        prisma.oMLogisticsPartner.findMany({ orderBy: { name: "asc" }, take: 50 }),
+        prisma.oMDeliveryLocation.findMany({ orderBy: { name: "asc" }, take: 50 }),
+      ]);
 
-  return {
-    clientOptions: clients.map(c => ({ value: c.name, label: c.name })),
-    itemOptions: products.map(p => ({ value: p.name, label: p.name })),
-    brandOptions: brands.map(b => ({ value: b.name, label: b.name })),
-    logisticsOptions: logistics.map(l => ({ value: l.id, label: l.name })),
-    locationOptions: locations.map(l => ({ value: l.id, label: l.name })),
-    products, 
-  };
+      return {
+        clientOptions: clients.map(c => ({ value: c.name, label: c.name })),
+        itemOptions: products.map(p => ({ value: p.name, label: p.name })),
+        brandOptions: brands.map(b => ({ value: b.name, label: b.name })),
+        logisticsOptions: logistics.map(l => ({ value: l.id, label: l.name })),
+        locationOptions: locations.map(l => ({ value: l.id, label: l.name })),
+        products, 
+      };
+    },
+    ["om-static-options"],
+    { tags: ["om-clients", "om-delivery-locations"], revalidate: 3600 }
+  )();
 }
 
 export async function getOMBrands(params: {
@@ -417,47 +424,53 @@ export async function getOMClients(params: {
   limit?: number;
   search?: string;
 } = {}): Promise<PaginatedResponse<OMClient>> {
-  const page = params.page || 1;
-  const limit = params.limit || 50;
-  const skip = (page - 1) * limit;
-  const search = params.search || "";
+  return unstable_cache(
+    async (p) => {
+      const page = p.page || 1;
+      const limit = p.limit || 50;
+      const skip = (page - 1) * limit;
+      const search = p.search || "";
 
-  const where = search 
-    ? { 
-        OR: [
-          { name: { contains: search, mode: "insensitive" as const } },
-          { email: { contains: search, mode: "insensitive" as const } },
-          { gstNumber: { contains: search, mode: "insensitive" as const } },
-          { contactPerson: { contains: search, mode: "insensitive" as const } },
-        ]
-      } 
-    : {};
+      const where = search 
+        ? { 
+            OR: [
+              { name: { contains: search, mode: "insensitive" as const } },
+              { email: { contains: search, mode: "insensitive" as const } },
+              { gstNumber: { contains: search, mode: "insensitive" as const } },
+              { contactPerson: { contains: search, mode: "insensitive" as const } },
+            ]
+          } 
+        : {};
 
-  const [clients, total] = await Promise.all([
-    prisma.oMClient.findMany({
-      where,
-      orderBy: { name: "asc" },
-      skip,
-      take: limit,
-    }),
-    prisma.oMClient.count({ where }),
-  ]);
+      const [clients, total] = await Promise.all([
+        prisma.oMClient.findMany({
+          where,
+          orderBy: { name: "asc" },
+          skip,
+          take: limit,
+        }),
+        prisma.oMClient.count({ where }),
+      ]);
 
-  const data = clients.map((c) => ({
-    ...c,
-    createdAt: c.createdAt?.toISOString(),
-    updatedAt: c.updatedAt?.toISOString(),
-  })) as OMClient[];
+      const data = clients.map((c) => ({
+        ...c,
+        createdAt: c.createdAt?.toISOString(),
+        updatedAt: c.updatedAt?.toISOString(),
+      })) as OMClient[];
 
-  return {
-    data,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     },
-  };
+    ["om-clients"],
+    { tags: ["om-clients"], revalidate: 3600 }
+  )(params);
 }
 
 export async function getOMProducts(params: {
@@ -859,40 +872,46 @@ export async function getOMDeliveryLocations(params: {
   limit?: number;
   search?: string;
 } = {}): Promise<PaginatedResponse<any>> {
-  const page = params.page || 1;
-  const limit = params.limit || 50;
-  const skip = (page - 1) * limit;
-  const search = params.search || "";
+  return unstable_cache(
+    async (p) => {
+      const page = p.page || 1;
+      const limit = p.limit || 50;
+      const skip = (page - 1) * limit;
+      const search = p.search || "";
 
-  const where = search 
-    ? { name: { contains: search, mode: "insensitive" as const } } 
-    : {};
+      const where = search 
+        ? { name: { contains: search, mode: "insensitive" as const } } 
+        : {};
 
-  const [locations, total] = await Promise.all([
-    prisma.oMDeliveryLocation.findMany({
-      where,
-      orderBy: { name: "asc" },
-      skip,
-      take: limit,
-    }),
-    prisma.oMDeliveryLocation.count({ where }),
-  ]);
+      const [locations, total] = await Promise.all([
+        prisma.oMDeliveryLocation.findMany({
+          where,
+          orderBy: { name: "asc" },
+          skip,
+          take: limit,
+        }),
+        prisma.oMDeliveryLocation.count({ where }),
+      ]);
 
-  const data = locations.map((l) => ({
-    ...l,
-    createdAt: l.createdAt.toISOString(),
-    updatedAt: l.updatedAt.toISOString(),
-  }));
+      const data = locations.map((l) => ({
+        ...l,
+        createdAt: l.createdAt.toISOString(),
+        updatedAt: l.updatedAt.toISOString(),
+      }));
 
-  return {
-    data,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     },
-  };
+    ["om-delivery-locations"],
+    { tags: ["om-delivery-locations"], revalidate: 3600 }
+  )(params);
 }
 
 export async function getOMTableCounts() {

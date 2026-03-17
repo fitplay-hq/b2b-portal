@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +62,11 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [totalCount, setTotalCount] = useState(initialData.meta.total);
   const [isHydrating, setIsHydrating] = useState(false);
+  // Store initial values to prevent redundant fetches on mount due to state initialization
+  const initialValues = useRef({
+    sortBy: "name_asc" as SortOption,
+    searchTerm: "",
+  });
 
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
@@ -175,6 +180,13 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
   }, [searchTerm, filters, hasMore, isHydrating, hydrateData]);
 
   useEffect(() => {
+    // Only fetch if sortBy or searchTerm has actually changed from its initial value
+    if (
+      sortBy === initialValues.current.sortBy &&
+      searchTerm === initialValues.current.searchTerm
+    ) {
+      return;
+    }
     const timer = setTimeout(() => {
       fetchClients();
     }, 500);

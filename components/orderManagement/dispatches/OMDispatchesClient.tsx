@@ -119,6 +119,9 @@ export function OMDispatchesClient({
   };
 
   useEffect(() => {
+    if (initialData.meta.total !== undefined && totalCount === initialData.meta.total) {
+      return;
+    }
     const fetchTotalCount = async () => {
       try {
         const res = await fetch("/api/admin/om/counts");

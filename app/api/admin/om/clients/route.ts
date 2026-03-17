@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
@@ -51,6 +52,8 @@ export async function POST(req: NextRequest) {
     const client = await prisma.oMClient.create({
       data: validatedData,
     });
+
+    revalidateTag("om-clients", "page");
 
     return NextResponse.json(
       { message: "Client created successfully", id: client.id, data: client },
