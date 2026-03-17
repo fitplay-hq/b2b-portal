@@ -31,7 +31,10 @@ export async function PATCH(
       data: validatedData,
     });
 
-    revalidateTag("om-clients", "page");
+    revalidateTag("om-clients", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
 
     return NextResponse.json(
       { message: "Client updated successfully", data: client },
@@ -74,7 +77,10 @@ export async function DELETE(
       where: { id },
     });
 
-    revalidateTag("om-clients", "page");
+    revalidateTag("om-clients", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
 
     return NextResponse.json(
       { message: "Client deleted successfully" },

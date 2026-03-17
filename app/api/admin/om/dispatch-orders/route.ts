@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMDispatchOrderCreateSchema } from "@/lib/validations/om";
 import { OMPoStatus } from "@/lib/generated/prisma";
+import { revalidateTag } from "next/cache";
 import { getOMDispatches } from "@/lib/om-data";
 
 export async function POST(req: NextRequest) {

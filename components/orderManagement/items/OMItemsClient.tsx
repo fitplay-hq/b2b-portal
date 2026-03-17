@@ -1013,7 +1013,7 @@ export function OMItemsClient({
         emptyMessage="No items found"
         onRowClick={(item) => handleView(item)}
         header={
-          <TableRow>
+          <TableRow >
             <OMSortableHeader
               title="Item Name"
               currentSort={sortBy}
@@ -1063,21 +1063,21 @@ export function OMItemsClient({
           <TableRow key={item.id}>
             <TableCell className="font-medium">{item.name}</TableCell>
             <TableCell>
-              {item.brands?.map((b) => (
+              {item.brands?.length > 0 ? item.brands?.map((b) => (
                 <Badge key={b.id} variant="secondary" className="mr-1">
                   {b.name}
                 </Badge>
-              )) || "-"}
+              )) : "-"}
             </TableCell>
             <TableCell className="font-mono text-xs">{item.sku || "-"}</TableCell>
             <TableCell>
               {item.price ? `₹${item.price.toLocaleString("en-IN")}` : "-"}
             </TableCell>
             <TableCell>{item.defaultGstPct}%</TableCell>
-            <TableCell className="text-center font-semibold">
-              <Badge variant="outline" className="text-blue-600 bg-blue-50/50">
+            <TableCell className="text-center font-normal">
+              <p className="">
                 {item.totalOrdered?.toLocaleString("en-IN") || "0"}
-              </Badge>
+              </p>
             </TableCell>
             <TableCell className="text-right">
               <div className="flex justify-end gap-2">

@@ -124,7 +124,10 @@ export async function POST(req: NextRequest) {
       return po;
     });
     
-    revalidateTag("om-clients", "page");
+    revalidateTag("om-clients", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
     revalidateTag("om-delivery-locations", "page");
 
     return NextResponse.json(

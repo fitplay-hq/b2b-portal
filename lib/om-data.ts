@@ -45,25 +45,27 @@ export interface GetOMDashboardDataParams {
 }
 
 export async function getOMDashboardData(params: GetOMDashboardDataParams) {
-  const {
-    query = "",
-    fromDate,
-    toDate,
-    clientName,
-    itemName,
-    brandName,
-    poNumber,
-    invoiceNumber,
-    logisticsPartnerId,
-    locationId,
-    statuses = [],
-    sku,
-    docketNumber,
-    minAmount,
-    maxAmount,
-    gstPercentage,
-    timeRange = "all",
-  } = params;
+  return unstable_cache(
+    async (p: GetOMDashboardDataParams) => {
+      const {
+        query = "",
+        fromDate,
+        toDate,
+        clientName,
+        itemName,
+        brandName,
+        poNumber,
+        invoiceNumber,
+        logisticsPartnerId,
+        locationId,
+        statuses = [],
+        sku,
+        docketNumber,
+        minAmount,
+        maxAmount,
+        gstPercentage,
+        timeRange = "all",
+      } = p;
 
   const andFilters: any[] = [];
 
@@ -354,6 +356,10 @@ export async function getOMDashboardData(params: GetOMDashboardDataParams) {
   });
 
   return { pos, dispatches };
+    },
+    ["om-dashboard-data"],
+    { tags: ["om-dashboard", "om-purchase-orders", "om-dispatch-orders"], revalidate: 3600 }
+  )(params);
 }
 
 export async function getOMStaticOptions() {
@@ -553,51 +559,53 @@ export async function getOMDispatches(params: {
   deliveryLocationId?: string;
   sortBy?: string;
 } = {}): Promise<PaginatedResponse<OMDispatchOrder>> {
-  const page = params.page || 1;
-  const limit = params.limit || 50;
-  const skip = (page - 1) * limit;
-  const search = params.search || "";
+  return unstable_cache(
+    async (p) => {
+      const page = p.page || 1;
+      const limit = p.limit || 50;
+      const skip = (page - 1) * limit;
+      const search = p.search || "";
 
-  const andFilters: any[] = [];
-  if (search) {
-    andFilters.push({
-      OR: [
-        { invoiceNumber: { contains: search, mode: "insensitive" as const } },
-        { docketNumber: { contains: search, mode: "insensitive" as const } },
-        { purchaseOrder: { poNumber: { contains: search, mode: "insensitive" as const } } },
-        { purchaseOrder: { client: { name: { contains: search, mode: "insensitive" as const } } } },
-      ],
-    });
-  }
-  if (params.clientId) andFilters.push({ purchaseOrder: { clientId: params.clientId } });
-  if (params.status && params.status !== "all") andFilters.push({ deliveryStatus: params.status });
-  if (params.purchaseOrderId) andFilters.push({ purchaseOrderId: params.purchaseOrderId });
-  if (params.logisticsPartnerId) andFilters.push({ logisticsPartnerId: params.logisticsPartnerId });
-  if (params.deliveryLocationId) andFilters.push({ deliveryLocationId: params.deliveryLocationId });
+      const andFilters: any[] = [];
+      if (search) {
+        andFilters.push({
+          OR: [
+            { invoiceNumber: { contains: search, mode: "insensitive" as const } },
+            { docketNumber: { contains: search, mode: "insensitive" as const } },
+            { purchaseOrder: { poNumber: { contains: search, mode: "insensitive" as const } } },
+            { purchaseOrder: { client: { name: { contains: search, mode: "insensitive" as const } } } },
+          ],
+        });
+      }
+      if (p.clientId) andFilters.push({ purchaseOrder: { clientId: p.clientId } });
+      if (p.status && p.status !== "all") andFilters.push({ deliveryStatus: p.status });
+      if (p.purchaseOrderId) andFilters.push({ purchaseOrderId: p.purchaseOrderId });
+      if (p.logisticsPartnerId) andFilters.push({ logisticsPartnerId: p.logisticsPartnerId });
+      if (p.deliveryLocationId) andFilters.push({ deliveryLocationId: p.deliveryLocationId });
 
-  if (params.fromDate || params.toDate) {
-    const dateFilter: any = {};
-    if (params.fromDate) dateFilter.gte = new Date(params.fromDate);
-    if (params.toDate) {
-      const endOfDay = new Date(params.toDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      dateFilter.lte = endOfDay;
-    }
-    andFilters.push({ dispatchDate: dateFilter });
-  }
+      if (p.fromDate || p.toDate) {
+        const dateFilter: any = {};
+        if (p.fromDate) dateFilter.gte = new Date(p.fromDate);
+        if (p.toDate) {
+          const endOfDay = new Date(p.toDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          dateFilter.lte = endOfDay;
+        }
+        andFilters.push({ dispatchDate: dateFilter });
+      }
 
-  const where = andFilters.length > 0 ? { AND: andFilters } : {};
+      const where = andFilters.length > 0 ? { AND: andFilters } : {};
 
-  let orderBy: any = { createdAt: "desc" };
-  if (params.sortBy) {
-    const [field, order] = params.sortBy.split("_");
-    const direction = order === "asc" ? "asc" : "desc";
-    if (field === "date" || field === "dispatch") orderBy = { dispatchDate: direction };
-    else if (field === "invoice") orderBy = { invoiceNumber: direction };
-    else if (field === "created") orderBy = { createdAt: direction };
-  }
+      let orderBy: any = { createdAt: "desc" };
+      if (p.sortBy) {
+        const [field, order] = p.sortBy.split("_");
+        const direction = order === "asc" ? "asc" : "desc";
+        if (field === "date" || field === "dispatch") orderBy = { dispatchDate: direction };
+        else if (field === "invoice") orderBy = { invoiceNumber: direction };
+        else if (field === "created") orderBy = { createdAt: direction };
+      }
 
-  const [dispatches, total] = await Promise.all([
+      const [dispatches, total] = await Promise.all([
     prisma.oMDispatchOrder.findMany({
       where,
       include: {
@@ -665,6 +673,10 @@ export async function getOMDispatches(params: {
       totalPages: Math.ceil(total / limit),
     },
   };
+    },
+    ["om-dispatches"],
+    { tags: ["om-dispatch-orders"], revalidate: 3600 }
+  )(params);
 }
 
 export async function getOMLogisticsPartners(params: {
@@ -751,58 +763,60 @@ export async function getOMPurchaseOrders(params: {
   toDate?: string;
   sortBy?: string;
 } = {}): Promise<PaginatedResponse<OMPurchaseOrder>> {
-  const page = params.page || 1;
-  const limit = params.limit || 50;
-  const skip = (page - 1) * limit;
-  const search = params.search || "";
+  return unstable_cache(
+    async (p) => {
+      const page = p.page || 1;
+      const limit = p.limit || 50;
+      const skip = (page - 1) * limit;
+      const search = p.search || "";
 
-  const andFilters: any[] = [];
-  if (search) {
-    andFilters.push({
-      OR: [
-        { poNumber: { contains: search, mode: "insensitive" as const } },
-        { estimateNumber: { contains: search, mode: "insensitive" as const } },
-        { client: { name: { contains: search, mode: "insensitive" as const } } },
-      ],
-    });
-  }
-  if (params.clientId) andFilters.push({ clientId: params.clientId });
-  if (params.status === "active") {
-    andFilters.push({
-      status: { in: ["CONFIRMED", "PARTIALLY_DISPATCHED"] as OMPoStatus[] },
-    });
-  } else if (params.status && params.status !== "all") {
-    andFilters.push({ status: params.status });
-  }
-  if (params.locationId) {
-    andFilters.push({
-      deliveryLocations: { some: { id: params.locationId } },
-    });
-  }
-  if (params.fromDate || params.toDate) {
-    const dateFilter: any = {};
-    if (params.fromDate) dateFilter.gte = new Date(params.fromDate);
-    if (params.toDate) {
-      const endOfDay = new Date(params.toDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      dateFilter.lte = endOfDay;
-    }
-    andFilters.push({ poDate: dateFilter });
-  }
+      const andFilters: any[] = [];
+      if (search) {
+        andFilters.push({
+          OR: [
+            { poNumber: { contains: search, mode: "insensitive" as const } },
+            { estimateNumber: { contains: search, mode: "insensitive" as const } },
+            { client: { name: { contains: search, mode: "insensitive" as const } } },
+          ],
+        });
+      }
+      if (p.clientId) andFilters.push({ clientId: p.clientId });
+      if (p.status === "active") {
+        andFilters.push({
+          status: { in: ["CONFIRMED", "PARTIALLY_DISPATCHED"] as OMPoStatus[] },
+        });
+      } else if (p.status && p.status !== "all") {
+        andFilters.push({ status: p.status });
+      }
+      if (p.locationId) {
+        andFilters.push({
+          deliveryLocations: { some: { id: p.locationId } },
+        });
+      }
+      if (p.fromDate || p.toDate) {
+        const dateFilter: any = {};
+        if (p.fromDate) dateFilter.gte = new Date(p.fromDate);
+        if (p.toDate) {
+          const endOfDay = new Date(p.toDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          dateFilter.lte = endOfDay;
+        }
+        andFilters.push({ poDate: dateFilter });
+      }
 
-  const where = andFilters.length > 0 ? { AND: andFilters } : {};
+      const where = andFilters.length > 0 ? { AND: andFilters } : {};
 
-  let orderBy: any = { poDate: "desc" };
-  if (params.sortBy) {
-    const [field, order] = params.sortBy.split("_");
-    const direction = order === "asc" ? "asc" : "desc";
-    if (field === "po" && params.sortBy.includes("date")) orderBy = { poDate: direction };
-    else if (field === "po" && params.sortBy.includes("number")) orderBy = { poNumber: direction };
-    else if (field === "status") orderBy = { status: direction };
-    else if (field === "created") orderBy = { createdAt: direction };
-  }
+      let orderBy: any = { poDate: "desc" };
+      if (p.sortBy) {
+        const [field, order] = p.sortBy.split("_");
+        const direction = order === "asc" ? "asc" : "desc";
+        if (field === "po" && p.sortBy.includes("date")) orderBy = { poDate: direction };
+        else if (field === "po" && p.sortBy.includes("number")) orderBy = { poNumber: direction };
+        else if (field === "status") orderBy = { status: direction };
+        else if (field === "created") orderBy = { createdAt: direction };
+      }
 
-  const [purchaseOrders, total] = await Promise.all([
+      const [purchaseOrders, total] = await Promise.all([
     prisma.oMPurchaseOrder.findMany({
       where,
       include: {
@@ -861,6 +875,10 @@ export async function getOMPurchaseOrders(params: {
       totalPages: Math.ceil(total / limit),
     },
   };
+    },
+    ["om-purchase-orders"],
+    { tags: ["om-purchase-orders", "om-dashboard-data"], revalidate: 3600 }
+  )(params);
 }
 
 export async function getOMPONumberOptions(): Promise<ComboboxOption[]> {

@@ -29,7 +29,7 @@ export function ProductItem({
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
       <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-        <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
+        <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0">
           <ImageWithFallback
             src={product.images[0]}
             alt={product.name}
@@ -38,23 +38,31 @@ export function ProductItem({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1 sm:gap-2 flex-wrap mb-1">
-            <h3 className="font-medium text-sm sm:text-base truncate">{product.name}</h3>
+            <h3 className="font-medium text-sm sm:text-base truncate">
+              {product.name}
+            </h3>
             {product.brand && (
               <Badge variant="outline" className="text-xs">
                 {product.brand}
               </Badge>
             )}
             <Badge variant="secondary" className="text-xs">
-              {product.category?.displayName || product.category?.name || "Uncategorized"}
+              {product.category?.displayName ||
+                product.category?.name ||
+                "Uncategorized"}
             </Badge>
             {product.availableStock === 0 && (
-              <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
-            )}
-            {product.availableStock > 0 && product.minStockThreshold && product.availableStock < product.minStockThreshold && (
-              <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80 text-xs">
-                Low Stock
+              <Badge variant="destructive" className="text-xs">
+                Out of Stock
               </Badge>
             )}
+            {product.availableStock > 0 &&
+              product.minStockThreshold &&
+              product.availableStock < product.minStockThreshold && (
+                <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80 text-xs">
+                  Low Stock
+                </Badge>
+              )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
             <span className="truncate">SKU: {product.sku}</span>
@@ -73,7 +81,12 @@ export function ProductItem({
       </div>
       <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
         {actions.products.edit && (
-          <Button variant="outline" size="sm" onClick={() => onEdit(product)} className="flex-1 sm:flex-initial text-xs sm:text-sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit(product)}
+            className="flex-1 sm:flex-initial text-xs sm:text-sm"
+          >
             <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
             <span className="hidden sm:inline">Edit</span>
           </Button>

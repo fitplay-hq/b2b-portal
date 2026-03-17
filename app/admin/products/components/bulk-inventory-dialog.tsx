@@ -67,7 +67,7 @@ export function BulkInventoryDialog({
 }: BulkInventoryDialogProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>(
-    []
+    [],
   );
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -85,7 +85,7 @@ export function BulkInventoryDialog({
     return products.filter(
       (product) =>
         product.name.toLowerCase().includes(term) ||
-        product.sku?.toLowerCase().includes(term)
+        product.sku?.toLowerCase().includes(term),
     );
   }, [products, debouncedSearchTerm]);
 
@@ -106,12 +106,12 @@ export function BulkInventoryDialog({
 
   const handleUpdateProduct = (
     productId: string,
-    updates: Partial<SelectedProduct>
+    updates: Partial<SelectedProduct>,
   ) => {
     setSelectedProducts((prev) =>
       prev.map((product) =>
-        product.id === productId ? { ...product, ...updates } : product
-      )
+        product.id === productId ? { ...product, ...updates } : product,
+      ),
     );
   };
 
@@ -127,7 +127,7 @@ export function BulkInventoryDialog({
 
     // Validate all products have valid data
     const invalidProducts = selectedProducts.filter(
-      (product) => !product.quantity || product.quantity <= 0
+      (product) => !product.quantity || product.quantity <= 0,
     );
 
     if (invalidProducts.length > 0) {
@@ -149,7 +149,7 @@ export function BulkInventoryDialog({
       await updateBulkInventory(inventoryUpdates);
 
       toast.success(
-        `Successfully updated inventory for ${selectedProducts.length} product(s)`
+        `Successfully updated inventory for ${selectedProducts.length} product(s)`,
       );
       setSelectedProducts([]);
       onClose();
@@ -168,7 +168,7 @@ export function BulkInventoryDialog({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-6xl max-h-[95vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
             Bulk Inventory Update
@@ -180,7 +180,7 @@ export function BulkInventoryDialog({
 
         <div className="flex flex-col gap-4 min-h-0 flex-1 overflow-hidden">
           {/* Search Section */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <Label htmlFor="search" className="text-sm font-medium">
               Search Products
             </Label>
@@ -193,12 +193,16 @@ export function BulkInventoryDialog({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 pr-8"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && searchResults.length > 0) {
+                  if (e.key === "Enter" && searchResults.length > 0) {
                     const firstResult = searchResults[0];
-                    const isSelected = selectedProducts.some(p => p.id === firstResult.id);
+                    const isSelected = selectedProducts.some(
+                      (p) => p.id === firstResult.id,
+                    );
                     handleProductSelect(firstResult, !isSelected);
-                    toast.success(`${isSelected ? 'Removed' : 'Added'} ${firstResult.name}`);
-                  } else if (e.key === 'Escape') {
+                    toast.success(
+                      `${isSelected ? "Removed" : "Added"} ${firstResult.name}`,
+                    );
+                  } else if (e.key === "Escape") {
                     setSearchTerm("");
                   }
                 }}
@@ -224,10 +228,9 @@ export function BulkInventoryDialog({
             <div className="flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-sm font-medium">
-                  {debouncedSearchTerm 
-                    ? `Search Results (${searchResults.length})` 
-                    : `Search for Products`
-                  }
+                  {debouncedSearchTerm
+                    ? `Search Results (${searchResults.length})`
+                    : `Search for Products`}
                 </Label>
                 {searchResults.length > 0 && (
                   <div className="flex gap-2">
@@ -237,14 +240,18 @@ export function BulkInventoryDialog({
                       className="h-8 text-xs px-3 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
                       onClick={() => {
                         let addedCount = 0;
-                        searchResults.forEach(product => {
-                          const isSelected = selectedProducts.some(p => p.id === product.id);
+                        searchResults.forEach((product) => {
+                          const isSelected = selectedProducts.some(
+                            (p) => p.id === product.id,
+                          );
                           if (!isSelected) {
                             handleProductSelect(product, true);
                             addedCount++;
                           }
                         });
-                        toast.success(`Added ${addedCount} product(s) to bulk update`);
+                        toast.success(
+                          `Added ${addedCount} product(s) to bulk update`,
+                        );
                       }}
                     >
                       ✓ Select All ({searchResults.length})
@@ -255,15 +262,19 @@ export function BulkInventoryDialog({
                       className="h-8 text-xs px-3 bg-red-50 hover:bg-red-100 border-red-200 text-red-700"
                       onClick={() => {
                         let removedCount = 0;
-                        searchResults.forEach(product => {
-                          const isSelected = selectedProducts.some(p => p.id === product.id);
+                        searchResults.forEach((product) => {
+                          const isSelected = selectedProducts.some(
+                            (p) => p.id === product.id,
+                          );
                           if (isSelected) {
                             handleProductSelect(product, false);
                             removedCount++;
                           }
                         });
                         if (removedCount > 0) {
-                          toast.success(`Removed ${removedCount} product(s) from selection`);
+                          toast.success(
+                            `Removed ${removedCount} product(s) from selection`,
+                          );
                         }
                       }}
                     >
@@ -275,31 +286,38 @@ export function BulkInventoryDialog({
               <div className="border rounded-md max-h-96 overflow-y-auto">
                 {searchResults.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
-                    {debouncedSearchTerm ? `No products found matching "${debouncedSearchTerm}"` : "Start typing to search for products..."}
+                    {debouncedSearchTerm
+                      ? `No products found matching "${debouncedSearchTerm}"`
+                      : "Start typing to search for products..."}
                   </p>
                 ) : (
                   <div className="divide-y">
                     {searchResults.map((product) => {
                       const isSelected = selectedProducts.some(
-                        (p) => p.id === product.id
+                        (p) => p.id === product.id,
                       );
                       return (
                         <div
                           key={product.id}
                           className={`flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-all duration-200 border-l-4 ${
-                            isSelected 
-                              ? "bg-blue-50 border-l-blue-500 shadow-sm" 
+                            isSelected
+                              ? "bg-blue-50 border-l-blue-500 shadow-sm"
                               : "border-l-transparent hover:border-l-gray-200"
                           }`}
                           onClick={() => {
                             handleProductSelect(product, !isSelected);
-                            toast.success(`${isSelected ? 'Removed' : 'Added'} ${product.name}`, {
-                              duration: 1000,
-                            });
+                            toast.success(
+                              `${isSelected ? "Removed" : "Added"} ${product.name}`,
+                              {
+                                duration: 1000,
+                              },
+                            );
                           }}
                         >
                           <div className="flex items-center gap-4 min-w-0 flex-1">
-                            <div className={`rounded-md p-1 ${isSelected ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                            <div
+                              className={`rounded-md p-1 ${isSelected ? "bg-blue-100" : "bg-gray-100"}`}
+                            >
                               <Checkbox
                                 checked={isSelected}
                                 onChange={() => {}}
@@ -312,7 +330,10 @@ export function BulkInventoryDialog({
                                   {product.name}
                                 </p>
                                 {isSelected && (
-                                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 font-medium">
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs bg-blue-100 text-blue-800 font-medium"
+                                  >
                                     ✓ Selected
                                   </Badge>
                                 )}
@@ -324,13 +345,15 @@ export function BulkInventoryDialog({
                                 <span className="text-xs">•</span>
                                 <span className="text-xs">
                                   Stock:{" "}
-                                  <span className={`font-semibold ${
-                                    product.availableStock === 0 
-                                      ? "text-red-600" 
-                                      : product.availableStock < 10 
-                                        ? "text-orange-600" 
-                                        : "text-green-600"
-                                  }`}>
+                                  <span
+                                    className={`font-semibold ${
+                                      product.availableStock === 0
+                                        ? "text-red-600"
+                                        : product.availableStock < 10
+                                          ? "text-orange-600"
+                                          : "text-green-600"
+                                    }`}
+                                  >
                                     {product.availableStock} units
                                   </span>
                                 </span>
@@ -340,8 +363,16 @@ export function BulkInventoryDialog({
                           <div className="flex items-center">
                             {isSelected ? (
                               <div className="text-blue-600">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                <svg
+                                  className="w-5 h-5"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
                                 </svg>
                               </div>
                             ) : (
@@ -371,8 +402,13 @@ export function BulkInventoryDialog({
                       size="sm"
                       onClick={() => {
                         // Quick set all to "Add 1 unit" for stock checks
-                        setSelectedProducts(prev => 
-                          prev.map(p => ({ ...p, direction: "add", quantity: 1, reason: "PHYSICAL_STOCK_CHECK" }))
+                        setSelectedProducts((prev) =>
+                          prev.map((p) => ({
+                            ...p,
+                            direction: "add",
+                            quantity: 1,
+                            reason: "PHYSICAL_STOCK_CHECK",
+                          })),
                         );
                         toast.success("Set all to: Add 1 unit (Stock Check)");
                       }}
@@ -438,7 +474,9 @@ export function BulkInventoryDialog({
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                           {/* Direction */}
                           <div className="space-y-1">
-                            <Label className="text-xs font-medium text-gray-700">Action</Label>
+                            <Label className="text-xs font-medium text-gray-700">
+                              Action
+                            </Label>
                             <Select
                               value={product.direction}
                               onValueChange={(value: "add" | "subtract") =>
@@ -455,7 +493,10 @@ export function BulkInventoryDialog({
                                   <Plus className="h-4 w-4 mr-2 inline text-green-600" />
                                   Add Stock
                                 </SelectItem>
-                                <SelectItem value="subtract" className="text-sm">
+                                <SelectItem
+                                  value="subtract"
+                                  className="text-sm"
+                                >
                                   <Minus className="h-4 w-4 mr-2 inline text-red-600" />
                                   Remove Stock
                                 </SelectItem>
@@ -465,14 +506,20 @@ export function BulkInventoryDialog({
 
                           {/* Quantity */}
                           <div className="space-y-1">
-                            <Label className="text-xs font-medium text-gray-700">Quantity</Label>
+                            <Label className="text-xs font-medium text-gray-700">
+                              Quantity
+                            </Label>
                             <div className="flex items-center gap-1">
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 className="h-9 w-9 p-0"
-                                onClick={() => handleUpdateProduct(product.id, { quantity: Math.max(1, product.quantity - 1) })}
+                                onClick={() =>
+                                  handleUpdateProduct(product.id, {
+                                    quantity: Math.max(1, product.quantity - 1),
+                                  })
+                                }
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
@@ -492,7 +539,11 @@ export function BulkInventoryDialog({
                                 variant="outline"
                                 size="sm"
                                 className="h-9 w-9 p-0"
-                                onClick={() => handleUpdateProduct(product.id, { quantity: product.quantity + 1 })}
+                                onClick={() =>
+                                  handleUpdateProduct(product.id, {
+                                    quantity: product.quantity + 1,
+                                  })
+                                }
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
@@ -501,14 +552,16 @@ export function BulkInventoryDialog({
 
                           {/* Reason */}
                           <div className="space-y-1">
-                            <Label className="text-xs font-medium text-gray-700">Reason</Label>
+                            <Label className="text-xs font-medium text-gray-700">
+                              Reason
+                            </Label>
                             <Select
                               value={product.reason}
                               onValueChange={(
                                 value:
                                   | "NEW_PURCHASE"
                                   | "PHYSICAL_STOCK_CHECK"
-                                  | "RETURN_FROM_PREVIOUS_DISPATCH"
+                                  | "RETURN_FROM_PREVIOUS_DISPATCH",
                               ) =>
                                 handleUpdateProduct(product.id, {
                                   reason: value,
@@ -519,13 +572,22 @@ export function BulkInventoryDialog({
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="NEW_PURCHASE" className="text-sm">
+                                <SelectItem
+                                  value="NEW_PURCHASE"
+                                  className="text-sm"
+                                >
                                   📦 New Purchase
                                 </SelectItem>
-                                <SelectItem value="PHYSICAL_STOCK_CHECK" className="text-sm">
+                                <SelectItem
+                                  value="PHYSICAL_STOCK_CHECK"
+                                  className="text-sm"
+                                >
                                   📋 Physical Count
                                 </SelectItem>
-                                <SelectItem value="RETURN_FROM_PREVIOUS_DISPATCH" className="text-sm">
+                                <SelectItem
+                                  value="RETURN_FROM_PREVIOUS_DISPATCH"
+                                  className="text-sm"
+                                >
                                   📥 Return/Refund
                                 </SelectItem>
                               </SelectContent>
@@ -534,22 +596,32 @@ export function BulkInventoryDialog({
 
                           {/* Preview */}
                           <div className="space-y-1">
-                            <Label className="text-xs font-medium text-gray-700">New Stock</Label>
-                            <div className={`h-9 px-3 rounded-md border flex items-center justify-center font-semibold text-sm ${
-                              product.direction === "add" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"
-                            }`}>
-                              {product.availableStock} → {" "}
+                            <Label className="text-xs font-medium text-gray-700">
+                              New Stock
+                            </Label>
+                            <div
+                              className={`h-9 px-3 rounded-md border flex items-center justify-center font-semibold text-sm ${
+                                product.direction === "add"
+                                  ? "bg-green-50 border-green-200 text-green-700"
+                                  : "bg-red-50 border-red-200 text-red-700"
+                              }`}
+                            >
+                              {product.availableStock} →{" "}
                               {product.direction === "add"
                                 ? product.availableStock + product.quantity
-                                : Math.max(0, product.availableStock - product.quantity)
-                              }
+                                : Math.max(
+                                    0,
+                                    product.availableStock - product.quantity,
+                                  )}
                             </div>
                           </div>
                         </div>
 
                         {/* Remarks Field */}
                         <div className="mt-4">
-                          <Label className="text-xs font-medium text-gray-700">Remarks (Optional)</Label>
+                          <Label className="text-xs font-medium text-gray-700">
+                            Remarks (Optional)
+                          </Label>
                           <Input
                             value={product.remarks}
                             onChange={(e) =>
@@ -569,7 +641,13 @@ export function BulkInventoryDialog({
                             variant="outline"
                             size="sm"
                             className="text-xs h-7 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
-                            onClick={() => handleUpdateProduct(product.id, { quantity: 1, direction: "add", reason: "PHYSICAL_STOCK_CHECK" })}
+                            onClick={() =>
+                              handleUpdateProduct(product.id, {
+                                quantity: 1,
+                                direction: "add",
+                                reason: "PHYSICAL_STOCK_CHECK",
+                              })
+                            }
                           >
                             Quick: +1 Stock Check
                           </Button>
@@ -578,7 +656,13 @@ export function BulkInventoryDialog({
                             variant="outline"
                             size="sm"
                             className="text-xs h-7 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
-                            onClick={() => handleUpdateProduct(product.id, { quantity: 5, direction: "add", reason: "NEW_PURCHASE" })}
+                            onClick={() =>
+                              handleUpdateProduct(product.id, {
+                                quantity: 5,
+                                direction: "add",
+                                reason: "NEW_PURCHASE",
+                              })
+                            }
                           >
                             Quick: +5 Purchase
                           </Button>
@@ -587,7 +671,13 @@ export function BulkInventoryDialog({
                             variant="outline"
                             size="sm"
                             className="text-xs h-7 bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
-                            onClick={() => handleUpdateProduct(product.id, { quantity: 10, direction: "add", reason: "NEW_PURCHASE" })}
+                            onClick={() =>
+                              handleUpdateProduct(product.id, {
+                                quantity: 10,
+                                direction: "add",
+                                reason: "NEW_PURCHASE",
+                              })
+                            }
                           >
                             Quick: +10 Purchase
                           </Button>
@@ -600,10 +690,10 @@ export function BulkInventoryDialog({
             </div>
           </div>
 
-          <Separator className="flex-shrink-0" />
+          <Separator className="shrink-0" />
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-2 flex-shrink-0">
+          <div className="flex justify-end gap-2 shrink-0">
             <Button
               variant="outline"
               onClick={handleClose}

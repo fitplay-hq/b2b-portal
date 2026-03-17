@@ -53,7 +53,10 @@ export async function POST(req: NextRequest) {
       data: validatedData,
     });
 
-    revalidateTag("om-clients", "page");
+    revalidateTag("om-clients", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
 
     return NextResponse.json(
       { message: "Client created successfully", id: client.id, data: client },

@@ -95,7 +95,7 @@ export function CompanyCard({
           >
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-blue-100 text-blue-600 flex-shrink-0">
+                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-blue-100 text-blue-600 shrink-0">
                   <Building2 className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -104,11 +104,17 @@ export function CompanyCard({
                       {company.name}
                     </h3>
                     <div className="flex flex-wrap gap-1 sm:gap-2">
-                      <Badge variant="outline" className="text-xs whitespace-nowrap">
+                      <Badge
+                        variant="outline"
+                        className="text-xs whitespace-nowrap"
+                      >
                         {company._count.clients} client
                         {company._count.clients !== 1 ? "s" : ""}
                       </Badge>
-                      <Badge variant="outline" className="text-xs whitespace-nowrap">
+                      <Badge
+                        variant="outline"
+                        className="text-xs whitespace-nowrap"
+                      >
                         {company._count.products} product
                         {company._count.products !== 1 ? "s" : ""}
                       </Badge>
@@ -116,12 +122,13 @@ export function CompanyCard({
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                     <span className="flex items-center gap-1.5 min-w-0">
-                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                      <MapPin className="h-3 w-3 shrink-0" />
                       <span className="truncate">{company.address}</span>
                     </span>
                     <span className="flex items-center gap-1.5 whitespace-nowrap">
-                      <Calendar className="h-3 w-3 flex-shrink-0" />
-                      Created {new Date(company.createdAt).toLocaleDateString('en-GB')}
+                      <Calendar className="h-3 w-3 shrink-0" />
+                      Created{" "}
+                      {new Date(company.createdAt).toLocaleDateString("en-GB")}
                     </span>
                   </div>
                 </div>
@@ -134,7 +141,11 @@ export function CompanyCard({
                       onClick={(e) => e.stopPropagation()}
                       className="flex-1 sm:flex-initial"
                     >
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full sm:w-auto text-xs sm:text-sm"
+                      >
                         <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         Edit
                       </Button>
@@ -163,7 +174,7 @@ export function CompanyCard({
                     e.stopPropagation();
                     onToggle();
                   }}
-                  className="flex-shrink-0"
+                  className="shrink-0"
                 >
                   {isExpanded ? (
                     <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -187,7 +198,11 @@ export function CompanyCard({
                     </h4>
                     {actions.clients.create && (
                       <Link href={`/admin/clients/new?companyId=${company.id}`}>
-                        <Button variant="outline" size="sm" className="w-full sm:w-auto bg-green-50 hover:bg-green-100 border-green-200 text-green-700 text-xs sm:text-sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full sm:w-auto bg-green-50 hover:bg-green-100 border-green-200 text-green-700 text-xs sm:text-sm"
+                        >
                           <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                           Add Client
                         </Button>
@@ -201,8 +216,14 @@ export function CompanyCard({
                         No clients assigned to this company yet.
                       </p>
                       {actions.clients.create && (
-                        <Link href={`/admin/clients/new?companyId=${company.id}`}>
-                          <Button variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700">
+                        <Link
+                          href={`/admin/clients/new?companyId=${company.id}`}
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                          >
                             <Plus className="h-4 w-4 mr-2" />
                             Add First Client
                           </Button>
@@ -211,9 +232,9 @@ export function CompanyCard({
                     </div>
                   ) : (
                     clients.map((client) => (
-                      <ClientCard 
-                        key={client.id} 
-                        client={client} 
+                      <ClientCard
+                        key={client.id}
+                        client={client}
                         onDelete={onDeleteClient}
                       />
                     ))
@@ -261,4 +282,3 @@ export function CompanyCard({
     </>
   );
 }
-

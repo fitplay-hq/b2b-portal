@@ -98,7 +98,9 @@ export function CompanyList({
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <CardTitle className="text-base sm:text-lg">Companies ({companies.length})</CardTitle>
+          <CardTitle className="text-base sm:text-lg">
+            Companies ({companies.length})
+          </CardTitle>
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
@@ -140,37 +142,47 @@ export function CompanyList({
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <Building2 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    <h3 className="font-semibold text-sm sm:text-base truncate">{company.name}</h3>
+                    <Building2 className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                    <h3 className="font-semibold text-sm sm:text-base truncate">
+                      {company.name}
+                    </h3>
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2">
                     {company.address}
                   </p>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                     <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <Users className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
                       <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                         {company._count.clients} client
                         {company._count.clients !== 1 ? "s" : ""}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Package className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <Package className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
                       <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                         {company._count.products} product
                         {company._count.products !== 1 ? "s" : ""}
                       </span>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      Created {new Date(company.createdAt).toLocaleDateString('en-GB')}
+                      Created{" "}
+                      {new Date(company.createdAt).toLocaleDateString("en-GB")}
                     </Badge>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   {actions.companies.edit && (
-                    <Link href={`/admin/companies/${company.id}`} className="flex-1 sm:flex-initial">
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    <Link
+                      href={`/admin/companies/${company.id}`}
+                      className="flex-1 sm:flex-initial"
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full sm:w-auto"
+                      >
                         <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         <span className="text-xs sm:text-sm">Edit</span>
                       </Button>
