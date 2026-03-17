@@ -25,9 +25,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (token.role !== "ADMIN") {
-      // If user is logged in but not an admin, redirect to their respective dashboard
-      // or a general forbidden page. For now, redirecting to login as requested (or their dashboard if they are a client)
+    if (token.role !== "ADMIN" && token.role !== "SYSTEM_USER") {
       if (token.role === "CLIENT") {
         return NextResponse.redirect(new URL("/client/products", req.url));
       }
