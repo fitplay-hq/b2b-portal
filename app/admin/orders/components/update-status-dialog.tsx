@@ -236,16 +236,18 @@ export function UpdateStatusDialog({
             <Button variant="outline" onClick={closeStatusDialog} disabled={isUpdating}>
               Cancel
             </Button>
-            <Button onClick={handleStatusUpdate} disabled={isUpdating}>
-              {isUpdating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                'Update Status'
-              )}
-            </Button>
+            {dialogState.order?.status !== "CANCELLED" && (
+              <Button onClick={handleStatusUpdate} disabled={isUpdating}>
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Status'
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>

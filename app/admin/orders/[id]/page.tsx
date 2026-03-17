@@ -254,20 +254,22 @@ const OrderDetailsPage = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Button
-                onClick={handleStatusUpdate}
-                disabled={!selectedStatus || isUpdating}
-                variant="outline"
-              >
-                {isUpdating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update Status"
-                )}
-              </Button>
+              {order.status !== "CANCELLED" && (
+                <Button
+                  onClick={handleStatusUpdate}
+                  disabled={!selectedStatus || isUpdating}
+                  variant="outline"
+                >
+                  {isUpdating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Status"
+                  )}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

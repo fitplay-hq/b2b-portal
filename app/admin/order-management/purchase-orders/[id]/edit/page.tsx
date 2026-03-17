@@ -63,10 +63,22 @@ export default function OMEditPurchaseOrder() {
             fetch("/api/admin/om/brands"),
           ]);
 
-        if (clientsRes.ok) setClients(await clientsRes.json());
-        if (locationsRes.ok) setLocations(await locationsRes.json());
-        if (productsRes.ok) setProducts(await productsRes.json());
-        if (brandsRes.ok) setBrands(await brandsRes.json());
+        if (clientsRes.ok) {
+          const res = await clientsRes.json();
+          setClients(res.data || res);
+        }
+        if (locationsRes.ok) {
+          const res = await locationsRes.json();
+          setLocations(res.data || res);
+        }
+        if (productsRes.ok) {
+          const res = await productsRes.json();
+          setProducts(res.data || res);
+        }
+        if (brandsRes.ok) {
+          const res = await brandsRes.json();
+          setBrands(res.data || res);
+        }
       };
 
       if (isSilent) {

@@ -255,7 +255,10 @@ export async function getOMDashboardData(params: GetOMDashboardDataParams) {
   }
 
   if (statuses.length > 0) {
-    andFilters.push({ status: { in: statuses as any[] } });
+    const expandedStatuses = statuses.flatMap((s) =>
+      s === "active" ? ["CONFIRMED", "PARTIALLY_DISPATCHED"] : [s]
+    );
+    andFilters.push({ status: { in: expandedStatuses as any[] } });
   }
 
   const whereClause = andFilters.length > 0 ? { AND: andFilters } : {};
@@ -764,7 +767,13 @@ export async function getOMPurchaseOrders(params: {
     });
   }
   if (params.clientId) andFilters.push({ clientId: params.clientId });
-  if (params.status && params.status !== "all") andFilters.push({ status: params.status });
+  if (params.status === "active") {
+    andFilters.push({
+      status: { in: ["CONFIRMED", "PARTIALLY_DISPATCHED"] as OMPoStatus[] },
+    });
+  } else if (params.status && params.status !== "all") {
+    andFilters.push({ status: params.status });
+  }
   if (params.locationId) {
     andFilters.push({
       deliveryLocations: { some: { id: params.locationId } },
