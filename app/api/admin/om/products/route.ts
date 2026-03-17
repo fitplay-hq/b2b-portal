@@ -4,6 +4,7 @@ import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMProductCreateSchema } from "@/lib/validations/om";
+import { getOMProducts } from "@/lib/om-data";
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,49 +19,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = req.nextUrl;
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
     const search = searchParams.get("search") || "";
-    const sortBy = searchParams.get("sortBy") || "name";
-    const sortOrder = searchParams.get("sortOrder") || "asc";
+    const brandId = searchParams.get("brandId") || undefined;
 
-    const allowedSortFields = [
-      "name",
-      "sku",
-      "price",
-      "createdAt",
-      "updatedAt",
-    ];
-    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "name";
-    const safeSortOrder = sortOrder === "desc" ? "desc" : "asc";
-
-    const whereClause: any = { isActive: true };
-    if (search) {
-      whereClause.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { sku: { contains: search, mode: "insensitive" } },
-      ];
-    }
-
-    const products = await prisma.oMProduct.findMany({
-      where: whereClause,
-      include: {
-        brands: true,
-        purchaseOrderItems: {
-          select: { quantity: true },
-        },
-      },
-      orderBy: {
-        [safeSortBy]: safeSortOrder,
-      },
-    });
-
-    const result = products.map(({ purchaseOrderItems, ...rest }) => ({
-      ...rest,
-      totalOrdered: purchaseOrderItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0,
-      ),
-    }));
+    const result = await getOMProducts({ page, limit, search, brandId });
 
     return NextResponse.json(result);
   } catch (error: unknown) {

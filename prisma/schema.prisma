@@ -305,6 +305,9 @@ model OMPurchaseOrder {
   client            OMClient              @relation(fields: [clientId], references: [id])
   deliveryLocations OMDeliveryLocation[]  @relation("PurchaseOrderLocations")
   items             OMPurchaseOrderItem[]
+
+  @@index([clientId])
+  @@index([poNumber])
 }
 
 model OMProduct {
@@ -373,6 +376,8 @@ model OMDispatchOrder {
   deliveryLocation     OMDeliveryLocation?   @relation(fields: [deliveryLocationId], references: [id])
   items                OMDispatchOrderItem[]
   shipmentBoxes        OMShipmentBox[]
+
+  @@index([invoiceNumber])
 }
 
 model OMDispatchOrderItem {

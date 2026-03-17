@@ -1,3 +1,5 @@
+"use client";
+
 import { ReactNode, useState, useEffect } from "react";
 import NavItems from "./nav-items";
 import AccountInfo from "./account-info";

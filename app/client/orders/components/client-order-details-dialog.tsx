@@ -30,7 +30,7 @@ import type { OrderWithItems } from "@/data/order/client.actions";
 import Link from "next/link";
 
 const getStatusVisuals = (
-  status: Order["status"]
+  status: Order["status"],
 ): { color: string; Icon: LucideIcon } => {
   switch (status) {
     case "PENDING":
@@ -103,59 +103,62 @@ export function ClientOrderDetailsDialog({
 
   // Build dynamic timeline based on actual events (like admin side)
   const timelineEvents = [];
-  
+
   // Always show order creation
   timelineEvents.push({
     label: "Order Created",
     description: "",
     timestamp: order.createdAt,
     icon: CheckCircle,
-    color: "bg-green-100 text-green-600"
+    color: "bg-green-100 text-green-600",
   });
 
   // Add status-based events
-  const statusMap: Record<string, { label: string; description: string; icon: any; color: string }> = {
+  const statusMap: Record<
+    string,
+    { label: string; description: string; icon: any; color: string }
+  > = {
     APPROVED: {
       label: "Order Approved",
       description: "Order has been approved",
       icon: CheckCircle,
-      color: "bg-blue-100 text-blue-600"
+      color: "bg-blue-100 text-blue-600",
     },
     READY_FOR_DISPATCH: {
       label: "Ready for Dispatch",
       description: "Order is packed and ready",
       icon: Download,
-      color: "bg-purple-100 text-purple-600"
+      color: "bg-purple-100 text-purple-600",
     },
     DISPATCHED: {
       label: "Order Dispatched",
       description: "Order has been dispatched",
       icon: Package,
-      color: "bg-green-100 text-green-600"
+      color: "bg-green-100 text-green-600",
     },
     AT_DESTINATION: {
       label: "At Destination",
       description: "Order reached delivery location",
       icon: Building2,
-      color: "bg-green-100 text-green-600"
+      color: "bg-green-100 text-green-600",
     },
     DELIVERED: {
       label: "Delivered",
       description: "Order has been delivered",
       icon: Building2,
-      color: "bg-green-100 text-green-600"
+      color: "bg-green-100 text-green-600",
     },
     COMPLETED: {
       label: "Completed",
       description: "Order is complete",
       icon: CheckCircle,
-      color: "bg-green-100 text-green-600"
+      color: "bg-green-100 text-green-600",
     },
     CANCELLED: {
       label: "Order Cancelled",
       description: "Status updated to cancelled",
       icon: XCircle,
-      color: "bg-red-100 text-red-600"
+      color: "bg-red-100 text-red-600",
     },
   };
 
@@ -167,7 +170,7 @@ export function ClientOrderDetailsDialog({
       description: statusInfo.description,
       timestamp: order.updatedAt,
       icon: statusInfo.icon,
-      color: statusInfo.color
+      color: statusInfo.color,
     });
   }
 
@@ -193,12 +196,26 @@ export function ClientOrderDetailsDialog({
                 Order Information
               </h4>
               <div className="text-sm space-y-1">
-                <p><span className="font-medium">Order ID:</span> {order.id}</p>
-                <p><span className="font-medium">Created:</span> {new Date(order.createdAt).toLocaleDateString('en-GB')}</p>
-                <p><span className="font-medium">Required By:</span> {new Date(order.requiredByDate).toLocaleDateString('en-GB')}</p>
-                <p><span className="font-medium">Last Updated:</span> {new Date(order.updatedAt).toLocaleDateString('en-GB')}</p>
+                <p>
+                  <span className="font-medium">Order ID:</span> {order.id}
+                </p>
+                <p>
+                  <span className="font-medium">Created:</span>{" "}
+                  {new Date(order.createdAt).toLocaleDateString("en-GB")}
+                </p>
+                <p>
+                  <span className="font-medium">Required By:</span>{" "}
+                  {new Date(order.requiredByDate).toLocaleDateString("en-GB")}
+                </p>
+                <p>
+                  <span className="font-medium">Last Updated:</span>{" "}
+                  {new Date(order.updatedAt).toLocaleDateString("en-GB")}
+                </p>
                 {order.consignmentNumber && (
-                  <p><span className="font-medium">AWB:</span> {order.consignmentNumber}</p>
+                  <p>
+                    <span className="font-medium">AWB:</span>{" "}
+                    {order.consignmentNumber}
+                  </p>
                 )}
               </div>
             </div>
@@ -210,20 +227,38 @@ export function ClientOrderDetailsDialog({
               </h4>
               <div className="text-sm space-y-1">
                 {order.consigneeName && (
-                  <p><span className="font-medium">Consignee:</span> {order.consigneeName}</p>
+                  <p>
+                    <span className="font-medium">Consignee:</span>{" "}
+                    {order.consigneeName}
+                  </p>
                 )}
                 {order.consigneePhone && (
-                  <p><span className="font-medium">Phone:</span> {order.consigneePhone}</p>
+                  <p>
+                    <span className="font-medium">Phone:</span>{" "}
+                    {order.consigneePhone}
+                  </p>
                 )}
                 {order.consigneeEmail && (
-                  <p><span className="font-medium">Email:</span> {order.consigneeEmail}</p>
+                  <p>
+                    <span className="font-medium">Email:</span>{" "}
+                    {order.consigneeEmail}
+                  </p>
                 )}
-                <p><span className="font-medium">Address:</span> {order.deliveryAddress}</p>
+                <p>
+                  <span className="font-medium">Address:</span>{" "}
+                  {order.deliveryAddress}
+                </p>
                 {order.city && order.state && (
-                  <p><span className="font-medium">Location:</span> {order.city}, {order.state}</p>
+                  <p>
+                    <span className="font-medium">Location:</span> {order.city},{" "}
+                    {order.state}
+                  </p>
                 )}
                 {order.pincode && (
-                  <p><span className="font-medium">Pincode:</span> {order.pincode}</p>
+                  <p>
+                    <span className="font-medium">Pincode:</span>{" "}
+                    {order.pincode}
+                  </p>
                 )}
               </div>
             </div>
@@ -240,8 +275,11 @@ export function ClientOrderDetailsDialog({
             <div className="space-y-3">
               {(() => {
                 // Aggregate products by productId from both orderItems and bundleOrderItems
-                const productMap = new Map<string, { product: any, totalQty: number, price?: number }>();
-                
+                const productMap = new Map<
+                  string,
+                  { product: any; totalQty: number; price?: number }
+                >();
+
                 // Add quantities from regular items
                 order.orderItems?.forEach((item) => {
                   const existing = productMap.get(item.product.id);
@@ -251,11 +289,11 @@ export function ClientOrderDetailsDialog({
                     productMap.set(item.product.id, {
                       product: item.product,
                       totalQty: item.quantity,
-                      price: item.price
+                      price: item.price,
                     });
                   }
                 });
-                
+
                 // Add quantities from bundle items
                 order.bundleOrderItems?.forEach((item) => {
                   const existing = productMap.get(item.product.id);
@@ -265,13 +303,16 @@ export function ClientOrderDetailsDialog({
                     productMap.set(item.product.id, {
                       product: item.product,
                       totalQty: item.quantity,
-                      price: item.price || item.product?.price
+                      price: item.price || item.product?.price,
                     });
                   }
                 });
-                
+
                 return Array.from(productMap.values()).map((data, index) => (
-                  <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-3 border rounded-lg"
+                  >
                     <div className="h-12 w-12 rounded overflow-hidden">
                       <ImageWithFallback
                         src={data.product.images[0]}
@@ -280,12 +321,14 @@ export function ClientOrderDetailsDialog({
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{data.product.name}</p>
-                      <p className="text-sm text-muted-foreground">SKU: {data.product.sku}</p>
+                      <p className="font-medium truncate">
+                        {data.product.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        SKU: {data.product.sku}
+                      </p>
                       {isShowPrice && data.price && data.price > 0 && (
-                        <p className="text-sm">
-                          ₹{data.price.toFixed(2)} each
-                        </p>
+                        <p className="text-sm">₹{data.price.toFixed(2)} each</p>
                       )}
                     </div>
                     <div className="text-right shrink-0">
@@ -294,65 +337,104 @@ export function ClientOrderDetailsDialog({
                   </div>
                 ));
               })()}
-              {order.bundleOrderItems && order.bundleOrderItems.length > 0 && (() => {
-                // Group bundleOrderItems by bundle for client dialog
-                const bundleGroups = order.bundleOrderItems.reduce((groups: any, bundleItem) => {
-                  const bundleId = bundleItem.bundleId;
-                  if (!groups[bundleId]) {
-                    groups[bundleId] = {
-                      bundle: bundleItem.bundle,
-                      items: []
-                    };
-                  }
-                  groups[bundleId].items.push(bundleItem);
-                  return groups;
-                }, {});
+              {order.bundleOrderItems &&
+                order.bundleOrderItems.length > 0 &&
+                (() => {
+                  // Group bundleOrderItems by bundle for client dialog
+                  const bundleGroups = order.bundleOrderItems.reduce(
+                    (groups: any, bundleItem) => {
+                      const bundleId = bundleItem.bundleId;
+                      if (!groups[bundleId]) {
+                        groups[bundleId] = {
+                          bundle: bundleItem.bundle,
+                          items: [],
+                        };
+                      }
+                      groups[bundleId].items.push(bundleItem);
+                      return groups;
+                    },
+                    {},
+                  );
 
-                return Object.values(bundleGroups).map((group: any, groupIndex) => {
-                  const bundleCount = group.items[0]?.bundle?.numberOfBundles || 1;
-                  return (
-                    <div key={`bundle-group-${groupIndex}`} className="space-y-3">
-                      {/* Bundle Header */}
-                      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                        <Package className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium text-blue-900">Bundle {groupIndex + 1}</span>
-                        <span className="text-xs text-blue-600 ml-auto">
-                          {group.items.length} item{group.items.length > 1 ? 's' : ''} • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    
-                    {/* Bundle Items */}
-                    {group.items.map((bundleItem: any, itemIndex: number) => {
-                      const perBundleQty = bundleCount > 0 ? bundleItem.quantity / bundleCount : bundleItem.quantity;
+                  return Object.values(bundleGroups).map(
+                    (group: any, groupIndex) => {
+                      const bundleCount =
+                        group.items[0]?.bundle?.numberOfBundles || 1;
                       return (
-                      <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex items-center gap-4 p-3 border rounded-lg ml-4">
-                        <div className="h-12 w-12 rounded overflow-hidden">
-                          <ImageWithFallback
-                            src={bundleItem.product?.images?.[0] || ''}
-                            alt={bundleItem.product?.name || 'Bundle Product'}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{bundleItem.product?.name || 'Bundle Product'}</p>
-                          <p className="text-sm text-muted-foreground">SKU: {bundleItem.product?.sku || 'N/A'}</p>
-                          <p className="text-xs text-blue-600 font-medium">Bundle Item</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">Qty: {perBundleQty} each</p>
-                          {isShowPrice && bundleItem.price && bundleItem.price > 0 && (
-                            <p className="text-sm text-muted-foreground">
-                              ₹{bundleItem.price.toFixed(2)} each
-                            </p>
+                        <div
+                          key={`bundle-group-${groupIndex}`}
+                          className="space-y-3"
+                        >
+                          {/* Bundle Header */}
+                          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                            <Package className="h-4 w-4 text-blue-600" />
+                            <span className="font-medium text-blue-900">
+                              Bundle {groupIndex + 1}
+                            </span>
+                            <span className="text-xs text-blue-600 ml-auto">
+                              {group.items.length} item
+                              {group.items.length > 1 ? "s" : ""} •{" "}
+                              {bundleCount} bundle{bundleCount > 1 ? "s" : ""}
+                            </span>
+                          </div>
+
+                          {/* Bundle Items */}
+                          {group.items.map(
+                            (bundleItem: any, itemIndex: number) => {
+                              const perBundleQty =
+                                bundleCount > 0
+                                  ? bundleItem.quantity / bundleCount
+                                  : bundleItem.quantity;
+                              return (
+                                <div
+                                  key={`bundle-item-${groupIndex}-${itemIndex}`}
+                                  className="flex items-center gap-4 p-3 border rounded-lg ml-4"
+                                >
+                                  <div className="h-12 w-12 rounded overflow-hidden">
+                                    <ImageWithFallback
+                                      src={
+                                        bundleItem.product?.images?.[0] || ""
+                                      }
+                                      alt={
+                                        bundleItem.product?.name ||
+                                        "Bundle Product"
+                                      }
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">
+                                      {bundleItem.product?.name ||
+                                        "Bundle Product"}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      SKU: {bundleItem.product?.sku || "N/A"}
+                                    </p>
+                                    <p className="text-xs text-blue-600 font-medium">
+                                      Bundle Item
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-medium">
+                                      Qty: {perBundleQty} each
+                                    </p>
+                                    {isShowPrice &&
+                                      bundleItem.price &&
+                                      bundleItem.price > 0 && (
+                                        <p className="text-sm text-muted-foreground">
+                                          ₹{bundleItem.price.toFixed(2)} each
+                                        </p>
+                                      )}
+                                  </div>
+                                </div>
+                              );
+                            },
                           )}
                         </div>
-                      </div>
-                    );
-                    })}
-                    </div>
-                );
-              });
-            })()}
+                      );
+                    },
+                  );
+                })()}
             </div>
             {isShowPrice && order.totalAmount > 0 && (
               <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
@@ -377,27 +459,46 @@ export function ClientOrderDetailsDialog({
               {timelineEvents.map((event, index) => {
                 const EventIcon = event.icon;
                 const isLast = index === timelineEvents.length - 1;
-                
+
                 return (
                   <div key={index} className="relative">
                     <div className="flex items-start gap-4">
-                      <div className={`h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 ${event.color}`}>
+                      <div
+                        className={`h-12 w-12 rounded-full flex items-center justify-center shrink-0 ${event.color}`}
+                      >
                         <EventIcon className="h-5 w-5" />
                       </div>
                       <div className="flex-1 pt-1">
-                        <p className="font-semibold text-base">
-                          {event.label}
-                        </p>
+                        <p className="font-semibold text-base">{event.label}</p>
                         <p className="text-sm text-muted-foreground">
                           {event.description}
                         </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {new Date(event.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/')}, {new Date(event.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                          {new Date(event.timestamp)
+                            .toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })
+                            .replace(/\//g, "/")}
+                          ,{" "}
+                          {new Date(event.timestamp).toLocaleTimeString(
+                            "en-US",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                              hour12: false,
+                            },
+                          )}
                         </p>
                       </div>
                     </div>
                     {!isLast && (
-                      <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-gray-200 -mb-4" style={{ height: '1rem' }} />
+                      <div
+                        className="absolute left-6 top-12 bottom-0 w-0.5 bg-gray-200 -mb-4"
+                        style={{ height: "1rem" }}
+                      />
                     )}
                   </div>
                 );
@@ -406,20 +507,32 @@ export function ClientOrderDetailsDialog({
           </div>
 
           {/* Additional Information */}
-          {(order.note || order.packagingInstructions || order.deliveryReference) && (
+          {(order.note ||
+            order.packagingInstructions ||
+            order.deliveryReference) && (
             <>
               <Separator />
               <div className="space-y-2">
                 <h4 className="font-medium">Additional Information</h4>
                 <div className="text-sm space-y-2 p-3 bg-muted/50 rounded-lg">
                   {order.note && (
-                    <p><span className="font-medium">Notes:</span> {order.note}</p>
+                    <p>
+                      <span className="font-medium">Notes:</span> {order.note}
+                    </p>
                   )}
                   {order.packagingInstructions && (
-                    <p><span className="font-medium">Packaging Instructions:</span> {order.packagingInstructions}</p>
+                    <p>
+                      <span className="font-medium">
+                        Packaging Instructions:
+                      </span>{" "}
+                      {order.packagingInstructions}
+                    </p>
                   )}
                   {order.deliveryReference && (
-                    <p><span className="font-medium">Delivery Reference:</span> {order.deliveryReference}</p>
+                    <p>
+                      <span className="font-medium">Delivery Reference:</span>{" "}
+                      {order.deliveryReference}
+                    </p>
                   )}
                 </div>
               </div>

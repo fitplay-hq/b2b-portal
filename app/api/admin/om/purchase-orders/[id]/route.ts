@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
@@ -87,6 +88,12 @@ export async function DELETE(
     await prisma.oMPurchaseOrder.delete({
       where: { id },
     });
+
+    revalidateTag("om-clients", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
+    revalidateTag("om-delivery-locations", "page");
 
     return NextResponse.json({
       success: true,
@@ -268,6 +275,12 @@ export async function PATCH(
         },
       });
     });
+
+    revalidateTag("om-clients", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
+    revalidateTag("om-delivery-locations", "page");
 
     return NextResponse.json({
       message: "Purchase Order updated successfully",

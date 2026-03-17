@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
       },
       distinct: ["poNumber"],
       orderBy: { poNumber: "asc" },
+      take: 50,
     });
 
     return NextResponse.json(

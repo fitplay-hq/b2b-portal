@@ -6,7 +6,17 @@ import Layout from "@/components/layout";
 import { PageGuard } from "@/components/page-guard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Building2, Users, Package, Search, ChevronDown, ChevronUp, Grid3x3, Table } from "lucide-react";
+import {
+  Plus,
+  Building2,
+  Users,
+  Package,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Grid3x3,
+  Table,
+} from "lucide-react";
 import Link from "next/link";
 import { useCompanies } from "@/data/company/admin.hooks";
 import { useClients, useDeleteClient } from "@/data/client/admin.hooks";
@@ -28,23 +38,34 @@ import {
 
 function CompaniesClientsContent() {
   const searchParams = useSearchParams();
-  const { companies, isLoading: companiesLoading, error: companiesError } = useCompanies();
-  const { clients, isLoading: clientsLoading, error: clientsError, mutate: mutateClients } = useClients();
+  const {
+    companies,
+    isLoading: companiesLoading,
+    error: companiesError,
+  } = useCompanies();
+  const {
+    clients,
+    isLoading: clientsLoading,
+    error: clientsError,
+    mutate: mutateClients,
+  } = useClients();
   const { actions } = usePermissions();
   const { deleteClient } = useDeleteClient();
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [viewType, setViewType] = useState<"row" | "table">("row");
-  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
+  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(
+    new Set(),
+  );
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
 
   // Handle refresh parameter to force data reload
   useEffect(() => {
-    if (searchParams.get('refresh') === 'true') {
+    if (searchParams.get("refresh") === "true") {
       mutateClients();
       // Clean up the URL parameter
-      window.history.replaceState({}, '', '/admin/companies-clients');
+      window.history.replaceState({}, "", "/admin/companies-clients");
     }
   }, [searchParams, mutateClients]);
 
@@ -72,15 +93,15 @@ function CompaniesClientsContent() {
     if (!term) return companies;
 
     return companies.filter((company) => {
-      const companyMatches = 
+      const companyMatches =
         company.name.toLowerCase().includes(term) ||
         company.address.toLowerCase().includes(term);
-      
+
       const companyClients = clientsByCompany.get(company.id) || [];
       const clientsMatch = companyClients.some(
         (client) =>
           client.name.toLowerCase().includes(term) ||
-          client.email.toLowerCase().includes(term)
+          client.email.toLowerCase().includes(term),
       );
 
       return companyMatches || clientsMatch;
@@ -93,12 +114,13 @@ function CompaniesClientsContent() {
     const term = searchTerm.toLowerCase();
     if (!term) return clients;
 
-    return clients.filter((client) =>
-      client.name.toLowerCase().includes(term) ||
-      client.email.toLowerCase().includes(term) ||
-      client.phone.toLowerCase().includes(term) ||
-      client.address.toLowerCase().includes(term) ||
-      (client.companyName && client.companyName.toLowerCase().includes(term))
+    return clients.filter(
+      (client) =>
+        client.name.toLowerCase().includes(term) ||
+        client.email.toLowerCase().includes(term) ||
+        client.phone.toLowerCase().includes(term) ||
+        client.address.toLowerCase().includes(term) ||
+        (client.companyName && client.companyName.toLowerCase().includes(term)),
     );
   }, [clients, searchTerm]);
 
@@ -117,7 +139,7 @@ function CompaniesClientsContent() {
     const totalClients = clients.length;
     const totalProducts = companies.reduce(
       (sum, company) => sum + (company._count?.products || 0),
-      0
+      0,
     );
     const avgProductsPerCompany =
       totalCompanies > 0 ? Math.round(totalProducts / totalCompanies) : 0;
@@ -170,7 +192,8 @@ function CompaniesClientsContent() {
       mutateClients(); // Refresh the clients list
     } catch (error) {
       console.error("Client deletion error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to delete client.";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete client.";
       toast.error(errorMessage);
     }
   };
@@ -200,7 +223,9 @@ function CompaniesClientsContent() {
             <div className="text-center">
               <h2 className="text-xl font-semibold">Error loading data</h2>
               <p className="text-muted-foreground mt-2">
-                {error instanceof Error ? error.message : "Failed to load companies and clients"}
+                {error instanceof Error
+                  ? error.message
+                  : "Failed to load companies and clients"}
               </p>
             </div>
           </div>
@@ -223,12 +248,13 @@ function CompaniesClientsContent() {
                       Companies & Clients
                     </h1>
                     <p className="text-gray-600 text-sm sm:text-base">
-                      Manage companies, client users (POCs), assigned products, and analytics scope
+                      Manage companies, client users (POCs), assigned products,
+                      and analytics scope
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-shrink-0">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 shrink-0">
                     {actions.clients.create && (
-                      <Link href="/admin/clients/new" className="flex-shrink-0">
+                      <Link href="/admin/clients/new" className="shrink-0">
                         <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
                           <Users className="h-4 w-4 mr-2" />
                           Add Client
@@ -236,7 +262,7 @@ function CompaniesClientsContent() {
                       </Link>
                     )}
                     {actions.companies.create && (
-                      <Link href="/admin/companies/new" className="flex-shrink-0">
+                      <Link href="/admin/companies/new" className="shrink-0">
                         <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
                           <Plus className="h-4 w-4 mr-2" />
                           Add Company
@@ -271,13 +297,16 @@ function CompaniesClientsContent() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                        Companies & Clients ({viewType === "row" ? filteredCompanies.length : filteredClients.length})
+                        Companies & Clients (
+                        {viewType === "row"
+                          ? filteredCompanies.length
+                          : filteredClients.length}
+                        )
                       </h2>
                       <p className="text-sm text-gray-500">
-                        {viewType === "row" 
+                        {viewType === "row"
                           ? "Click on a company to view its clients (POCs) and assigned products"
-                          : "Table view of all clients with their details and actions"
-                        }
+                          : "Table view of all clients with their details and actions"}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -387,7 +416,7 @@ function CompaniesClientsContent() {
                           )}
                         </div>
                       ) : (
-                        <ClientsTable 
+                        <ClientsTable
                           clients={filteredClients}
                           onDeleteClient={handleDeleteClient}
                         />
@@ -426,15 +455,16 @@ function CompaniesClientsContent() {
 
 export default function CompaniesClientsPage() {
   return (
-    <Suspense fallback={
-      <Layout isClient={false}>
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </Layout>
-    }>
+    <Suspense
+      fallback={
+        <Layout isClient={false}>
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </Layout>
+      }
+    >
       <CompaniesClientsContent />
     </Suspense>
   );
 }
-

@@ -3,6 +3,7 @@ import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
+import { getOMDashboardData } from "@/lib/om-data";
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,271 +19,29 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const query = searchParams.get("q") || "";
-    const fromDate = searchParams.get("fromDate");
-    const toDate = searchParams.get("toDate");
-    const clientName = searchParams.get("clientName");
-    const itemName = searchParams.get("itemName");
-    const brandName = searchParams.get("brandName");
-    const poNumber = searchParams.get("poNumber");
-    const invoiceNumber = searchParams.get("invoiceNumber");
-    const logisticsPartnerId = searchParams.get("logisticsPartnerId");
-    const locationId = searchParams.get("locationId");
-    const statuses = searchParams.getAll("status");
-    const sku = searchParams.get("sku");
-    const docketNumber = searchParams.get("docketNumber");
-    const minAmount = searchParams.get("minAmount");
-    const maxAmount = searchParams.get("maxAmount");
-    const gstPercentage = searchParams.get("gstPercentage");
+    const params: any = {
+      query: searchParams.get("q") || "",
+      fromDate: searchParams.get("fromDate") || undefined,
+      toDate: searchParams.get("toDate") || undefined,
+      clientName: searchParams.get("clientName") || undefined,
+      itemName: searchParams.get("itemName") || undefined,
+      brandName: searchParams.get("brandName") || undefined,
+      poNumber: searchParams.get("poNumber") || undefined,
+      invoiceNumber: searchParams.get("invoiceNumber") || undefined,
+      logisticsPartnerId: searchParams.get("logisticsPartnerId") || undefined,
+      locationId: searchParams.get("locationId") || undefined,
+      statuses: searchParams.getAll("status"),
+      sku: searchParams.get("sku") || undefined,
+      docketNumber: searchParams.get("docketNumber") || undefined,
+      minAmount: searchParams.get("minAmount") || undefined,
+      maxAmount: searchParams.get("maxAmount") || undefined,
+      gstPercentage: searchParams.get("gstPercentage") || undefined,
+      timeRange: searchParams.get("timeRange") || "all",
+    };
 
-    const andFilters: any[] = [];
+    const { pos } = await getOMDashboardData(params);
 
-    if (query) {
-      const orFilters: any[] = [
-        { poNumber: { contains: query, mode: "insensitive" } },
-        { estimateNumber: { contains: query, mode: "insensitive" } },
-        { client: { name: { contains: query, mode: "insensitive" } } },
-        {
-          deliveryLocations: {
-            some: {
-              name: { contains: query, mode: "insensitive" },
-            },
-          },
-        },
-        {
-          dispatchOrders: {
-            some: {
-              OR: [
-                { invoiceNumber: { contains: query, mode: "insensitive" } },
-                { docketNumber: { contains: query, mode: "insensitive" } },
-                {
-                  logisticsPartner: {
-                    name: { contains: query, mode: "insensitive" },
-                  },
-                },
-              ],
-            },
-          },
-        },
-        {
-          items: {
-            some: {
-              OR: [
-                { product: { sku: { contains: query, mode: "insensitive" } } },
-                { product: { name: { contains: query, mode: "insensitive" } } },
-                { OMBrand: { name: { contains: query, mode: "insensitive" } } },
-                {
-                  product: {
-                    brands: {
-                      some: {
-                        name: { contains: query, mode: "insensitive" },
-                      },
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        },
-      ];
-
-      // Handle numeric searches if query is a valid number
-      const numericQuery = parseFloat(query);
-      if (!isNaN(numericQuery)) {
-        orFilters.push(
-          { totalGst: numericQuery },
-          { grandTotal: numericQuery },
-          {
-            items: {
-              some: {
-                OR: [
-                  { rate: numericQuery },
-                  { amount: numericQuery },
-                  { gstPercentage: numericQuery },
-                ],
-              },
-            },
-          },
-        );
-      }
-
-      andFilters.push({ OR: orFilters });
-    }
-
-    if (fromDate || toDate) {
-      const dateFilter: any = {};
-      if (fromDate) dateFilter.gte = new Date(fromDate);
-      if (toDate) {
-        const endOfDay = new Date(toDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        dateFilter.lte = endOfDay;
-      }
-      andFilters.push({
-        OR: [{ poDate: dateFilter }, { estimateDate: dateFilter }],
-      });
-    }
-
-    if (clientName) {
-      andFilters.push({
-        client: { name: { contains: clientName, mode: "insensitive" } },
-      });
-    }
-
-    if (itemName) {
-      andFilters.push({
-        items: {
-          some: {
-            product: { name: { contains: itemName, mode: "insensitive" } },
-          },
-        },
-      });
-    }
-
-    if (brandName) {
-      andFilters.push({
-        items: {
-          some: {
-            OR: [
-              {
-                OMBrand: {
-                  name: { contains: brandName, mode: "insensitive" },
-                },
-              },
-              {
-                product: {
-                  brands: {
-                    some: {
-                      name: { contains: brandName, mode: "insensitive" },
-                    },
-                  },
-                },
-              },
-            ],
-          },
-        },
-      });
-    }
-
-    if (poNumber) {
-      andFilters.push({
-        poNumber: { contains: poNumber, mode: "insensitive" },
-      });
-    }
-
-    if (invoiceNumber) {
-      andFilters.push({
-        dispatchOrders: {
-          some: {
-            invoiceNumber: { contains: invoiceNumber, mode: "insensitive" },
-          },
-        },
-      });
-    }
-
-    if (logisticsPartnerId) {
-      andFilters.push({
-        dispatchOrders: {
-          some: {
-            logisticsPartnerId: logisticsPartnerId,
-          },
-        },
-      });
-    }
-
-    if (locationId) {
-      andFilters.push({
-        deliveryLocations: {
-          some: {
-            id: locationId,
-          },
-        },
-      });
-    }
-
-    if (sku) {
-      andFilters.push({
-        items: {
-          some: {
-            product: { sku: { contains: sku, mode: "insensitive" } },
-          },
-        },
-      });
-    }
-
-    if (docketNumber) {
-      andFilters.push({
-        dispatchOrders: {
-          some: {
-            docketNumber: { contains: docketNumber, mode: "insensitive" },
-          },
-        },
-      });
-    }
-
-    if (gstPercentage) {
-      andFilters.push({
-        items: {
-          some: {
-            gstPercentage: parseFloat(gstPercentage),
-          },
-        },
-      });
-    }
-
-    if (minAmount || maxAmount) {
-      const amountFilter: any = {};
-      if (minAmount) amountFilter.gte = parseFloat(minAmount);
-      if (maxAmount) amountFilter.lte = parseFloat(maxAmount);
-      andFilters.push({ grandTotal: amountFilter });
-    }
-
-    if (statuses.length > 0) {
-      andFilters.push({ status: { in: statuses } });
-    }
-
-    const whereClause = andFilters.length > 0 ? { AND: andFilters } : {};
-
-    const purchaseOrders = await prisma.oMPurchaseOrder.findMany({
-      where: whereClause,
-      include: {
-        client: true,
-        deliveryLocations: true,
-        items: {
-          include: {
-            product: {
-              include: {
-                brands: true,
-              },
-            },
-            dispatchItems: true,
-            OMBrand: true,
-          },
-        },
-        dispatchOrders: {
-          include: {
-            logisticsPartner: true,
-            items: {
-              include: {
-                purchaseOrderItem: {
-                  include: {
-                    product: {
-                      include: {
-                        brands: true,
-                      },
-                    },
-                    OMBrand: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      take: query || andFilters.length > 0 ? 100 : 200,
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json({ results: purchaseOrders });
+    return NextResponse.json({ results: pos });
   } catch (error: unknown) {
     return handleApiError(error);
   }

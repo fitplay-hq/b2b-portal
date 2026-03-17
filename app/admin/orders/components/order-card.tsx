@@ -232,7 +232,7 @@ const OrderDetails = ({
     <CardContent className="pt-0">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 border-b pb-4">
-          {actions.orders.edit && (
+          {actions.orders.edit && order.status !== "CANCELLED" && (
             <Button size="sm" onClick={onOpenStatusDialog} className="text-xs sm:text-sm h-8 sm:h-9">
               Update Status
             </Button>

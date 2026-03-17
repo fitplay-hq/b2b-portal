@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Filter, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,7 @@ interface OMFilterCardProps {
   onReset?: () => void;
   children: React.ReactNode;
   className?: string;
+  isHydrating?: boolean;
 }
 
 export function OMFilterCard({
@@ -45,6 +46,7 @@ export function OMFilterCard({
   onReset,
   children,
   className,
+  isHydrating = false,
 }: OMFilterCardProps) {
   return (
     <Card className={cn("shadow-sm", className)}>
@@ -63,7 +65,11 @@ export function OMFilterCard({
               Search
             </Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              {isHydrating ? (
+                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-spin" />
+              ) : (
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              )}
               <Input
                 placeholder={searchPlaceholder}
                 value={searchTerm}

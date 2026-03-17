@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
@@ -247,6 +248,9 @@ export async function PUT(
       return dispatch;
     });
 
+    revalidateTag("om-dispatch-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+
     return NextResponse.json(updatedDispatch);
   } catch (error: unknown) {
     return handleApiError(error);
@@ -275,6 +279,9 @@ export async function DELETE(
     await prisma.oMDispatchOrder.delete({
       where: { id },
     });
+
+    revalidateTag("om-dispatch-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
 
     return NextResponse.json({
       success: true,

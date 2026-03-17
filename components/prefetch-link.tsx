@@ -1,16 +1,16 @@
 "use client";
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef } from 'react';
-import { cn } from '@/lib/utils';
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 
 interface PrefetchLinkProps {
   href: string;
   children: React.ReactNode;
   className?: string;
   prefetch?: boolean;
-  priority?: 'high' | 'low';
+  priority?: "high" | "low";
   onMouseEnter?: () => void;
   onClick?: (e: React.MouseEvent) => void;
   [key: string]: any;
@@ -19,15 +19,15 @@ interface PrefetchLinkProps {
 /**
  * Enhanced Link component with intelligent prefetching
  */
-export function PrefetchLink({ 
-  href, 
-  children, 
-  className, 
+export function PrefetchLink({
+  href,
+  children,
+  className,
   prefetch = true,
-  priority = 'low',
+  priority = "low",
   onMouseEnter,
   onClick,
-  ...props 
+  ...props
 }: PrefetchLinkProps) {
   const router = useRouter();
   const linkRef = useRef<HTMLAnchorElement>(null);
@@ -35,7 +35,7 @@ export function PrefetchLink({
 
   // Prefetch on mount if high priority
   useEffect(() => {
-    if (priority === 'high' && prefetch && !prefetchedRef.current) {
+    if (priority === "high" && prefetch && !prefetchedRef.current) {
       router.prefetch(href);
       prefetchedRef.current = true;
     }
@@ -43,7 +43,7 @@ export function PrefetchLink({
 
   // Prefetch on intersection (lazy loading)
   useEffect(() => {
-    if (!prefetch || priority === 'high') return;
+    if (!prefetch || priority === "high") return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -55,7 +55,7 @@ export function PrefetchLink({
           }
         });
       },
-      { rootMargin: '100px' } // Prefetch when link is 100px away from viewport
+      { rootMargin: "100px" }, // Prefetch when link is 100px away from viewport
     );
 
     if (linkRef.current) {
@@ -129,17 +129,21 @@ export function NavLink({
         isActive
           ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
           : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
-        className
+        className,
       )}
       title={isCollapsed ? label : undefined}
-      priority={isActive ? 'high' : 'low'} // Prefetch active/likely pages first
+      priority={isActive ? "high" : "low"} // Prefetch active/likely pages first
       {...props}
     >
       {Icon && (
-        <Icon className={cn(
-          "h-4 w-4 transition-colors flex-shrink-0",
-          isActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"
-        )} />
+        <Icon
+          className={cn(
+            "h-4 w-4 transition-colors shrink-0",
+            isActive
+              ? "text-blue-600"
+              : "text-gray-400 group-hover:text-gray-600",
+          )}
+        />
       )}
       {!isCollapsed && (
         <>

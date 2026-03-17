@@ -114,86 +114,92 @@ export default function AdminProductsPage() {
         <div className="w-full min-w-0 max-w-full overflow-x-hidden">
           <div className="flex flex-col gap-4 sm:gap-6">
             <div className="shrink-0 space-y-4 sm:space-y-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 overflow-hidden">
-              <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl font-bold">Product Management</h1>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Manage your product catalog and inventory
-                </p>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 overflow-hidden">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-xl sm:text-2xl font-bold">
+                    Product Management
+                  </h1>
+                  <p className="text-sm sm:text-base text-muted-foreground">
+                    Manage your product catalog and inventory
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCategoryDialogOpen(true)}
+                    className="flex items-center justify-center gap-2 text-sm h-9"
+                    size="sm"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span>Manage Categories</span>
+                  </Button>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    {actions.products.create && (
+                      <Button
+                        onClick={formControls.openNewDialog}
+                        className="flex-1 sm:flex-none text-sm h-9"
+                        size="sm"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Product
+                      </Button>
+                    )}
+                    {actions.products.create && (
+                      <div className="shrink-0">
+                        <BulkActionsDropdown />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-                <Button
-                  variant="outline"
-                  onClick={() => setCategoryDialogOpen(true)}
-                  className="flex items-center justify-center gap-2 text-sm h-9"
-                  size="sm"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span>Manage Categories</span>
-                </Button>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  {actions.products.create && (
-                    <Button onClick={formControls.openNewDialog} className="flex-1 sm:flex-none text-sm h-9" size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Product
-                    </Button>
-                  )}
-                  {actions.products.create && (
-                    <div className="flex-shrink-0">
-                      <BulkActionsDropdown />
-                    </div>
-                  )}
+
+              <StatsGrid products={products || []} />
+              <div className="flex items-center justify-between gap-4">
+                <ProductFilters {...filterProps} />
+                <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg shrink-0">
+                  <Button
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("list")}
+                    className="h-8 px-2"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "cards" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("cards")}
+                    className="h-8 px-2"
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </div>
-
-          <StatsGrid products={products || []} />
-          <div className="flex items-center justify-between gap-4">
-            <ProductFilters {...filterProps} />
-            <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg shrink-0">
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                className="h-8 px-2"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "cards" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("cards")}
-                className="h-8 px-2"
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
+            <div className="flex-1">
+              {viewMode === "list" ? (
+                <ProductList
+                  products={filteredProducts}
+                  allProducts={products ?? []}
+                  selectedSort={filterProps.sortBy}
+                  onEdit={formControls.openEditDialog}
+                  onDelete={handleDelete}
+                  onManageInventory={handleOpenInventoryDialog}
+                  hasProductsInitially={(products?.length ?? 0) > 0}
+                />
+              ) : (
+                <AdminProductGrid
+                  products={filteredProducts}
+                  onEdit={formControls.openEditDialog}
+                  onDelete={handleDelete}
+                  onManageInventory={handleOpenInventoryDialog}
+                />
+              )}
             </div>
           </div>
         </div>
-        <div className="flex-1">
-          {viewMode === "list" ? (
-            <ProductList
-              products={filteredProducts}
-              allProducts={products ?? []}
-              selectedSort={filterProps.sortBy}
-              onEdit={formControls.openEditDialog}
-              onDelete={handleDelete}
-              onManageInventory={handleOpenInventoryDialog}
-              hasProductsInitially={(products?.length ?? 0) > 0}
-            />
-          ) : (
-            <AdminProductGrid
-              products={filteredProducts}
-              onEdit={formControls.openEditDialog}
-              onDelete={handleDelete}
-              onManageInventory={handleOpenInventoryDialog}
-            />
-          )}
-        </div>
-      </div>
-      </div>
 
-      <ProductFormDialog {...formControls} />
+        <ProductFormDialog {...formControls} />
         <UpdateInventoryDialog
           product={inventoryDialog.product}
           isOpen={inventoryDialog.isOpen}

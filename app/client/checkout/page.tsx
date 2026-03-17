@@ -51,11 +51,14 @@ export default function ClientCheckout() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [pincode, setPincode] = useState("");
-  const [manuallyEditedFields, setManuallyEditedFields] = useState<{city: boolean, state: boolean}>({city: false, state: false});
+  const [manuallyEditedFields, setManuallyEditedFields] = useState<{
+    city: boolean;
+    state: boolean;
+  }>({ city: false, state: false });
   const [deliveryReference, setDeliveryReference] = useState("");
-  const [modeOfDelivery, setModeOfDelivery] = useState<"AIR" | "SURFACE" | "HAND_DELIVERY">(
-    "SURFACE"
-  );
+  const [modeOfDelivery, setModeOfDelivery] = useState<
+    "AIR" | "SURFACE" | "HAND_DELIVERY"
+  >("SURFACE");
   const [requiredByDate, setRequiredByDate] = useState<string>("");
   const [packagingInstructions, setPackagingInstructions] = useState("");
   const [note, setNote] = useState("");
@@ -74,7 +77,7 @@ export default function ClientCheckout() {
     } else {
       const cart = getStoredData<CartItem[]>(
         `fitplay_cart_${session.user.id}`,
-        []
+        [],
       );
       if (cart.length === 0) {
         router.push("/client/cart");
@@ -104,12 +107,12 @@ export default function ClientCheckout() {
 
     if (value.length === 6 && /^\d{6}$/.test(value)) {
       // Reset manual edit flags when looking up a new pincode
-      setManuallyEditedFields({city: false, state: false});
+      setManuallyEditedFields({ city: false, state: false });
       lookupPincode(value);
     } else if (value.length !== 6) {
       setCity("");
       setState("");
-      setManuallyEditedFields({city: false, state: false});
+      setManuallyEditedFields({ city: false, state: false });
     }
   };
 
@@ -158,7 +161,15 @@ export default function ClientCheckout() {
 
     try {
       // Validate required fields
-      if (!consigneeName.trim() || !consigneePhone.trim() || !consigneeEmail.trim() || !deliveryAddress.trim() || !city.trim() || !state.trim() || !pincode.trim()) {
+      if (
+        !consigneeName.trim() ||
+        !consigneePhone.trim() ||
+        !consigneeEmail.trim() ||
+        !deliveryAddress.trim() ||
+        !city.trim() ||
+        !state.trim() ||
+        !pincode.trim()
+      ) {
         toast.error("Please fill in all required fields");
         return;
       }
@@ -178,15 +189,18 @@ export default function ClientCheckout() {
       }
 
       // Get bundle items first to calculate quantities to subtract from regular items
-      const bundleItems = cartItems.filter(item => item.isBundleItem);
-      const regularItems = cartItems.filter(item => !item.isBundleItem);
+      const bundleItems = cartItems.filter((item) => item.isBundleItem);
+      const regularItems = cartItems.filter((item) => !item.isBundleItem);
 
       // Calculate bundled quantities per product
       const bundledQuantityByProduct = new Map<string, number>();
       for (const bundleItem of bundleItems) {
         const productId = bundleItem.product.id;
         const currentQty = bundledQuantityByProduct.get(productId) || 0;
-        bundledQuantityByProduct.set(productId, currentQty + bundleItem.quantity);
+        bundledQuantityByProduct.set(
+          productId,
+          currentQty + bundleItem.quantity,
+        );
       }
 
       // Adjust regular items by subtracting bundled quantities
@@ -235,11 +249,13 @@ export default function ClientCheckout() {
         items: _orderItems,
         bundleOrderItems: _bundleOrderItems,
         numberOfBundles: (() => {
-          const bundleItems = cartItems.filter(item => item.isBundleItem);
+          const bundleItems = cartItems.filter((item) => item.isBundleItem);
           if (bundleItems.length === 0) return 0;
-          
+
           // Count unique bundle groups to get actual number of separate bundles
-          const uniqueBundleGroups = new Set(bundleItems.map(item => item.bundleGroupId).filter(Boolean));
+          const uniqueBundleGroups = new Set(
+            bundleItems.map((item) => item.bundleGroupId).filter(Boolean),
+          );
           return uniqueBundleGroups.size;
         })(),
       };
@@ -295,7 +311,9 @@ export default function ClientCheckout() {
             Back to Cart
           </Button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Create Dispatch Order</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">
+              Create Dispatch Order
+            </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
               Review your order and provide delivery details
             </p>
@@ -311,24 +329,36 @@ export default function ClientCheckout() {
             {/* PO Information */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg sm:text-xl">Dispatch Order Information</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">
+                  Dispatch Order Information
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4">
                 {(() => {
-                  const individualItems = cartItems.filter(item => !item.isBundleItem);
-                  const bundleItems = cartItems.filter(item => item.isBundleItem);
-                  
-                  const bundleGroups = bundleItems.reduce((groups: { [key: string]: typeof cartItems }, item) => {
-                    const groupId = item.bundleGroupId || 'default';
-                    if (!groups[groupId]) groups[groupId] = [];
-                    groups[groupId].push(item);
-                    return groups;
-                  }, {});
+                  const individualItems = cartItems.filter(
+                    (item) => !item.isBundleItem,
+                  );
+                  const bundleItems = cartItems.filter(
+                    (item) => item.isBundleItem,
+                  );
+
+                  const bundleGroups = bundleItems.reduce(
+                    (groups: { [key: string]: typeof cartItems }, item) => {
+                      const groupId = item.bundleGroupId || "default";
+                      if (!groups[groupId]) groups[groupId] = [];
+                      groups[groupId].push(item);
+                      return groups;
+                    },
+                    {},
+                  );
 
                   return (
                     <>
                       {individualItems.map((item) => (
-                        <div key={item.product.id} className="flex gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
+                        <div
+                          key={item.product.id}
+                          className="flex gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg"
+                        >
                           <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0">
                             <ImageWithFallback
                               src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
@@ -339,53 +369,102 @@ export default function ClientCheckout() {
                           <div className="flex-1 space-y-1 sm:space-y-2 min-w-0">
                             <div className="flex items-start justify-between">
                               <div>
-                                <h3 className="font-medium">{item.product.name}</h3>
-                                <p className="text-sm text-muted-foreground">SKU: {item.product.sku}</p>
-                                {isShowPrice && item.product.price && <p className="text-sm font-medium">Price: ₹{item.product.price}</p>}
-                                <p className="text-xs text-muted-foreground">Individual product</p>
+                                <h3 className="font-medium">
+                                  {item.product.name}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                  SKU: {item.product.sku}
+                                </p>
+                                {isShowPrice && item.product.price && (
+                                  <p className="text-sm font-medium">
+                                    Price: ₹{item.product.price}
+                                  </p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                  Individual product
+                                </p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium">Qty: {item.quantity}</p>
-                              {isShowPrice && item.product.price && <p className="font-medium">Total: ₹{(item.product.price * item.quantity).toFixed(2)}</p>}
+                              <p className="font-medium">
+                                Qty: {item.quantity}
+                              </p>
+                              {isShowPrice && item.product.price && (
+                                <p className="font-medium">
+                                  Total: ₹
+                                  {(item.product.price * item.quantity).toFixed(
+                                    2,
+                                  )}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
                       ))}
 
-                      {Object.entries(bundleGroups).map(([groupId, items], bundleIndex) => {
-                        const bundleCount = items[0]?.bundleCount || 1;
-                        return (
-                        <div key={groupId} className="border-2 border-blue-200 rounded-lg p-3 bg-blue-50/20">
-                          <div className="flex items-center gap-2 mb-2 pb-2 border-b border-blue-300">
-                            <Badge className="bg-blue-600 text-white text-xs">Bundle {bundleIndex + 1}</Badge>
-                            <span className="text-xs text-muted-foreground">{items.length} items • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}</span>
-                          </div>
-                          <div className="space-y-2">
-                            {items.map((item) => (
-                              <div key={item.product.id} className="flex gap-2 p-2 bg-white border border-blue-100 rounded">
-                                <div className="w-12 h-12 shrink-0">
-                                  <ImageWithFallback
-                                    src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
-                                    alt={item.product.name}
-                                    className="w-full h-full object-cover rounded"
-                                  />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm truncate">{item.product.name}</h4>
-                                  <p className="text-xs text-muted-foreground">SKU: {item.product.sku}</p>
-                                  {isShowPrice && item.product.price && <p className="text-xs">₹{item.product.price}</p>}
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <p className="text-sm font-medium">Qty: {item.bundleQuantity} each</p>
-                                  {isShowPrice && item.product.price && <p className="text-xs">₹{(item.product.price * item.quantity).toFixed(2)}</p>}
-                                </div>
+                      {Object.entries(bundleGroups).map(
+                        ([groupId, items], bundleIndex) => {
+                          const bundleCount = items[0]?.bundleCount || 1;
+                          return (
+                            <div
+                              key={groupId}
+                              className="border-2 border-blue-200 rounded-lg p-3 bg-blue-50/20"
+                            >
+                              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-blue-300">
+                                <Badge className="bg-blue-600 text-white text-xs">
+                                  Bundle {bundleIndex + 1}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {items.length} items • {bundleCount} bundle
+                                  {bundleCount > 1 ? "s" : ""}
+                                </span>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                      })}
+                              <div className="space-y-2">
+                                {items.map((item) => (
+                                  <div
+                                    key={item.product.id}
+                                    className="flex gap-2 p-2 bg-white border border-blue-100 rounded"
+                                  >
+                                    <div className="w-12 h-12 shrink-0">
+                                      <ImageWithFallback
+                                        src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
+                                        alt={item.product.name}
+                                        className="w-full h-full object-cover rounded"
+                                      />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="font-medium text-sm truncate">
+                                        {item.product.name}
+                                      </h4>
+                                      <p className="text-xs text-muted-foreground">
+                                        SKU: {item.product.sku}
+                                      </p>
+                                      {isShowPrice && item.product.price && (
+                                        <p className="text-xs">
+                                          ₹{item.product.price}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <p className="text-sm font-medium">
+                                        Qty: {item.bundleQuantity} each
+                                      </p>
+                                      {isShowPrice && item.product.price && (
+                                        <p className="text-xs">
+                                          ₹
+                                          {(
+                                            item.product.price * item.quantity
+                                          ).toFixed(2)}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        },
+                      )}
                     </>
                   );
                 })()}
@@ -398,7 +477,9 @@ export default function ClientCheckout() {
               </CardHeader>
               <CardContent className="space-y-4 py-1">
                 <div className="space-y-2">
-                  <Label htmlFor="deliveryReference">Order Reference (Optional)</Label>
+                  <Label htmlFor="deliveryReference">
+                    Order Reference (Optional)
+                  </Label>
                   <Input
                     id="deliveryReference"
                     name="deliveryReference"
@@ -439,7 +520,10 @@ export default function ClientCheckout() {
                       value={city}
                       onChange={(e) => {
                         setCity(e.target.value);
-                        setManuallyEditedFields(prev => ({...prev, city: true}));
+                        setManuallyEditedFields((prev) => ({
+                          ...prev,
+                          city: true,
+                        }));
                       }}
                       placeholder="Auto-filled from pincode"
                       required
@@ -455,7 +539,10 @@ export default function ClientCheckout() {
                       value={state}
                       onChange={(e) => {
                         setState(e.target.value);
-                        setManuallyEditedFields(prev => ({...prev, state: true}));
+                        setManuallyEditedFields((prev) => ({
+                          ...prev,
+                          state: true,
+                        }));
                       }}
                       placeholder="Auto-filled from pincode"
                       required
@@ -498,8 +585,11 @@ export default function ClientCheckout() {
                     min={(() => {
                       const today = new Date();
                       const year = today.getFullYear();
-                      const month = String(today.getMonth() + 1).padStart(2, '0');
-                      const day = String(today.getDate()).padStart(2, '0');
+                      const month = String(today.getMonth() + 1).padStart(
+                        2,
+                        "0",
+                      );
+                      const day = String(today.getDate()).padStart(2, "0");
                       return `${year}-${month}-${day}`;
                     })()}
                     required
@@ -527,12 +617,12 @@ export default function ClientCheckout() {
                     <SelectContent>
                       <SelectItem value="SURFACE">Surface</SelectItem>
                       <SelectItem value="AIR">Air</SelectItem>
-                      <SelectItem value="HAND_DELIVERY">Hand Delivery</SelectItem>
+                      <SelectItem value="HAND_DELIVERY">
+                        Hand Delivery
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                
 
                 <div className="space-y-2">
                   <Label htmlFor="note">Additional Notes (Optional)</Label>
@@ -546,7 +636,9 @@ export default function ClientCheckout() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="packagingInstructions">Packaging Instructions (Optional)</Label>
+                  <Label htmlFor="packagingInstructions">
+                    Packaging Instructions (Optional)
+                  </Label>
                   <Textarea
                     id="packagingInstructions"
                     name="packagingInstructions"
@@ -586,7 +678,7 @@ export default function ClientCheckout() {
                     type="tel"
                     value={consigneePhone}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                      const value = e.target.value.replace(/\D/g, ""); // Only allow digits
                       setConsigneePhone(value);
                     }}
                     placeholder="10-digit phone number"
@@ -620,21 +712,28 @@ export default function ClientCheckout() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {(() => {
-                  const individualItems = cartItems.filter(item => !item.isBundleItem);
-                  const bundleItems = cartItems.filter(item => item.isBundleItem);
-                  
-                  const bundleGroups = bundleItems.reduce((groups: { [key: string]: typeof cartItems }, item) => {
-                    const groupId = item.bundleGroupId || 'default';
-                    if (!groups[groupId]) groups[groupId] = [];
-                    groups[groupId].push(item);
-                    return groups;
-                  }, {});
+                  const individualItems = cartItems.filter(
+                    (item) => !item.isBundleItem,
+                  );
+                  const bundleItems = cartItems.filter(
+                    (item) => item.isBundleItem,
+                  );
+
+                  const bundleGroups = bundleItems.reduce(
+                    (groups: { [key: string]: typeof cartItems }, item) => {
+                      const groupId = item.bundleGroupId || "default";
+                      if (!groups[groupId]) groups[groupId] = [];
+                      groups[groupId].push(item);
+                      return groups;
+                    },
+                    {},
+                  );
 
                   return (
                     <>
                       {individualItems.map((item) => (
                         <div key={item.product.id} className="flex gap-3">
-                          <div className="w-12 h-12 flex-shrink-0">
+                          <div className="w-12 h-12 shrink-0">
                             <ImageWithFallback
                               src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
                               alt={item.product.name}
@@ -642,50 +741,78 @@ export default function ClientCheckout() {
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{item.product.name}</p>
+                            <p className="text-sm font-medium truncate">
+                              {item.product.name}
+                            </p>
                             {isShowPrice && item.product.price && (
                               <div className="text-xs text-muted-foreground">
-                                ₹{item.product.price} x {item.quantity} = ₹{(item.product.price * item.quantity).toFixed(2)}
+                                ₹{item.product.price} x {item.quantity} = ₹
+                                {(item.product.price * item.quantity).toFixed(
+                                  2,
+                                )}
                               </div>
                             )}
                           </div>
-                          <div className="text-sm font-medium">Qty: {item.quantity}</div>
+                          <div className="text-sm font-medium">
+                            Qty: {item.quantity}
+                          </div>
                         </div>
                       ))}
 
-                      {Object.entries(bundleGroups).map(([groupId, items], bundleIndex) => {
-                        const bundleCount = items[0]?.bundleCount || 1;
-                        return (
-                        <div key={groupId} className="border border-blue-200 rounded p-2 bg-blue-50/30">
-                          <div className="flex items-center gap-1 mb-2">
-                            <Badge className="bg-blue-600 text-white text-[10px] px-1.5 py-0">Bundle {bundleIndex + 1}</Badge>
-                            <span className="text-[10px] text-muted-foreground">{items.length} items • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}</span>
-                          </div>
-                          <div className="space-y-1.5">
-                            {items.map((item) => (
-                              <div key={item.product.id} className="flex gap-2 items-center">
-                                <div className="w-8 h-8 flex-shrink-0">
-                                  <ImageWithFallback
-                                    src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
-                                    alt={item.product.name}
-                                    className="w-8 h-8 object-cover rounded"
-                                  />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium truncate">{item.product.name}</p>
-                                  {item.product.price && (
-                                    <div className="text-[10px] text-muted-foreground">
-                                      ₹{item.product.price} x {item.quantity} = ₹{(item.product.price * item.quantity).toFixed(2)}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="text-xs font-medium shrink-0">Qty: {item.bundleQuantity} each</div>
+                      {Object.entries(bundleGroups).map(
+                        ([groupId, items], bundleIndex) => {
+                          const bundleCount = items[0]?.bundleCount || 1;
+                          return (
+                            <div
+                              key={groupId}
+                              className="border border-blue-200 rounded p-2 bg-blue-50/30"
+                            >
+                              <div className="flex items-center gap-1 mb-2">
+                                <Badge className="bg-blue-600 text-white text-[10px] px-1.5 py-0">
+                                  Bundle {bundleIndex + 1}
+                                </Badge>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {items.length} items • {bundleCount} bundle
+                                  {bundleCount > 1 ? "s" : ""}
+                                </span>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                      })}
+                              <div className="space-y-1.5">
+                                {items.map((item) => (
+                                  <div
+                                    key={item.product.id}
+                                    className="flex gap-2 items-center"
+                                  >
+                                    <div className="w-8 h-8 shrink-0">
+                                      <ImageWithFallback
+                                        src={`${item.product.images[0]}?v=${item.product.updatedAt || Date.now()}`}
+                                        alt={item.product.name}
+                                        className="w-8 h-8 object-cover rounded"
+                                      />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium truncate">
+                                        {item.product.name}
+                                      </p>
+                                      {item.product.price && (
+                                        <div className="text-[10px] text-muted-foreground">
+                                          ₹{item.product.price} x{" "}
+                                          {item.quantity} = ₹
+                                          {(
+                                            item.product.price * item.quantity
+                                          ).toFixed(2)}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="text-xs font-medium shrink-0">
+                                      Qty: {item.bundleQuantity} each
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        },
+                      )}
                     </>
                   );
                 })()}
@@ -696,7 +823,7 @@ export default function ClientCheckout() {
                   <span>Total Items</span>
                   <span>
                     {cartItems
-                      .filter(item => !item.isBundleItem)
+                      .filter((item) => !item.isBundleItem)
                       .reduce((sum, item) => sum + item.quantity, 0)}
                   </span>
                 </div>
@@ -707,7 +834,7 @@ export default function ClientCheckout() {
                       (item.product.price
                         ? item.product.price * item.quantity
                         : 0),
-                    0
+                    0,
                   );
                   return totalAmount > 0 ? (
                     <div className="flex justify-between font-medium">

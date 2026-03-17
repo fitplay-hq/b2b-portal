@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMPurchaseOrderCreateSchema } from "@/lib/validations/om";
+import { getOMPurchaseOrders } from "@/lib/om-data";
 
 export async function POST(req: NextRequest) {
   try {
@@ -121,6 +123,12 @@ export async function POST(req: NextRequest) {
       });
       return po;
     });
+    
+    revalidateTag("om-clients", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
+    revalidateTag("om-delivery-locations", "page");
 
     return NextResponse.json(
       {
@@ -148,108 +156,28 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const clientId = searchParams.get("clientId");
-    const status = searchParams.get("status");
-    const fromDate =
-      searchParams.get("fromDate") || searchParams.get("startDate");
-    const toDate = searchParams.get("toDate") || searchParams.get("endDate");
-    const search = searchParams.get("search") || searchParams.get("q") || "";
-    const poNumber = searchParams.get("poNumber");
-    const locationId = searchParams.get("locationId");
-
+    const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "999");
-    const skip = (page - 1) * limit;
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const search = searchParams.get("search") || searchParams.get("q") || "";
+    const clientId = searchParams.get("clientId") || undefined;
+    const status = searchParams.get("status") || undefined;
+    const fromDate = searchParams.get("fromDate") || searchParams.get("startDate") || undefined;
+    const toDate = searchParams.get("toDate") || searchParams.get("endDate") || undefined;
+    const locationId = searchParams.get("locationId") || undefined;
 
-    const andFilters: any[] = [];
-
-    if (search) {
-      andFilters.push({
-        OR: [
-          { poNumber: { contains: search, mode: "insensitive" } },
-          { estimateNumber: { contains: search, mode: "insensitive" } },
-          { client: { name: { contains: search, mode: "insensitive" } } },
-        ],
-      });
-    }
-
-    if (clientId) {
-      andFilters.push({ clientId });
-    }
-
-    if (poNumber) {
-      andFilters.push({
-        poNumber: { contains: poNumber, mode: "insensitive" },
-      });
-    }
-
-    if (locationId) {
-      andFilters.push({
-        deliveryLocations: {
-          some: {
-            id: locationId,
-          },
-        },
-      });
-    }
-
-    if (status) {
-      if (status === "active") {
-        andFilters.push({
-          status: { in: ["CONFIRMED", "PARTIALLY_DISPATCHED"] },
-        });
-      } else if (status !== "all") {
-        andFilters.push({ status });
-      }
-    }
-
-    if (fromDate || toDate) {
-      const dateFilter: any = {};
-      if (fromDate) dateFilter.gte = new Date(fromDate);
-      if (toDate) {
-        const endOfDay = new Date(toDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        dateFilter.lte = endOfDay;
-      }
-      andFilters.push({ poDate: dateFilter });
-    }
-
-    const whereClause = andFilters.length > 0 ? { AND: andFilters } : {};
-
-    const [purchaseOrders, total] = await Promise.all([
-      prisma.oMPurchaseOrder.findMany({
-        where: whereClause,
-        include: {
-          client: true,
-          deliveryLocations: true,
-          items: {
-            include: {
-              dispatchItems: true,
-            },
-          },
-          dispatchOrders: {
-            include: {
-              items: true,
-            },
-          },
-        },
-        orderBy: { poDate: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.oMPurchaseOrder.count({ where: whereClause }),
-    ]);
-
-    return NextResponse.json({
-      data: purchaseOrders,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+    const result = await getOMPurchaseOrders({
+      page,
+      limit,
+      search,
+      clientId,
+      status,
+      fromDate,
+      toDate,
+      locationId,
     });
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     return handleApiError(error);
   }

@@ -4,6 +4,7 @@ import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMLogisticsPartnerCreateSchema } from "@/lib/validations/om";
+import { getOMLogisticsPartners } from "@/lib/om-data";
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,29 +20,12 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const search = searchParams.get("search") || "";
-    const sortBy = searchParams.get("sortBy") || "name";
-    const sortOrder = searchParams.get("sortOrder") || "asc";
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
 
-    const allowedSortFields = ["name", "defaultMode", "createdAt", "updatedAt"];
-    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "name";
-    const safeSortOrder = sortOrder === "desc" ? "desc" : "asc";
+    const result = await getOMLogisticsPartners({ page, limit });
 
-    const logisticsPartners = await prisma.oMLogisticsPartner.findMany({
-      where: search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { defaultMode: { contains: search, mode: "insensitive" } },
-            ],
-          }
-        : undefined,
-      orderBy: {
-        [safeSortBy]: safeSortOrder,
-      },
-    });
-
-    return NextResponse.json(logisticsPartners);
+    return NextResponse.json(result);
   } catch (error: unknown) {
     return handleApiError(error);
   }

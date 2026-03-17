@@ -276,7 +276,7 @@ export function OrdersTable({
                       </Button>
                     )}
                     
-                    {actions.orders.edit && (
+                    {actions.orders.edit && order.status !== "CANCELLED" && (
                       <Button
                         variant="outline"
                         size="sm"

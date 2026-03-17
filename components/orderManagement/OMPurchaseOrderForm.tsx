@@ -129,8 +129,8 @@ export function OMPurchaseOrderForm({
     hasInitializedRef.current = true;
   }, [initialData]);
 
-  const clientOptions = clients.map((c) => ({ value: c.id, label: c.name }));
-  const locationOptions = locations.map((l) => ({
+  const clientOptions = (clients || []).map((c) => ({ value: c.id, label: c.name }));
+  const locationOptions = (locations || []).map((l) => ({
     value: l.id,
     label: l.name,
   }));

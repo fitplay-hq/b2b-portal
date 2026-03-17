@@ -58,54 +58,74 @@ export default function ClientOrderHistory() {
 
     // Apply search filter
     if (lowercasedTerm) {
-      filtered = filtered.filter(order => {
+      filtered = filtered.filter((order) => {
         // Search by Order ID
         if (order.id.toLowerCase().includes(lowercasedTerm)) return true;
-        
+
         // Search by Order Status (both raw and formatted)
         if (order.status.toLowerCase().includes(lowercasedTerm)) return true;
-        if (formatStatus(order.status).toLowerCase().includes(lowercasedTerm)) return true;
-        
+        if (formatStatus(order.status).toLowerCase().includes(lowercasedTerm))
+          return true;
+
         // Search by Total Amount
         if (order.totalAmount.toString().includes(lowercasedTerm)) return true;
-        
+
         // Search by Order notes
         if (order.note?.toLowerCase().includes(lowercasedTerm)) return true;
-        
+
         // Search in consignee details
-        if (order.consigneeName?.toLowerCase().includes(lowercasedTerm)) return true;
-        if (order.consigneePhone?.toLowerCase().includes(lowercasedTerm)) return true;
-        if (order.consigneeEmail?.toLowerCase().includes(lowercasedTerm)) return true;
-        
+        if (order.consigneeName?.toLowerCase().includes(lowercasedTerm))
+          return true;
+        if (order.consigneePhone?.toLowerCase().includes(lowercasedTerm))
+          return true;
+        if (order.consigneeEmail?.toLowerCase().includes(lowercasedTerm))
+          return true;
+
         // Search in delivery address fields
-        if (order.deliveryAddress?.toLowerCase().includes(lowercasedTerm)) return true;
+        if (order.deliveryAddress?.toLowerCase().includes(lowercasedTerm))
+          return true;
         if (order.city?.toLowerCase().includes(lowercasedTerm)) return true;
         if (order.state?.toLowerCase().includes(lowercasedTerm)) return true;
         if (order.pincode?.toLowerCase().includes(lowercasedTerm)) return true;
-        
+
         // Search in delivery details
-        if (order.deliveryService?.toLowerCase().includes(lowercasedTerm)) return true;
-        if (order.modeOfDelivery?.toLowerCase().includes(lowercasedTerm)) return true;
-        
+        if (order.deliveryService?.toLowerCase().includes(lowercasedTerm))
+          return true;
+        if (order.modeOfDelivery?.toLowerCase().includes(lowercasedTerm))
+          return true;
+
         // Search by Product names in regular order items
-        if (order.orderItems?.some(item =>
-          item.product?.name?.toLowerCase().includes(lowercasedTerm) ||
-          item.product?.sku?.toLowerCase().includes(lowercasedTerm)
-        )) return true;
-        
+        if (
+          order.orderItems?.some(
+            (item) =>
+              item.product?.name?.toLowerCase().includes(lowercasedTerm) ||
+              item.product?.sku?.toLowerCase().includes(lowercasedTerm),
+          )
+        )
+          return true;
+
         // Search by Product names in bundle order items
-        if (order.bundleOrderItems?.some(bundleItem => {
-          // Check bundle product name
-          if (bundleItem.product?.name?.toLowerCase().includes(lowercasedTerm)) return true;
-          
-          // Check individual items within the bundle
-          if (bundleItem.bundle?.items?.some(item =>
-            item.product?.name?.toLowerCase().includes(lowercasedTerm)
-          )) return true;
-          
-          return false;
-        })) return true;
-        
+        if (
+          order.bundleOrderItems?.some((bundleItem) => {
+            // Check bundle product name
+            if (
+              bundleItem.product?.name?.toLowerCase().includes(lowercasedTerm)
+            )
+              return true;
+
+            // Check individual items within the bundle
+            if (
+              bundleItem.bundle?.items?.some((item) =>
+                item.product?.name?.toLowerCase().includes(lowercasedTerm),
+              )
+            )
+              return true;
+
+            return false;
+          })
+        )
+          return true;
+
         return false;
       });
     }
@@ -117,7 +137,7 @@ export default function ClientOrderHistory() {
 
     return filtered.sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }, [orders, searchTerm, statusFilter]);
 
@@ -210,7 +230,7 @@ export default function ClientOrderHistory() {
     const typedOrders = orders as OrderWithItems[];
     const totalOrders = typedOrders.length;
     const pendingOrders = typedOrders.filter(
-      (o) => o.status === "PENDING"
+      (o) => o.status === "PENDING",
     ).length;
 
     return { totalOrders, pendingOrders };
@@ -249,7 +269,9 @@ export default function ClientOrderHistory() {
               <Package className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{stats.totalOrders}</div>
+              <div className="text-xl sm:text-2xl font-bold">
+                {stats.totalOrders}
+              </div>
               <p className="text-xs text-muted-foreground">
                 All purchase orders
               </p>
@@ -264,7 +286,9 @@ export default function ClientOrderHistory() {
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{stats.pendingOrders}</div>
+              <div className="text-xl sm:text-2xl font-bold">
+                {stats.pendingOrders}
+              </div>
               <p className="text-xs text-muted-foreground">Awaiting approval</p>
             </CardContent>
           </Card>
@@ -307,7 +331,9 @@ export default function ClientOrderHistory() {
         {/* View Toggle */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-            <span>Showing {filteredOrders.length} of {orders?.length || 0} orders</span>
+            <span>
+              Showing {filteredOrders.length} of {orders?.length || 0} orders
+            </span>
           </div>
           <div className="flex gap-2">
             <Button
@@ -350,7 +376,7 @@ export default function ClientOrderHistory() {
               </CardContent>
             </Card>
           ) : viewType === "table" ? (
-            <ClientOrdersTable 
+            <ClientOrdersTable
               orders={filteredOrders}
               isShowPrice={isShowPrice}
             />
@@ -374,8 +400,12 @@ export default function ClientOrderHistory() {
                               </CardTitle>
                               <Badge className={getStatusColor(order.status)}>
                                 {(() => {
-                                  const StatusIcon = getStatusIcon(order.status);
-                                  return <StatusIcon className="mr-1 h-3 w-3" />;
+                                  const StatusIcon = getStatusIcon(
+                                    order.status,
+                                  );
+                                  return (
+                                    <StatusIcon className="mr-1 h-3 w-3" />
+                                  );
                                 })()}
                                 {formatStatus(order.status)}
                               </Badge>
@@ -383,33 +413,49 @@ export default function ClientOrderHistory() {
                             <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                {new Date(order.createdAt).toLocaleDateString('en-GB')} , {new Date(order.createdAt).toLocaleTimeString()}
+                                {new Date(order.createdAt).toLocaleDateString(
+                                  "en-GB",
+                                )}{" "}
+                                ,{" "}
+                                {new Date(order.createdAt).toLocaleTimeString()}
                               </span>
                               <span className="hidden sm:inline">•</span>
                               <span className="flex items-center gap-1">
                                 <Package className="h-3 w-3" />
                                 {(() => {
                                   // Calculate total items from both orderItems and bundleOrderItems
-                                  const totalQty = (order.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
-                                    (order.bundleOrderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0);
-                                  
-                                  return `${totalQty} item${totalQty !== 1 ? 's' : ''}`;
-                                })()
-                              }
+                                  const totalQty =
+                                    (order.orderItems?.reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    ) || 0) +
+                                    (order.bundleOrderItems?.reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    ) || 0);
+
+                                  return `${totalQty} item${totalQty !== 1 ? "s" : ""}`;
+                                })()}
                               </span>
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {getStatusDescription(order.status)}
                             </p>
                           </div>
-                          
                           {/* Right Side Summary */}
                           <div className="hidden lg:flex items-center gap-4">
                             <div className="text-right">
                               <div className="text-sm font-medium text-muted-foreground mb-1">
                                 {(() => {
-                                  const totalQuantity = (order.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
-                                    (order.bundleOrderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0);
+                                  const totalQuantity =
+                                    (order.orderItems?.reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    ) || 0) +
+                                    (order.bundleOrderItems?.reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    ) || 0);
                                   return `${totalQuantity} Total Items`;
                                 })()}
                               </div>
@@ -417,53 +463,69 @@ export default function ClientOrderHistory() {
                               <div className="flex flex-col gap-1 justify-end max-w-[350px]">
                                 {(() => {
                                   // Aggregate products by productId from both orderItems and bundleOrderItems
-                                  const productQuantities = new Map<string, { name: string, totalQty: number }>();
-                                  
+                                  const productQuantities = new Map<
+                                    string,
+                                    { name: string; totalQty: number }
+                                  >();
+
                                   // Add quantities from regular items
                                   order.orderItems?.forEach((item) => {
                                     if (item.product?.id) {
-                                      const existing = productQuantities.get(item.product.id);
+                                      const existing = productQuantities.get(
+                                        item.product.id,
+                                      );
                                       if (existing) {
                                         existing.totalQty += item.quantity;
                                       } else {
                                         productQuantities.set(item.product.id, {
                                           name: item.product.name,
-                                          totalQty: item.quantity
+                                          totalQty: item.quantity,
                                         });
                                       }
                                     }
                                   });
-                                  
+
                                   // Add quantities from bundle items
                                   order.bundleOrderItems?.forEach((item) => {
                                     if (item.product?.id) {
-                                      const existing = productQuantities.get(item.product.id);
+                                      const existing = productQuantities.get(
+                                        item.product.id,
+                                      );
                                       if (existing) {
                                         existing.totalQty += item.quantity;
                                       } else {
                                         productQuantities.set(item.product.id, {
                                           name: item.product.name,
-                                          totalQty: item.quantity
+                                          totalQty: item.quantity,
                                         });
                                       }
                                     }
                                   });
-                                  
+
                                   // Convert to array and show first 3
-                                  const productsArray = Array.from(productQuantities.entries()).map(([id, data]) => ({
+                                  const productsArray = Array.from(
+                                    productQuantities.entries(),
+                                  ).map(([id, data]) => ({
                                     id,
                                     name: data.name,
-                                    totalQty: data.totalQty
+                                    totalQty: data.totalQty,
                                   }));
-                                  
+
                                   const itemsToShow = productsArray.slice(0, 3);
-                                  
+
                                   return (
                                     <>
                                       {itemsToShow.map((product) => (
-                                        <div key={product.id} className="flex items-center gap-1 text-sm bg-muted px-2 py-0 rounded whitespace-nowrap">
-                                          <span className="font-medium">{product.name}</span>
-                                          <span className="text-muted-foreground">Qty: {product.totalQty}</span>
+                                        <div
+                                          key={product.id}
+                                          className="flex items-center gap-1 text-sm bg-muted px-2 py-0 rounded whitespace-nowrap"
+                                        >
+                                          <span className="font-medium">
+                                            {product.name}
+                                          </span>
+                                          <span className="text-muted-foreground">
+                                            Qty: {product.totalQty}
+                                          </span>
                                         </div>
                                       ))}
                                       {productsArray.length > 3 && (
@@ -483,14 +545,21 @@ export default function ClientOrderHistory() {
                                 <ChevronDown className="h-5 w-5" />
                               )}
                             </div>
-                          </div>                          
+                          </div>
                           {/* Mobile-only total items */}
                           <div className="flex lg:hidden flex-col gap-2 w-full">
                             <div className="flex items-center justify-between">
                               <div className="text-sm font-medium text-muted-foreground">
                                 {(() => {
-                                  const totalQuantity = (order.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
-                                    (order.bundleOrderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0);
+                                  const totalQuantity =
+                                    (order.orderItems?.reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    ) || 0) +
+                                    (order.bundleOrderItems?.reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    ) || 0);
                                   return `${totalQuantity} Total Items`;
                                 })()}
                               </div>
@@ -506,53 +575,69 @@ export default function ClientOrderHistory() {
                             <div className="flex flex-col gap-1">
                               {(() => {
                                 // Aggregate products by productId from both orderItems and bundleOrderItems
-                                const productQuantities = new Map<string, { name: string, totalQty: number }>();
-                                
+                                const productQuantities = new Map<
+                                  string,
+                                  { name: string; totalQty: number }
+                                >();
+
                                 // Add quantities from regular items
                                 order.orderItems?.forEach((item) => {
                                   if (item.product?.id) {
-                                    const existing = productQuantities.get(item.product.id);
+                                    const existing = productQuantities.get(
+                                      item.product.id,
+                                    );
                                     if (existing) {
                                       existing.totalQty += item.quantity;
                                     } else {
                                       productQuantities.set(item.product.id, {
                                         name: item.product.name,
-                                        totalQty: item.quantity
+                                        totalQty: item.quantity,
                                       });
                                     }
                                   }
                                 });
-                                
+
                                 // Add quantities from bundle items
                                 order.bundleOrderItems?.forEach((item) => {
                                   if (item.product?.id) {
-                                    const existing = productQuantities.get(item.product.id);
+                                    const existing = productQuantities.get(
+                                      item.product.id,
+                                    );
                                     if (existing) {
                                       existing.totalQty += item.quantity;
                                     } else {
                                       productQuantities.set(item.product.id, {
                                         name: item.product.name,
-                                        totalQty: item.quantity
+                                        totalQty: item.quantity,
                                       });
                                     }
                                   }
                                 });
-                                
+
                                 // Convert to array and show first 3
-                                const productsArray = Array.from(productQuantities.entries()).map(([id, data]) => ({
+                                const productsArray = Array.from(
+                                  productQuantities.entries(),
+                                ).map(([id, data]) => ({
                                   id,
                                   name: data.name,
-                                  totalQty: data.totalQty
+                                  totalQty: data.totalQty,
                                 }));
-                                
+
                                 const itemsToShow = productsArray.slice(0, 3);
-                                
+
                                 return (
                                   <>
                                     {itemsToShow.map((product) => (
-                                      <div key={product.id} className="flex items-center gap-1 text-sm bg-muted px-2 py-0 rounded whitespace-nowrap">
-                                        <span className="font-medium">{product.name}</span>
-                                        <span className="text-muted-foreground">Qty: {product.totalQty}</span>
+                                      <div
+                                        key={product.id}
+                                        className="flex items-center gap-1 text-sm bg-muted px-2 py-0 rounded whitespace-nowrap"
+                                      >
+                                        <span className="font-medium">
+                                          {product.name}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                          Qty: {product.totalQty}
+                                        </span>
                                       </div>
                                     ))}
                                     {productsArray.length > 3 && (
@@ -564,7 +649,8 @@ export default function ClientOrderHistory() {
                                 );
                               })()}
                             </div>
-                          </div>                        </div>
+                          </div>{" "}
+                        </div>
                       </CardHeader>
                     </CollapsibleTrigger>
 
@@ -573,264 +659,380 @@ export default function ClientOrderHistory() {
                         <div className="space-y-3 sm:space-y-4">
                           {/* Order Timeline */}
                           <div>
-                            <h4 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Order Timeline</h4>
+                            <h4 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">
+                              Order Timeline
+                            </h4>
                             <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                               {(() => {
                                 // Build dynamic timeline based on actual events
                                 const timelineEvents = [];
-                                
+
                                 // Always show order creation
                                 timelineEvents.push({
                                   label: "Order Created",
                                   description: "",
                                   timestamp: order.createdAt,
                                   icon: CheckCircle,
-                                  color: "bg-green-100 text-green-600"
+                                  color: "bg-green-100 text-green-600",
                                 });
 
                                 // Add status-based events
-                                const statusMap: Record<string, { label: string; description: string; icon: any; color: string }> = {
+                                const statusMap: Record<
+                                  string,
+                                  {
+                                    label: string;
+                                    description: string;
+                                    icon: any;
+                                    color: string;
+                                  }
+                                > = {
                                   APPROVED: {
                                     label: "Order Approved",
                                     description: "Order has been approved",
                                     icon: CheckCircle,
-                                    color: "bg-blue-100 text-blue-600"
+                                    color: "bg-blue-100 text-blue-600",
                                   },
                                   READY_FOR_DISPATCH: {
                                     label: "Ready for Dispatch",
                                     description: "Order is packed and ready",
                                     icon: Download,
-                                    color: "bg-purple-100 text-purple-600"
+                                    color: "bg-purple-100 text-purple-600",
                                   },
                                   DISPATCHED: {
                                     label: "Order Dispatched",
                                     description: "Order has been dispatched",
                                     icon: Package,
-                                    color: "bg-green-100 text-green-600"
+                                    color: "bg-green-100 text-green-600",
                                   },
                                   AT_DESTINATION: {
                                     label: "At Destination",
-                                    description: "Order reached delivery location",
+                                    description:
+                                      "Order reached delivery location",
                                     icon: Building2,
-                                    color: "bg-green-100 text-green-600"
+                                    color: "bg-green-100 text-green-600",
                                   },
                                   DELIVERED: {
                                     label: "Delivered",
                                     description: "Order has been delivered",
                                     icon: Building2,
-                                    color: "bg-green-100 text-green-600"
+                                    color: "bg-green-100 text-green-600",
                                   },
                                   COMPLETED: {
                                     label: "Completed",
                                     description: "Order is complete",
                                     icon: CheckCircle,
-                                    color: "bg-green-100 text-green-600"
+                                    color: "bg-green-100 text-green-600",
                                   },
                                   CANCELLED: {
                                     label: "Order Cancelled",
                                     description: "Status updated to cancelled",
                                     icon: XCircle,
-                                    color: "bg-red-100 text-red-600"
+                                    color: "bg-red-100 text-red-600",
                                   },
                                 };
 
                                 // Add current status event if not PENDING
-                                if (order.status !== "PENDING" && statusMap[order.status]) {
+                                if (
+                                  order.status !== "PENDING" &&
+                                  statusMap[order.status]
+                                ) {
                                   const statusInfo = statusMap[order.status];
                                   timelineEvents.push({
                                     label: statusInfo.label,
                                     description: statusInfo.description,
                                     timestamp: order.updatedAt,
                                     icon: statusInfo.icon,
-                                    color: statusInfo.color
+                                    color: statusInfo.color,
                                   });
                                 }
-                                
-                                return timelineEvents.map((timelineItem, index) => {
-                                  const TimelineIcon = timelineItem.icon;
-                                  const isLast = index === timelineEvents.length - 1;
 
-                                  return (
-                                    <div key={index} className="relative">
-                                      <div className="flex items-start gap-2 sm:gap-3">
-                                        <div className={`h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 rounded-full flex items-center justify-center ${timelineItem.color}`}>
-                                          <TimelineIcon className="h-4 w-4 sm:h-4 sm:w-4" />
+                                return timelineEvents.map(
+                                  (timelineItem, index) => {
+                                    const TimelineIcon = timelineItem.icon;
+                                    const isLast =
+                                      index === timelineEvents.length - 1;
+
+                                    return (
+                                      <div key={index} className="relative">
+                                        <div className="flex items-start gap-2 sm:gap-3">
+                                          <div
+                                            className={`h-8 w-8 sm:h-10 sm:w-10 shrink-0 rounded-full flex items-center justify-center ${timelineItem.color}`}
+                                          >
+                                            <TimelineIcon className="h-4 w-4 sm:h-4 sm:w-4" />
+                                          </div>
+                                          <div className="flex-1 min-w-0 pt-0.5">
+                                            <p className="font-semibold text-sm sm:text-base">
+                                              {timelineItem.label}
+                                            </p>
+                                            <p className="text-xs sm:text-sm text-muted-foreground">
+                                              {timelineItem.description}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                              {new Date(timelineItem.timestamp)
+                                                .toLocaleDateString("en-GB", {
+                                                  day: "2-digit",
+                                                  month: "2-digit",
+                                                  year: "numeric",
+                                                })
+                                                .replace(/\//g, "/")}
+                                              ,{" "}
+                                              {new Date(
+                                                timelineItem.timestamp,
+                                              ).toLocaleTimeString("en-US", {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                second: "2-digit",
+                                                hour12: false,
+                                              })}
+                                            </p>
+                                          </div>
                                         </div>
-                                        <div className="flex-1 min-w-0 pt-0.5">
-                                          <p className="font-semibold text-sm sm:text-base">
-                                            {timelineItem.label}
-                                          </p>
-                                          <p className="text-xs sm:text-sm text-muted-foreground">
-                                            {timelineItem.description}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground mt-0.5">
-                                            {new Date(timelineItem.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/')}, {new Date(timelineItem.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-                                          </p>
-                                        </div>
+                                        {!isLast && (
+                                          <div className="absolute left-4 sm:left-5 top-8 sm:top-10 w-0.5 bg-gray-200 h-2" />
+                                        )}
                                       </div>
-                                      {!isLast && (
-                                        <div className="absolute left-4 sm:left-5 top-8 sm:top-10 w-0.5 bg-gray-200 h-2" />
-                                      )}
-                                    </div>
-                                  );
-                                });
+                                    );
+                                  },
+                                );
                               })()}
                             </div>
                           </div>
 
                           {/* Order Summary */}
                           <div>
-                            <h4 className="text-sm sm:text-base font-medium mb-3">Order Details</h4>
+                            <h4 className="text-sm sm:text-base font-medium mb-3">
+                              Order Details
+                            </h4>
                             <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
                               <p>Order ID: {order.id}</p>
                               <p>Status: {formatStatus(order.status)}</p>
                               <p>
                                 Date:{" "}
-                                {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                                {new Date(order.createdAt).toLocaleDateString(
+                                  "en-GB",
+                                )}
                               </p>
                               <p>
                                 Required By Date:{" "}
                                 {new Date(
-                                  order.requiredByDate
-                                ).toLocaleDateString('en-GB')}
+                                  order.requiredByDate,
+                                ).toLocaleDateString("en-GB")}
                               </p>
                             </div>
                           </div>
 
                           {/* Order Items */}
                           <div>
-                            <h4 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Order Items</h4>
+                            <h4 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">
+                              Order Items
+                            </h4>
                             <div className="space-y-2 sm:space-y-3">
                               {(() => {
                                 // Aggregate products by productId from both orderItems and bundleOrderItems
-                                const productMap = new Map<string, { product: any, totalQty: number, price?: number }>();
-                                
+                                const productMap = new Map<
+                                  string,
+                                  {
+                                    product: any;
+                                    totalQty: number;
+                                    price?: number;
+                                  }
+                                >();
+
                                 // Add quantities from regular items
                                 order.orderItems?.forEach((item) => {
-                                  const existing = productMap.get(item.product.id);
+                                  const existing = productMap.get(
+                                    item.product.id,
+                                  );
                                   if (existing) {
                                     existing.totalQty += item.quantity;
                                   } else {
                                     productMap.set(item.product.id, {
                                       product: item.product,
                                       totalQty: item.quantity,
-                                      price: item.price
+                                      price: item.price,
                                     });
                                   }
                                 });
-                                
+
                                 // Add quantities from bundle items
                                 order.bundleOrderItems?.forEach((item) => {
-                                  const existing = productMap.get(item.product.id);
+                                  const existing = productMap.get(
+                                    item.product.id,
+                                  );
                                   if (existing) {
                                     existing.totalQty += item.quantity;
                                   } else {
                                     productMap.set(item.product.id, {
                                       product: item.product,
                                       totalQty: item.quantity,
-                                      price: item.price || item.product?.price
+                                      price: item.price || item.product?.price,
                                     });
                                   }
                                 });
-                                
-                                return Array.from(productMap.values()).map((data) => (
-                                  <div
-                                    key={data.product.id}
-                                    className="flex gap-2 sm:gap-3 rounded-lg bg-muted/40 p-2 sm:p-3"
-                                  >
-                                    <ImageWithFallback
-                                      src={data.product.images[0]}
-                                      alt={data.product.name}
-                                      className="h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded object-cover"
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                      <p className="font-medium text-sm sm:text-base line-clamp-2">
-                                        {data.product.name}
-                                      </p>
-                                      <p className="text-xs sm:text-sm text-muted-foreground">
-                                        SKU: {data.product.sku}
-                                      </p>
-                                      {isShowPrice && data.price && data.price > 0 && (
-                                        <p className="text-xs sm:text-sm">
-                                          Price: ₹{data.price.toFixed(2)}
-                                        </p>
-                                      )}
-                                    </div>
-                                    <div className="text-right shrink-0">
-                                      <p className="text-sm sm:text-base font-medium">Qty: {data.totalQty}</p>
-                                    </div>
-                                  </div>
-                                ));
-                              })()}
-                              {order.bundleOrderItems && order.bundleOrderItems.length > 0 && (() => {
-                                // Group bundleOrderItems by bundle
-                                const bundleGroups = order.bundleOrderItems.reduce((groups: any, bundleItem) => {
-                                  const bundleId = bundleItem.bundleId;
-                                  if (!groups[bundleId]) {
-                                    groups[bundleId] = {
-                                      bundle: bundleItem.bundle,
-                                      items: []
-                                    };
-                                  }
-                                  groups[bundleId].items.push(bundleItem);
-                                  return groups;
-                                }, {});
 
-                                return Object.values(bundleGroups).map((group: any, groupIndex) => {
-                                  const bundleCount = group.items[0]?.bundle?.numberOfBundles || 1;
-                                  return (
-                                    <div key={`bundle-group-${groupIndex}`} className="space-y-2 sm:space-y-3">
-                                      {/* Bundle Header */}
-                                      <div className="flex flex-wrap items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                                        <Package className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
-                                        <span className="font-medium text-xs sm:text-sm text-blue-900">Bundle {groupIndex + 1}</span>
-                                        <span className="text-xs sm:text-sm text-blue-600 ml-auto">
-                                          {group.items.length} item{group.items.length > 1 ? 's' : ''} • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}
-                                        </span>
-                                      </div>
-                                    
-                                    {/* Bundle Items */}
-                                    {group.items.map((bundleItem: any, itemIndex: number) => {
-                                      const perBundleQty = bundleCount > 0 ? bundleItem.quantity / bundleCount : bundleItem.quantity;
-                                      return (
-                                      <div key={`bundle-item-${groupIndex}-${itemIndex}`} className="flex gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3 ml-2 sm:ml-4">
-                                        <div className="h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 rounded overflow-hidden">
-                                          <ImageWithFallback
-                                            src={bundleItem.product?.images?.[0] || ''}
-                                            alt={bundleItem.product?.name || 'Bundle Product'}
-                                            className="h-full w-full object-cover"
-                                          />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="font-medium text-sm sm:text-base line-clamp-2">
-                                            {bundleItem.product?.name || 'Bundle Product'}
-                                          </p>
-                                          <p className="text-xs sm:text-sm text-muted-foreground">
-                                            SKU: {bundleItem.product?.sku || 'N/A'}
-                                          </p>
-                                          {isShowPrice && (bundleItem.price || bundleItem.product?.price) && (
+                                return Array.from(productMap.values()).map(
+                                  (data) => (
+                                    <div
+                                      key={data.product.id}
+                                      className="flex gap-2 sm:gap-3 rounded-lg bg-muted/40 p-2 sm:p-3"
+                                    >
+                                      <ImageWithFallback
+                                        src={data.product.images[0]}
+                                        alt={data.product.name}
+                                        className="h-12 w-12 sm:h-16 sm:w-16 shrink-0 rounded object-cover"
+                                      />
+                                      <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-sm sm:text-base line-clamp-2">
+                                          {data.product.name}
+                                        </p>
+                                        <p className="text-xs sm:text-sm text-muted-foreground">
+                                          SKU: {data.product.sku}
+                                        </p>
+                                        {isShowPrice &&
+                                          data.price &&
+                                          data.price > 0 && (
                                             <p className="text-xs sm:text-sm">
-                                              Price: ₹{(bundleItem.price || bundleItem.product?.price || 0).toFixed(2)}
+                                              Price: ₹{data.price.toFixed(2)}
                                             </p>
                                           )}
-                                          <p className="text-xs sm:text-sm text-blue-600 font-medium">Bundle Item</p>
-                                        </div>
-                                        <div className="text-right">
-                                          <p className="text-xs sm:text-sm font-medium">Qty: {perBundleQty} each</p>
-                                        </div>
                                       </div>
-                                    );
-                                    })}
+                                      <div className="text-right shrink-0">
+                                        <p className="text-sm sm:text-base font-medium">
+                                          Qty: {data.totalQty}
+                                        </p>
+                                      </div>
                                     </div>
+                                  ),
                                 );
-                              });
                               })()}
-                              {(!order.orderItems || order.orderItems.length === 0) && (!order.bundleOrderItems || order.bundleOrderItems.length === 0) && (
-                                <div className="text-center py-8 text-muted-foreground">
-                                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                  <p>No items found in this order</p>
-                                </div>
-                              )}
+                              {order.bundleOrderItems &&
+                                order.bundleOrderItems.length > 0 &&
+                                (() => {
+                                  // Group bundleOrderItems by bundle
+                                  const bundleGroups =
+                                    order.bundleOrderItems.reduce(
+                                      (groups: any, bundleItem) => {
+                                        const bundleId = bundleItem.bundleId;
+                                        if (!groups[bundleId]) {
+                                          groups[bundleId] = {
+                                            bundle: bundleItem.bundle,
+                                            items: [],
+                                          };
+                                        }
+                                        groups[bundleId].items.push(bundleItem);
+                                        return groups;
+                                      },
+                                      {},
+                                    );
+
+                                  return Object.values(bundleGroups).map(
+                                    (group: any, groupIndex) => {
+                                      const bundleCount =
+                                        group.items[0]?.bundle
+                                          ?.numberOfBundles || 1;
+                                      return (
+                                        <div
+                                          key={`bundle-group-${groupIndex}`}
+                                          className="space-y-2 sm:space-y-3"
+                                        >
+                                          {/* Bundle Header */}
+                                          <div className="flex flex-wrap items-center gap-2 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                                            <Package className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+                                            <span className="font-medium text-xs sm:text-sm text-blue-900">
+                                              Bundle {groupIndex + 1}
+                                            </span>
+                                            <span className="text-xs sm:text-sm text-blue-600 ml-auto">
+                                              {group.items.length} item
+                                              {group.items.length > 1
+                                                ? "s"
+                                                : ""}{" "}
+                                              • {bundleCount} bundle
+                                              {bundleCount > 1 ? "s" : ""}
+                                            </span>
+                                          </div>
+
+                                          {/* Bundle Items */}
+                                          {group.items.map(
+                                            (
+                                              bundleItem: any,
+                                              itemIndex: number,
+                                            ) => {
+                                              const perBundleQty =
+                                                bundleCount > 0
+                                                  ? bundleItem.quantity /
+                                                    bundleCount
+                                                  : bundleItem.quantity;
+                                              return (
+                                                <div
+                                                  key={`bundle-item-${groupIndex}-${itemIndex}`}
+                                                  className="flex gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3 ml-2 sm:ml-4"
+                                                >
+                                                  <div className="h-12 w-12 sm:h-16 sm:w-16 shrink-0 rounded overflow-hidden">
+                                                    <ImageWithFallback
+                                                      src={
+                                                        bundleItem.product
+                                                          ?.images?.[0] || ""
+                                                      }
+                                                      alt={
+                                                        bundleItem.product
+                                                          ?.name ||
+                                                        "Bundle Product"
+                                                      }
+                                                      className="h-full w-full object-cover"
+                                                    />
+                                                  </div>
+                                                  <div className="flex-1 min-w-0">
+                                                    <p className="font-medium text-sm sm:text-base line-clamp-2">
+                                                      {bundleItem.product
+                                                        ?.name ||
+                                                        "Bundle Product"}
+                                                    </p>
+                                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                                      SKU:{" "}
+                                                      {bundleItem.product
+                                                        ?.sku || "N/A"}
+                                                    </p>
+                                                    {isShowPrice &&
+                                                      (bundleItem.price ||
+                                                        bundleItem.product
+                                                          ?.price) && (
+                                                        <p className="text-xs sm:text-sm">
+                                                          Price: ₹
+                                                          {(
+                                                            bundleItem.price ||
+                                                            bundleItem.product
+                                                              ?.price ||
+                                                            0
+                                                          ).toFixed(2)}
+                                                        </p>
+                                                      )}
+                                                    <p className="text-xs sm:text-sm text-blue-600 font-medium">
+                                                      Bundle Item
+                                                    </p>
+                                                  </div>
+                                                  <div className="text-right">
+                                                    <p className="text-xs sm:text-sm font-medium">
+                                                      Qty: {perBundleQty} each
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                              );
+                                            },
+                                          )}
+                                        </div>
+                                      );
+                                    },
+                                  );
+                                })()}
+                              {(!order.orderItems ||
+                                order.orderItems.length === 0) &&
+                                (!order.bundleOrderItems ||
+                                  order.bundleOrderItems.length === 0) && (
+                                  <div className="text-center py-8 text-muted-foreground">
+                                    <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                    <p>No items found in this order</p>
+                                  </div>
+                                )}
                             </div>
                           </div>
 
@@ -926,7 +1128,9 @@ export default function ClientOrderHistory() {
                             </div>
                             {order.note && (
                               <div className="md:col-span-2">
-                                <h4 className="text-sm sm:text-base font-medium mb-2">Notes</h4>
+                                <h4 className="text-sm sm:text-base font-medium mb-2">
+                                  Notes
+                                </h4>
                                 <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-line">
                                   {order.note}
                                 </p>

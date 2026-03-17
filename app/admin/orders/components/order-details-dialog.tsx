@@ -489,7 +489,7 @@ export function OrderDetailsDialog({
                 : "Send Email"}
             </Button>
             
-            {actions.orders.edit && (
+            {actions.orders.edit && order.status !== "CANCELLED" && (
               <Button
                 onClick={() => onStatusUpdate(order)}
                 variant="outline"

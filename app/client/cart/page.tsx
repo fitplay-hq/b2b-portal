@@ -40,20 +40,30 @@ export default function ClientCart() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [cartInputValues, setCartInputValues] = useState<{[key: string]: string}>({});
+  const [cartInputValues, setCartInputValues] = useState<{
+    [key: string]: string;
+  }>({});
 
   const isShowPrice = session?.user?.isShowPrice ?? false;
 
   // Bundle-related state
   const [showBundleDialog, setShowBundleDialog] = useState(false);
-  const [bundleProducts, setBundleProducts] = useState<{product: any, quantity: number}[]>([]);
+  const [bundleProducts, setBundleProducts] = useState<
+    { product: any; quantity: number }[]
+  >([]);
   const [numberOfBundles, setNumberOfBundles] = useState(1);
   const [bundleSearchTerm, setBundleSearchTerm] = useState("");
-  
+
   // New inline bundle state
-  const [selectedForBundle, setSelectedForBundle] = useState<Set<string>>(new Set());
-  const [bundleQuantities, setBundleQuantities] = useState<{[productId: string]: number}>({});
-  const [bundleInputValues, setBundleInputValues] = useState<{[productId: string]: string}>({});
+  const [selectedForBundle, setSelectedForBundle] = useState<Set<string>>(
+    new Set(),
+  );
+  const [bundleQuantities, setBundleQuantities] = useState<{
+    [productId: string]: number;
+  }>({});
+  const [bundleInputValues, setBundleInputValues] = useState<{
+    [productId: string]: string;
+  }>({});
   const [inlineBundleCount, setInlineBundleCount] = useState(1);
   const [bundleCountInputValue, setBundleCountInputValue] = useState("1");
 
@@ -62,36 +72,38 @@ export default function ClientCart() {
   useEffect(() => {
     const cart = getStoredData<CartItem[]>(
       `fitplay_cart_${session?.user?.id}`,
-      []
+      [],
     );
     setCartItems(cart);
-    
+
     // Initialize input values
-    const inputValues: {[key: string]: string} = {};
-    cart.forEach(item => {
+    const inputValues: { [key: string]: string } = {};
+    cart.forEach((item) => {
       const key = item.cartItemId || item.product.id;
       inputValues[key] = item.quantity.toString();
     });
     setCartInputValues(inputValues);
   }, [session?.user?.id]);
-  
+
   // Clean up bundle selections when cart changes
   useEffect(() => {
     const individualProductIds = cartItems
-      .filter(item => !item.isBundleItem)
-      .map(item => item.product.id);
-    
+      .filter((item) => !item.isBundleItem)
+      .map((item) => item.product.id);
+
     // Remove any selected items that are no longer individual items
-    const newSelected = new Set(Array.from(selectedForBundle).filter(id => 
-      individualProductIds.includes(id)
-    ));
-    
+    const newSelected = new Set(
+      Array.from(selectedForBundle).filter((id) =>
+        individualProductIds.includes(id),
+      ),
+    );
+
     if (newSelected.size !== selectedForBundle.size) {
       setSelectedForBundle(newSelected);
       // Also clean up bundle quantities for removed items
-      setBundleQuantities(prev => {
+      setBundleQuantities((prev) => {
         const updated = { ...prev };
-        Object.keys(updated).forEach(key => {
+        Object.keys(updated).forEach((key) => {
           if (!individualProductIds.includes(key)) {
             delete updated[key];
           }
@@ -100,76 +112,91 @@ export default function ClientCart() {
       });
     }
   }, [cartItems, selectedForBundle]);
-  
+
   console.log({ cartItems });
 
   const updateCart = (updatedCart: CartItem[]) => {
     setCartItems(updatedCart);
     setStoredData(`fitplay_cart_${session?.user?.id}`, updatedCart);
-    
+
     // Update input values for the updated cart
-    const inputValues: {[key: string]: string} = {};
-    updatedCart.forEach(item => {
+    const inputValues: { [key: string]: string } = {};
+    updatedCart.forEach((item) => {
       const key = item.cartItemId || item.product.id;
       inputValues[key] = item.quantity.toString();
     });
     setCartInputValues(inputValues);
-    
+
     // Dispatch event to update cart count in header
-    window.dispatchEvent(new CustomEvent('cartUpdated', { 
-      detail: { 
-        cartKey: `fitplay_cart_${session?.user?.id}`, 
-        cart: updatedCart 
-      } 
-    }));
+    window.dispatchEvent(
+      new CustomEvent("cartUpdated", {
+        detail: {
+          cartKey: `fitplay_cart_${session?.user?.id}`,
+          cart: updatedCart,
+        },
+      }),
+    );
   };
-  
+
   const handleCartQuantityChange = (item: CartItem, value: string) => {
     const key = item.cartItemId || item.product.id;
-    setCartInputValues(prev => ({ ...prev, [key]: value }));
-    
+    setCartInputValues((prev) => ({ ...prev, [key]: value }));
+
     // Update cart if valid number
-    if (value === '' || value === '0') {
+    if (value === "" || value === "0") {
       return; // Don't update cart yet
     }
-    
+
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue > 0) {
       const clampedValue = Math.min(numValue, item.product.availableStock);
-      
+
       const updatedCart = cartItems.map((i) => {
         if (item.cartItemId && i.cartItemId === item.cartItemId) {
           return { ...i, quantity: clampedValue };
-        } else if (!item.cartItemId && !i.cartItemId && i.product.id === item.product.id) {
+        } else if (
+          !item.cartItemId &&
+          !i.cartItemId &&
+          i.product.id === item.product.id
+        ) {
           return { ...i, quantity: clampedValue };
         }
         return i;
       });
       setCartItems(updatedCart);
-      
+
       // Show toast if exceeded
       if (numValue > item.product.availableStock) {
-        toast.error(`Only ${item.product.availableStock} available for ${item.product.name}`);
+        toast.error(
+          `Only ${item.product.availableStock} available for ${item.product.name}`,
+        );
       }
     }
   };
-  
+
   const validateCartQuantity = (item: CartItem) => {
     const key = item.cartItemId || item.product.id;
     const inputValue = cartInputValues[key] || "1";
     const numValue = parseInt(inputValue) || 1;
-    const clampedValue = Math.max(1, Math.min(numValue, item.product.availableStock));
+    const clampedValue = Math.max(
+      1,
+      Math.min(numValue, item.product.availableStock),
+    );
     updateQuantity(item.product.id, clampedValue, item.cartItemId);
   };
-  
+
   const isCartQuantityValid = (item: CartItem) => {
     const key = item.cartItemId || item.product.id;
     const inputValue = cartInputValues[key];
     if (!inputValue) return false;
     const numValue = parseInt(inputValue);
-    return !isNaN(numValue) && numValue > 0 && numValue <= item.product.availableStock;
+    return (
+      !isNaN(numValue) &&
+      numValue > 0 &&
+      numValue <= item.product.availableStock
+    );
   };
-  
+
   const canProceedToCheckout = () => {
     // Check if all cart items have valid quantities
     for (const item of cartItems) {
@@ -178,14 +205,18 @@ export default function ClientCart() {
     return cartItems.length > 0;
   };
 
-  const updateQuantity = (productId: string, newQuantity: number, cartItemId?: string) => {
+  const updateQuantity = (
+    productId: string,
+    newQuantity: number,
+    cartItemId?: string,
+  ) => {
     if (newQuantity <= 0) {
       removeItem(productId, cartItemId);
       return;
     }
 
     // Find the item to check available stock
-    const targetItem = cartItems.find(item => {
+    const targetItem = cartItems.find((item) => {
       if (cartItemId && item.cartItemId) {
         return item.cartItemId === cartItemId;
       } else if (!item.cartItemId) {
@@ -196,7 +227,7 @@ export default function ClientCart() {
 
     if (targetItem && newQuantity > targetItem.product.availableStock) {
       toast.error(`Not enough stock available!`, {
-        description: `Only ${targetItem.product.availableStock} items available for ${targetItem.product.name}`
+        description: `Only ${targetItem.product.availableStock} items available for ${targetItem.product.name}`,
       });
       // Set to max available
       newQuantity = targetItem.product.availableStock;
@@ -225,22 +256,20 @@ export default function ClientCart() {
   };
 
   const removeItem = (productId: string, cartItemId?: string) => {
-    const updatedCart = cartItems.filter(
-      (item) => {
-        // If cartItemId is provided (for bundle items), match by cartItemId
-        if (cartItemId && item.cartItemId) {
-          // Only remove the specific bundle item with this cartItemId
-          return item.cartItemId !== cartItemId;
-        }
-        // For individual items without cartItemId, match by productId
-        // But don't remove individual items if we're deleting a bundle item
-        if (cartItemId) {
-          return true; // Keep all items that don't have this cartItemId
-        }
-        // Remove individual item by productId (only when no cartItemId provided)
-        return item.product.id !== productId;
+    const updatedCart = cartItems.filter((item) => {
+      // If cartItemId is provided (for bundle items), match by cartItemId
+      if (cartItemId && item.cartItemId) {
+        // Only remove the specific bundle item with this cartItemId
+        return item.cartItemId !== cartItemId;
       }
-    );
+      // For individual items without cartItemId, match by productId
+      // But don't remove individual items if we're deleting a bundle item
+      if (cartItemId) {
+        return true; // Keep all items that don't have this cartItemId
+      }
+      // Remove individual item by productId (only when no cartItemId provided)
+      return item.product.id !== productId;
+    });
     updateCart(updatedCart);
     toast.success("Item removed from cart");
   };
@@ -251,13 +280,16 @@ export default function ClientCart() {
   };
 
   // Bundle handling functions
-  const bundleSearchResults = products?.filter(
-    (p: any) => {
+  const bundleSearchResults =
+    products?.filter((p: any) => {
       if (!bundleSearchTerm.trim()) return true; // Show all products when no search term
-      return p.name.toLowerCase().includes(bundleSearchTerm.trim().toLowerCase()) ||
-             (p.sku ? p.sku.toLowerCase().includes(bundleSearchTerm.trim().toLowerCase()) : false);
-    }
-  ) || [];
+      return (
+        p.name.toLowerCase().includes(bundleSearchTerm.trim().toLowerCase()) ||
+        (p.sku
+          ? p.sku.toLowerCase().includes(bundleSearchTerm.trim().toLowerCase())
+          : false)
+      );
+    }) || [];
 
   const handleBundleProductToggle = (product: any, selected: boolean) => {
     if (selected) {
@@ -266,13 +298,15 @@ export default function ClientCart() {
         setBundleProducts((prev) => [...prev, { product, quantity: 1 }]);
       }
     } else {
-      setBundleProducts((prev) => prev.filter((p) => p.product.id !== product.id));
+      setBundleProducts((prev) =>
+        prev.filter((p) => p.product.id !== product.id),
+      );
     }
   };
 
   const handleUpdateBundleProduct = (productId: string, quantity: number) => {
     setBundleProducts((prev) =>
-      prev.map((p) => (p.product.id === productId ? { ...p, quantity } : p))
+      prev.map((p) => (p.product.id === productId ? { ...p, quantity } : p)),
     );
   };
 
@@ -312,31 +346,31 @@ export default function ClientCart() {
 
     toast.success(`Added ${numberOfBundles} bundle(s) to cart`);
   };
-  
+
   // Inline bundle functions
   const handleBundleSelection = (productId: string, selected: boolean) => {
     // Only allow selection of individual (non-bundle) items
-    const cartItem = cartItems.find(item => item.product.id === productId);
+    const cartItem = cartItems.find((item) => item.product.id === productId);
     if (cartItem && cartItem.isBundleItem) {
       return; // Don't allow bundle items to be selected for bundling
     }
-    
+
     const newSelected = new Set(selectedForBundle);
     if (selected) {
       newSelected.add(productId);
       // Set default bundle quantity to 1
       if (cartItem) {
-        setBundleQuantities(prev => ({ ...prev, [productId]: 1 }));
-        setBundleInputValues(prev => ({ ...prev, [productId]: "1" }));
+        setBundleQuantities((prev) => ({ ...prev, [productId]: 1 }));
+        setBundleInputValues((prev) => ({ ...prev, [productId]: "1" }));
       }
     } else {
       newSelected.delete(productId);
-      setBundleQuantities(prev => {
+      setBundleQuantities((prev) => {
         const updated = { ...prev };
         delete updated[productId];
         return updated;
       });
-      setBundleInputValues(prev => {
+      setBundleInputValues((prev) => {
         const updated = { ...prev };
         delete updated[productId];
         return updated;
@@ -344,126 +378,144 @@ export default function ClientCart() {
     }
     setSelectedForBundle(newSelected);
   };
-  
+
   const handleBundleQuantityChange = (productId: string, value: string) => {
-    setBundleInputValues(prev => ({ ...prev, [productId]: value }));
-    
+    setBundleInputValues((prev) => ({ ...prev, [productId]: value }));
+
     // Update quantity if valid number
-    if (value === '' || value === '0') {
+    if (value === "" || value === "0") {
       return; // Don't update quantity yet
     }
-    
+
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue > 0) {
-      const item = cartItems.find(item => item.product.id === productId && !item.isBundleItem);
+      const item = cartItems.find(
+        (item) => item.product.id === productId && !item.isBundleItem,
+      );
       const clampedValue = Math.min(numValue, item?.quantity || 1);
-      setBundleQuantities(prev => ({ ...prev, [productId]: clampedValue }));
-      
+      setBundleQuantities((prev) => ({ ...prev, [productId]: clampedValue }));
+
       // Show toast if exceeded
       if (item && numValue > item.quantity) {
-        toast.error(`Only ${item.quantity} available in cart for ${item.product.name}`);
+        toast.error(
+          `Only ${item.quantity} available in cart for ${item.product.name}`,
+        );
       }
     }
   };
-  
+
   const validateBundleQuantity = (productId: string) => {
-    const item = cartItems.find(item => item.product.id === productId && !item.isBundleItem);
+    const item = cartItems.find(
+      (item) => item.product.id === productId && !item.isBundleItem,
+    );
     const inputValue = bundleInputValues[productId] || "1";
     const numValue = parseInt(inputValue) || 1;
     const clampedValue = Math.max(1, Math.min(numValue, item?.quantity || 1));
-    setBundleQuantities(prev => ({ ...prev, [productId]: clampedValue }));
-    setBundleInputValues(prev => ({ ...prev, [productId]: clampedValue.toString() }));
+    setBundleQuantities((prev) => ({ ...prev, [productId]: clampedValue }));
+    setBundleInputValues((prev) => ({
+      ...prev,
+      [productId]: clampedValue.toString(),
+    }));
   };
-  
+
   const isBundleQuantityValid = (productId: string) => {
-    const item = cartItems.find(item => item.product.id === productId && !item.isBundleItem);
+    const item = cartItems.find(
+      (item) => item.product.id === productId && !item.isBundleItem,
+    );
     const inputValue = bundleInputValues[productId];
     if (!inputValue) return false;
     const numValue = parseInt(inputValue);
-    return !isNaN(numValue) && numValue > 0 && numValue <= (item?.quantity || 0);
+    return (
+      !isNaN(numValue) && numValue > 0 && numValue <= (item?.quantity || 0)
+    );
   };
-  
+
   const handleBundleCountChange = (value: string) => {
     setBundleCountInputValue(value);
-    
-    if (value === '' || value === '0') {
+
+    if (value === "" || value === "0") {
       return;
     }
-    
+
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue > 0) {
       setInlineBundleCount(numValue);
     }
   };
-  
+
   const validateBundleCount = () => {
     const numValue = parseInt(bundleCountInputValue) || 1;
     const clampedValue = Math.max(1, numValue);
     setInlineBundleCount(clampedValue);
     setBundleCountInputValue(clampedValue.toString());
   };
-  
+
   const isBundleCountValid = () => {
     const numValue = parseInt(bundleCountInputValue);
     return !isNaN(numValue) && numValue > 0;
   };
-  
+
   const canAddBundle = () => {
     if (selectedForBundle.size === 0) return false;
     if (!isBundleCountValid()) return false;
-    
+
     // Check all selected items have valid quantities
     for (const productId of Array.from(selectedForBundle)) {
       if (!isBundleQuantityValid(productId)) return false;
     }
-    
+
     return true;
   };
-  
+
   const addInlineBundle = () => {
     if (selectedForBundle.size === 0) {
       toast.error("Select at least one product for the bundle");
       return;
     }
-    
+
     // Only select individual (non-bundle) items
-    const selectedItems = cartItems.filter(item => 
-      selectedForBundle.has(item.product.id) && !item.isBundleItem
+    const selectedItems = cartItems.filter(
+      (item) => selectedForBundle.has(item.product.id) && !item.isBundleItem,
     );
-    
+
     // First, validate that all items have enough quantity
     // Check against total already in bundles + what we're trying to add
     for (const item of selectedItems) {
       const bundleQty = bundleQuantities[item.product.id] || 1;
       const totalNewBundleItems = bundleQty * inlineBundleCount;
-      
+
       // Calculate total already in bundles for this product
       const totalInExistingBundles = cartItems
-        .filter(cartItem => cartItem.product.id === item.product.id && cartItem.isBundleItem)
+        .filter(
+          (cartItem) =>
+            cartItem.product.id === item.product.id && cartItem.isBundleItem,
+        )
         .reduce((sum, cartItem) => sum + cartItem.quantity, 0);
-      
+
       const totalNeeded = totalInExistingBundles + totalNewBundleItems;
-      
+
       if (item.quantity < totalNeeded) {
-        toast.error(`Not enough ${item.product.name}. Need ${totalNeeded} total (${totalInExistingBundles} already in bundles + ${totalNewBundleItems} new), but only have ${item.quantity} in cart`);
+        toast.error(
+          `Not enough ${item.product.name}. Need ${totalNeeded} total (${totalInExistingBundles} already in bundles + ${totalNewBundleItems} new), but only have ${item.quantity} in cart`,
+        );
         return;
       }
     }
-    
+
     const updatedCart = [...cartItems];
-    
+
     // Don't reduce quantities from individual items - keep them as is for visibility
     // Users want to see total products regardless of bundling
-    
+
     // Add bundle items
     // Generate unique bundle group ID for this bundle
     const bundleGroupId = `bundle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.log('Creating new bundle with ID:', bundleGroupId);
-    
-    selectedItems.forEach(item => {
+    console.log("Creating new bundle with ID:", bundleGroupId);
+
+    selectedItems.forEach((item) => {
       const bundleQty = bundleQuantities[item.product.id] || 1;
       const totalBundleItems = bundleQty * inlineBundleCount;
-      
+
       const bundleItem: CartItem = {
         product: item.product,
         quantity: totalBundleItems,
@@ -473,28 +525,31 @@ export default function ClientCart() {
         bundleGroupId: bundleGroupId, // Add unique bundle group ID
         cartItemId: `${bundleGroupId}-${item.product.id}`, // Add unique cart item ID
       };
-      
+
       // Always push as a new bundle item (don't merge with existing bundles)
       updatedCart.push(bundleItem);
     });
-    
+
     updateCart(updatedCart);
-    
-    console.log('Bundle created. Updated cart:', updatedCart.map(i => ({ 
-      name: i.product.name, 
-      qty: i.quantity, 
-      isBundle: i.isBundleItem, 
-      bundleGroupId: i.bundleGroupId,
-      cartItemId: i.cartItemId
-    })));
-    
+
+    console.log(
+      "Bundle created. Updated cart:",
+      updatedCart.map((i) => ({
+        name: i.product.name,
+        qty: i.quantity,
+        isBundle: i.isBundleItem,
+        bundleGroupId: i.bundleGroupId,
+        cartItemId: i.cartItemId,
+      })),
+    );
+
     // Reset inline bundle state
     setSelectedForBundle(new Set());
     setBundleQuantities({});
     setBundleInputValues({});
     setInlineBundleCount(1);
     setBundleCountInputValue("1");
-    
+
     toast.success(`Added ${inlineBundleCount} bundle(s) to cart`);
   };
 
@@ -549,7 +604,8 @@ export default function ClientCart() {
             <DialogHeader>
               <DialogTitle>Create Product Bundle</DialogTitle>
               <DialogDescription>
-                Create a bundle of products that will be packaged together. Example: 2 notebooks + 1 pen per package.
+                Create a bundle of products that will be packaged together.
+                Example: 2 notebooks + 1 pen per package.
               </DialogDescription>
             </DialogHeader>
 
@@ -572,25 +628,38 @@ export default function ClientCart() {
               <div className="border rounded-md max-h-48 overflow-y-auto">
                 {bundleSearchResults.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {bundleSearchTerm ? `No products found matching "${bundleSearchTerm}"` : "No products available"}
+                    {bundleSearchTerm
+                      ? `No products found matching "${bundleSearchTerm}"`
+                      : "No products available"}
                   </p>
                 ) : (
                   <div className="divide-y">
                     {bundleSearchResults.map((product) => {
-                      const isSelected = bundleProducts.some((p) => p.product.id === product.id);
+                      const isSelected = bundleProducts.some(
+                        (p) => p.product.id === product.id,
+                      );
                       return (
                         <div
                           key={product.id}
                           className={`flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer ${
                             isSelected ? "bg-blue-50" : ""
                           }`}
-                          onClick={() => handleBundleProductToggle(product, !isSelected)}
+                          onClick={() =>
+                            handleBundleProductToggle(product, !isSelected)
+                          }
                         >
                           <div className="flex items-center gap-3">
-                            <Checkbox checked={isSelected} onChange={() => {}} />
+                            <Checkbox
+                              checked={isSelected}
+                              onChange={() => {}}
+                            />
                             <div>
-                              <p className="text-sm font-medium">{product.name}</p>
-                              <p className="text-xs text-muted-foreground">SKU: {product.sku || "N/A"}</p>
+                              <p className="text-sm font-medium">
+                                {product.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                SKU: {product.sku || "N/A"}
+                              </p>
                             </div>
                           </div>
                           {isSelected && (
@@ -608,19 +677,31 @@ export default function ClientCart() {
               {/* Selected Bundle Products */}
               {bundleProducts.length > 0 && (
                 <div>
-                  <Label className="text-sm font-medium">Bundle Contents ({bundleProducts.length} products)</Label>
+                  <Label className="text-sm font-medium">
+                    Bundle Contents ({bundleProducts.length} products)
+                  </Label>
                   <div className="border rounded-md mt-2 max-h-32 overflow-y-auto">
                     {bundleProducts.map((product) => (
-                      <div key={product.product.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                      <div
+                        key={product.product.id}
+                        className="flex items-center justify-between p-3 border-b last:border-b-0"
+                      >
                         <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium">{product.product.name}</span>
+                          <span className="text-sm font-medium">
+                            {product.product.name}
+                          </span>
                           <div className="flex items-center gap-1">
                             <Label className="text-xs">Qty per bundle:</Label>
                             <Input
                               type="number"
                               min="1"
                               value={product.quantity}
-                              onChange={(e) => handleUpdateBundleProduct(product.product.id, parseInt(e.target.value) || 1)}
+                              onChange={(e) =>
+                                handleUpdateBundleProduct(
+                                  product.product.id,
+                                  parseInt(e.target.value) || 1,
+                                )
+                              }
                               className="w-16 h-6 text-xs"
                             />
                           </div>
@@ -628,7 +709,9 @@ export default function ClientCart() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleRemoveBundleProduct(product.product.id)}
+                          onClick={() =>
+                            handleRemoveBundleProduct(product.product.id)
+                          }
                           className="h-6 w-6 p-0"
                         >
                           <X className="h-3 w-3" />
@@ -647,21 +730,33 @@ export default function ClientCart() {
                     type="number"
                     min="1"
                     value={numberOfBundles}
-                    onChange={(e) => setNumberOfBundles(parseInt(e.target.value) || 1)}
+                    onChange={(e) =>
+                      setNumberOfBundles(parseInt(e.target.value) || 1)
+                    }
                     className="mt-1"
                   />
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Total items needed: {bundleProducts.reduce((sum, p) => sum + (p.quantity * numberOfBundles), 0)}
+                  Total items needed:{" "}
+                  {bundleProducts.reduce(
+                    (sum, p) => sum + p.quantity * numberOfBundles,
+                    0,
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowBundleDialog(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowBundleDialog(false)}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleAddBundle} disabled={bundleProducts.length === 0}>
+              <Button
+                onClick={handleAddBundle}
+                disabled={bundleProducts.length === 0}
+              >
                 Add Bundle to Cart
               </Button>
             </div>
@@ -674,23 +769,33 @@ export default function ClientCart() {
   return (
     <Layout title="Shopping Cart" isClient>
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-0">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" asChild className="text-xs sm:text-sm">
-                <Link href="/client/products">
-                  <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                  Continue Shopping
-                </Link>
-              </Button>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center gap-2">
-              <Button variant="outline" size="sm" onClick={clearCart} className="w-full sm:w-auto text-xs sm:text-sm">
-                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                Clear Cart
-              </Button>
-            </div>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="text-xs sm:text-sm"
+            >
+              <Link href="/client/products">
+                <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                Continue Shopping
+              </Link>
+            </Button>
           </div>
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearCart}
+              className="w-full sm:w-auto text-xs sm:text-sm"
+            >
+              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+              Clear Cart
+            </Button>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Cart Items */}
@@ -702,18 +807,25 @@ export default function ClientCart() {
               <CardContent className="space-y-4">
                 {(() => {
                   // Separate individual items and bundle items
-                  const individualItems = cartItems.filter(item => !item.isBundleItem);
-                  const bundleItems = cartItems.filter(item => item.isBundleItem);
-                  
+                  const individualItems = cartItems.filter(
+                    (item) => !item.isBundleItem,
+                  );
+                  const bundleItems = cartItems.filter(
+                    (item) => item.isBundleItem,
+                  );
+
                   // Group bundle items by bundleGroupId
-                  const bundleGroups = bundleItems.reduce((groups: { [key: string]: typeof cartItems }, item) => {
-                    const groupId = item.bundleGroupId || 'default';
-                    if (!groups[groupId]) {
-                      groups[groupId] = [];
-                    }
-                    groups[groupId].push(item);
-                    return groups;
-                  }, {});
+                  const bundleGroups = bundleItems.reduce(
+                    (groups: { [key: string]: typeof cartItems }, item) => {
+                      const groupId = item.bundleGroupId || "default";
+                      if (!groups[groupId]) {
+                        groups[groupId] = [];
+                      }
+                      groups[groupId].push(item);
+                      return groups;
+                    },
+                    {},
+                  );
 
                   return (
                     <>
@@ -723,7 +835,7 @@ export default function ClientCart() {
                           key={item.product.id}
                           className="flex gap-4 p-4 border rounded-lg"
                         >
-                          <div className="w-20 h-20 flex-shrink-0">
+                          <div className="w-20 h-20 shrink-0">
                             <ImageWithFallback
                               src={item.product.images[0]}
                               alt={item.product.name}
@@ -735,7 +847,9 @@ export default function ClientCart() {
                             <div className="flex items-start justify-between">
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <h3 className="font-medium">{item.product.name}</h3>
+                                  <h3 className="font-medium">
+                                    {item.product.name}
+                                  </h3>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
                                   SKU: {item.product.sku}
@@ -745,12 +859,16 @@ export default function ClientCart() {
                                     Price: ₹{item.product.price}
                                   </p>
                                 )}
-                                <p className="text-sm font-medium">Individual product</p>
+                                <p className="text-sm font-medium">
+                                  Individual product
+                                </p>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removeItem(item.product.id, item.cartItemId)}
+                                onClick={() =>
+                                  removeItem(item.product.id, item.cartItemId)
+                                }
                                 className="text-destructive hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -762,39 +880,71 @@ export default function ClientCart() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.cartItemId)}
+                                  onClick={() =>
+                                    updateQuantity(
+                                      item.product.id,
+                                      item.quantity - 1,
+                                      item.cartItemId,
+                                    )
+                                  }
                                   disabled={item.quantity <= 1}
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
                                 <Input
                                   type="number"
-                                  value={cartInputValues[item.cartItemId || item.product.id] !== undefined ? cartInputValues[item.cartItemId || item.product.id] : item.quantity}
-                                  onChange={(e) => handleCartQuantityChange(item, e.target.value)}
+                                  value={
+                                    cartInputValues[
+                                      item.cartItemId || item.product.id
+                                    ] !== undefined
+                                      ? cartInputValues[
+                                          item.cartItemId || item.product.id
+                                        ]
+                                      : item.quantity
+                                  }
+                                  onChange={(e) =>
+                                    handleCartQuantityChange(
+                                      item,
+                                      e.target.value,
+                                    )
+                                  }
                                   onBlur={() => validateCartQuantity(item)}
                                   onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
+                                    if (e.key === "Enter") {
                                       validateCartQuantity(item);
                                       e.currentTarget.blur();
                                     }
                                   }}
-                                  className={`w-20 text-center ${!isCartQuantityValid(item) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                  className={`w-20 text-center ${!isCartQuantityValid(item) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                 />
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.cartItemId)}
-                                  disabled={item.quantity >= item.product.availableStock}
+                                  onClick={() =>
+                                    updateQuantity(
+                                      item.product.id,
+                                      item.quantity + 1,
+                                      item.cartItemId,
+                                    )
+                                  }
+                                  disabled={
+                                    item.quantity >= item.product.availableStock
+                                  }
                                 >
                                   <Plus className="h-3 w-3" />
                                 </Button>
                               </div>
 
                               <div className="text-right">
-                                <p className="font-medium">Qty: {item.quantity}</p>
+                                <p className="font-medium">
+                                  Qty: {item.quantity}
+                                </p>
                                 {isShowPrice && item.product.price && (
                                   <p className="font-medium">
-                                    Total: ₹{(item.product.price * item.quantity).toFixed(2)}
+                                    Total: ₹
+                                    {(
+                                      item.product.price * item.quantity
+                                    ).toFixed(2)}
                                   </p>
                                 )}
                                 <p className="text-xs text-muted-foreground">
@@ -802,15 +952,23 @@ export default function ClientCart() {
                                 </p>
                               </div>
                             </div>
-                            
+
                             {/* Bundle Selection - Only for individual items */}
                             <div className="flex items-center gap-2 pt-2 border-t border-dashed">
-                              <Checkbox 
+                              <Checkbox
                                 id={`bundle-${item.product.id}`}
                                 checked={selectedForBundle.has(item.product.id)}
-                                onCheckedChange={(checked) => handleBundleSelection(item.product.id, checked as boolean)}
+                                onCheckedChange={(checked) =>
+                                  handleBundleSelection(
+                                    item.product.id,
+                                    checked as boolean,
+                                  )
+                                }
                               />
-                              <Label htmlFor={`bundle-${item.product.id}`} className="text-sm text-muted-foreground cursor-pointer">
+                              <Label
+                                htmlFor={`bundle-${item.product.id}`}
+                                className="text-sm text-muted-foreground cursor-pointer"
+                              >
                                 Add to Bundle
                               </Label>
                             </div>
@@ -819,93 +977,119 @@ export default function ClientCart() {
                       ))}
 
                       {/* Bundle Groups */}
-                      {Object.entries(bundleGroups).map(([groupId, items], bundleIndex) => {
-                        const bundleCount = items[0]?.bundleCount || 1;
-                        return (
-                        <div key={groupId} className="border-2 border-blue-200 rounded-lg p-3 bg-blue-50/30">
-                          {/* Bundle Header */}
-                          <div className="flex items-center justify-between mb-2 pb-2 border-b-2 border-blue-300">
-                            <div className="flex items-center gap-2">
-                              <Package className="h-5 w-5 text-blue-600" />
-                              <h4 className="font-semibold text-blue-900">Bundle {bundleIndex + 1}</h4>
-                              <Badge className="bg-blue-600 text-white">
-                                {items.length} items • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}
-                              </Badge>
-                            </div>
-                          </div>
-
-                          {/* Bundle Items */}
-                          <div className="space-y-2">
-                            {items.map((item) => (
-                              <div
-                                key={item.cartItemId || item.product.id}
-                                className="flex gap-3 p-2 border border-blue-200 bg-white rounded-lg"
-                              >
-                                <div className="w-16 h-16 flex-shrink-0">
-                                  <ImageWithFallback
-                                    src={item.product.images[0]}
-                                    alt={item.product.name}
-                                    className="w-full h-full object-cover rounded"
-                                  />
-                                </div>
-
-                                <div className="flex-1 space-y-2">
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <div className="flex items-center gap-2">
-                                        <h3 className="font-medium text-sm">{item.product.name}</h3>
-                                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
-                                          Bundle Item
-                                        </Badge>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground">
-                                        SKU: {item.product.sku}
-                                      </p>
-                                      {isShowPrice && item.product.price && (
-                                        <p className="text-xs font-medium">
-                                          Price: ₹{item.product.price}
-                                        </p>
-                                      )}
-                                    </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => removeItem(item.product.id, item.cartItemId)}
-                                      className="text-destructive hover:text-destructive"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-
-                                  <div className="flex items-center justify-end">
-                                    <div className="text-right">
-                                      <p className="font-medium text-sm">Qty: {item.bundleQuantity} each</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Stock: {item.product.availableStock}
-                                      </p>
-                                    </div>
-                                  </div>
+                      {Object.entries(bundleGroups).map(
+                        ([groupId, items], bundleIndex) => {
+                          const bundleCount = items[0]?.bundleCount || 1;
+                          return (
+                            <div
+                              key={groupId}
+                              className="border-2 border-blue-200 rounded-lg p-3 bg-blue-50/30"
+                            >
+                              {/* Bundle Header */}
+                              <div className="flex items-center justify-between mb-2 pb-2 border-b-2 border-blue-300">
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-5 w-5 text-blue-600" />
+                                  <h4 className="font-semibold text-blue-900">
+                                    Bundle {bundleIndex + 1}
+                                  </h4>
+                                  <Badge className="bg-blue-600 text-white">
+                                    {items.length} items • {bundleCount} bundle
+                                    {bundleCount > 1 ? "s" : ""}
+                                  </Badge>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                      })}
+
+                              {/* Bundle Items */}
+                              <div className="space-y-2">
+                                {items.map((item) => (
+                                  <div
+                                    key={item.cartItemId || item.product.id}
+                                    className="flex gap-3 p-2 border border-blue-200 bg-white rounded-lg"
+                                  >
+                                    <div className="w-16 h-16 shrink-0">
+                                      <ImageWithFallback
+                                        src={item.product.images[0]}
+                                        alt={item.product.name}
+                                        className="w-full h-full object-cover rounded"
+                                      />
+                                    </div>
+
+                                    <div className="flex-1 space-y-2">
+                                      <div className="flex items-start justify-between">
+                                        <div>
+                                          <div className="flex items-center gap-2">
+                                            <h3 className="font-medium text-sm">
+                                              {item.product.name}
+                                            </h3>
+                                            <Badge
+                                              variant="secondary"
+                                              className="text-xs bg-blue-100 text-blue-800"
+                                            >
+                                              Bundle Item
+                                            </Badge>
+                                          </div>
+                                          <p className="text-xs text-muted-foreground">
+                                            SKU: {item.product.sku}
+                                          </p>
+                                          {isShowPrice &&
+                                            item.product.price && (
+                                              <p className="text-xs font-medium">
+                                                Price: ₹{item.product.price}
+                                              </p>
+                                            )}
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() =>
+                                            removeItem(
+                                              item.product.id,
+                                              item.cartItemId,
+                                            )
+                                          }
+                                          className="text-destructive hover:text-destructive"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+
+                                      <div className="flex items-center justify-end">
+                                        <div className="text-right">
+                                          <p className="font-medium text-sm">
+                                            Qty: {item.bundleQuantity} each
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            Stock: {item.product.availableStock}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        },
+                      )}
                     </>
                   );
                 })()}
               </CardContent>
             </Card>
-            
+
             {/* Inline Bundle Creation UI */}
             {selectedForBundle.size > 0 && (
               <Card className="border-2 border-dashed border-gray-200 bg-white shadow-sm">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-gray-600" />
-                    <CardTitle className="text-lg text-gray-800">Create Bundle</CardTitle>
-                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-300">
+                    <CardTitle className="text-lg text-gray-800">
+                      Create Bundle
+                    </CardTitle>
+                    <Badge
+                      variant="outline"
+                      className="bg-gray-50 text-gray-700 border-gray-300"
+                    >
                       {selectedForBundle.size} items selected
                     </Badge>
                   </div>
@@ -914,11 +1098,18 @@ export default function ClientCart() {
                   {/* Selected Products */}
                   <div className="space-y-2">
                     {cartItems
-                      .filter(item => selectedForBundle.has(item.product.id) && !item.isBundleItem)
-                      .map(item => (
-                        <div key={item.product.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      .filter(
+                        (item) =>
+                          selectedForBundle.has(item.product.id) &&
+                          !item.isBundleItem,
+                      )
+                      .map((item) => (
+                        <div
+                          key={item.product.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                        >
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 flex-shrink-0">
+                            <div className="w-12 h-12 shrink-0">
                               <ImageWithFallback
                                 src={item.product.images[0]}
                                 alt={item.product.name}
@@ -926,61 +1117,89 @@ export default function ClientCart() {
                               />
                             </div>
                             <div>
-                              <p className="font-medium text-sm">{item.product.name}</p>
-                              <p className="text-xs text-muted-foreground">Available in cart: {item.quantity}</p>
+                              <p className="font-medium text-sm">
+                                {item.product.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Available in cart: {item.quantity}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Label className="text-xs text-muted-foreground">Qty per bundle:</Label>
+                            <Label className="text-xs text-muted-foreground">
+                              Qty per bundle:
+                            </Label>
                             <Input
                               type="number"
-                              value={bundleInputValues[item.product.id] !== undefined ? bundleInputValues[item.product.id] : (bundleQuantities[item.product.id] || 1)}
-                              onChange={(e) => handleBundleQuantityChange(item.product.id, e.target.value)}
-                              onBlur={() => validateBundleQuantity(item.product.id)}
+                              value={
+                                bundleInputValues[item.product.id] !== undefined
+                                  ? bundleInputValues[item.product.id]
+                                  : bundleQuantities[item.product.id] || 1
+                              }
+                              onChange={(e) =>
+                                handleBundleQuantityChange(
+                                  item.product.id,
+                                  e.target.value,
+                                )
+                              }
+                              onBlur={() =>
+                                validateBundleQuantity(item.product.id)
+                              }
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
+                                if (e.key === "Enter") {
                                   validateBundleQuantity(item.product.id);
                                   e.currentTarget.blur();
                                 }
                               }}
-                              className={`w-16 h-8 text-center ${!isBundleQuantityValid(item.product.id) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                              className={`w-16 h-8 text-center ${!isBundleQuantityValid(item.product.id) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                             />
                           </div>
                         </div>
-                      ))
-                    }
+                      ))}
                   </div>
-                  
+
                   {/* Bundle Configuration */}
                   <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg border border-gray-200">
                     <div className="flex items-center gap-2">
-                      <Label className="font-medium text-gray-800">Number of Bundles:</Label>
+                      <Label className="font-medium text-gray-800">
+                        Number of Bundles:
+                      </Label>
                       <Input
                         type="number"
                         value={bundleCountInputValue}
-                        onChange={(e) => handleBundleCountChange(e.target.value)}
+                        onChange={(e) =>
+                          handleBundleCountChange(e.target.value)
+                        }
                         onBlur={validateBundleCount}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
+                          if (e.key === "Enter") {
                             validateBundleCount();
                             e.currentTarget.blur();
                           }
                         }}
-                        className={`w-20 h-8 text-center ${!isBundleCountValid() ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                        className={`w-20 h-8 text-center ${!isBundleCountValid() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                       />
                     </div>
                     <div className="text-sm text-gray-700">
-                      Total items needed: {Array.from(selectedForBundle).reduce((sum, productId) => {
-                        const qty = bundleQuantities[productId] || 1;
-                        const item = cartItems.find(item => item.product.id === productId && !item.isBundleItem);
-                        return item ? sum + (qty * inlineBundleCount) : sum;
-                      }, 0)}
+                      Total items needed:{" "}
+                      {Array.from(selectedForBundle).reduce(
+                        (sum, productId) => {
+                          const qty = bundleQuantities[productId] || 1;
+                          const item = cartItems.find(
+                            (item) =>
+                              item.product.id === productId &&
+                              !item.isBundleItem,
+                          );
+                          return item ? sum + qty * inlineBundleCount : sum;
+                        },
+                        0,
+                      )}
                     </div>
                   </div>
-                  
+
                   {/* Bundle Actions */}
                   <div className="flex gap-2 pt-2">
-                    <Button 
+                    <Button
                       onClick={addInlineBundle}
                       disabled={!canAddBundle()}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -988,8 +1207,8 @@ export default function ClientCart() {
                       <Package className="h-4 w-4 mr-2" />
                       Add Bundle to Cart
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => {
                         setSelectedForBundle(new Set());
                         setBundleQuantities({});
@@ -1018,18 +1237,25 @@ export default function ClientCart() {
                 <div className="space-y-2">
                   {(() => {
                     // Separate individual items and bundle items
-                    const individualItems = cartItems.filter(item => !item.isBundleItem);
-                    const bundleItems = cartItems.filter(item => item.isBundleItem);
-                    
+                    const individualItems = cartItems.filter(
+                      (item) => !item.isBundleItem,
+                    );
+                    const bundleItems = cartItems.filter(
+                      (item) => item.isBundleItem,
+                    );
+
                     // Group bundle items by bundleGroupId
-                    const bundleGroups = bundleItems.reduce((groups: { [key: string]: typeof cartItems }, item) => {
-                      const groupId = item.bundleGroupId || 'default';
-                      if (!groups[groupId]) {
-                        groups[groupId] = [];
-                      }
-                      groups[groupId].push(item);
-                      return groups;
-                    }, {});
+                    const bundleGroups = bundleItems.reduce(
+                      (groups: { [key: string]: typeof cartItems }, item) => {
+                        const groupId = item.bundleGroupId || "default";
+                        if (!groups[groupId]) {
+                          groups[groupId] = [];
+                        }
+                        groups[groupId].push(item);
+                        return groups;
+                      },
+                      {},
+                    );
 
                     return (
                       <>
@@ -1044,34 +1270,42 @@ export default function ClientCart() {
                               {item.product.price && (
                                 <div className="text-xs text-muted-foreground">
                                   ₹{item.product.price} x {item.quantity} = ₹
-                                  {(item.product.price * item.quantity).toFixed(2)}
+                                  {(item.product.price * item.quantity).toFixed(
+                                    2,
+                                  )}
                                 </div>
                               )}
                             </div>
                             <span>Qty: {item.quantity}</span>
                           </div>
                         ))}
-                        
+
                         {/* Bundle Groups */}
-                        {Object.entries(bundleGroups).map(([groupId, items], bundleIndex) => {
-                          const bundleCount = items[0]?.bundleCount || 1;
-                          return (
-                            <div key={groupId} className="border-l-2 border-blue-500 pl-3 space-y-1">
-                              <div className="text-xs font-medium text-blue-600">
-                                Bundle {bundleIndex + 1} ({bundleCount} {bundleCount === 1 ? 'bundle' : 'bundles'})
-                              </div>
-                              {items.map((item) => (
-                                <div
-                                  key={`${groupId}-${item.product.id}`}
-                                  className="flex justify-between text-sm"
-                                >
-                                  <span>{item.product.name}</span>
-                                  <span>Qty: {item.bundleQuantity} each</span>
+                        {Object.entries(bundleGroups).map(
+                          ([groupId, items], bundleIndex) => {
+                            const bundleCount = items[0]?.bundleCount || 1;
+                            return (
+                              <div
+                                key={groupId}
+                                className="border-l-2 border-blue-500 pl-3 space-y-1"
+                              >
+                                <div className="text-xs font-medium text-blue-600">
+                                  Bundle {bundleIndex + 1} ({bundleCount}{" "}
+                                  {bundleCount === 1 ? "bundle" : "bundles"})
                                 </div>
-                              ))}
-                            </div>
-                          );
-                        })}
+                                {items.map((item) => (
+                                  <div
+                                    key={`${groupId}-${item.product.id}`}
+                                    className="flex justify-between text-sm"
+                                  >
+                                    <span>{item.product.name}</span>
+                                    <span>Qty: {item.bundleQuantity} each</span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          },
+                        )}
                       </>
                     );
                   })()}
@@ -1080,20 +1314,20 @@ export default function ClientCart() {
                       <span>Total Items</span>
                       <span>
                         {cartItems
-                          .filter(item => !item.isBundleItem)
+                          .filter((item) => !item.isBundleItem)
                           .reduce((sum, item) => sum + item.quantity, 0)}
                       </span>
                     </div>
                     {(() => {
                       const totalAmount = cartItems
-                        .filter(item => !item.isBundleItem)
+                        .filter((item) => !item.isBundleItem)
                         .reduce(
                           (sum, item) =>
                             sum +
                             (item.product.price
                               ? item.product.price * item.quantity
                               : 0),
-                          0
+                          0,
                         );
                       return totalAmount > 0 ? (
                         <div className="flex justify-between font-medium">
@@ -1147,7 +1381,8 @@ export default function ClientCart() {
           <DialogHeader>
             <DialogTitle>Create Product Bundle</DialogTitle>
             <DialogDescription>
-              Create a bundle of products that will be packaged together. Example: 2 notebooks + 1 pen per package.
+              Create a bundle of products that will be packaged together.
+              Example: 2 notebooks + 1 pen per package.
             </DialogDescription>
           </DialogHeader>
 
@@ -1176,20 +1411,31 @@ export default function ClientCart() {
                 ) : (
                   <div className="divide-y">
                     {bundleSearchResults.map((product) => {
-                      const isSelected = bundleProducts.some((p) => p.product.id === product.id);
+                      const isSelected = bundleProducts.some(
+                        (p) => p.product.id === product.id,
+                      );
                       return (
                         <div
                           key={product.id}
                           className={`flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer ${
                             isSelected ? "bg-blue-50" : ""
                           }`}
-                          onClick={() => handleBundleProductToggle(product, !isSelected)}
+                          onClick={() =>
+                            handleBundleProductToggle(product, !isSelected)
+                          }
                         >
                           <div className="flex items-center gap-3">
-                            <Checkbox checked={isSelected} onChange={() => {}} />
+                            <Checkbox
+                              checked={isSelected}
+                              onChange={() => {}}
+                            />
                             <div>
-                              <p className="text-sm font-medium">{product.name}</p>
-                              <p className="text-xs text-muted-foreground">SKU: {product.sku || "N/A"}</p>
+                              <p className="text-sm font-medium">
+                                {product.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                SKU: {product.sku || "N/A"}
+                              </p>
                             </div>
                           </div>
                           {isSelected && (
@@ -1202,59 +1448,79 @@ export default function ClientCart() {
                     })}
                   </div>
                 )
+              ) : products && products.length > 0 ? (
+                <div className="divide-y">
+                  {products.map((product) => {
+                    const isSelected = bundleProducts.some(
+                      (p) => p.product.id === product.id,
+                    );
+                    return (
+                      <div
+                        key={product.id}
+                        className={`flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer ${
+                          isSelected ? "bg-blue-50" : ""
+                        }`}
+                        onClick={() =>
+                          handleBundleProductToggle(product, !isSelected)
+                        }
+                      >
+                        <div className="flex items-center gap-3">
+                          <Checkbox checked={isSelected} onChange={() => {}} />
+                          <div>
+                            <p className="text-sm font-medium">
+                              {product.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              SKU: {product.sku || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <Badge variant="secondary" className="text-xs">
+                            Selected
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
-                products && products.length > 0 ? (
-                  <div className="divide-y">
-                    {products.map((product) => {
-                      const isSelected = bundleProducts.some((p) => p.product.id === product.id);
-                      return (
-                        <div
-                          key={product.id}
-                          className={`flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer ${
-                            isSelected ? "bg-blue-50" : ""
-                          }`}
-                          onClick={() => handleBundleProductToggle(product, !isSelected)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Checkbox checked={isSelected} onChange={() => {}} />
-                            <div>
-                              <p className="text-sm font-medium">{product.name}</p>
-                              <p className="text-xs text-muted-foreground">SKU: {product.sku || "N/A"}</p>
-                            </div>
-                          </div>
-                          {isSelected && (
-                            <Badge variant="secondary" className="text-xs">
-                              Selected
-                            </Badge>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    {isProductsLoading ? "Loading products..." : "No products available"}
-                  </p>
-                )
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {isProductsLoading
+                    ? "Loading products..."
+                    : "No products available"}
+                </p>
               )}
             </div>
 
             {/* Selected Bundle Products */}
             {bundleProducts.length > 0 && (
               <div>
-                <Label className="text-sm font-medium">Bundle Contents ({bundleProducts.length} products)</Label>
+                <Label className="text-sm font-medium">
+                  Bundle Contents ({bundleProducts.length} products)
+                </Label>
                 <div className="border rounded-md mt-2 max-h-32 overflow-y-auto">
                   {bundleProducts.map((product) => (
-                    <div key={product.product.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                    <div
+                      key={product.product.id}
+                      className="flex items-center justify-between p-3 border-b last:border-b-0"
+                    >
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium">{product.product.name}</span>
+                        <span className="text-sm font-medium">
+                          {product.product.name}
+                        </span>
                         <div className="flex items-center gap-1">
                           <Label className="text-xs">Qty per bundle:</Label>
                           <Input
                             type="number"
                             min="1"
                             value={product.quantity}
-                            onChange={(e) => handleUpdateBundleProduct(product.product.id, parseInt(e.target.value) || 1)}
+                            onChange={(e) =>
+                              handleUpdateBundleProduct(
+                                product.product.id,
+                                parseInt(e.target.value) || 1,
+                              )
+                            }
                             className="w-16 h-6 text-xs"
                           />
                         </div>
@@ -1262,7 +1528,9 @@ export default function ClientCart() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveBundleProduct(product.product.id)}
+                        onClick={() =>
+                          handleRemoveBundleProduct(product.product.id)
+                        }
                         className="h-6 w-6 p-0"
                       >
                         <X className="h-3 w-3" />
@@ -1281,21 +1549,33 @@ export default function ClientCart() {
                   type="number"
                   min="1"
                   value={numberOfBundles}
-                  onChange={(e) => setNumberOfBundles(parseInt(e.target.value) || 1)}
+                  onChange={(e) =>
+                    setNumberOfBundles(parseInt(e.target.value) || 1)
+                  }
                   className="mt-1"
                 />
               </div>
               <div className="text-sm text-muted-foreground">
-                Total items needed: {bundleProducts.reduce((sum, p) => sum + (p.quantity * numberOfBundles), 0)}
+                Total items needed:{" "}
+                {bundleProducts.reduce(
+                  (sum, p) => sum + p.quantity * numberOfBundles,
+                  0,
+                )}
               </div>
             </div>
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowBundleDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowBundleDialog(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleAddBundle} disabled={bundleProducts.length === 0}>
+            <Button
+              onClick={handleAddBundle}
+              disabled={bundleProducts.length === 0}
+            >
               Add Bundle to Cart
             </Button>
           </div>

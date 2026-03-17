@@ -73,7 +73,10 @@ export default function CreateDispatchOrderPage() {
   const [city, setCity] = React.useState("");
   const [state, setState] = React.useState("");
   const [pincode, setPincode] = React.useState("");
-  const [manuallyEditedFields, setManuallyEditedFields] = React.useState<{city: boolean, state: boolean}>({city: false, state: false});
+  const [manuallyEditedFields, setManuallyEditedFields] = React.useState<{
+    city: boolean;
+    state: boolean;
+  }>({ city: false, state: false });
   const [consigneeName, setConsigneeName] = React.useState("");
   const [consigneePhone, setConsigneePhone] = React.useState("");
   const [consigneeEmail, setConsigneeEmail] = React.useState("");
@@ -85,19 +88,29 @@ export default function CreateDispatchOrderPage() {
   >([]);
 
   // Product quantity input values state
-  const [productInputValues, setProductInputValues] = React.useState<{[key: string]: string}>({});
-  const [bundleInputValues, setBundleInputValues] = React.useState<{[key: string]: string}>({});
+  const [productInputValues, setProductInputValues] = React.useState<{
+    [key: string]: string;
+  }>({});
+  const [bundleInputValues, setBundleInputValues] = React.useState<{
+    [key: string]: string;
+  }>({});
   const [bundleCountInputValue, setBundleCountInputValue] = React.useState("1");
 
   // Bundle-related state
   const [showBundleDialog, setShowBundleDialog] = React.useState(false);
-  const [bundleProducts, setBundleProducts] = React.useState<SelectedProduct[]>([]);
+  const [bundleProducts, setBundleProducts] = React.useState<SelectedProduct[]>(
+    [],
+  );
   const [numberOfBundles, setNumberOfBundles] = React.useState(1);
   const [bundleSearchTerm, setBundleSearchTerm] = React.useState("");
-  
+
   // Inline bundle selection state
-  const [selectedForBundle, setSelectedForBundle] = React.useState<Set<string>>(new Set());
-  const [bundleQuantities, setBundleQuantities] = React.useState<{ [key: string]: number }>({});
+  const [selectedForBundle, setSelectedForBundle] = React.useState<Set<string>>(
+    new Set(),
+  );
+  const [bundleQuantities, setBundleQuantities] = React.useState<{
+    [key: string]: number;
+  }>({});
   const [inlineBundleCount, setInlineBundleCount] = React.useState(1);
 
   const { products, isLoading: isProductsLoading } = useProducts();
@@ -115,7 +128,9 @@ export default function CreateDispatchOrderPage() {
   const [clientSearchOpen, setClientSearchOpen] = React.useState(false);
   const [clientSearchTerm, setClientSearchTerm] = React.useState("");
   const [showEmailDialog, setShowEmailDialog] = React.useState(false);
-  const [createdOrder, setCreatedOrder] = React.useState<CreatedOrder | null>(null);
+  const [createdOrder, setCreatedOrder] = React.useState<CreatedOrder | null>(
+    null,
+  );
 
   React.useEffect(() => {
     if (pincodeData && pincodeData.success) {
@@ -136,26 +151,29 @@ export default function CreateDispatchOrderPage() {
 
       if (value.length === 6 && /^\d{6}$/.test(value)) {
         // Reset manual edit flags when looking up a new pincode
-        setManuallyEditedFields({city: false, state: false});
+        setManuallyEditedFields({ city: false, state: false });
         lookupPincode(value);
       } else if (value.length !== 6) {
         setCity("");
         setState("");
-        setManuallyEditedFields({city: false, state: false});
+        setManuallyEditedFields({ city: false, state: false });
       }
     },
-    [lookupPincode, clearError]
+    [lookupPincode, clearError],
   );
 
   const filteredClients = React.useMemo(() => {
     if (!clients) return [];
     if (!clientSearchTerm.trim()) return clients;
-    
+
     const term = clientSearchTerm.toLowerCase().trim();
-    return clients.filter(client => 
-      client.name.toLowerCase().includes(term) ||
-      client.email.toLowerCase().includes(term) ||
-      (client.company?.name || client.companyName || "").toLowerCase().includes(term)
+    return clients.filter(
+      (client) =>
+        client.name.toLowerCase().includes(term) ||
+        client.email.toLowerCase().includes(term) ||
+        (client.company?.name || client.companyName || "")
+          .toLowerCase()
+          .includes(term),
     );
   }, [clients, clientSearchTerm]);
 
@@ -169,7 +187,7 @@ export default function CreateDispatchOrderPage() {
     return products.filter(
       (p) =>
         p.name.toLowerCase().includes(term) ||
-        (p.sku ? p.sku.toLowerCase().includes(term) : false)
+        (p.sku ? p.sku.toLowerCase().includes(term) : false),
     );
   }, [products, searchTerm]);
 
@@ -194,13 +212,17 @@ export default function CreateDispatchOrderPage() {
     // Check if this product has bundle commitments
     const alreadyBundled = getTotalBundledQuantity(productId);
     if (alreadyBundled > 0 && quantity < alreadyBundled) {
-      toast.error(`Cannot reduce quantity below ${alreadyBundled} - this amount is committed to existing bundles`);
+      toast.error(
+        `Cannot reduce quantity below ${alreadyBundled} - this amount is committed to existing bundles`,
+      );
       return;
     }
 
     // Only update individual items, not bundle items
     setSelectedProducts((prev) =>
-      prev.map((p) => (p.id === productId && !p.isBundleItem ? { ...p, quantity } : p))
+      prev.map((p) =>
+        p.id === productId && !p.isBundleItem ? { ...p, quantity } : p,
+      ),
     );
   };
 
@@ -214,32 +236,42 @@ export default function CreateDispatchOrderPage() {
   };
 
   const handleProductQuantityChange = (productId: string, value: string) => {
-    setProductInputValues(prev => ({ ...prev, [productId]: value }));
-    
+    setProductInputValues((prev) => ({ ...prev, [productId]: value }));
+
     // Update cart if valid number
-    if (value === '' || value === '0') {
+    if (value === "" || value === "0") {
       return; // Don't update cart yet
     }
-    
+
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue > 0) {
-      const product = selectedProducts.find(p => p.id === productId);
+      const product = selectedProducts.find((p) => p.id === productId);
       if (product) {
         const alreadyBundled = getTotalBundledQuantity(productId);
         const minAllowed = Math.max(1, alreadyBundled);
-        const clampedValue = Math.max(minAllowed, Math.min(numValue, product.availableStock));
-        
+        const clampedValue = Math.max(
+          minAllowed,
+          Math.min(numValue, product.availableStock),
+        );
+
         if (numValue < alreadyBundled) {
-          toast.error(`Cannot reduce below ${alreadyBundled} - this amount is committed to bundles`);
-          setProductInputValues(prev => ({ ...prev, [productId]: clampedValue.toString() }));
+          toast.error(
+            `Cannot reduce below ${alreadyBundled} - this amount is committed to bundles`,
+          );
+          setProductInputValues((prev) => ({
+            ...prev,
+            [productId]: clampedValue.toString(),
+          }));
           return;
         }
-        
+
         handleUpdateProduct(productId, clampedValue);
-        
+
         // Show toast if exceeded available stock
         if (numValue > product.availableStock) {
-          toast.error(`Only ${product.availableStock} available for ${product.name}`);
+          toast.error(
+            `Only ${product.availableStock} available for ${product.name}`,
+          );
         }
       }
     }
@@ -248,43 +280,57 @@ export default function CreateDispatchOrderPage() {
   const validateProductQuantity = (productId: string) => {
     const inputValue = productInputValues[productId] || "1";
     const numValue = parseInt(inputValue) || 1;
-    const product = selectedProducts.find(p => p.id === productId);
+    const product = selectedProducts.find((p) => p.id === productId);
     if (product) {
       const alreadyBundled = getTotalBundledQuantity(productId);
       const minAllowed = Math.max(1, alreadyBundled);
-      const clampedValue = Math.max(minAllowed, Math.min(numValue, product.availableStock));
+      const clampedValue = Math.max(
+        minAllowed,
+        Math.min(numValue, product.availableStock),
+      );
       handleUpdateProduct(productId, clampedValue);
-      setProductInputValues(prev => ({ ...prev, [productId]: clampedValue.toString() }));
+      setProductInputValues((prev) => ({
+        ...prev,
+        [productId]: clampedValue.toString(),
+      }));
     }
   };
 
   const isProductQuantityValid = (productId: string) => {
     const inputValue = productInputValues[productId];
-    if (!inputValue || inputValue === '') return false;
+    if (!inputValue || inputValue === "") return false;
     const numValue = parseInt(inputValue);
-    const product = selectedProducts.find(p => p.id === productId);
+    const product = selectedProducts.find((p) => p.id === productId);
     const alreadyBundled = getTotalBundledQuantity(productId);
-    return product && !isNaN(numValue) && numValue >= alreadyBundled && numValue > 0 && numValue <= product.availableStock;
+    return (
+      product &&
+      !isNaN(numValue) &&
+      numValue >= alreadyBundled &&
+      numValue > 0 &&
+      numValue <= product.availableStock
+    );
   };
 
   const handleBundleQuantityChange = (productId: string, value: string) => {
-    setBundleInputValues(prev => ({ ...prev, [productId]: value }));
-    
+    setBundleInputValues((prev) => ({ ...prev, [productId]: value }));
+
     // Update bundle quantities if valid number
-    if (value === '' || value === '0') {
+    if (value === "" || value === "0") {
       return; // Don't update yet
     }
-    
+
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue > 0) {
-      const product = selectedProducts.find(p => p.id === productId);
+      const product = selectedProducts.find((p) => p.id === productId);
       if (product) {
         const clampedValue = Math.min(numValue, product.quantity);
-        setBundleQuantities(prev => ({ ...prev, [productId]: clampedValue }));
-        
+        setBundleQuantities((prev) => ({ ...prev, [productId]: clampedValue }));
+
         // Show toast if exceeded
         if (numValue > product.quantity) {
-          toast.error(`Cannot use more than ${product.quantity} for ${product.name} in bundle`);
+          toast.error(
+            `Cannot use more than ${product.quantity} for ${product.name} in bundle`,
+          );
         }
       }
     }
@@ -293,30 +339,38 @@ export default function CreateDispatchOrderPage() {
   const validateBundleQuantity = (productId: string) => {
     const inputValue = bundleInputValues[productId] || "1";
     const numValue = parseInt(inputValue) || 1;
-    const product = selectedProducts.find(p => p.id === productId);
+    const product = selectedProducts.find((p) => p.id === productId);
     if (product) {
       const clampedValue = Math.max(1, Math.min(numValue, product.quantity));
-      setBundleQuantities(prev => ({ ...prev, [productId]: clampedValue }));
-      setBundleInputValues(prev => ({ ...prev, [productId]: clampedValue.toString() }));
+      setBundleQuantities((prev) => ({ ...prev, [productId]: clampedValue }));
+      setBundleInputValues((prev) => ({
+        ...prev,
+        [productId]: clampedValue.toString(),
+      }));
     }
   };
 
   const isBundleQuantityValid = (productId: string) => {
     const inputValue = bundleInputValues[productId];
-    if (!inputValue || inputValue === '') return false;
+    if (!inputValue || inputValue === "") return false;
     const numValue = parseInt(inputValue);
-    const product = selectedProducts.find(p => p.id === productId);
-    return product && !isNaN(numValue) && numValue > 0 && numValue <= product.quantity;
+    const product = selectedProducts.find((p) => p.id === productId);
+    return (
+      product &&
+      !isNaN(numValue) &&
+      numValue > 0 &&
+      numValue <= product.quantity
+    );
   };
 
   const handleBundleCountChange = (value: string) => {
     setBundleCountInputValue(value);
-    
+
     // Update inlineBundleCount if valid number
-    if (value === '' || value === '0') {
+    if (value === "" || value === "0") {
       return; // Don't update yet
     }
-    
+
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue > 0) {
       setInlineBundleCount(numValue);
@@ -332,7 +386,7 @@ export default function CreateDispatchOrderPage() {
 
   const isBundleCountValid = () => {
     const inputValue = bundleCountInputValue;
-    if (!inputValue || inputValue === '') return false;
+    if (!inputValue || inputValue === "") return false;
     const numValue = parseInt(inputValue);
     return !isNaN(numValue) && numValue > 0;
   };
@@ -345,7 +399,7 @@ export default function CreateDispatchOrderPage() {
     return products.filter(
       (p) =>
         p.name.toLowerCase().includes(term) ||
-        (p.sku ? p.sku.toLowerCase().includes(term) : false)
+        (p.sku ? p.sku.toLowerCase().includes(term) : false),
     );
   }, [products, bundleSearchTerm]);
 
@@ -362,7 +416,7 @@ export default function CreateDispatchOrderPage() {
 
   const handleUpdateBundleProduct = (productId: string, quantity: number) => {
     setBundleProducts((prev) =>
-      prev.map((p) => (p.id === productId ? { ...p, quantity } : p))
+      prev.map((p) => (p.id === productId ? { ...p, quantity } : p)),
     );
   };
 
@@ -371,62 +425,61 @@ export default function CreateDispatchOrderPage() {
   };
 
   const getTotalBundledQuantity = (productId: string) => {
-  return selectedProducts
-    .filter(p => p.id === productId && p.isBundleItem)
-    .reduce((sum, p) => sum + p.quantity, 0);
-};
-
+    return selectedProducts
+      .filter((p) => p.id === productId && p.isBundleItem)
+      .reduce((sum, p) => sum + p.quantity, 0);
+  };
 
   const handleAddBundle = () => {
-  if (bundleProducts.length === 0) {
-    toast.error("Select at least one product for the bundle");
-    return;
-  }
-
-  // 🔒 VALIDATION (same as client)
-  for (const bp of bundleProducts) {
-    const individual = selectedProducts.find(
-      p => p.id === bp.id && !p.isBundleItem
-    );
-
-    if (!individual) {
-      toast.error(`${bp.name} is not added as an individual product`);
+    if (bundleProducts.length === 0) {
+      toast.error("Select at least one product for the bundle");
       return;
     }
 
-    const alreadyBundled = getTotalBundledQuantity(bp.id);
-    const neededNow = bp.quantity * numberOfBundles;
-    const totalNeeded = alreadyBundled + neededNow;
-
-    if (totalNeeded > individual.quantity) {
-      toast.error(
-        `Not enough ${bp.name}. Need ${totalNeeded} (bundles) but only ${individual.quantity} selected`
+    // 🔒 VALIDATION (same as client)
+    for (const bp of bundleProducts) {
+      const individual = selectedProducts.find(
+        (p) => p.id === bp.id && !p.isBundleItem,
       );
-      return;
+
+      if (!individual) {
+        toast.error(`${bp.name} is not added as an individual product`);
+        return;
+      }
+
+      const alreadyBundled = getTotalBundledQuantity(bp.id);
+      const neededNow = bp.quantity * numberOfBundles;
+      const totalNeeded = alreadyBundled + neededNow;
+
+      if (totalNeeded > individual.quantity) {
+        toast.error(
+          `Not enough ${bp.name}. Need ${totalNeeded} (bundles) but only ${individual.quantity} selected`,
+        );
+        return;
+      }
     }
-  }
 
-  const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2)}`;
+    const bundleGroupId = `admin-bundle-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}`;
 
-  const bundleItems: SelectedProduct[] = bundleProducts.map(bp => ({
-    ...bp,
-    quantity: bp.quantity * numberOfBundles,
-    bundleProductQuantity: bp.quantity,
-    isBundleItem: true,
-    bundleGroupId,
-  }));
+    const bundleItems: SelectedProduct[] = bundleProducts.map((bp) => ({
+      ...bp,
+      quantity: bp.quantity * numberOfBundles,
+      bundleProductQuantity: bp.quantity,
+      isBundleItem: true,
+      bundleGroupId,
+    }));
 
-  setSelectedProducts(prev => [...prev, ...bundleItems]);
+    setSelectedProducts((prev) => [...prev, ...bundleItems]);
 
-  toast.success(`Added ${numberOfBundles} bundle(s)`);
+    toast.success(`Added ${numberOfBundles} bundle(s)`);
 
-  setBundleProducts([]);
-  setNumberOfBundles(1);
-  setBundleSearchTerm("");
-  setShowBundleDialog(false);
-};
+    setBundleProducts([]);
+    setNumberOfBundles(1);
+    setBundleSearchTerm("");
+    setShowBundleDialog(false);
+  };
 
   // Inline bundle handlers
   const handleBundleSelection = (productId: string, checked: boolean) => {
@@ -434,14 +487,14 @@ export default function CreateDispatchOrderPage() {
     if (checked) {
       newSelected.add(productId);
       // Initialize quantity to 1 if not set or if less than 1
-      setBundleQuantities(prev => {
+      setBundleQuantities((prev) => {
         if (!prev[productId] || prev[productId] < 1) {
           return { ...prev, [productId]: 1 };
         }
         return prev;
       });
-      setBundleInputValues(prev => {
-        if (!prev[productId] || prev[productId] === '') {
+      setBundleInputValues((prev) => {
+        if (!prev[productId] || prev[productId] === "") {
           return { ...prev, [productId]: "1" };
         }
         return prev;
@@ -449,12 +502,12 @@ export default function CreateDispatchOrderPage() {
     } else {
       newSelected.delete(productId);
       // Clean up bundle quantity when unchecked
-      setBundleQuantities(prev => {
+      setBundleQuantities((prev) => {
         const updated = { ...prev };
         delete updated[productId];
         return updated;
       });
-      setBundleInputValues(prev => {
+      setBundleInputValues((prev) => {
         const updated = { ...prev };
         delete updated[productId];
         return updated;
@@ -465,7 +518,11 @@ export default function CreateDispatchOrderPage() {
 
   const isBundleValid = () => {
     if (selectedForBundle.size === 0) return false;
-    return Array.from(selectedForBundle).every(productId => isBundleQuantityValid(productId)) && isBundleCountValid();
+    return (
+      Array.from(selectedForBundle).every((productId) =>
+        isBundleQuantityValid(productId),
+      ) && isBundleCountValid()
+    );
   };
 
   const addInlineBundle = () => {
@@ -475,7 +532,7 @@ export default function CreateDispatchOrderPage() {
     }
 
     const selectedItems = selectedProducts.filter(
-      p => selectedForBundle.has(p.id) && !p.isBundleItem
+      (p) => selectedForBundle.has(p.id) && !p.isBundleItem,
     );
 
     // 🔒 VALIDATION (same as client)
@@ -487,7 +544,7 @@ export default function CreateDispatchOrderPage() {
 
       if (totalNeeded > item.quantity) {
         toast.error(
-          `Not enough ${item.name}. Need ${totalNeeded} total (${alreadyBundled} already bundled), but only ${item.quantity} selected`
+          `Not enough ${item.name}. Need ${totalNeeded} total (${alreadyBundled} already bundled), but only ${item.quantity} selected`,
         );
         return;
       }
@@ -497,7 +554,7 @@ export default function CreateDispatchOrderPage() {
       .toString(36)
       .slice(2)}`;
 
-    const bundleItems: SelectedProduct[] = selectedItems.map(item => {
+    const bundleItems: SelectedProduct[] = selectedItems.map((item) => {
       const bundleQty = bundleQuantities[item.id] || 1;
       return {
         ...item,
@@ -508,7 +565,7 @@ export default function CreateDispatchOrderPage() {
       };
     });
 
-    setSelectedProducts(prev => [...prev, ...bundleItems]);
+    setSelectedProducts((prev) => [...prev, ...bundleItems]);
 
     toast.success(`Added ${inlineBundleCount} bundle(s)`);
 
@@ -518,8 +575,6 @@ export default function CreateDispatchOrderPage() {
     setInlineBundleCount(1);
     setBundleCountInputValue("1");
   };
-
-
 
   const handleCreate = async () => {
     if (!selectedClientEmail) return toast.error("Select a client");
@@ -535,14 +590,17 @@ export default function CreateDispatchOrderPage() {
 
     try {
       // Separate regular items from bundle items
-      const regularItems = selectedProducts.filter(p => !p.isBundleItem);
-      const bundleItems = selectedProducts.filter(p => p.isBundleItem);
+      const regularItems = selectedProducts.filter((p) => !p.isBundleItem);
+      const bundleItems = selectedProducts.filter((p) => p.isBundleItem);
 
       // Calculate bundled quantities per product
       const bundledQuantityByProduct = new Map<string, number>();
       for (const bundleItem of bundleItems) {
         const currentQty = bundledQuantityByProduct.get(bundleItem.id) || 0;
-        bundledQuantityByProduct.set(bundleItem.id, currentQty + bundleItem.quantity);
+        bundledQuantityByProduct.set(
+          bundleItem.id,
+          currentQty + bundleItem.quantity,
+        );
       }
 
       // Adjust regular items by subtracting bundled quantities
@@ -555,17 +613,23 @@ export default function CreateDispatchOrderPage() {
         })
         .filter((item) => item.quantity > 0); // Only include items with remaining quantity
 
-      console.log('Order creation data:', {
+      console.log("Order creation data:", {
         selectedProducts,
         regularItems,
         adjustedRegularItems,
         bundleItems,
         bundledQuantityByProduct: Object.fromEntries(bundledQuantityByProduct),
-        uniqueBundleGroups: [...new Set(bundleItems.map(item => item.bundleGroupId).filter(Boolean))].length
+        uniqueBundleGroups: [
+          ...new Set(
+            bundleItems.map((item) => item.bundleGroupId).filter(Boolean),
+          ),
+        ].length,
       });
 
       // Calculate number of bundles from unique bundle groups
-      const uniqueBundleGroups = new Set(bundleItems.map(item => item.bundleGroupId).filter(Boolean));
+      const uniqueBundleGroups = new Set(
+        bundleItems.map((item) => item.bundleGroupId).filter(Boolean),
+      );
       const numberOfBundles = uniqueBundleGroups.size;
 
       const order = await createOrder({
@@ -582,7 +646,10 @@ export default function CreateDispatchOrderPage() {
           price: p.price ?? 0,
           bundleProductQuantity: p.bundleProductQuantity,
           bundleGroupId: p.bundleGroupId,
-          numberOfBundles: p.bundleProductQuantity && p.quantity ? p.quantity / p.bundleProductQuantity : 1,
+          numberOfBundles:
+            p.bundleProductQuantity && p.quantity
+              ? p.quantity / p.bundleProductQuantity
+              : 1,
         })),
         numberOfBundles,
         consigneeName,
@@ -650,7 +717,10 @@ export default function CreateDispatchOrderPage() {
             <CardContent className="space-y-3">
               <div className="space-y-2">
                 <Label>Client *</Label>
-                <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                <Popover
+                  open={clientSearchOpen}
+                  onOpenChange={setClientSearchOpen}
+                >
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -658,29 +728,43 @@ export default function CreateDispatchOrderPage() {
                       aria-expanded={clientSearchOpen}
                       className="w-full justify-between h-auto min-h-[60px] text-left"
                     >
-                      {selectedClientEmail && clients ? (() => {
-                        const selectedClient = clients.find(c => c.email === selectedClientEmail);
-                        if (!selectedClient) return "Select client";
-                        return (
-                          <div className="flex flex-col gap-1 py-1.5 text-left w-full pr-4">
-                            <div className="font-medium text-sm truncate">{selectedClient.name}</div>
-                            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                              {(selectedClient.company?.name || selectedClient.companyName) && (
+                      {selectedClientEmail && clients ? (
+                        (() => {
+                          const selectedClient = clients.find(
+                            (c) => c.email === selectedClientEmail,
+                          );
+                          if (!selectedClient) return "Select client";
+                          return (
+                            <div className="flex flex-col gap-1 py-1.5 text-left w-full pr-4">
+                              <div className="font-medium text-sm truncate">
+                                {selectedClient.name}
+                              </div>
+                              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                                {(selectedClient.company?.name ||
+                                  selectedClient.companyName) && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Building2 className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">
+                                      {selectedClient.company?.name ||
+                                        selectedClient.companyName}
+                                    </span>
+                                  </div>
+                                )}
                                 <div className="flex items-center gap-1.5">
-                                  <Building2 className="h-3 w-3 shrink-0" />
-                                  <span className="truncate">{selectedClient.company?.name || selectedClient.companyName}</span>
+                                  <Mail className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">
+                                    {selectedClient.email}
+                                  </span>
                                 </div>
-                              )}
-                              <div className="flex items-center gap-1.5">
-                                <Mail className="h-3 w-3 shrink-0" />
-                                <span className="truncate">{selectedClient.email}</span>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })() : (
+                          );
+                        })()
+                      ) : (
                         <span className="text-muted-foreground">
-                          {isClientsLoading ? "Loading clients..." : "Select client"}
+                          {isClientsLoading
+                            ? "Loading clients..."
+                            : "Select client"}
                         </span>
                       )}
                       <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -698,11 +782,13 @@ export default function CreateDispatchOrderPage() {
                     <div className="max-h-[300px] overflow-y-auto">
                       {filteredClients.length === 0 ? (
                         <div className="p-4 text-center text-sm text-muted-foreground">
-                          {clientSearchTerm ? `No clients found matching "${clientSearchTerm}"` : "No clients available"}
+                          {clientSearchTerm
+                            ? `No clients found matching "${clientSearchTerm}"`
+                            : "No clients available"}
                         </div>
                       ) : (
                         filteredClients.map((client) => (
-                          <div 
+                          <div
                             key={client.id}
                             className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                             onClick={() => {
@@ -713,11 +799,17 @@ export default function CreateDispatchOrderPage() {
                           >
                             <div className="flex-1">
                               <div className="flex items-center gap-3">
-                                <span className="font-medium text-sm">{client.name}</span>
-                                {(client.company?.name || client.companyName) && (
+                                <span className="font-medium text-sm">
+                                  {client.name}
+                                </span>
+                                {(client.company?.name ||
+                                  client.companyName) && (
                                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                     <Building2 className="h-3.5 w-3.5" />
-                                    <span>{client.company?.name || client.companyName}</span>
+                                    <span>
+                                      {client.company?.name ||
+                                        client.companyName}
+                                    </span>
                                   </div>
                                 )}
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -754,7 +846,7 @@ export default function CreateDispatchOrderPage() {
                   <Input
                     value={consigneePhone}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '');
+                      const value = e.target.value.replace(/\D/g, "");
                       setConsigneePhone(value);
                     }}
                     maxLength={10}
@@ -793,7 +885,7 @@ export default function CreateDispatchOrderPage() {
                     <Input
                       value={pincode}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
+                        const value = e.target.value.replace(/\D/g, "");
                         handlePincodeChange(value);
                       }}
                       placeholder="Enter 6-digit pincode"
@@ -811,7 +903,10 @@ export default function CreateDispatchOrderPage() {
                     value={city}
                     onChange={(e) => {
                       setCity(e.target.value);
-                      setManuallyEditedFields(prev => ({...prev, city: true}));
+                      setManuallyEditedFields((prev) => ({
+                        ...prev,
+                        city: true,
+                      }));
                     }}
                     placeholder="Auto-filled from pincode"
                   />
@@ -822,7 +917,10 @@ export default function CreateDispatchOrderPage() {
                     value={state}
                     onChange={(e) => {
                       setState(e.target.value);
-                      setManuallyEditedFields(prev => ({...prev, state: true}));
+                      setManuallyEditedFields((prev) => ({
+                        ...prev,
+                        state: true,
+                      }));
                     }}
                     placeholder="Auto-filled from pincode"
                   />
@@ -837,7 +935,9 @@ export default function CreateDispatchOrderPage() {
                     className="pl-9"
                     value={requiredByDate}
                     onChange={(e) => setRequiredByDate(e.target.value)}
-                    min={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })}
+                    min={new Date().toLocaleDateString("en-CA", {
+                      timeZone: "Asia/Kolkata",
+                    })}
                   />
                 </div>
               </div>
@@ -912,12 +1012,16 @@ export default function CreateDispatchOrderPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9 pr-8"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && searchResults.length > 0) {
+                      if (e.key === "Enter" && searchResults.length > 0) {
                         const firstResult = searchResults[0];
-                        const isSelected = selectedProducts.some(p => p.id === firstResult.id);
+                        const isSelected = selectedProducts.some(
+                          (p) => p.id === firstResult.id,
+                        );
                         handleProductToggle(firstResult, !isSelected);
-                        toast.success(`${isSelected ? 'Removed' : 'Added'} ${firstResult.name}`);
-                      } else if (e.key === 'Escape') {
+                        toast.success(
+                          `${isSelected ? "Removed" : "Added"} ${firstResult.name}`,
+                        );
+                      } else if (e.key === "Escape") {
                         setSearchTerm("");
                       }
                     }}
@@ -941,10 +1045,9 @@ export default function CreateDispatchOrderPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-sm font-medium">
-                    {searchTerm 
-                      ? `Search Results (${searchResults.length})` 
-                      : `Search for Products`
-                    }
+                    {searchTerm
+                      ? `Search Results (${searchResults.length})`
+                      : `Search for Products`}
                   </Label>
                   {searchResults.length > 0 && (
                     <div className="flex gap-2">
@@ -954,14 +1057,18 @@ export default function CreateDispatchOrderPage() {
                         className="h-8 text-xs px-3 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
                         onClick={() => {
                           let addedCount = 0;
-                          searchResults.forEach(product => {
-                            const isSelected = selectedProducts.some(p => p.id === product.id);
+                          searchResults.forEach((product) => {
+                            const isSelected = selectedProducts.some(
+                              (p) => p.id === product.id,
+                            );
                             if (!isSelected) {
                               handleProductToggle(product, true);
                               addedCount++;
                             }
                           });
-                          toast.success(`Added ${addedCount} product(s) to order`);
+                          toast.success(
+                            `Added ${addedCount} product(s) to order`,
+                          );
                         }}
                       >
                         ✓ Select All ({searchResults.length})
@@ -972,15 +1079,19 @@ export default function CreateDispatchOrderPage() {
                         className="h-8 text-xs px-3 bg-red-50 hover:bg-red-100 border-red-200 text-red-700"
                         onClick={() => {
                           let removedCount = 0;
-                          searchResults.forEach(product => {
-                            const isSelected = selectedProducts.some(p => p.id === product.id);
+                          searchResults.forEach((product) => {
+                            const isSelected = selectedProducts.some(
+                              (p) => p.id === product.id,
+                            );
                             if (isSelected) {
                               handleProductToggle(product, false);
                               removedCount++;
                             }
                           });
                           if (removedCount > 0) {
-                            toast.success(`Removed ${removedCount} product(s) from order`);
+                            toast.success(
+                              `Removed ${removedCount} product(s) from order`,
+                            );
                           }
                         }}
                       >
@@ -992,31 +1103,38 @@ export default function CreateDispatchOrderPage() {
                 <div className="border rounded-md max-h-96 overflow-y-auto">
                   {searchResults.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-8">
-                      {searchTerm ? `No products found matching "${searchTerm}"` : "Start typing to search for products..."}
+                      {searchTerm
+                        ? `No products found matching "${searchTerm}"`
+                        : "Start typing to search for products..."}
                     </p>
                   ) : (
                     <div className="divide-y">
                       {searchResults.map((product) => {
                         const isSelected = selectedProducts.some(
-                          (p) => p.id === product.id
+                          (p) => p.id === product.id,
                         );
                         return (
                           <div
                             key={product.id}
                             className={`flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-all duration-200 border-l-4 ${
-                              isSelected 
-                                ? "bg-blue-50 border-l-blue-500 shadow-sm" 
+                              isSelected
+                                ? "bg-blue-50 border-l-blue-500 shadow-sm"
                                 : "border-l-transparent hover:border-l-gray-200"
                             }`}
                             onClick={() => {
                               handleProductToggle(product, !isSelected);
-                              toast.success(`${isSelected ? 'Removed' : 'Added'} ${product.name}`, {
-                                duration: 1000,
-                              });
+                              toast.success(
+                                `${isSelected ? "Removed" : "Added"} ${product.name}`,
+                                {
+                                  duration: 1000,
+                                },
+                              );
                             }}
                           >
                             <div className="flex items-center gap-4 min-w-0 flex-1">
-                              <div className={`rounded-md p-1 ${isSelected ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                              <div
+                                className={`rounded-md p-1 ${isSelected ? "bg-blue-100" : "bg-gray-100"}`}
+                              >
                                 <Checkbox
                                   checked={isSelected}
                                   onChange={() => {}}
@@ -1029,7 +1147,10 @@ export default function CreateDispatchOrderPage() {
                                     {product.name}
                                   </p>
                                   {isSelected && (
-                                    <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 font-medium">
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs bg-blue-100 text-blue-800 font-medium"
+                                    >
                                       ✓ Selected
                                     </Badge>
                                   )}
@@ -1041,13 +1162,15 @@ export default function CreateDispatchOrderPage() {
                                   <span className="text-xs">•</span>
                                   <span className="text-xs">
                                     Stock:{" "}
-                                    <span className={`font-semibold ${
-                                      product.availableStock === 0 
-                                        ? "text-red-600" 
-                                        : product.availableStock < 10 
-                                          ? "text-orange-600" 
-                                          : "text-green-600"
-                                    }`}>
+                                    <span
+                                      className={`font-semibold ${
+                                        product.availableStock === 0
+                                          ? "text-red-600"
+                                          : product.availableStock < 10
+                                            ? "text-orange-600"
+                                            : "text-green-600"
+                                      }`}
+                                    >
                                       {product.availableStock} units
                                     </span>
                                   </span>
@@ -1057,8 +1180,16 @@ export default function CreateDispatchOrderPage() {
                             <div className="flex items-center">
                               {isSelected ? (
                                 <div className="text-blue-600">
-                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      clipRule="evenodd"
+                                    />
                                   </svg>
                                 </div>
                               ) : (
@@ -1102,16 +1233,26 @@ export default function CreateDispatchOrderPage() {
                   <div className="space-y-4">
                     {(() => {
                       // Separate individual items and bundle items
-                      const individualItems = selectedProducts.filter(item => !item.isBundleItem);
-                      const bundleItems = selectedProducts.filter(item => item.isBundleItem);
-                      
+                      const individualItems = selectedProducts.filter(
+                        (item) => !item.isBundleItem,
+                      );
+                      const bundleItems = selectedProducts.filter(
+                        (item) => item.isBundleItem,
+                      );
+
                       // Group bundle items by bundleGroupId
-                      const bundleGroups = bundleItems.reduce((groups: { [key: string]: SelectedProduct[] }, item) => {
-                        const groupId = item.bundleGroupId || 'default';
-                        if (!groups[groupId]) groups[groupId] = [];
-                        groups[groupId].push(item);
-                        return groups;
-                      }, {});
+                      const bundleGroups = bundleItems.reduce(
+                        (
+                          groups: { [key: string]: SelectedProduct[] },
+                          item,
+                        ) => {
+                          const groupId = item.bundleGroupId || "default";
+                          if (!groups[groupId]) groups[groupId] = [];
+                          groups[groupId].push(item);
+                          return groups;
+                        },
+                        {},
+                      );
 
                       return (
                         <>
@@ -1119,11 +1260,17 @@ export default function CreateDispatchOrderPage() {
                           {individualItems.length > 0 && (
                             <div className="border rounded-md overflow-hidden">
                               {individualItems.map((product, index) => (
-                                <div key={product.id} className="border-b last:border-b-0 p-4">
+                                <div
+                                  key={product.id}
+                                  className="border-b last:border-b-0 p-4"
+                                >
                                   <div className="flex items-start gap-3 mb-3">
-                                    <div className="w-16 h-16 flex-shrink-0 border rounded overflow-hidden">
+                                    <div className="w-16 h-16 shrink-0 border rounded overflow-hidden">
                                       <img
-                                        src={product.images[0] || '/placeholder.png'}
+                                        src={
+                                          product.images[0] ||
+                                          "/placeholder.png"
+                                        }
                                         alt={product.name}
                                         className="w-full h-full object-cover"
                                       />
@@ -1132,16 +1279,27 @@ export default function CreateDispatchOrderPage() {
                                       <div className="flex items-start justify-between">
                                         <div>
                                           <div className="flex items-center gap-2">
-                                            <span className="text-xs font-medium text-muted-foreground">#{index + 1}</span>
-                                            <p className="text-sm font-medium">{product.name}</p>
+                                            <span className="text-xs font-medium text-muted-foreground">
+                                              #{index + 1}
+                                            </span>
+                                            <p className="text-sm font-medium">
+                                              {product.name}
+                                            </p>
                                           </div>
-                                          <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
-                                          <p className="text-xs text-muted-foreground">Available: {product.availableStock} units</p>
+                                          <p className="text-xs text-muted-foreground">
+                                            SKU: {product.sku}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            Available: {product.availableStock}{" "}
+                                            units
+                                          </p>
                                         </div>
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => handleRemoveProduct(product.id)}
+                                          onClick={() =>
+                                            handleRemoveProduct(product.id)
+                                          }
                                           className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
                                         >
                                           <X className="h-3 w-3" />
@@ -1152,52 +1310,156 @@ export default function CreateDispatchOrderPage() {
 
                                   <div className="flex items-center gap-3 flex-wrap">
                                     <div className="flex items-center gap-2">
-                                      <Label className="text-xs text-muted-foreground">Qty:</Label>
+                                      <Label className="text-xs text-muted-foreground">
+                                        Qty:
+                                      </Label>
                                       <div className="flex items-center gap-1">
-                                        <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-8 w-8 p-0"
                                           onClick={() => {
-                                            const alreadyBundled = getTotalBundledQuantity(product.id);
-                                            const minQuantity = Math.max(1, alreadyBundled);
-                                            const newQuantity = Math.max(minQuantity, product.quantity - 1);
-                                            handleUpdateProduct(product.id, newQuantity);
-                                            setProductInputValues(prev => ({ ...prev, [product.id]: newQuantity.toString() }));
+                                            const alreadyBundled =
+                                              getTotalBundledQuantity(
+                                                product.id,
+                                              );
+                                            const minQuantity = Math.max(
+                                              1,
+                                              alreadyBundled,
+                                            );
+                                            const newQuantity = Math.max(
+                                              minQuantity,
+                                              product.quantity - 1,
+                                            );
+                                            handleUpdateProduct(
+                                              product.id,
+                                              newQuantity,
+                                            );
+                                            setProductInputValues((prev) => ({
+                                              ...prev,
+                                              [product.id]:
+                                                newQuantity.toString(),
+                                            }));
                                           }}
-                                          disabled={product.quantity <= Math.max(1, getTotalBundledQuantity(product.id))}>-</Button>
-                                        <Input type="number" min={Math.max(1, getTotalBundledQuantity(product.id))} max={product.availableStock} 
-                                          value={productInputValues[product.id] !== undefined ? productInputValues[product.id] : product.quantity}
-                                          onChange={(e) => handleProductQuantityChange(product.id, e.target.value)}
-                                          onBlur={() => validateProductQuantity(product.id)}
+                                          disabled={
+                                            product.quantity <=
+                                            Math.max(
+                                              1,
+                                              getTotalBundledQuantity(
+                                                product.id,
+                                              ),
+                                            )
+                                          }
+                                        >
+                                          -
+                                        </Button>
+                                        <Input
+                                          type="number"
+                                          min={Math.max(
+                                            1,
+                                            getTotalBundledQuantity(product.id),
+                                          )}
+                                          max={product.availableStock}
+                                          value={
+                                            productInputValues[product.id] !==
+                                            undefined
+                                              ? productInputValues[product.id]
+                                              : product.quantity
+                                          }
+                                          onChange={(e) =>
+                                            handleProductQuantityChange(
+                                              product.id,
+                                              e.target.value,
+                                            )
+                                          }
+                                          onBlur={() =>
+                                            validateProductQuantity(product.id)
+                                          }
                                           onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              validateProductQuantity(product.id);
+                                            if (e.key === "Enter") {
+                                              validateProductQuantity(
+                                                product.id,
+                                              );
                                               e.currentTarget.blur();
                                             }
                                           }}
-                                          className={`w-24 h-8 text-xs text-center ${!isProductQuantityValid(product.id) ? 'border-red-500 focus-visible:ring-red-500' : ''}`} />
-                                        <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
+                                          className={`w-24 h-8 text-xs text-center ${!isProductQuantityValid(product.id) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-8 w-8 p-0"
                                           onClick={() => {
-                                            const newQuantity = Math.min(product.availableStock, product.quantity + 1);
-                                            handleUpdateProduct(product.id, newQuantity);
-                                            setProductInputValues(prev => ({ ...prev, [product.id]: newQuantity.toString() }));
-                                          }}>+</Button>
+                                            const newQuantity = Math.min(
+                                              product.availableStock,
+                                              product.quantity + 1,
+                                            );
+                                            handleUpdateProduct(
+                                              product.id,
+                                              newQuantity,
+                                            );
+                                            setProductInputValues((prev) => ({
+                                              ...prev,
+                                              [product.id]:
+                                                newQuantity.toString(),
+                                            }));
+                                          }}
+                                        >
+                                          +
+                                        </Button>
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2 ml-auto">
                                       <div className="flex gap-1">
-                                        {[1, 5, 10].map(qty => (
-                                          <Button key={qty} type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs"
+                                        {[1, 5, 10].map((qty) => (
+                                          <Button
+                                            key={qty}
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 px-2 text-xs"
                                             onClick={() => {
-                                              const alreadyBundled = getTotalBundledQuantity(product.id);
-                                              const newQuantity = Math.max(alreadyBundled, qty);
-                                              const finalQuantity = Math.min(product.availableStock, newQuantity);
-                                              handleUpdateProduct(product.id, finalQuantity);
-                                              setProductInputValues(prev => ({ ...prev, [product.id]: finalQuantity.toString() }));
+                                              const alreadyBundled =
+                                                getTotalBundledQuantity(
+                                                  product.id,
+                                                );
+                                              const newQuantity = Math.max(
+                                                alreadyBundled,
+                                                qty,
+                                              );
+                                              const finalQuantity = Math.min(
+                                                product.availableStock,
+                                                newQuantity,
+                                              );
+                                              handleUpdateProduct(
+                                                product.id,
+                                                finalQuantity,
+                                              );
+                                              setProductInputValues((prev) => ({
+                                                ...prev,
+                                                [product.id]:
+                                                  finalQuantity.toString(),
+                                              }));
                                             }}
-                                            disabled={qty > product.availableStock || qty < getTotalBundledQuantity(product.id)}>{qty}</Button>
+                                            disabled={
+                                              qty > product.availableStock ||
+                                              qty <
+                                                getTotalBundledQuantity(
+                                                  product.id,
+                                                )
+                                            }
+                                          >
+                                            {qty}
+                                          </Button>
                                         ))}
                                       </div>
                                       <div className="text-xs text-muted-foreground">
-                                        Will dispatch: <span className="font-medium">{product.quantity}</span>
+                                        Will dispatch:{" "}
+                                        <span className="font-medium">
+                                          {product.quantity}
+                                        </span>
                                       </div>
                                     </div>
                                   </div>
@@ -1206,12 +1468,26 @@ export default function CreateDispatchOrderPage() {
                                   <div className="flex items-center gap-2 pt-3 mt-3 border-t border-dashed">
                                     <Checkbox
                                       id={`bundle-${product.id}`}
-                                      checked={selectedForBundle.has(product.id)}
-                                      onCheckedChange={(checked) => handleBundleSelection(product.id, checked as boolean)}
-                                      disabled={getTotalBundledQuantity(product.id) > 0}
+                                      checked={selectedForBundle.has(
+                                        product.id,
+                                      )}
+                                      onCheckedChange={(checked) =>
+                                        handleBundleSelection(
+                                          product.id,
+                                          checked as boolean,
+                                        )
+                                      }
+                                      disabled={
+                                        getTotalBundledQuantity(product.id) > 0
+                                      }
                                     />
-                                    <Label htmlFor={`bundle-${product.id}`} className={`text-sm text-muted-foreground cursor-pointer ${getTotalBundledQuantity(product.id) > 0 ? 'text-gray-400' : ''}`}>
-                                      {getTotalBundledQuantity(product.id) > 0 ? 'Already in bundle' : 'Add to Bundle'}
+                                    <Label
+                                      htmlFor={`bundle-${product.id}`}
+                                      className={`text-sm text-muted-foreground cursor-pointer ${getTotalBundledQuantity(product.id) > 0 ? "text-gray-400" : ""}`}
+                                    >
+                                      {getTotalBundledQuantity(product.id) > 0
+                                        ? "Already in bundle"
+                                        : "Add to Bundle"}
                                     </Label>
                                   </div>
                                 </div>
@@ -1220,65 +1496,100 @@ export default function CreateDispatchOrderPage() {
                           )}
 
                           {/* Bundle Groups */}
-                          {Object.entries(bundleGroups).map(([groupId, items], bundleIndex) => {
-                            const bundleCount = items[0]?.bundleProductQuantity && items[0]?.quantity 
-                              ? items[0].quantity / items[0].bundleProductQuantity 
-                              : 1;
-                            return (
-                              <div key={groupId} className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50/30">
-                                {/* Bundle Header */}
-                                <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-blue-300">
-                                  <div className="flex items-center gap-2">
-                                    <Package className="h-5 w-5 text-blue-600" />
-                                    <h4 className="font-semibold text-blue-900">Bundle {bundleIndex + 1}</h4>
-                                    <Badge className="bg-blue-600 text-white">
-                                      {items.length} items • {bundleCount} bundle{bundleCount > 1 ? 's' : ''}
-                                    </Badge>
+                          {Object.entries(bundleGroups).map(
+                            ([groupId, items], bundleIndex) => {
+                              const bundleCount =
+                                items[0]?.bundleProductQuantity &&
+                                items[0]?.quantity
+                                  ? items[0].quantity /
+                                    items[0].bundleProductQuantity
+                                  : 1;
+                              return (
+                                <div
+                                  key={groupId}
+                                  className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50/30"
+                                >
+                                  {/* Bundle Header */}
+                                  <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-blue-300">
+                                    <div className="flex items-center gap-2">
+                                      <Package className="h-5 w-5 text-blue-600" />
+                                      <h4 className="font-semibold text-blue-900">
+                                        Bundle {bundleIndex + 1}
+                                      </h4>
+                                      <Badge className="bg-blue-600 text-white">
+                                        {items.length} items • {bundleCount}{" "}
+                                        bundle{bundleCount > 1 ? "s" : ""}
+                                      </Badge>
+                                    </div>
                                   </div>
-                                </div>
 
-                                {/* Bundle Items */}
-                                <div className="space-y-3">
-                                  {items.map((product, itemIndex) => (
-                                    <div key={`${product.id}-${itemIndex}`} className="flex gap-3 p-3 border border-blue-200 bg-white rounded-lg">
-                                      <div className="w-16 h-16 flex-shrink-0 border rounded overflow-hidden">
-                                        <img
-                                          src={product.images[0] || '/placeholder.png'}
-                                          alt={product.name}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                      <div className="flex-1">
-                                        <div className="flex items-center justify-between">
-                                          <div>
-                                            <div className="flex items-center gap-2">
-                                              <p className="text-sm font-medium">{product.name}</p>
-                                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">Bundle Item</Badge>
+                                  {/* Bundle Items */}
+                                  <div className="space-y-3">
+                                    {items.map((product, itemIndex) => (
+                                      <div
+                                        key={`${product.id}-${itemIndex}`}
+                                        className="flex gap-3 p-3 border border-blue-200 bg-white rounded-lg"
+                                      >
+                                        <div className="w-16 h-16 shrink-0 border rounded overflow-hidden">
+                                          <img
+                                            src={
+                                              product.images[0] ||
+                                              "/placeholder.png"
+                                            }
+                                            alt={product.name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        </div>
+                                        <div className="flex-1">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <div className="flex items-center gap-2">
+                                                <p className="text-sm font-medium">
+                                                  {product.name}
+                                                </p>
+                                                <Badge
+                                                  variant="secondary"
+                                                  className="text-xs bg-blue-100 text-blue-800"
+                                                >
+                                                  Bundle Item
+                                                </Badge>
+                                              </div>
+                                              <p className="text-xs text-muted-foreground">
+                                                SKU: {product.sku}
+                                              </p>
                                             </div>
-                                            <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
-                                          </div>
-                                          <div className="flex items-center gap-3">
-                                            <div className="text-right">
-                                              <p className="text-xs text-muted-foreground">Qty per bundle</p>
-                                              <p className="text-sm font-semibold text-blue-700">{product.bundleProductQuantity || 1}</p>
+                                            <div className="flex items-center gap-3">
+                                              <div className="text-right">
+                                                <p className="text-xs text-muted-foreground">
+                                                  Qty per bundle
+                                                </p>
+                                                <p className="text-sm font-semibold text-blue-700">
+                                                  {product.bundleProductQuantity ||
+                                                    1}
+                                                </p>
+                                              </div>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                  handleRemoveProduct(
+                                                    product.id,
+                                                  )
+                                                }
+                                                className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </Button>
                                             </div>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => handleRemoveProduct(product.id)}
-                                              className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
-                                            >
-                                              <X className="h-3 w-3" />
-                                            </Button>
                                           </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            },
+                          )}
                         </>
                       );
                     })()}
@@ -1290,80 +1601,134 @@ export default function CreateDispatchOrderPage() {
                   <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 bg-blue-50/20 mt-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Package className="h-5 w-5 text-blue-600" />
-                      <h4 className="font-semibold text-blue-900">Create Bundle</h4>
-                      <Badge variant="outline" className="bg-white text-blue-700 border-blue-300">
+                      <h4 className="font-semibold text-blue-900">
+                        Create Bundle
+                      </h4>
+                      <Badge
+                        variant="outline"
+                        className="bg-white text-blue-700 border-blue-300"
+                      >
                         {selectedForBundle.size} items selected
                       </Badge>
                     </div>
                     <div className="space-y-3">
                       {/* Selected Products */}
-                      {selectedProducts.filter(item => selectedForBundle.has(item.id) && !item.isBundleItem).map(item => (
-                        <div key={item.id} className="flex items-center justify-between p-3 bg-white rounded border border-blue-200">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 flex-shrink-0 border rounded overflow-hidden">
-                              <img src={item.images[0] || '/placeholder.png'} alt={item.name} className="w-full h-full object-cover" />
+                      {selectedProducts
+                        .filter(
+                          (item) =>
+                            selectedForBundle.has(item.id) &&
+                            !item.isBundleItem,
+                        )
+                        .map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between p-3 bg-white rounded border border-blue-200"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 shrink-0 border rounded overflow-hidden">
+                                <img
+                                  src={item.images[0] || "/placeholder.png"}
+                                  alt={item.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">
+                                  {item.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Available in selection: {item.quantity}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-sm">{item.name}</p>
-                              <p className="text-xs text-muted-foreground">Available in selection: {item.quantity}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Label className="text-xs text-muted-foreground">Qty per bundle:</Label>
-                            <Input
-                              type="number"
-                              min="1"
-                              max={item.quantity}
-                              value={bundleInputValues[item.id] !== undefined ? bundleInputValues[item.id] : (bundleQuantities[item.id] || 1)}
-                              onChange={(e) => handleBundleQuantityChange(item.id, e.target.value)}
-                              onBlur={() => validateBundleQuantity(item.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  validateBundleQuantity(item.id);
-                                  e.currentTarget.blur();
+                            <div className="flex items-center gap-2">
+                              <Label className="text-xs text-muted-foreground">
+                                Qty per bundle:
+                              </Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                max={item.quantity}
+                                value={
+                                  bundleInputValues[item.id] !== undefined
+                                    ? bundleInputValues[item.id]
+                                    : bundleQuantities[item.id] || 1
                                 }
-                              }}
-                              className={`w-20 h-8 text-center text-xs ${!isBundleQuantityValid(item.id) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                            />
+                                onChange={(e) =>
+                                  handleBundleQuantityChange(
+                                    item.id,
+                                    e.target.value,
+                                  )
+                                }
+                                onBlur={() => validateBundleQuantity(item.id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    validateBundleQuantity(item.id);
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                className={`w-20 h-8 text-center text-xs ${!isBundleQuantityValid(item.id) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                      
+                        ))}
+
                       {/* Bundle Configuration */}
                       <div className="flex items-center justify-between p-3 bg-blue-100 rounded border border-blue-300">
                         <div className="flex items-center gap-2">
-                          <Label className="font-medium text-blue-900">Number of Bundles:</Label>
+                          <Label className="font-medium text-blue-900">
+                            Number of Bundles:
+                          </Label>
                           <Input
                             type="number"
                             min="1"
                             value={bundleCountInputValue}
-                            onChange={(e) => handleBundleCountChange(e.target.value)}
+                            onChange={(e) =>
+                              handleBundleCountChange(e.target.value)
+                            }
                             onBlur={() => validateBundleCount()}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
+                              if (e.key === "Enter") {
                                 validateBundleCount();
                                 e.currentTarget.blur();
                               }
                             }}
-                            className={`w-20 h-8 text-center bg-white ${!isBundleCountValid() ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                            className={`w-20 h-8 text-center bg-white ${!isBundleCountValid() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                           />
                         </div>
                         <div className="text-sm text-blue-700">
-                          Total items needed: {Array.from(selectedForBundle).reduce((sum, productId) => {
-                            const qty = bundleQuantities[productId] || 1;
-                            return sum + (qty * inlineBundleCount);
-                          }, 0)}
+                          Total items needed:{" "}
+                          {Array.from(selectedForBundle).reduce(
+                            (sum, productId) => {
+                              const qty = bundleQuantities[productId] || 1;
+                              return sum + qty * inlineBundleCount;
+                            },
+                            0,
+                          )}
                         </div>
                       </div>
-                      
+
                       {/* Bundle Actions */}
                       <div className="flex gap-2">
-                        <Button onClick={addInlineBundle} className="bg-blue-600 hover:bg-blue-700 text-white" disabled={!isBundleValid()}>
+                        <Button
+                          onClick={addInlineBundle}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          disabled={!isBundleValid()}
+                        >
                           <Package className="h-4 w-4 mr-2" />
                           Add Bundle
                         </Button>
-                        <Button variant="outline" onClick={() => { setSelectedForBundle(new Set()); setBundleQuantities({}); setBundleInputValues({}); setInlineBundleCount(1); setBundleCountInputValue("1"); }}
-                          className="border-blue-300 text-blue-700 hover:bg-blue-50">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedForBundle(new Set());
+                            setBundleQuantities({});
+                            setBundleInputValues({});
+                            setInlineBundleCount(1);
+                            setBundleCountInputValue("1");
+                          }}
+                          className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                        >
                           Clear Selection
                         </Button>
                       </div>
@@ -1403,7 +1768,8 @@ export default function CreateDispatchOrderPage() {
           <DialogHeader>
             <DialogTitle>Order Created Successfully</DialogTitle>
             <DialogDescription>
-              The order has been created. Would you like to send an email notification to the client?
+              The order has been created. Would you like to send an email
+              notification to the client?
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">

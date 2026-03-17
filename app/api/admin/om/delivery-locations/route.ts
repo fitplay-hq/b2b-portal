@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMDeliveryLocationCreateSchema } from "@/lib/validations/om";
+import { getOMDeliveryLocations } from "@/lib/om-data";
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,11 +20,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const locations = await prisma.oMDeliveryLocation.findMany({
-      orderBy: { name: "asc" },
-    });
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
 
-    return NextResponse.json(locations);
+    const result = await getOMDeliveryLocations({ page, limit });
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -48,6 +52,8 @@ export async function POST(req: NextRequest) {
     const location = await prisma.oMDeliveryLocation.create({
       data: validatedData,
     });
+
+    revalidateTag("om-delivery-locations", "page");
 
     return NextResponse.json(
       {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
@@ -29,6 +30,11 @@ export async function PATCH(
       where: { id },
       data: validatedData,
     });
+
+    revalidateTag("om-clients", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
 
     return NextResponse.json(
       { message: "Client updated successfully", data: client },
@@ -70,6 +76,11 @@ export async function DELETE(
     await prisma.oMClient.delete({
       where: { id },
     });
+
+    revalidateTag("om-clients", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
 
     return NextResponse.json(
       { message: "Client deleted successfully" },

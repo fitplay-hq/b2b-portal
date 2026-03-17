@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMClientCreateSchema } from "@/lib/validations/om";
+import { getOMClients } from "@/lib/om-data";
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,30 +20,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = req.nextUrl;
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
     const search = searchParams.get("search") || "";
-    const sortBy = searchParams.get("sortBy") || "name";
-    const sortOrder = searchParams.get("sortOrder") || "asc";
 
-    const allowedSortFields = ["name", "createdAt", "updatedAt"];
-    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "name";
-    const safeSortOrder = sortOrder === "desc" ? "desc" : "asc";
+    const result = await getOMClients({ page, limit, search });
 
-    const clients = await prisma.oMClient.findMany({
-      where: search
-        ? {
-            name: {
-              contains: search,
-              mode: "insensitive",
-            },
-          }
-        : undefined,
-      orderBy: {
-        [safeSortBy]: safeSortOrder,
-      },
-    });
-
-    return NextResponse.json(clients);
+    return NextResponse.json(result);
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -66,6 +52,11 @@ export async function POST(req: NextRequest) {
     const client = await prisma.oMClient.create({
       data: validatedData,
     });
+
+    revalidateTag("om-clients", "page" /* @ts-ignore */);
+    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
 
     return NextResponse.json(
       { message: "Client created successfully", id: client.id, data: client },
