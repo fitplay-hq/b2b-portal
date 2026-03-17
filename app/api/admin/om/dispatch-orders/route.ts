@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMDispatchOrderCreateSchema } from "@/lib/validations/om";
 import { OMPoStatus } from "@/lib/generated/prisma";
+import { getOMDispatches } from "@/lib/om-data";
 
 export async function POST(req: NextRequest) {
   try {
@@ -281,7 +282,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = req.nextUrl;
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
     const search = searchParams.get("search") || searchParams.get("q") || "";
     const status = searchParams.get("status");
     const purchaseOrderId = searchParams.get("purchaseOrderId");
@@ -292,101 +295,20 @@ export async function GET(req: NextRequest) {
     const deliveryLocationId = searchParams.get("deliveryLocationId");
     const invoiceNumber = searchParams.get("invoiceNumber");
 
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "999");
-    const skip = (page - 1) * limit;
-
-    const andFilters: any[] = [];
-
-    if (search) {
-      andFilters.push({
-        OR: [
-          { invoiceNumber: { contains: search, mode: "insensitive" } },
-          { docketNumber: { contains: search, mode: "insensitive" } },
-          {
-            purchaseOrder: {
-              poNumber: { contains: search, mode: "insensitive" },
-            },
-          },
-        ],
-      });
-    }
-
-    if (status && status !== "all") {
-      andFilters.push({ status });
-    }
-
-    if (purchaseOrderId) {
-      andFilters.push({ purchaseOrderId });
-    }
-
-    if (clientId) {
-      andFilters.push({ purchaseOrder: { clientId } });
-    }
-
-    if (logisticsPartnerId) {
-      andFilters.push({ logisticsPartnerId });
-    }
-
-    if (deliveryLocationId) {
-      andFilters.push({ deliveryLocationId });
-    }
-
-    if (invoiceNumber) {
-      andFilters.push({
-        invoiceNumber: { contains: invoiceNumber, mode: "insensitive" },
-      });
-    }
-
-    if (fromDate || toDate) {
-      const dateFilter: any = {};
-      if (fromDate) dateFilter.gte = new Date(fromDate);
-      if (toDate) {
-        const endOfDay = new Date(toDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        dateFilter.lte = endOfDay;
-      }
-      andFilters.push({ invoiceDate: dateFilter });
-    }
-
-    const whereClause = andFilters.length > 0 ? { AND: andFilters } : {};
-
-    const [dispatchOrders, total] = await Promise.all([
-      prisma.oMDispatchOrder.findMany({
-        where: whereClause,
-        include: {
-          purchaseOrder: {
-            include: {
-              client: true,
-              deliveryLocations: true,
-            },
-          },
-          logisticsPartner: true,
-          deliveryLocation: true,
-          items: {
-            include: {
-              purchaseOrderItem: {
-                include: { product: true },
-              },
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.oMDispatchOrder.count({ where: whereClause }),
-    ]);
-
-    return NextResponse.json({
-      data: dispatchOrders,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+    const result = await getOMDispatches({
+      page,
+      limit,
+      search,
+      status: status || undefined,
+      purchaseOrderId: purchaseOrderId || undefined,
+      clientId: clientId || undefined,
+      logisticsPartnerId: logisticsPartnerId || undefined,
+      deliveryLocationId: deliveryLocationId || undefined,
+      fromDate: fromDate || undefined,
+      toDate: toDate || undefined,
     });
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     return handleApiError(error);
   }

@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
         },
         distinct: ["docketNumber"],
         orderBy: { docketNumber: "asc" },
+        take: 50,
       });
 
       return NextResponse.json(
@@ -65,6 +66,7 @@ export async function GET(req: NextRequest) {
       },
       distinct: ["invoiceNumber"],
       orderBy: { invoiceNumber: "asc" },
+      take: 50,
     });
 
     return NextResponse.json(

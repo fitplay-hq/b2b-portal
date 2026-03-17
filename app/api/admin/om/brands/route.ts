@@ -4,8 +4,9 @@ import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMBrandCreateSchema } from "@/lib/validations/om";
+import { getOMBrands } from "@/lib/om-data";
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
     const permissionCheck = await checkPermission(RESOURCES.PRODUCTS, "view");
     if (!permissionCheck.success) {
@@ -18,11 +19,14 @@ export async function GET(_req: NextRequest) {
       );
     }
 
-    const brands = await prisma.oMBrand.findMany({
-      orderBy: { name: "asc" },
-    });
+    const { searchParams } = req.nextUrl;
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const search = searchParams.get("search") || "";
 
-    return NextResponse.json(brands);
+    const result = await getOMBrands({ page, limit, search });
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     return handleApiError(error);
   }

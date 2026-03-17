@@ -4,6 +4,7 @@ import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMDeliveryLocationCreateSchema } from "@/lib/validations/om";
+import { getOMDeliveryLocations } from "@/lib/om-data";
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,11 +19,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const locations = await prisma.oMDeliveryLocation.findMany({
-      orderBy: { name: "asc" },
-    });
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
 
-    return NextResponse.json(locations);
+    const result = await getOMDeliveryLocations({ page, limit });
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     return handleApiError(error);
   }
