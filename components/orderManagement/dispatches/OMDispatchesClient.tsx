@@ -247,9 +247,19 @@ export function OMDispatchesClient({
     );
   };
 
+  const dispatchesWithTotals = useMemo(() => {
+    return dispatches.map(d => ({
+      ...d,
+      _totalQty: getTotalQty(d),
+      _grandTotal: getGrandTotal(d),
+    }));
+  }, [dispatches]);
+
   const filteredDispatches = useMemo(() => {
-    return dispatches
-      .filter((dispatch: OMDispatchOrder) => {
+    const searchLower = searchTerm.toLowerCase();
+
+    return dispatchesWithTotals
+      .filter((dispatch: any) => {
         // Advanced filters
         if (filters.status !== "all" && dispatch.status !== filters.status)
           return false;
@@ -274,82 +284,60 @@ export function OMDispatchesClient({
         )
           return false;
 
-        const date = dispatch.dispatchDate
-          ? new Date(dispatch.dispatchDate)
-          : null;
+        const date = dispatch.dispatchDate ? new Date(dispatch.dispatchDate) : null;
         if (filters.fromDate && date && date < new Date(filters.fromDate))
           return false;
         if (filters.toDate && date && date > new Date(filters.toDate))
           return false;
 
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          (dispatch.invoiceNumber || "").toLowerCase().includes(searchLower) ||
-          (dispatch.purchaseOrder?.poNumber || "").toLowerCase().includes(searchLower) ||
-          (dispatch.purchaseOrder?.client?.name || "").toLowerCase().includes(searchLower) ||
-          (dispatch.docketNumber || "").toLowerCase().includes(searchLower)
-        );
-      })
-      .sort((a: OMDispatchOrder, b: OMDispatchOrder) => {
-        if (sortBy === "dispatch_date_asc" || sortBy === "oldest") {
+        if (searchLower) {
           return (
-            new Date(a.dispatchDate || 0).getTime() -
-            new Date(b.dispatchDate || 0).getTime()
+            (dispatch.invoiceNumber || "").toLowerCase().includes(searchLower) ||
+            (dispatch.purchaseOrder?.poNumber || "").toLowerCase().includes(searchLower) ||
+            (dispatch.purchaseOrder?.client?.name || "").toLowerCase().includes(searchLower) ||
+            (dispatch.docketNumber || "").toLowerCase().includes(searchLower)
           );
         }
+        return true;
+      })
+      .sort((a: any, b: any) => {
+        if (sortBy === "dispatch_date_asc" || sortBy === "oldest") {
+          return new Date(a.dispatchDate || 0).getTime() - new Date(b.dispatchDate || 0).getTime();
+        }
         if (sortBy === "dispatch_date_desc" || sortBy === "newest") {
-          return (
-            new Date(b.dispatchDate || 0).getTime() -
-            new Date(a.dispatchDate || 0).getTime()
-          );
+          return new Date(b.dispatchDate || 0).getTime() - new Date(a.dispatchDate || 0).getTime();
         }
         if (sortBy === "inv_number_asc")
           return (a.invoiceNumber || "").localeCompare(b.invoiceNumber || "");
         if (sortBy === "inv_number_desc")
           return (b.invoiceNumber || "").localeCompare(a.invoiceNumber || "");
         if (sortBy === "po_num_asc")
-          return (a.purchaseOrder?.poNumber || "").localeCompare(
-            b.purchaseOrder?.poNumber || "",
-          );
+          return (a.purchaseOrder?.poNumber || "").localeCompare(b.purchaseOrder?.poNumber || "");
         if (sortBy === "po_num_desc")
-          return (b.purchaseOrder?.poNumber || "").localeCompare(
-            a.purchaseOrder?.poNumber || "",
-          );
+          return (b.purchaseOrder?.poNumber || "").localeCompare(a.purchaseOrder?.poNumber || "");
         if (sortBy === "name_asc")
-          return (a.purchaseOrder?.client?.name || "").localeCompare(
-            b.purchaseOrder?.client?.name || "",
-          );
+          return (a.purchaseOrder?.client?.name || "").localeCompare(b.purchaseOrder?.client?.name || "");
         if (sortBy === "name_desc")
-          return (b.purchaseOrder?.client?.name || "").localeCompare(
-            a.purchaseOrder?.client?.name || "",
-          );
+          return (b.purchaseOrder?.client?.name || "").localeCompare(a.purchaseOrder?.client?.name || "");
         if (sortBy === "status_asc") return a.status.localeCompare(b.status);
         if (sortBy === "status_desc") return b.status.localeCompare(a.status);
-        if (sortBy === "qty_asc") return getTotalQty(a) - getTotalQty(b);
-        if (sortBy === "qty_desc") return getTotalQty(b) - getTotalQty(a);
-        if (sortBy === "courier_asc") {
-          const aCourier = a.logisticsPartner?.name || "";
-          const bCourier = b.logisticsPartner?.name || "";
-          return aCourier.localeCompare(bCourier);
-        }
-        if (sortBy === "courier_desc") {
-          const aCourier = a.logisticsPartner?.name || "";
-          const bCourier = b.logisticsPartner?.name || "";
-          return bCourier.localeCompare(aCourier);
-        }
-        if (sortBy === "tracking_asc") {
-          const aTracking = a.docketNumber || "";
-          const bTracking = b.docketNumber || "";
-          return aTracking.localeCompare(bTracking);
-        }
-        if (sortBy === "tracking_desc") {
-          const aTracking = a.docketNumber || "";
-          const bTracking = b.docketNumber || "";
-          return bTracking.localeCompare(aTracking);
-        }
+        
+        if (sortBy === "qty_asc") return a._totalQty - b._totalQty;
+        if (sortBy === "qty_desc") return b._totalQty - a._totalQty;
+        
+        if (sortBy === "courier_asc")
+          return (a.logisticsPartner?.name || "").localeCompare(b.logisticsPartner?.name || "");
+        if (sortBy === "courier_desc")
+          return (b.logisticsPartner?.name || "").localeCompare(a.logisticsPartner?.name || "");
+        
+        if (sortBy === "tracking_asc")
+          return (a.docketNumber || "").localeCompare(b.docketNumber || "");
+        if (sortBy === "tracking_desc")
+          return (b.docketNumber || "").localeCompare(a.docketNumber || "");
+        
         return 0;
       });
-  }, [dispatches, searchTerm, filters, sortBy]);
+  }, [dispatchesWithTotals, searchTerm, filters, sortBy]);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);

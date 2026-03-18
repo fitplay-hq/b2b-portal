@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MasterSearch } from "@/components/dashboard/master-search/MasterSearch";
 import { useMasterSearch } from "@/components/dashboard/master-search/useMasterSearch";
@@ -193,87 +193,120 @@ export function OMDashboardClient({
     onManualSearch: (q: string) => updateUrl(advancedFilters, q),
   });
 
-  // Summary calculations
-  const dashboardPOs = initialData.pos;
-  const totalActivePOs = dashboardPOs.filter(po => po.status !== "CLOSED").length;
-  const totalOrderValue = dashboardPOs.reduce((sum, po) => sum + po.grandTotal, 0);
-  const totalOrderedQty = dashboardPOs.reduce((sum, po) => sum + po.totalQuantity, 0);
-  
-  const getTotalDispatchedForPO = (poId: string) => {
-    return initialData.dispatches
-      .filter((d) => d.poId === poId)
-      .reduce((sum, d) => sum + d.totalDispatchQty, 0);
-  };
+  // Optimized lookup maps for dispatch quantities
+  const dispatchMaps = useMemo(() => {
+    const byPoId: Record<string, number> = {};
+    const byPoLineItemId: Record<string, number> = {};
 
-  const totalDispatchedQty = dashboardPOs.reduce((sum, po) => sum + getTotalDispatchedForPO(po.id), 0);
-  const totalRemainingQty = totalOrderedQty - totalDispatchedQty;
-  const overallFulfillment = totalOrderedQty > 0 ? ((totalDispatchedQty / totalOrderedQty) * 100).toFixed(1) : "0";
+    initialData.dispatches.forEach((d) => {
+      byPoId[d.poId] = (byPoId[d.poId] || 0) + d.totalDispatchQty;
+      d.lineItems.forEach((li) => {
+        byPoLineItemId[li.poLineItemId] = (byPoLineItemId[li.poLineItemId] || 0) + li.dispatchQty;
+      });
+    });
 
-  // Client summary
-  const clientSummary = dashboardPOs.reduce((acc, po) => {
-    if (!acc[po.clientId]) {
-      acc[po.clientId] = {
-        clientName: po.clientName,
-        totalOrders: 0,
-        ordered: 0,
-        dispatched: 0,
-        remaining: 0,
-        value: 0,
-      };
-    }
-    const dispatched = getTotalDispatchedForPO(po.id);
-    acc[po.clientId].totalOrders += 1;
-    acc[po.clientId].ordered += po.totalQuantity;
-    acc[po.clientId].dispatched += dispatched;
-    acc[po.clientId].remaining += po.totalQuantity - dispatched;
-    acc[po.clientId].value += po.grandTotal;
-    return acc;
-  }, {} as Record<string, OMClientSummary>);
+    return { byPoId, byPoLineItemId };
+  }, [initialData.dispatches]);
 
-  const clientSummaryArray = Object.values(clientSummary);
+  // Combined summary calculations to minimize iterations
+  const {
+    totalActivePOs,
+    totalOrderValue,
+    totalOrderedQty,
+    totalDispatchedQty,
+    statusBreakdown,
+    clientSummaryArray,
+    itemSummaryArray,
+  } = useMemo(() => {
+    const dashboardPOs = initialData.pos;
+    let activePOs = 0;
+    let orderValue = 0;
+    let orderedQty = 0;
+    let dispatchedTotal = 0;
 
-  // Item summary
-  const itemSummary = dashboardPOs.reduce((acc, po) => {
-    po.lineItems.forEach((item) => {
-      if (!acc[item.itemId]) {
-        acc[item.itemId] = {
-          itemName: item.itemName,
-          itemSku: item.itemSku,
+    const statusCounts: Record<string, number> = {
+      DRAFT: 0,
+      CONFIRMED: 0,
+      PARTIALLY_DISPATCHED: 0,
+      FULLY_DISPATCHED: 0,
+      CLOSED: 0,
+    };
+
+    const clientAcc: Record<string, OMClientSummary> = {};
+    const itemAcc: Record<string, OMItemSummary> = {};
+
+    dashboardPOs.forEach((po) => {
+      if (po.status !== "CLOSED") activePOs++;
+      orderValue += po.grandTotal;
+      orderedQty += po.totalQuantity;
+      
+      const dispatchedForPO = dispatchMaps.byPoId[po.id] || 0;
+      dispatchedTotal += dispatchedForPO;
+
+      if (statusCounts[po.status] !== undefined) {
+        statusCounts[po.status]++;
+      }
+
+      // Client summary
+      if (!clientAcc[po.clientId]) {
+        clientAcc[po.clientId] = {
+          clientName: po.clientName,
+          totalOrders: 0,
           ordered: 0,
           dispatched: 0,
           remaining: 0,
+          value: 0,
         };
       }
-      const dispatchedForItem = initialData.dispatches
-        .filter((d) => d.poId === po.id)
-        .reduce((sum: number, dispatch) => {
-          const dispatchItem = dispatch.lineItems.find(di => di.poLineItemId === item.id);
-          return sum + (dispatchItem?.dispatchQty || 0);
-        }, 0);
+      clientAcc[po.clientId].totalOrders += 1;
+      clientAcc[po.clientId].ordered += po.totalQuantity;
+      clientAcc[po.clientId].dispatched += dispatchedForPO;
+      clientAcc[po.clientId].remaining += po.totalQuantity - dispatchedForPO;
+      clientAcc[po.clientId].value += po.grandTotal;
 
-      acc[item.itemId].ordered += item.quantity;
-      acc[item.itemId].dispatched += dispatchedForItem;
-      acc[item.itemId].remaining += item.quantity - dispatchedForItem;
+      // Item summary
+      po.lineItems.forEach((item) => {
+        if (!itemAcc[item.itemId]) {
+          itemAcc[item.itemId] = {
+            itemName: item.itemName,
+            itemSku: item.itemSku,
+            ordered: 0,
+            dispatched: 0,
+            remaining: 0,
+          };
+        }
+        const dispatchedForItem = dispatchMaps.byPoLineItemId[item.id] || 0;
+        itemAcc[item.itemId].ordered += item.quantity;
+        itemAcc[item.itemId].dispatched += dispatchedForItem;
+        itemAcc[item.itemId].remaining += item.quantity - dispatchedForItem;
+      });
     });
-    return acc;
-  }, {} as Record<string, OMItemSummary>);
 
-  const itemSummaryArray = Object.values(itemSummary);
+    const statusBreakdownData = [
+      { name: "Draft", value: statusCounts.DRAFT, color: "#94a3b8" },
+      { name: "Confirmed", value: statusCounts.CONFIRMED, color: "#3b82f6" },
+      { name: "Partially Dispatched", value: statusCounts.PARTIALLY_DISPATCHED, color: "#f59e0b" },
+      { name: "Fully Dispatched", value: statusCounts.FULLY_DISPATCHED, color: "#10b981" },
+      { name: "Closed", value: statusCounts.CLOSED, color: "#ef4444" },
+    ].filter(item => item.value > 0);
 
-  const statusBreakdown = [
-    { name: "Draft", value: dashboardPOs.filter(po => po.status === "DRAFT").length, color: "#94a3b8" },
-    { name: "Confirmed", value: dashboardPOs.filter(po => po.status === "CONFIRMED").length, color: "#3b82f6" },
-    { name: "Partially Dispatched", value: dashboardPOs.filter(po => po.status === "PARTIALLY_DISPATCHED").length, color: "#f59e0b" },
-    { name: "Fully Dispatched", value: dashboardPOs.filter(po => po.status === "FULLY_DISPATCHED").length, color: "#10b981" },
-    { name: "Closed", value: dashboardPOs.filter(po => po.status === "CLOSED").length, color: "#ef4444" },
-  ].filter(item => item.value > 0);
+    return {
+      totalActivePOs: activePOs,
+      totalOrderValue: orderValue,
+      totalOrderedQty: orderedQty,
+      totalDispatchedQty: dispatchedTotal,
+      statusBreakdown: statusBreakdownData,
+      clientSummaryArray: Object.values(clientAcc),
+      itemSummaryArray: Object.values(itemAcc),
+    };
+  }, [initialData.pos, dispatchMaps]);
 
-  const getTotalDispatchedForItem = (poLineItemId: string) => {
-    return initialData.dispatches
-      .flatMap((d) => d.lineItems)
-      .filter((li) => li.poLineItemId === poLineItemId)
-      .reduce((sum, li) => sum + (li.dispatchQty || 0), 0);
-  };
+  const totalRemainingQty = useMemo(() => totalOrderedQty - totalDispatchedQty, [totalOrderedQty, totalDispatchedQty]);
+  const overallFulfillment = useMemo(() => totalOrderedQty > 0 ? ((totalDispatchedQty / totalOrderedQty) * 100).toFixed(1) : "0", [totalOrderedQty, totalDispatchedQty]);
+
+  const getTotalDispatchedForItem = useCallback((poLineItemId: string) => {
+    return dispatchMaps.byPoLineItemId[poLineItemId] || 0;
+  }, [dispatchMaps]);
 
   const filteredBrandOptions = useMemo(() => {
     if (!advancedFilters.itemName) return brandOptions;

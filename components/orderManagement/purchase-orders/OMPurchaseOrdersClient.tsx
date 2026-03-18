@@ -269,8 +269,27 @@ export function OMPurchaseOrdersClient({
     }
   };
 
+  const poWithTotals = useMemo(() => {
+    return purchaseOrders.map(po => {
+      const totalQty = po.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
+      const totalDispatched = po.items?.reduce(
+        (sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0),
+        0
+      ) || 0;
+      const totalAmount = po.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
+      
+      return {
+        ...po,
+        _totalQty: totalQty,
+        _totalDispatched: totalDispatched,
+        _totalRemaining: totalQty - totalDispatched,
+        _totalAmount: totalAmount
+      };
+    });
+  }, [purchaseOrders]);
+
   const filteredPOs = useMemo(() => {
-    return purchaseOrders
+    return poWithTotals
       .filter((po) => {
         // Advanced filters
         if (filters.status !== "all" && po.status !== filters.status)
@@ -320,37 +339,21 @@ export function OMPurchaseOrdersClient({
         if (sortBy === "status_asc") return a.status.localeCompare(b.status);
         if (sortBy === "status_desc") return b.status.localeCompare(a.status);
 
-        const getQty = (po: OMPurchaseOrder) =>
-          po.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
-        const getDispatched = (po: OMPurchaseOrder) =>
-          po.items?.reduce(
-            (sum, i) =>
-              sum +
-              (i.dispatchItems?.reduce((acc, d) => acc + d.quantity, 0) || 0),
-            0,
-          ) || 0;
-        const getValue = (po: OMPurchaseOrder) =>
-          po.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
+        if (sortBy === "ordered_asc") return a._totalQty - b._totalQty;
+        if (sortBy === "ordered_desc") return b._totalQty - a._totalQty;
 
-        if (sortBy === "ordered_asc") return getQty(a) - getQty(b);
-        if (sortBy === "ordered_desc") return getQty(b) - getQty(a);
+        if (sortBy === "dispatched_asc") return a._totalDispatched - b._totalDispatched;
+        if (sortBy === "dispatched_desc") return b._totalDispatched - a._totalDispatched;
 
-        if (sortBy === "dispatched_asc")
-          return getDispatched(a) - getDispatched(b);
-        if (sortBy === "dispatched_desc")
-          return getDispatched(b) - getDispatched(a);
+        if (sortBy === "remaining_asc") return a._totalRemaining - b._totalRemaining;
+        if (sortBy === "remaining_desc") return b._totalRemaining - a._totalRemaining;
 
-        if (sortBy === "remaining_asc")
-          return getQty(a) - getDispatched(a) - (getQty(b) - getDispatched(b));
-        if (sortBy === "remaining_desc")
-          return getQty(b) - getDispatched(b) - (getQty(a) - getDispatched(a));
-
-        if (sortBy === "value_asc") return getValue(a) - getValue(b);
-        if (sortBy === "value_desc") return getValue(b) - getValue(a);
+        if (sortBy === "value_asc") return a._totalAmount - b._totalAmount;
+        if (sortBy === "value_desc") return b._totalAmount - a._totalAmount;
 
         return 0;
       });
-  }, [purchaseOrders, searchTerm, filters, sortBy]);
+  }, [poWithTotals, searchTerm, filters, sortBy]);
 
   const handleExportExcel = () => {
     toast.info("Exporting to Excel...");
@@ -505,23 +508,7 @@ export function OMPurchaseOrdersClient({
             <TableHead className="text-right w-[100px] pr-7">Actions</TableHead>
           </TableRow>
         }
-        renderRow={(po: OMPurchaseOrder) => {
-          const totalQty =
-            po.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
-          const totalDispatched =
-            po.items?.reduce(
-              (sum, i) =>
-                sum +
-                (i.dispatchItems?.reduce(
-                  (acc, d: any) => acc + d.quantity,
-                  0,
-                ) || 0),
-              0,
-            ) || 0;
-          const totalRemaining = totalQty - totalDispatched;
-          const totalAmount =
-            po.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
-
+        renderRow={(po: any) => {
           return (
             <TableRow key={po.id}>
               <TableCell>
@@ -538,12 +525,12 @@ export function OMPurchaseOrdersClient({
                 )}
               </TableCell>
               <TableCell>{po.client?.name || "N/A"}</TableCell>
-              <TableCell className="text-right">{totalQty}</TableCell>
-              <TableCell className="text-right">{totalDispatched}</TableCell>
-              <TableCell className="text-right">{totalRemaining}</TableCell>
+              <TableCell className="text-right">{po._totalQty}</TableCell>
+              <TableCell className="text-right">{po._totalDispatched}</TableCell>
+              <TableCell className="text-right">{po._totalRemaining}</TableCell>
               <TableCell className="text-right font-medium">
                 ₹
-                {totalAmount.toLocaleString("en-IN", {
+                {po._totalAmount.toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
                 })}
               </TableCell>
