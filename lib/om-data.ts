@@ -578,7 +578,7 @@ export async function getOMDispatches(params: {
         });
       }
       if (p.clientId) andFilters.push({ purchaseOrder: { clientId: p.clientId } });
-      if (p.status && p.status !== "all") andFilters.push({ deliveryStatus: p.status });
+      if (p.status && p.status !== "all") andFilters.push({ status: p.status });
       if (p.purchaseOrderId) andFilters.push({ purchaseOrderId: p.purchaseOrderId });
       if (p.logisticsPartnerId) andFilters.push({ logisticsPartnerId: p.logisticsPartnerId });
       if (p.deliveryLocationId) andFilters.push({ deliveryLocationId: p.deliveryLocationId });
@@ -824,6 +824,7 @@ export async function getOMPurchaseOrders(params: {
         deliveryLocations: true,
         items: {
           include: {
+            product: true,
             dispatchItems: true,
           },
         },

@@ -181,7 +181,10 @@ export interface OMDispatchOrder {
   deliveryLocation?: { name?: string };
   logisticsPartner?: { name?: string };
   createdAt?: string;
+  updatedAt?: string;
 }
+
+export type TableDispatchOrder = OMDispatchOrder & { _totalQty: number };
 
 export interface OMPurchaseOrder {
   id: string;
