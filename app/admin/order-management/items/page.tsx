@@ -19,8 +19,6 @@ export default async function OMItemsPage({ searchParams }: PageProps) {
   ]);
 
   return (
-    <Layout isClient={false}>
-      <OMItemsClient initialData={itemsData} initialBrands={brandsData} />
-    </Layout>
+    <OMItemsClient initialData={itemsData} initialBrands={brandsData} />
   );
 }

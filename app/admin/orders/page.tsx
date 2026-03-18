@@ -1,6 +1,5 @@
 "use client";
 
-import Layout from "@/components/layout";
 import PageGuard from "@/components/page-guard";
 import { useOrders } from "@/data/order/admin.hooks";
 import { useOrderFilters } from "@/hooks/use-order-filters";
@@ -38,22 +37,18 @@ export default function AdminOrdersPage() {
   if (isLoading) {
     return (
       <PageGuard resource={RESOURCES.ORDERS} action="view">
-        <Layout isClient={false}>
-          <div className="flex justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        </Layout>
+        <div className="flex justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
       </PageGuard>
     );
   }
   if (error) {
     return (
       <PageGuard resource={RESOURCES.ORDERS} action="view">
-        <Layout isClient={false}>
-          <div className="text-center text-destructive p-8">
-            Failed to load orders.
-          </div>
-        </Layout>
+        <div className="text-center text-destructive p-8">
+          Failed to load orders.
+        </div>
       </PageGuard>
     );
   }
@@ -61,71 +56,69 @@ export default function AdminOrdersPage() {
   // 3. PRESENTATION
   return (
     <PageGuard resource={RESOURCES.ORDERS} action="view">
-      <Layout isClient={false}>
-        <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl font-bold">Order Management</h1>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Review and manage dispatch orders from clients
-              </p>
-            </div>
-            <div className="shrink-0 w-full sm:w-auto">
-              {actions.orders.create && (
-                <Button asChild className="w-full sm:w-auto text-sm h-9">
-                  <Link href="/admin/orders/create">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Dispatch Order
-                  </Link>
-                </Button>
-              )}
-            </div>
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold">Order Management</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Review and manage dispatch orders from clients
+            </p>
           </div>
-
-        <OrderStatsGrid {...metrics} />
-        <OrderFilters {...filterProps} />
-        
-        {/* View Toggle */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Showing {filteredOrders.length} of {orders?.length || 0} orders</span>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant={viewType === "row" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewType("row")}
-            >
-              <Grid3x3 className="h-4 w-4 mr-2" />
-              Card View
-            </Button>
-            <Button
-              variant={viewType === "table" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewType("table")}
-            >
-              <Table className="h-4 w-4 mr-2" />
-              Table View
-            </Button>
+          <div className="shrink-0 w-full sm:w-auto">
+            {actions.orders.create && (
+              <Button asChild className="w-full sm:w-auto text-sm h-9">
+                <Link href="/admin/orders/create">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Dispatch Order
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Conditional View Rendering */}
-        {viewType === "row" ? (
-          <OrderList orders={filteredOrders} onOrderUpdate={handleOrderUpdate} {...managementProps} />
-        ) : (
-          <OrdersTable 
-            orders={filteredOrders} 
-            onStatusUpdate={managementProps.openStatusDialog}
-            expandedOrders={managementProps.expandedOrders}
-            onToggleOrder={managementProps.toggleOrderExpansion}
-            onOrderUpdate={handleOrderUpdate}
-          />
-        )}
-        
-        <UpdateStatusDialog {...managementProps} />
+      <OrderStatsGrid {...metrics} />
+      <OrderFilters {...filterProps} />
+      
+      {/* View Toggle */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Showing {filteredOrders.length} of {orders?.length || 0} orders</span>
         </div>
-      </Layout>
+        <div className="flex gap-2">
+          <Button
+            variant={viewType === "row" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewType("row")}
+          >
+            <Grid3x3 className="h-4 w-4 mr-2" />
+            Card View
+          </Button>
+          <Button
+            variant={viewType === "table" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewType("table")}
+          >
+            <Table className="h-4 w-4 mr-2" />
+            Table View
+          </Button>
+        </div>
+      </div>
+
+      {/* Conditional View Rendering */}
+      {viewType === "row" ? (
+        <OrderList orders={filteredOrders} onOrderUpdate={handleOrderUpdate} {...managementProps} />
+      ) : (
+        <OrdersTable 
+          orders={filteredOrders} 
+          onStatusUpdate={managementProps.openStatusDialog}
+          expandedOrders={managementProps.expandedOrders}
+          onToggleOrder={managementProps.toggleOrderExpansion}
+          onOrderUpdate={handleOrderUpdate}
+        />
+      )}
+      
+      <UpdateStatusDialog {...managementProps} />
+      </div>
     </PageGuard>
   );
 }

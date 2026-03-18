@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,7 +26,9 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: {
+    name: string;
+  };
   isActive: boolean;
   createdAt: string;
 }
@@ -349,32 +350,28 @@ export default function UsersPage() {
   // Show unauthorized message if user doesn't have permission
   if (isUnauthorized) {
     return (
-      <Layout isClient={false}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Card className="w-full max-w-md">
-            <CardContent className="flex flex-col items-center text-center p-8">
-              <UserCog className="h-16 w-16 text-red-500 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-              <p className="text-gray-600 mb-4">
-                You do not have permission to access this page. User management is restricted to administrators only.
-              </p>
-              <Button asChild variant="outline">
-                <Link href="/admin">
-                  Return to Dashboard
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center text-center p-8">
+            <UserCog className="h-16 w-16 text-red-500 mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600 mb-4">
+              You do not have permission to access this page. User management is restricted to administrators only.
+            </p>
+            <Button asChild variant="outline">
+              <Link href="/admin">
+                Return to Dashboard
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
     <PageGuard resource={RESOURCES.USERS} action="view">
-      <Layout isClient={false}>
-        <UserManagementContent />
-      </Layout>
+      <UserManagementContent />
     </PageGuard>
   );
 }

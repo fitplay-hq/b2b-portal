@@ -16,8 +16,6 @@ export default async function OMDeliveryLocationsPage({ searchParams }: PageProp
   const locationsData = await getOMDeliveryLocations({ page, limit });
 
   return (
-    <Layout isClient={false}>
-      <OMDeliveryLocationsClient initialData={locationsData} />
-    </Layout>
+    <OMDeliveryLocationsClient initialData={locationsData} />
   );
 }

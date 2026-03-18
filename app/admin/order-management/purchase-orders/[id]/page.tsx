@@ -44,8 +44,7 @@ export default function OMPurchaseOrderDetail() {
 
   if (isLoading) {
     return (
-      <Layout isClient={false}>
-        <div className="space-y-6">
+      <div className="space-y-6">
           {/* Header Skeleton */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -144,33 +143,29 @@ export default function OMPurchaseOrderDetail() {
                 </div>
               </CardContent>
             </Card>
-          </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (!po) {
     return (
-      <Layout isClient={false}>
-        <div className="text-center py-12">
-          <h3 className="text-lg font-semibold mb-2">
-            Purchase Order Not Found
-          </h3>
-          <p className="text-muted-foreground mb-4">
-            The purchase order you're looking for doesn't exist.
-          </p>
-          <Link href="/admin/order-management/purchase-orders">
-            <Button>Back to Purchase Orders</Button>
-          </Link>
-        </div>
-      </Layout>
+      <div className="text-center py-12">
+        <h3 className="text-lg font-semibold mb-2">
+          Purchase Order Not Found
+        </h3>
+        <p className="text-muted-foreground mb-4">
+          The purchase order you're looking for doesn't exist.
+        </p>
+        <Link href="/admin/order-management/purchase-orders">
+          <Button>Back to Purchase Orders</Button>
+        </Link>
+      </div>
     );
   }
 
   return (
-    <Layout isClient={false}>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href="/admin/order-management/purchase-orders">
@@ -326,6 +321,5 @@ export default function OMPurchaseOrderDetail() {
           </Card>
         </div>
       </div>
-    </Layout>
-  );
-}
+    );
+  }

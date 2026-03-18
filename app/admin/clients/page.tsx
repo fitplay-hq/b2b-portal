@@ -1,6 +1,6 @@
 "use client";
 
-import Layout from "@/components/layout";
+
 import { PageGuard } from "@/components/page-guard";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
@@ -89,11 +89,9 @@ export default function AdminClientsPage() {
   if (isLoading) {
     return (
       <PageGuard resource={RESOURCES.CLIENTS} action="view">
-        <Layout isClient={false}>
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        </Layout>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
       </PageGuard>
     );
   }
@@ -103,11 +101,9 @@ export default function AdminClientsPage() {
   if (clientsError || shouldFailOnOrdersError) {
     return (
       <PageGuard resource={RESOURCES.CLIENTS} action="view">
-        <Layout isClient={false}>
-          <div className="text-center text-destructive">
-            Failed to load clients. Please try again later.
-          </div>
-        </Layout>
+        <div className="text-center text-destructive">
+          Failed to load clients. Please try again later.
+        </div>
       </PageGuard>
     );
   }
@@ -115,10 +111,9 @@ export default function AdminClientsPage() {
   // 3. PRESENTATION
   return (
     <PageGuard resource={RESOURCES.CLIENTS} action="view">
-      <Layout isClient={false}>
-        <div className="bg-gray-50 -m-6">
-          <div className="p-4 sm:p-6 lg:p-8">
-            <div className="space-y-6 sm:space-y-8">
+      <div className="bg-gray-50 -m-6">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="space-y-6 sm:space-y-8">
             {/* Enhanced Header */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 lg:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -176,7 +171,6 @@ export default function AdminClientsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </Layout>
     </PageGuard>
   );
 }

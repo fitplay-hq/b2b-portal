@@ -16,8 +16,6 @@ export default async function OMClientsPage({ searchParams }: PageProps) {
   const clientsData = await getOMClients({ page, limit });
 
   return (
-    <Layout isClient={false}>
-      <OMClientsClient initialData={clientsData} />
-    </Layout>
+    <OMClientsClient initialData={clientsData} />
   );
 }

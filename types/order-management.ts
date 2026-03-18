@@ -37,11 +37,13 @@ export const OM_DISPATCH_STATUS_CONFIG: Record<
   },
   READY_FOR_DISPATCH: {
     label: "Ready For Dispatch",
-    color: "bg-orange-100 text-orange-800 hover:bg-orange-100 border-transparent",
+    color:
+      "bg-orange-100 text-orange-800 hover:bg-orange-100 border-transparent",
   },
   DISPATCHED: {
     label: "Dispatched",
-    color: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent",
+    color:
+      "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent",
   },
   AT_DESTINATION: {
     label: "At Destination",
@@ -257,17 +259,24 @@ export interface OMShipmentBox {
  */
 export const OMShipmentHelpers = {
   /**
-   * Calculate volume of a single box in cubic meters (m3)
+   * Calculate volumetric weight of a single box in kg
+   * Formula: (l * w * h * 6) / 27000
    */
-  calculateBoxVolume: (box: Pick<OMShipmentBox, "length" | "width" | "height">) => {
-    return (box.length * box.width * box.height) / 1000000;
+  calculateBoxVolumetricWeight: (
+    box: Pick<OMShipmentBox, "length" | "width" | "height">,
+  ) => {
+    return (box.length * box.width * box.height * 6) / 27000;
   },
 
   /**
-   * Calculate total volume of a group of identical boxes
+   * Calculate Volumetric Weight of a group of identical boxes
    */
-  calculateTotalBoxVolume: (box: Pick<OMShipmentBox, "length" | "width" | "height" | "numberOfBoxes">) => {
-    return OMShipmentHelpers.calculateBoxVolume(box) * box.numberOfBoxes;
+  calculateTotalBoxVolumetricWeight: (
+    box: Pick<OMShipmentBox, "length" | "width" | "height" | "numberOfBoxes">,
+  ) => {
+    return (
+      OMShipmentHelpers.calculateBoxVolumetricWeight(box) * box.numberOfBoxes
+    );
   },
 
   /**
@@ -278,12 +287,13 @@ export const OMShipmentHelpers = {
   },
 
   /**
-   * Calculate total volume of all boxes in a shipment
+   * Calculate Volumetric Weight of all boxes in a shipment
    */
-  getTotalVolume: (shipmentBoxes: OMShipmentBox[]) => {
+  getVolumetricWeight: (shipmentBoxes: OMShipmentBox[]) => {
     return shipmentBoxes.reduce(
-      (sum, box) => sum + OMShipmentHelpers.calculateTotalBoxVolume(box),
-      0
+      (sum, box) =>
+        sum + OMShipmentHelpers.calculateTotalBoxVolumetricWeight(box),
+      0,
     );
   },
 
@@ -292,25 +302,30 @@ export const OMShipmentHelpers = {
    */
   getTotalItemsPacked: (shipmentBoxes: OMShipmentBox[]) => {
     return shipmentBoxes.reduce((sum, box) => {
-      const itemsInOneBox = box.contents.reduce((iSum, item) => iSum + item.quantity, 0);
+      const itemsInOneBox = box.contents.reduce(
+        (iSum, item) => iSum + item.quantity,
+        0,
+      );
       return sum + itemsInOneBox * box.numberOfBoxes;
     }, 0);
   },
 
   /**
-   * Calculate total weight of a group of identical boxes
+   * Calculate Actual Weight of a group of identical boxes
    */
-  calculateTotalBoxWeight: (box: Pick<OMShipmentBox, "weight" | "numberOfBoxes">) => {
+  calculateTotalBoxWeight: (
+    box: Pick<OMShipmentBox, "weight" | "numberOfBoxes">,
+  ) => {
     return (box.weight || 0) * box.numberOfBoxes;
   },
 
   /**
-   * Calculate total weight of all boxes in a shipment
+   * Calculate Actual Weight of all boxes in a shipment
    */
   getTotalWeight: (shipmentBoxes: OMShipmentBox[]) => {
     return shipmentBoxes.reduce(
       (sum, box) => sum + OMShipmentHelpers.calculateTotalBoxWeight(box),
-      0
+      0,
     );
   },
 };

@@ -85,7 +85,7 @@ export default async function Page({ searchParams }: PageProps) {
   const params = await searchParams;
   
   return (
-    <Suspense fallback={<Layout isClient={false}><DashboardSkeleton /></Layout>}>
+    <Suspense fallback={<DashboardSkeleton />}>
       <DashboardServer params={params} />
     </Suspense>
   );

@@ -149,18 +149,15 @@ export default function InventoryLogsPage() {
 
   if (error) {
     return (
-      <Layout isClient={false}>
-        <div className="text-center text-destructive">
-          Failed to load inventory logs. Please try again later.
-        </div>
-      </Layout>
+      <div className="text-center text-destructive">
+        Failed to load inventory logs. Please try again later.
+      </div>
     );
   }
 
   return (
     <PageGuard resource={RESOURCES.INVENTORY} action="view">
-      <Layout isClient={false}>
-        <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
           <div className="shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -239,7 +236,6 @@ export default function InventoryLogsPage() {
             />
           </div>
         </div>
-      </Layout>
-    </PageGuard>
+      </PageGuard>
   );
 }

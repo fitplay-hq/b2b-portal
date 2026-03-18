@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Product } from "@/lib/generated/prisma";
 
-export type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "lowest-stock" | "highest-stock" | "latest-update" | "subcategory";
+export type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "lowest-stock" | "highest-stock" | "latest-update" | "subcategory" | "category";
 
 export function useProductFilters(products: Product[] = []) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -116,6 +116,16 @@ export function useProductFilters(products: Product[] = []) {
             return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
           }
           return subCategoryA.localeCompare(subCategoryB);
+        });
+        break;
+      case "category":
+        sortedProducts = sortedProducts.sort((a, b) => {
+          const categoryA = (a as any).category?.name || a.categories || "";
+          const categoryB = (b as any).category?.name || b.categories || "";
+          if (categoryA === categoryB) {
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+          }
+          return categoryA.localeCompare(categoryB);
         });
         break;
     }

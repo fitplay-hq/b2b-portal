@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MasterSearch } from "@/components/dashboard/master-search/MasterSearch";
 import { useMasterSearch } from "@/components/dashboard/master-search/useMasterSearch";
@@ -193,87 +193,120 @@ export function OMDashboardClient({
     onManualSearch: (q: string) => updateUrl(advancedFilters, q),
   });
 
-  // Summary calculations
-  const dashboardPOs = initialData.pos;
-  const totalActivePOs = dashboardPOs.filter(po => po.status !== "CLOSED").length;
-  const totalOrderValue = dashboardPOs.reduce((sum, po) => sum + po.grandTotal, 0);
-  const totalOrderedQty = dashboardPOs.reduce((sum, po) => sum + po.totalQuantity, 0);
-  
-  const getTotalDispatchedForPO = (poId: string) => {
-    return initialData.dispatches
-      .filter((d) => d.poId === poId)
-      .reduce((sum, d) => sum + d.totalDispatchQty, 0);
-  };
+  // Optimized lookup maps for dispatch quantities
+  const dispatchMaps = useMemo(() => {
+    const byPoId: Record<string, number> = {};
+    const byPoLineItemId: Record<string, number> = {};
 
-  const totalDispatchedQty = dashboardPOs.reduce((sum, po) => sum + getTotalDispatchedForPO(po.id), 0);
-  const totalRemainingQty = totalOrderedQty - totalDispatchedQty;
-  const overallFulfillment = totalOrderedQty > 0 ? ((totalDispatchedQty / totalOrderedQty) * 100).toFixed(1) : "0";
+    initialData.dispatches.forEach((d) => {
+      byPoId[d.poId] = (byPoId[d.poId] || 0) + d.totalDispatchQty;
+      d.lineItems.forEach((li) => {
+        byPoLineItemId[li.poLineItemId] = (byPoLineItemId[li.poLineItemId] || 0) + li.dispatchQty;
+      });
+    });
 
-  // Client summary
-  const clientSummary = dashboardPOs.reduce((acc, po) => {
-    if (!acc[po.clientId]) {
-      acc[po.clientId] = {
-        clientName: po.clientName,
-        totalOrders: 0,
-        ordered: 0,
-        dispatched: 0,
-        remaining: 0,
-        value: 0,
-      };
-    }
-    const dispatched = getTotalDispatchedForPO(po.id);
-    acc[po.clientId].totalOrders += 1;
-    acc[po.clientId].ordered += po.totalQuantity;
-    acc[po.clientId].dispatched += dispatched;
-    acc[po.clientId].remaining += po.totalQuantity - dispatched;
-    acc[po.clientId].value += po.grandTotal;
-    return acc;
-  }, {} as Record<string, OMClientSummary>);
+    return { byPoId, byPoLineItemId };
+  }, [initialData.dispatches]);
 
-  const clientSummaryArray = Object.values(clientSummary);
+  // Combined summary calculations to minimize iterations
+  const {
+    totalActivePOs,
+    totalOrderValue,
+    totalOrderedQty,
+    totalDispatchedQty,
+    statusBreakdown,
+    clientSummaryArray,
+    itemSummaryArray,
+  } = useMemo(() => {
+    const dashboardPOs = initialData.pos;
+    let activePOs = 0;
+    let orderValue = 0;
+    let orderedQty = 0;
+    let dispatchedTotal = 0;
 
-  // Item summary
-  const itemSummary = dashboardPOs.reduce((acc, po) => {
-    po.lineItems.forEach((item) => {
-      if (!acc[item.itemId]) {
-        acc[item.itemId] = {
-          itemName: item.itemName,
-          itemSku: item.itemSku,
+    const statusCounts: Record<string, number> = {
+      DRAFT: 0,
+      CONFIRMED: 0,
+      PARTIALLY_DISPATCHED: 0,
+      FULLY_DISPATCHED: 0,
+      CLOSED: 0,
+    };
+
+    const clientAcc: Record<string, OMClientSummary> = {};
+    const itemAcc: Record<string, OMItemSummary> = {};
+
+    dashboardPOs.forEach((po) => {
+      if (po.status !== "CLOSED") activePOs++;
+      orderValue += po.grandTotal;
+      orderedQty += po.totalQuantity;
+      
+      const dispatchedForPO = dispatchMaps.byPoId[po.id] || 0;
+      dispatchedTotal += dispatchedForPO;
+
+      if (statusCounts[po.status] !== undefined) {
+        statusCounts[po.status]++;
+      }
+
+      // Client summary
+      if (!clientAcc[po.clientId]) {
+        clientAcc[po.clientId] = {
+          clientName: po.clientName,
+          totalOrders: 0,
           ordered: 0,
           dispatched: 0,
           remaining: 0,
+          value: 0,
         };
       }
-      const dispatchedForItem = initialData.dispatches
-        .filter((d) => d.poId === po.id)
-        .reduce((sum: number, dispatch) => {
-          const dispatchItem = dispatch.lineItems.find(di => di.poLineItemId === item.id);
-          return sum + (dispatchItem?.dispatchQty || 0);
-        }, 0);
+      clientAcc[po.clientId].totalOrders += 1;
+      clientAcc[po.clientId].ordered += po.totalQuantity;
+      clientAcc[po.clientId].dispatched += dispatchedForPO;
+      clientAcc[po.clientId].remaining += po.totalQuantity - dispatchedForPO;
+      clientAcc[po.clientId].value += po.grandTotal;
 
-      acc[item.itemId].ordered += item.quantity;
-      acc[item.itemId].dispatched += dispatchedForItem;
-      acc[item.itemId].remaining += item.quantity - dispatchedForItem;
+      // Item summary
+      po.lineItems.forEach((item) => {
+        if (!itemAcc[item.itemId]) {
+          itemAcc[item.itemId] = {
+            itemName: item.itemName,
+            itemSku: item.itemSku,
+            ordered: 0,
+            dispatched: 0,
+            remaining: 0,
+          };
+        }
+        const dispatchedForItem = dispatchMaps.byPoLineItemId[item.id] || 0;
+        itemAcc[item.itemId].ordered += item.quantity;
+        itemAcc[item.itemId].dispatched += dispatchedForItem;
+        itemAcc[item.itemId].remaining += item.quantity - dispatchedForItem;
+      });
     });
-    return acc;
-  }, {} as Record<string, OMItemSummary>);
 
-  const itemSummaryArray = Object.values(itemSummary);
+    const statusBreakdownData = [
+      { name: "Draft", value: statusCounts.DRAFT, color: "#94a3b8" },
+      { name: "Confirmed", value: statusCounts.CONFIRMED, color: "#3b82f6" },
+      { name: "Partially Dispatched", value: statusCounts.PARTIALLY_DISPATCHED, color: "#f59e0b" },
+      { name: "Fully Dispatched", value: statusCounts.FULLY_DISPATCHED, color: "#10b981" },
+      { name: "Closed", value: statusCounts.CLOSED, color: "#ef4444" },
+    ].filter(item => item.value > 0);
 
-  const statusBreakdown = [
-    { name: "Draft", value: dashboardPOs.filter(po => po.status === "DRAFT").length, color: "#94a3b8" },
-    { name: "Confirmed", value: dashboardPOs.filter(po => po.status === "CONFIRMED").length, color: "#3b82f6" },
-    { name: "Partially Dispatched", value: dashboardPOs.filter(po => po.status === "PARTIALLY_DISPATCHED").length, color: "#f59e0b" },
-    { name: "Fully Dispatched", value: dashboardPOs.filter(po => po.status === "FULLY_DISPATCHED").length, color: "#10b981" },
-    { name: "Closed", value: dashboardPOs.filter(po => po.status === "CLOSED").length, color: "#ef4444" },
-  ].filter(item => item.value > 0);
+    return {
+      totalActivePOs: activePOs,
+      totalOrderValue: orderValue,
+      totalOrderedQty: orderedQty,
+      totalDispatchedQty: dispatchedTotal,
+      statusBreakdown: statusBreakdownData,
+      clientSummaryArray: Object.values(clientAcc),
+      itemSummaryArray: Object.values(itemAcc),
+    };
+  }, [initialData.pos, dispatchMaps]);
 
-  const getTotalDispatchedForItem = (poLineItemId: string) => {
-    return initialData.dispatches
-      .flatMap((d) => d.lineItems)
-      .filter((li) => li.poLineItemId === poLineItemId)
-      .reduce((sum, li) => sum + (li.dispatchQty || 0), 0);
-  };
+  const totalRemainingQty = useMemo(() => totalOrderedQty - totalDispatchedQty, [totalOrderedQty, totalDispatchedQty]);
+  const overallFulfillment = useMemo(() => totalOrderedQty > 0 ? ((totalDispatchedQty / totalOrderedQty) * 100).toFixed(1) : "0", [totalOrderedQty, totalDispatchedQty]);
+
+  const getTotalDispatchedForItem = useCallback((poLineItemId: string) => {
+    return dispatchMaps.byPoLineItemId[poLineItemId] || 0;
+  }, [dispatchMaps]);
 
   const filteredBrandOptions = useMemo(() => {
     if (!advancedFilters.itemName) return brandOptions;
@@ -282,189 +315,187 @@ export function OMDashboardClient({
   }, [advancedFilters.itemName, products, brandOptions]);
 
   return (
-    <Layout isClient={false}>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Order Management Dashboard</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Overview of all purchase orders and dispatches</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <Select value={timeRange} onValueChange={(val: string) => {
-              setTimeRange(val);
-              updateUrl(advancedFilters, undefined, val);
-            }}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Time Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="7d">Last 7 Days</SelectItem>
-                <SelectItem value="30d">Last 30 Days</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold">Order Management Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Overview of all purchase orders and dispatches</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select value={timeRange} onValueChange={(val: string) => {
+            setTimeRange(val);
+            updateUrl(advancedFilters, undefined, val);
+          }}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Time Range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="7d">Last 7 Days</SelectItem>
+              <SelectItem value="30d">Last 30 Days</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        <MasterSearch
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onSearch={handleManualSearch}
-          onClear={() => {
-            clearSearch();
-            updateUrl(advancedFilters, "");
-          }}
-          isSearching={isSearching}
-          isFetching={isLoading}
-          showAdvancedFilters={showAdvancedFilters}
-          setShowAdvancedFilters={setShowAdvancedFilters}
-          dropdownMatches={searchResults.dropdownMatches}
-        >
-          {showAdvancedFilters && (
-            <div className="mt-6 pt-6 border-t animate-in fade-in slide-in-from-top-4 duration-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">From Date</label>
-                  <Input type="date" value={advancedFilters.fromDate} onChange={(e) => {
-                    const next = { ...advancedFilters, fromDate: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">To Date</label>
-                  <Input type="date" value={advancedFilters.toDate} onChange={(e) => {
-                    const next = { ...advancedFilters, toDate: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client Name</label>
-                  <SearchableSelect options={clientOptions} value={advancedFilters.clientName} onValueChange={(val) => {
-                    const next = { ...advancedFilters, clientName: val };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Select client..." />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Item Name</label>
-                  <SearchableSelect options={itemOptions} value={advancedFilters.itemName} onValueChange={(val) => {
-                    const next = { ...advancedFilters, itemName: val };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Select item..." />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PO Number</label>
-                  <Input value={advancedFilters.poNumber} onChange={(e) => {
-                    const next = { ...advancedFilters, poNumber: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="PO Number..." className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Invoice Number</label>
-                  <Input value={advancedFilters.invoiceNumber} onChange={(e) => {
-                    const next = { ...advancedFilters, invoiceNumber: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Invoice Number..." className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</label>
-                  <Input value={advancedFilters.sku} onChange={(e) => {
-                    const next = { ...advancedFilters, sku: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="SKU..." className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Logistics Partner</label>
-                  <SearchableSelect options={logisticsOptions} value={advancedFilters.logisticsPartnerId} onValueChange={(val) => {
-                    const next = { ...advancedFilters, logisticsPartnerId: val };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Select partner..." />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location</label>
-                  <SearchableSelect options={locationOptions} value={advancedFilters.locationId} onValueChange={(val) => {
-                    const next = { ...advancedFilters, locationId: val };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Select location..." />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</label>
-                  <MultiSearchableSelect
-                    options={Object.entries(PO_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
-                    value={advancedFilters.status}
-                    onValueChange={(val: string[]) => {
-                      const next = { ...advancedFilters, status: val };
-                      setAdvancedFilters(next);
-                      updateUrl(next);
-                    }}
-                    placeholder="Select statuses..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Min Amount</label>
-                  <Input type="number" value={advancedFilters.minAmount} onChange={(e) => {
-                    const next = { ...advancedFilters, minAmount: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Min ₹" className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Max Amount</label>
-                  <Input type="number" value={advancedFilters.maxAmount} onChange={(e) => {
-                    const next = { ...advancedFilters, maxAmount: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Max ₹" className="text-xs" />
-                </div>
+      <MasterSearch
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onSearch={handleManualSearch}
+        onClear={() => {
+          clearSearch();
+          updateUrl(advancedFilters, "");
+        }}
+        isSearching={isSearching}
+        isFetching={isLoading}
+        showAdvancedFilters={showAdvancedFilters}
+        setShowAdvancedFilters={setShowAdvancedFilters}
+        dropdownMatches={searchResults.dropdownMatches}
+      >
+        {showAdvancedFilters && (
+          <div className="mt-6 pt-6 border-t animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">From Date</label>
+                <Input type="date" value={advancedFilters.fromDate} onChange={(e) => {
+                  const next = { ...advancedFilters, fromDate: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} className="text-xs" />
               </div>
-
-              <div className="flex justify-end mt-6 pt-4 border-t">
-                <Button variant="ghost" size="sm" onClick={() => {
-                  resetFilters();
-                  updateUrl({});
-                }} className="text-xs gap-2">
-                  <RotateCcw className="h-3 w-3" />
-                  Reset Filters
-                </Button>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">To Date</label>
+                <Input type="date" value={advancedFilters.toDate} onChange={(e) => {
+                  const next = { ...advancedFilters, toDate: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} className="text-xs" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client Name</label>
+                <SearchableSelect options={clientOptions} value={advancedFilters.clientName} onValueChange={(val) => {
+                  const next = { ...advancedFilters, clientName: val };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Select client..." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Item Name</label>
+                <SearchableSelect options={itemOptions} value={advancedFilters.itemName} onValueChange={(val) => {
+                  const next = { ...advancedFilters, itemName: val };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Select item..." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PO Number</label>
+                <Input value={advancedFilters.poNumber} onChange={(e) => {
+                  const next = { ...advancedFilters, poNumber: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="PO Number..." className="text-xs" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Invoice Number</label>
+                <Input value={advancedFilters.invoiceNumber} onChange={(e) => {
+                  const next = { ...advancedFilters, invoiceNumber: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Invoice Number..." className="text-xs" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</label>
+                <Input value={advancedFilters.sku} onChange={(e) => {
+                  const next = { ...advancedFilters, sku: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="SKU..." className="text-xs" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Logistics Partner</label>
+                <SearchableSelect options={logisticsOptions} value={advancedFilters.logisticsPartnerId} onValueChange={(val) => {
+                  const next = { ...advancedFilters, logisticsPartnerId: val };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Select partner..." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location</label>
+                <SearchableSelect options={locationOptions} value={advancedFilters.locationId} onValueChange={(val) => {
+                  const next = { ...advancedFilters, locationId: val };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Select location..." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</label>
+                <MultiSearchableSelect
+                  options={Object.entries(PO_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+                  value={advancedFilters.status}
+                  onValueChange={(val: string[]) => {
+                    const next = { ...advancedFilters, status: val };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="Select statuses..."
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Min Amount</label>
+                <Input type="number" value={advancedFilters.minAmount} onChange={(e) => {
+                  const next = { ...advancedFilters, minAmount: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Min ₹" className="text-xs" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Max Amount</label>
+                <Input type="number" value={advancedFilters.maxAmount} onChange={(e) => {
+                  const next = { ...advancedFilters, maxAmount: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Max ₹" className="text-xs" />
               </div>
             </div>
-          )}
-        </MasterSearch>
 
-        {!isSearching ? (
-          <div className="space-y-6">
-            <SummaryCards
-              totalActivePOs={totalActivePOs}
-              totalOrderValue={totalOrderValue}
-              overallFulfillment={overallFulfillment}
-              totalOrderedQty={totalOrderedQty}
-              totalDispatchedQty={totalDispatchedQty}
-              totalRemainingQty={totalRemainingQty}
-            />
-            <DashboardCharts statusBreakdown={statusBreakdown} clientSummaryArray={clientSummaryArray.slice(0, 10)} />
+            <div className="flex justify-end mt-6 pt-4 border-t">
+              <Button variant="ghost" size="sm" onClick={() => {
+                resetFilters();
+                updateUrl({});
+              }} className="text-xs gap-2">
+                <RotateCcw className="h-3 w-3" />
+                Reset Filters
+              </Button>
+            </div>
           </div>
-        ) : (
-          <SearchResultsList
-            searchResults={searchResults}
-            searchSummary={searchSummary}
-            searchQuery={searchQuery}
-            expandedSections={expandedSections}
-            toggleSection={toggleSection}
-            getTotalDispatchedForItem={getTotalDispatchedForItem}
-            omPurchaseOrders={initialData.pos}
-          />
         )}
-      </div>
-    </Layout>
+      </MasterSearch>
+
+      {!isSearching ? (
+        <div className="space-y-6">
+          <SummaryCards
+            totalActivePOs={totalActivePOs}
+            totalOrderValue={totalOrderValue}
+            overallFulfillment={overallFulfillment}
+            totalOrderedQty={totalOrderedQty}
+            totalDispatchedQty={totalDispatchedQty}
+            totalRemainingQty={totalRemainingQty}
+          />
+          <DashboardCharts statusBreakdown={statusBreakdown} clientSummaryArray={clientSummaryArray.slice(0, 10)} />
+        </div>
+      ) : (
+        <SearchResultsList
+          searchResults={searchResults}
+          searchSummary={searchSummary}
+          searchQuery={searchQuery}
+          expandedSections={expandedSections}
+          toggleSection={toggleSection}
+          getTotalDispatchedForItem={getTotalDispatchedForItem}
+          omPurchaseOrders={initialData.pos}
+        />
+      )}
+    </div>
   );
 }

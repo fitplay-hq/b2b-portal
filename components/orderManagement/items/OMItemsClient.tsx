@@ -409,94 +409,64 @@ export function OMItemsClient({
   };
 
   const filteredItems = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase();
+    const brandIdsSet = new Set(filters.brandIds);
+    const minPrice = filters.minPrice ? parseFloat(filters.minPrice) : null;
+    const maxPrice = filters.maxPrice ? parseFloat(filters.maxPrice) : null;
+    const minOrdered = filters.minTotalOrdered ? parseInt(filters.minTotalOrdered) : null;
+    const maxOrdered = filters.maxTotalOrdered ? parseInt(filters.maxTotalOrdered) : null;
+
     return items
       .filter((item) => {
         // Advanced filters
-        const matchesBrands =
-          filters.brandIds.length === 0 ||
-          item.brands?.some((b: any) => filters.brandIds.includes(b.id));
-
-        const matchesMinPrice =
-          !filters.minPrice ||
-          (item.price || 0) >= parseFloat(filters.minPrice);
-        const matchesMaxPrice =
-          !filters.maxPrice ||
-          (item.price || 0) <= parseFloat(filters.maxPrice);
-
-        const matchesGst =
-          filters.gst === "all" ||
-          item.defaultGstPct.toString() === filters.gst;
-
-        const matchesMinTotalOrdered =
-          !filters.minTotalOrdered ||
-          (item.totalOrdered || 0) >= parseInt(filters.minTotalOrdered);
-        const matchesMaxTotalOrdered =
-          !filters.maxTotalOrdered ||
-          (item.totalOrdered || 0) <= parseInt(filters.maxTotalOrdered);
-
-        if (
-          !matchesBrands ||
-          !matchesMinPrice ||
-          !matchesMaxPrice ||
-          !matchesGst ||
-          !matchesMinTotalOrdered ||
-          !matchesMaxTotalOrdered
-        )
+        if (brandIdsSet.size > 0 && !item.brands?.some((b: any) => brandIdsSet.has(b.id)))
           return false;
 
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          item.name.toLowerCase().includes(searchLower) ||
-          (item.sku || "").toLowerCase().includes(searchLower)
-        );
+        if (minPrice !== null && (item.price || 0) < minPrice)
+          return false;
+        if (maxPrice !== null && (item.price || 0) > maxPrice)
+          return false;
+
+        if (filters.gst !== "all" && item.defaultGstPct.toString() !== filters.gst)
+          return false;
+
+        if (minOrdered !== null && (item.totalOrdered || 0) < minOrdered)
+          return false;
+        if (maxOrdered !== null && (item.totalOrdered || 0) > maxOrdered)
+          return false;
+
+        if (searchLower) {
+          return (
+            item.name.toLowerCase().includes(searchLower) ||
+            (item.sku || "").toLowerCase().includes(searchLower)
+          );
+        }
+        return true;
       })
       .sort((a, b) => {
-        if (sortBy === "name_asc") return a.name.localeCompare(b.name);
-        if (sortBy === "name_desc") return b.name.localeCompare(a.name);
-
-        if (sortBy === "sku_asc")
-          return (a.sku || "").localeCompare(b.sku || "");
-        if (sortBy === "sku_desc")
-          return (b.sku || "").localeCompare(a.sku || "");
-
-        if (sortBy === "brand_asc") {
-          const aBrand = a.brands?.[0]?.name || "";
-          const bBrand = b.brands?.[0]?.name || "";
-          return aBrand.localeCompare(bBrand);
+        switch (sortBy) {
+          case "name_asc": return a.name.localeCompare(b.name);
+          case "name_desc": return b.name.localeCompare(a.name);
+          case "sku_asc": return (a.sku || "").localeCompare(b.sku || "");
+          case "sku_desc": return (b.sku || "").localeCompare(a.sku || "");
+          case "brand_asc":
+            return (a.brands?.[0]?.name || "").localeCompare(b.brands?.[0]?.name || "");
+          case "brand_desc":
+            return (b.brands?.[0]?.name || "").localeCompare(a.brands?.[0]?.name || "");
+          case "rate_asc": return (a.price || 0) - (b.price || 0);
+          case "rate_desc": return (b.price || 0) - (a.price || 0);
+          case "gst_asc": return a.defaultGstPct - b.defaultGstPct;
+          case "gst_desc": return b.defaultGstPct - a.defaultGstPct;
+          case "total_ordered_asc": return (a.totalOrdered || 0) - (b.totalOrdered || 0);
+          case "total_ordered_desc": return (b.totalOrdered || 0) - (a.totalOrdered || 0);
+          case "newest":
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+          case "oldest":
+            return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+          case "latest_update":
+            return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+          default: return 0;
         }
-        if (sortBy === "brand_desc") {
-          const aBrand = a.brands?.[0]?.name || "";
-          const bBrand = b.brands?.[0]?.name || "";
-          return bBrand.localeCompare(aBrand);
-        }
-
-        if (sortBy === "rate_asc") return (a.price || 0) - (b.price || 0);
-        if (sortBy === "rate_desc") return (b.price || 0) - (a.price || 0);
-
-        if (sortBy === "gst_asc") return a.defaultGstPct - b.defaultGstPct;
-        if (sortBy === "gst_desc") return b.defaultGstPct - a.defaultGstPct;
-
-        if (sortBy === "total_ordered_asc")
-          return (a.totalOrdered || 0) - (b.totalOrdered || 0);
-        if (sortBy === "total_ordered_desc")
-          return (b.totalOrdered || 0) - (a.totalOrdered || 0);
-
-        if (sortBy === "newest")
-          return (
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime()
-          );
-        if (sortBy === "oldest")
-          return (
-            new Date(a.createdAt || 0).getTime() -
-            new Date(b.createdAt || 0).getTime()
-          );
-        if (sortBy === "latest_update")
-          return (
-            new Date(b.updatedAt || 0).getTime() -
-            new Date(a.updatedAt || 0).getTime()
-          );
-        return 0;
       });
   }, [items, searchTerm, filters, sortBy]);
 
@@ -1063,7 +1033,7 @@ export function OMItemsClient({
           <TableRow key={item.id}>
             <TableCell className="font-medium">{item.name}</TableCell>
             <TableCell>
-              {item.brands?.length > 0 ? item.brands?.map((b) => (
+              {(item.brands && item.brands.length > 0) ? item.brands.map((b) => (
                 <Badge key={b.id} variant="secondary" className="mr-1">
                   {b.name}
                 </Badge>

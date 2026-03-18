@@ -22,9 +22,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Save, AlertCircle, Info, Loader2, ArrowLeft, Package, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Save,
+  AlertCircle,
+  Info,
+  Loader2,
+  ArrowLeft,
+  Package,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
-import { formatStatus, formatDateForApi, formatDateToYYYYMMDD } from "@/lib/utils";
+import {
+  formatStatus,
+  formatDateForApi,
+  formatDateToYYYYMMDD,
+} from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -155,14 +168,18 @@ function EditDispatchForm() {
           setLogisticsPartnerId(dispatch.logisticsPartnerId || "");
           setDeliveryLocationId(dispatch.deliveryLocationId || "");
           setTrackingNumber(dispatch.docketNumber || "");
-          setExpectedDeliveryDate(formatDateToYYYYMMDD(dispatch.expectedDeliveryDate));
+          setExpectedDeliveryDate(
+            formatDateToYYYYMMDD(dispatch.expectedDeliveryDate),
+          );
           setDispatchDate(formatDateToYYYYMMDD(dispatch.dispatchDate));
           setDeliveryDate(formatDateToYYYYMMDD(dispatch.deliveryDate));
           setStatus(dispatch.status || "DISPATCHED");
           setShipmentBoxes(dispatch.shipmentBoxes || []);
-          
+
           if (dispatch.shipmentBoxes && dispatch.shipmentBoxes.length > 0) {
-            const maxBoxNum = Math.max(...dispatch.shipmentBoxes.map((b: OMShipmentBox) => b.boxNumber));
+            const maxBoxNum = Math.max(
+              ...dispatch.shipmentBoxes.map((b: OMShipmentBox) => b.boxNumber),
+            );
             setNextBoxNumber(maxBoxNum + 1);
           }
 
@@ -316,8 +333,6 @@ function EditDispatchForm() {
   const totalGst = lineItems.reduce((sum, item) => sum + item.gstAmount, 0);
   const grandTotal = subtotal + totalGst;
 
-
-
   // Shipment box functions
   const addNewBox = () => {
     const newBox: OMShipmentBox = {
@@ -338,11 +353,7 @@ function EditDispatchForm() {
     setShipmentBoxes(shipmentBoxes.filter((b) => b.boxId !== boxId));
   };
 
-  const updateBox = (
-    boxId: string,
-    field: keyof OMShipmentBox,
-    value: any,
-  ) => {
+  const updateBox = (boxId: string, field: keyof OMShipmentBox, value: any) => {
     setShipmentBoxes(
       shipmentBoxes.map((box) =>
         box.boxId === boxId ? { ...box, [field]: value } : box,
@@ -417,7 +428,8 @@ function EditDispatchForm() {
       );
 
   const getTotalBoxes = () => OMShipmentHelpers.getTotalBoxes(shipmentBoxes);
-  const getTotalVolume = () => OMShipmentHelpers.getTotalVolume(shipmentBoxes);
+  const getVolumetricWeight = () =>
+    OMShipmentHelpers.getVolumetricWeight(shipmentBoxes);
   const getTotalWeight = () => OMShipmentHelpers.getTotalWeight(shipmentBoxes);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -502,12 +514,8 @@ function EditDispatchForm() {
         expectedDeliveryDate: expectedDeliveryDate
           ? formatDateForApi(expectedDeliveryDate)
           : null,
-        dispatchDate: dispatchDate
-          ? formatDateForApi(dispatchDate)
-          : null,
-        deliveryDate: deliveryDate
-          ? formatDateForApi(deliveryDate)
-          : null,
+        dispatchDate: dispatchDate ? formatDateForApi(dispatchDate) : null,
+        deliveryDate: deliveryDate ? formatDateForApi(deliveryDate) : null,
         status,
         items: lineItems
           .filter((item) => item.dispatchQty > 0)
@@ -520,14 +528,14 @@ function EditDispatchForm() {
             gstAmount: item.gstAmount,
             totalAmount: item.totalAmount,
           })),
-        shipmentBoxes: shipmentBoxes.map(box => ({
+        shipmentBoxes: shipmentBoxes.map((box) => ({
           boxNumber: box.boxNumber,
           length: box.length,
           width: box.width,
           height: box.height,
           weight: box.weight || 0,
           numberOfBoxes: box.numberOfBoxes,
-          contents: box.contents.map(c => ({
+          contents: box.contents.map((c) => ({
             itemId: c.itemId,
             quantity: c.quantity,
           })),
@@ -670,7 +678,13 @@ function EditDispatchForm() {
                       <strong>PO Number:</strong> {selectedPO.poNumber}
                     </p>
                     <p>
-                      <strong>PO Date:</strong> {selectedPO.poDate ? new Date(selectedPO.poDate).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' }) : "N/A"}
+                      <strong>PO Date:</strong>{" "}
+                      {selectedPO.poDate
+                        ? new Date(selectedPO.poDate).toLocaleDateString(
+                            "en-IN",
+                            { day: "2-digit", month: "short", year: "numeric" },
+                          )
+                        : "N/A"}
                     </p>
                   </div>
                 </AlertDescription>
@@ -801,7 +815,13 @@ function EditDispatchForm() {
                     type="date"
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
-                    min={selectedPO?.poDate ? new Date(selectedPO.poDate).toISOString().split("T")[0] : undefined}
+                    min={
+                      selectedPO?.poDate
+                        ? new Date(selectedPO.poDate)
+                            .toISOString()
+                            .split("T")[0]
+                        : undefined
+                    }
                   />
                 </div>
               </div>
@@ -881,21 +901,24 @@ function EditDispatchForm() {
                   />
                 </div>
 
-                {selectedPO.deliveryLocations && selectedPO.deliveryLocations.length > 0 && (
-                  <div>
-                    <Label className="mb-2 block">Delivery Location</Label>
-                    <SearchableSelect
-                      options={selectedPO.deliveryLocations.map((loc: any) => ({
-                        value: loc.id,
-                        label: loc.name,
-                      }))}
-                      value={deliveryLocationId}
-                      onValueChange={setDeliveryLocationId}
-                      placeholder="Select delivery location"
-                      searchPlaceholder="Search locations..."
-                    />
-                  </div>
-                )}
+                {selectedPO.deliveryLocations &&
+                  selectedPO.deliveryLocations.length > 0 && (
+                    <div>
+                      <Label className="mb-2 block">Delivery Location</Label>
+                      <SearchableSelect
+                        options={selectedPO.deliveryLocations.map(
+                          (loc: any) => ({
+                            value: loc.id,
+                            label: loc.name,
+                          }),
+                        )}
+                        value={deliveryLocationId}
+                        onValueChange={setDeliveryLocationId}
+                        placeholder="Select delivery location"
+                        searchPlaceholder="Search locations..."
+                      />
+                    </div>
+                  )}
 
                 <div className="space-y-2">
                   <Label>Dispatch Date</Label>
@@ -960,13 +983,16 @@ function EditDispatchForm() {
             </CardContent>
           </Card>
         )}
-            {/* Shipment / Packing Details */}
-        {selectedPO && totalDispatchQty > 0 && (
-          !logisticsPartnerId ? (
+        {/* Shipment / Packing Details */}
+        {selectedPO &&
+          totalDispatchQty > 0 &&
+          (!logisticsPartnerId ? (
             <Card className="px-6">
               <CardContent className="py-6 text-center text-muted-foreground border-2 border-dashed rounded-lg">
                 <Info className="h-4 w-4 mx-auto mb-2" />
-                <p className="text-sm">Note: Select a Logistics Partner to add shipment details</p>
+                <p className="text-sm">
+                  Note: Select a Logistics Partner to add shipment details
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -978,7 +1004,12 @@ function EditDispatchForm() {
                     Add boxes/cartons with their dimensions and contents
                   </p>
                 </div>
-                <Button type="button" onClick={addNewBox} variant="outline" size="sm">
+                <Button
+                  type="button"
+                  onClick={addNewBox}
+                  variant="outline"
+                  size="sm"
+                >
                   <Package className="h-4 w-4 mr-2" />
                   Add Box
                 </Button>
@@ -1001,16 +1032,20 @@ function EditDispatchForm() {
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
                           <div>
                             <p className="text-sm font-medium">Total Boxes</p>
-                            <p className="text-2xl font-bold">{getTotalBoxes()}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Total Volume</p>
                             <p className="text-2xl font-bold">
-                              {getTotalVolume().toFixed(3)} m³
+                              {getTotalBoxes()}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm font-medium">Total Weight</p>
+                            <p className="text-sm font-medium">
+                              Volumetric Weight
+                            </p>
+                            <p className="text-2xl font-bold">
+                              {getVolumetricWeight().toFixed(3)} kg
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Actual Weight</p>
                             <p className="text-2xl font-bold">
                               {getTotalWeight().toFixed(2)} kg
                             </p>
@@ -1022,7 +1057,9 @@ function EditDispatchForm() {
                             {lineItems
                               .filter((item) => item.dispatchQty > 0)
                               .map((item) => {
-                                const packed = getPackedQuantity(item.poLineItemId);
+                                const packed = getPackedQuantity(
+                                  item.poLineItemId,
+                                );
                                 const isComplete = packed === item.dispatchQty;
                                 return (
                                   <div
@@ -1170,15 +1207,15 @@ function EditDispatchForm() {
                               box.width > 0 &&
                               box.height > 0 && (
                                 <p className="text-xs text-muted-foreground mt-2">
-                                  Volume per box:{" "}
-                                  {OMShipmentHelpers.calculateBoxVolume(
+                                  Volumetric Weight per box:{" "}
+                                  {OMShipmentHelpers.calculateBoxVolumetricWeight(
                                     box,
                                   ).toFixed(4)}{" "}
-                                  m³
+                                  kg
                                   {box.numberOfBoxes > 1 &&
-                                    ` × ${box.numberOfBoxes} = ${OMShipmentHelpers.calculateTotalBoxVolume(
+                                    ` × ${box.numberOfBoxes} = ${OMShipmentHelpers.calculateTotalBoxVolumetricWeight(
                                       box,
-                                    ).toFixed(4)} m³`}
+                                    ).toFixed(4)} kg`}
                                 </p>
                               )}
                             {box.weight > 0 && (
@@ -1214,7 +1251,10 @@ function EditDispatchForm() {
                             ) : (
                               <div className="space-y-2">
                                 {box.contents.map((content, contentIndex) => (
-                                  <div key={contentIndex} className="flex gap-2">
+                                  <div
+                                    key={contentIndex}
+                                    className="flex gap-2"
+                                  >
                                     <Select
                                       value={content.itemId}
                                       onValueChange={(value) =>
@@ -1231,7 +1271,9 @@ function EditDispatchForm() {
                                       </SelectTrigger>
                                       <SelectContent>
                                         {lineItems
-                                          .filter((item) => item.dispatchQty > 0)
+                                          .filter(
+                                            (item) => item.dispatchQty > 0,
+                                          )
                                           .map((item) => (
                                             <SelectItem
                                               key={item.poLineItemId}
@@ -1301,8 +1343,7 @@ function EditDispatchForm() {
                 )}
               </CardContent>
             </Card>
-          )
-        )}
+          ))}
 
         {/* Dispatch Summary */}
         {selectedPO && totalDispatchQty > 0 && (
@@ -1352,12 +1393,15 @@ function EditDispatchForm() {
 
         {/* Actions */}
         <div className="flex flex-col items-end gap-2">
-          {shipmentBoxes.length > 0 && !isPackingComplete && totalDispatchQty > 0 && (
-            <p className="text-sm text-destructive flex items-center bg-destructive/10 px-3 py-1 rounded-md">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Packing status not met. Please ensure all items are fully packed.
-            </p>
-          )}
+          {shipmentBoxes.length > 0 &&
+            !isPackingComplete &&
+            totalDispatchQty > 0 && (
+              <p className="text-sm text-destructive flex items-center bg-destructive/10 px-3 py-1 rounded-md">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                Packing status not met. Please ensure all items are fully
+                packed.
+              </p>
+            )}
           <div className="flex justify-end gap-4">
             <Button
               type="button"
@@ -1391,10 +1435,8 @@ function EditDispatchForm() {
 
 export default function OMEditDispatch() {
   return (
-    <Layout isClient={false}>
-      <Suspense fallback={<div>Loading form...</div>}>
-        <EditDispatchForm />
-      </Suspense>
-    </Layout>
+    <Suspense fallback={<div>Loading form...</div>}>
+      <EditDispatchForm />
+    </Suspense>
   );
 }

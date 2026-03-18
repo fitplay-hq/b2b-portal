@@ -25,7 +25,7 @@ interface Client {
     name: string;
     address: string;
   } | null;
-  createdAt: string;
+  createdAt: Date | string;
   _count?: {
     products: number;
   };

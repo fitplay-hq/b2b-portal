@@ -2,15 +2,13 @@
 
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Layout from "@/components/layout";
 import { PageGuard } from "@/components/page-guard";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   Plus,
   Building2,
   Users,
-  Package,
   Search,
   ChevronDown,
   ChevronUp,
@@ -92,14 +90,14 @@ function CompaniesClientsContent() {
     const term = searchTerm.toLowerCase();
     if (!term) return companies;
 
-    return companies.filter((company) => {
+    return companies.filter((company: any) => {
       const companyMatches =
         company.name.toLowerCase().includes(term) ||
         company.address.toLowerCase().includes(term);
 
       const companyClients = clientsByCompany.get(company.id) || [];
       const clientsMatch = companyClients.some(
-        (client) =>
+        (client: any) =>
           client.name.toLowerCase().includes(term) ||
           client.email.toLowerCase().includes(term),
       );
@@ -138,7 +136,7 @@ function CompaniesClientsContent() {
     const totalCompanies = companies.length;
     const totalClients = clients.length;
     const totalProducts = companies.reduce(
-      (sum, company) => sum + (company._count?.products || 0),
+      (sum: number, company: any) => sum + (company._count?.products || 0),
       0,
     );
     const avgProductsPerCompany =
@@ -166,7 +164,7 @@ function CompaniesClientsContent() {
 
   const expandAll = () => {
     if (filteredCompanies) {
-      setExpandedCompanies(new Set(filteredCompanies.map((c) => c.id)));
+      setExpandedCompanies(new Set(filteredCompanies.map((c: any) => c.id)));
     }
   };
 
@@ -206,11 +204,9 @@ function CompaniesClientsContent() {
   if (isLoading) {
     return (
       <PageGuard resource={RESOURCES.COMPANIES} action="view">
-        <Layout isClient={false}>
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        </Layout>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       </PageGuard>
     );
   }
@@ -218,217 +214,213 @@ function CompaniesClientsContent() {
   if (error) {
     return (
       <PageGuard resource={RESOURCES.COMPANIES} action="view">
-        <Layout isClient={false}>
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <h2 className="text-xl font-semibold">Error loading data</h2>
-              <p className="text-muted-foreground mt-2">
-                {error instanceof Error
-                  ? error.message
-                  : "Failed to load companies and clients"}
-              </p>
-            </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold">Error loading data</h2>
+            <p className="text-muted-foreground mt-2">
+              {error instanceof Error
+                ? error.message
+                : "Failed to load companies and clients"}
+            </p>
           </div>
-        </Layout>
+        </div>
       </PageGuard>
     );
   }
 
   return (
     <PageGuard resource={RESOURCES.COMPANIES} action="view">
-      <Layout isClient={false}>
-        <div className="bg-gray-50 -m-6">
-          <div className="p-4 sm:p-6 lg:p-8">
-            <div className="space-y-6 sm:space-y-8">
-              {/* Enhanced Header */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 lg:p-8">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">
-                      Companies & Clients
-                    </h1>
-                    <p className="text-gray-600 text-sm sm:text-base">
-                      Manage companies, client users (POCs), assigned products,
-                      and analytics scope
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 shrink-0">
-                    {actions.clients.create && (
-                      <Link href="/admin/clients/new" className="shrink-0">
-                        <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
-                          <Users className="h-4 w-4 mr-2" />
-                          Add Client
-                        </Button>
-                      </Link>
-                    )}
-                    {actions.companies.create && (
-                      <Link href="/admin/companies/new" className="shrink-0">
-                        <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Company
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
+      <div className="bg-gray-50 -m-6">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="space-y-6 sm:space-y-8">
+            {/* Enhanced Header */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 lg:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">
+                    Companies & Clients
+                  </h1>
+                  <p className="text-gray-600 text-sm sm:text-base">
+                    Manage companies, client users (POCs), assigned products,
+                    and analytics scope
+                  </p>
                 </div>
-              </div>
-
-              {/* Unified Stats Grid */}
-              <UnifiedStatsGrid {...stats} />
-
-              {/* Search Controls */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
-                  <div className="relative w-full sm:max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4 sm:h-5 sm:w-5" />
-                    <Input
-                      placeholder="Search companies or clients..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Companies and Clients with Tabs */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="p-8 border-b border-gray-200 bg-gray-50">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                        Companies & Clients (
-                        {viewType === "row"
-                          ? filteredCompanies.length
-                          : filteredClients.length}
-                        )
-                      </h2>
-                      <p className="text-sm text-gray-500">
-                        {viewType === "row"
-                          ? "Click on a company to view its clients (POCs) and assigned products"
-                          : "Table view of all clients with their details and actions"}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={viewType === "row" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setViewType("row")}
-                      >
-                        <Grid3x3 className="h-4 w-4 mr-2" />
-                        Row View
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 shrink-0">
+                  {actions.clients.create && (
+                    <Link href="/admin/clients/new" className="shrink-0">
+                      <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
+                        <Users className="h-4 w-4 mr-2" />
+                        Add Client
                       </Button>
-                      <Button
-                        variant={viewType === "table" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setViewType("table")}
-                      >
-                        <Table className="h-4 w-4 mr-2" />
-                        Table View
-                      </Button>
-                    </div>
-                  </div>
-
-                  {viewType === "row" && (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={expandAll}
-                        disabled={filteredCompanies.length === 0}
-                      >
-                        <ChevronDown className="h-4 w-4 mr-2" />
-                        Expand All
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={collapseAll}
-                        disabled={expandedCompanies.size === 0}
-                      >
-                        <ChevronUp className="h-4 w-4 mr-2" />
-                        Collapse All
-                      </Button>
-                    </div>
+                    </Link>
                   )}
-                </div>
-
-                <div className="p-4 sm:p-6 lg:p-8">
-                  {viewType === "row" ? (
-                    // Row View - Companies with expandable clients
-                    <>
-                      {filteredCompanies.length === 0 ? (
-                        <div className="text-center py-12">
-                          <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                          <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                            No companies found
-                          </h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            {searchTerm
-                              ? "Try adjusting your search terms."
-                              : "Get started by creating your first company."}
-                          </p>
-                          {!searchTerm && actions.companies.create && (
-                            <Link href="/admin/companies/new">
-                              <Button>
-                                <Building2 className="h-4 w-4 mr-2" />
-                                Create First Company
-                              </Button>
-                            </Link>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="space-y-3 sm:space-y-4">
-                          {filteredCompanies.map((company) => (
-                            <CompanyCard
-                              key={company.id}
-                              company={company}
-                              clients={clientsByCompany.get(company.id) || []}
-                              isExpanded={expandedCompanies.has(company.id)}
-                              onToggle={() => toggleCompany(company.id)}
-                              onDeleteClient={handleDeleteClient}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    // Table View - All clients in table format
-                    <>
-                      {filteredClients.length === 0 ? (
-                        <div className="text-center py-12">
-                          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                          <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                            No clients found
-                          </h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            {searchTerm
-                              ? "Try adjusting your search terms."
-                              : "Get started by creating your first client."}
-                          </p>
-                          {!searchTerm && actions.clients.create && (
-                            <Link href="/admin/clients/new">
-                              <Button>
-                                <Users className="h-4 w-4 mr-2" />
-                                Create First Client
-                              </Button>
-                            </Link>
-                          )}
-                        </div>
-                      ) : (
-                        <ClientsTable
-                          clients={filteredClients}
-                          onDeleteClient={handleDeleteClient}
-                        />
-                      )}
-                    </>
+                  {actions.companies.create && (
+                    <Link href="/admin/companies/new" className="shrink-0">
+                      <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Company
+                      </Button>
+                    </Link>
                   )}
                 </div>
               </div>
             </div>
+
+            {/* Unified Stats Grid */}
+            <UnifiedStatsGrid {...stats} />
+
+            {/* Search Controls */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
+                <div className="relative w-full sm:max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4 sm:h-5 sm:w-5" />
+                  <Input
+                    placeholder="Search companies or clients..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Companies and Clients with Tabs */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-8 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                      Companies & Clients (
+                      {viewType === "row"
+                        ? filteredCompanies.length
+                        : filteredClients.length}
+                      )
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {viewType === "row"
+                        ? "Click on a company to view its clients (POCs) and assigned products"
+                        : "Table view of all clients with their details and actions"}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={viewType === "row" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setViewType("row")}
+                    >
+                      <Grid3x3 className="h-4 w-4 mr-2" />
+                      Row View
+                    </Button>
+                    <Button
+                      variant={viewType === "table" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setViewType("table")}
+                    >
+                      <Table className="h-4 w-4 mr-2" />
+                      Table View
+                    </Button>
+                  </div>
+                </div>
+
+                {viewType === "row" && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={expandAll}
+                      disabled={filteredCompanies.length === 0}
+                    >
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                      Expand All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={collapseAll}
+                      disabled={expandedCompanies.size === 0}
+                    >
+                      <ChevronUp className="h-4 w-4 mr-2" />
+                      Collapse All
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 sm:p-6 lg:p-8">
+                {viewType === "row" ? (
+                  // Row View - Companies with expandable clients
+                  <>
+                    {filteredCompanies.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+                          No companies found
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {searchTerm
+                            ? "Try adjusting your search terms."
+                            : "Get started by creating your first company."}
+                        </p>
+                        {!searchTerm && actions.companies.create && (
+                          <Link href="/admin/companies/new">
+                            <Button>
+                              <Building2 className="h-4 w-4 mr-2" />
+                              Create First Company
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-3 sm:space-y-4">
+                        {filteredCompanies.map((company: any) => (
+                          <CompanyCard
+                            key={company.id}
+                            company={company}
+                            clients={clientsByCompany.get(company.id) || []}
+                            isExpanded={expandedCompanies.has(company.id)}
+                            onToggle={() => toggleCompany(company.id)}
+                            onDeleteClient={handleDeleteClient}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  // Table View - All clients in table format
+                  <>
+                    {filteredClients.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+                          No clients found
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {searchTerm
+                            ? "Try adjusting your search terms."
+                            : "Get started by creating your first client."}
+                        </p>
+                        {!searchTerm && actions.clients.create && (
+                          <Link href="/admin/clients/new">
+                            <Button>
+                              <Users className="h-4 w-4 mr-2" />
+                              Create First Client
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    ) : (
+                      <ClientsTable
+                        clients={filteredClients}
+                        onDeleteClient={handleDeleteClient}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </Layout>
+      </div>
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
@@ -457,11 +449,9 @@ export default function CompaniesClientsPage() {
   return (
     <Suspense
       fallback={
-        <Layout isClient={false}>
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        </Layout>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       }
     >
       <CompaniesClientsContent />
