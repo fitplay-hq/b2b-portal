@@ -128,14 +128,12 @@ export default function AnalyticsPage() {
   // Show loading while session is being loaded
   if (status === 'loading') {
     return (
-      <Layout isClient={false}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-            <p className="mt-4 text-gray-600">Loading...</p>
-          </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
-      </Layout>
+      </div>
     );
   }
 
@@ -148,23 +146,21 @@ export default function AnalyticsPage() {
   // Check if user has permission to view analytics
   if (isUnauthorized) {
     return (
-      <Layout isClient={false}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Card className="w-full max-w-md">
-            <CardContent className="flex flex-col items-center text-center p-8">
-              <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-              <p className="text-gray-600 mb-4">
-                You do not have permission to view analytics. Please contact your administrator.
-              </p>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center text-center p-8">
+            <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600 mb-4">
+              You do not have permission to view analytics. Please contact your administrator.
+            </p>
 
-              <Button variant="outline" onClick={() => window.history.back()}>
-                Go Back
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
+            <Button variant="outline" onClick={() => window.history.back()}>
+              Go Back
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -213,8 +209,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <Layout isClient={false}>
-      <div className="space-y-4 p-6">
+    <div className="space-y-4 p-6">
       {/* Header */}
       <Card className="bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-0 overflow-hidden relative">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE2YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00em0wIDI0YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00ek0xMiAxNmMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHptMCAyNGMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40"></div>
@@ -948,6 +943,5 @@ export default function AnalyticsPage() {
         </TabsContent>
       </Tabs>
       </div>
-    </Layout>
   );
 }

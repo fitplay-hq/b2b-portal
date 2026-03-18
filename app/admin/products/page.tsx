@@ -90,28 +90,23 @@ export default function AdminProductsPage() {
 
   if (isLoading) {
     return (
-      <Layout isClient={false}>
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </Layout>
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Layout isClient={false}>
-        <div className="text-center text-destructive">
-          Failed to load products. Please try again later.
-        </div>
-      </Layout>
+      <div className="text-center text-destructive">
+        Failed to load products. Please try again later.
+      </div>
     );
   }
 
   return (
     <PageGuard resource={RESOURCES.PRODUCTS} action="view">
-      <Layout isClient={false}>
-        <div className="w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="w-full min-w-0 max-w-full overflow-x-hidden">
           <div className="flex flex-col gap-4 sm:gap-6">
             <div className="shrink-0 space-y-4 sm:space-y-6">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 overflow-hidden">
@@ -209,7 +204,6 @@ export default function AdminProductsPage() {
           isOpen={categoryDialogOpen}
           onClose={() => setCategoryDialogOpen(false)}
         />
-      </Layout>
-    </PageGuard>
+      </PageGuard>
   );
 }

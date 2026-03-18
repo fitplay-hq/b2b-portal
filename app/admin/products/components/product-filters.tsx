@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Search, Filter, ArrowUpDown } from "lucide-react";
 import useSWR from 'swr';
+import { SortOption } from "@/hooks/use-product-filters";
 
 interface ProductCategory {
   id: string;
@@ -22,6 +23,20 @@ interface ProductCategory {
   _count: {
     products: number;
     subCategories: number;
+  };
+}
+
+interface SubCategory {
+  id: string;
+  name: string;
+  categoryId: string;
+  shortCode: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  category: {
+    id: string;
+    name: string;
+    displayName: string;
   };
 }
 
@@ -71,31 +86,7 @@ export const getHumanFriendlyCategoryName = (category: string | null): string =>
     .join(" ");
 };
 
-type SortOption =
-  | "category"
-  | "name-asc"
-  | "name-desc"
-  | "newest"
-  | "oldest"
-  | "lowest-stock"
-  | "highest-stock"
-  | "latest-update";
-
-interface SubCategory {
-  id: string;
-  name: string;
-  categoryId: string;
-  shortCode: string;
-  createdAt: Date;
-  updatedAt: Date;
-  category: {
-    id: string;
-    name: string;
-    displayName: string;
-  };
-}
-
-interface ProductFiltersProps {
+export interface ProductFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   selectedCategory: string;
@@ -104,6 +95,8 @@ interface ProductFiltersProps {
   setSelectedSubCategory: (subCategory: string) => void;
   sortBy: SortOption;
   setSortBy: (sortBy: SortOption) => void;
+  stockStatus: string;
+  setStockStatus: (status: string) => void;
 }
 
 export function ProductFilters({
@@ -133,7 +126,7 @@ export function ProductFilters({
   // Filter subcategories based on selected category
   const filteredSubCategories = selectedCategory === "All Categories" 
     ? subCategories 
-    : subCategories.filter(sub => sub.category?.name === selectedCategory);
+    : subCategories.filter((sub: SubCategory) => sub.category?.name === selectedCategory);
 
   return (
     <div className="flex items-center gap-3 flex-nowrap overflow-x-auto">
@@ -179,7 +172,7 @@ export function ProductFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="All SubCategories">All SubCategories</SelectItem>
-          {filteredSubCategories.map((subCategory) => (
+          {filteredSubCategories.map((subCategory: SubCategory) => (
             <SelectItem key={subCategory.id} value={subCategory.name}>
               {subCategory.name}
             </SelectItem>
@@ -203,6 +196,7 @@ export function ProductFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="category">Category</SelectItem>
+          <SelectItem value="subcategory">Subcategory</SelectItem>
           <SelectItem value="name-asc">Name (A-Z)</SelectItem>
           <SelectItem value="name-desc">Name (Z-A)</SelectItem>
           <SelectItem value="highest-stock">Highest Stock</SelectItem>

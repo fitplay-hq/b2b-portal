@@ -30,14 +30,12 @@ export default async function OMDispatchesPage({ searchParams }: PageProps) {
   const logisticsOptions = logisticsData.data.map((l: any) => ({ value: l.id, label: l.name }));
 
   return (
-    <Layout isClient={false}>
-      <OMDispatchesClient
-        initialData={dispatchesData}
-        clientOptions={clientOptions}
-        logisticsOptions={logisticsOptions}
-        invoiceOptions={invoices}
-        docketOptions={dockets}
-      />
-    </Layout>
+    <OMDispatchesClient
+      initialData={dispatchesData}
+      clientOptions={clientOptions}
+      logisticsOptions={logisticsOptions}
+      invoiceOptions={invoices}
+      docketOptions={dockets}
+    />
   );
 }

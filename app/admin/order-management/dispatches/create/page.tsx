@@ -22,7 +22,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Save, AlertCircle, Info, Loader2, ArrowLeft, Package, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Save,
+  AlertCircle,
+  Info,
+  Loader2,
+  ArrowLeft,
+  Package,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatDateForApi, formatDateToYYYYMMDD } from "@/lib/utils";
 import { getFinancialYearString } from "@/lib/utils/financial-year";
@@ -254,8 +263,6 @@ function CreateDispatchForm() {
   const totalGst = lineItems.reduce((sum, item) => sum + item.gstAmount, 0);
   const grandTotal = subtotal + totalGst;
 
-
-
   // Shipment box functions
   const addNewBox = () => {
     const newBox: OMShipmentBox = {
@@ -276,11 +283,7 @@ function CreateDispatchForm() {
     setShipmentBoxes(shipmentBoxes.filter((b) => b.boxId !== boxId));
   };
 
-  const updateBox = (
-    boxId: string,
-    field: keyof OMShipmentBox,
-    value: any,
-  ) => {
+  const updateBox = (boxId: string, field: keyof OMShipmentBox, value: any) => {
     setShipmentBoxes(
       shipmentBoxes.map((box) =>
         box.boxId === boxId ? { ...box, [field]: value } : box,
@@ -355,7 +358,8 @@ function CreateDispatchForm() {
       );
 
   const getTotalBoxes = () => OMShipmentHelpers.getTotalBoxes(shipmentBoxes);
-  const getTotalVolume = () => OMShipmentHelpers.getTotalVolume(shipmentBoxes);
+  const getVolumetricWeight = () =>
+    OMShipmentHelpers.getVolumetricWeight(shipmentBoxes);
   const getTotalWeight = () => OMShipmentHelpers.getTotalWeight(shipmentBoxes);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -452,22 +456,18 @@ function CreateDispatchForm() {
         expectedDeliveryDate: expectedDeliveryDate
           ? formatDateForApi(expectedDeliveryDate)
           : null,
-        dispatchDate: dispatchDate
-          ? formatDateForApi(dispatchDate)
-          : null,
-        deliveryDate: deliveryDate
-          ? formatDateForApi(deliveryDate)
-          : null,
+        dispatchDate: dispatchDate ? formatDateForApi(dispatchDate) : null,
+        deliveryDate: deliveryDate ? formatDateForApi(deliveryDate) : null,
         status,
         items: processedItems,
-        shipmentBoxes: shipmentBoxes.map(box => ({
+        shipmentBoxes: shipmentBoxes.map((box) => ({
           boxNumber: box.boxNumber,
           length: box.length,
           width: box.width,
           height: box.height,
           weight: box.weight || 0,
           numberOfBoxes: box.numberOfBoxes,
-          contents: box.contents.map(c => ({
+          contents: box.contents.map((c) => ({
             itemId: c.itemId,
             quantity: c.quantity,
           })),
@@ -591,14 +591,20 @@ function CreateDispatchForm() {
                       <strong>PO Number:</strong> {selectedPO.poNumber}
                     </p>
                     <p>
-                      <strong>PO Date:</strong> {selectedPO.poDate ? new Date(selectedPO.poDate).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' }) : "N/A"}
+                      <strong>PO Date:</strong>{" "}
+                      {selectedPO.poDate
+                        ? new Date(selectedPO.poDate).toLocaleDateString(
+                            "en-IN",
+                            { day: "2-digit", month: "short", year: "numeric" },
+                          )
+                        : "N/A"}
                     </p>
                   </div>
                 </AlertDescription>
               </Alert>
             )}
           </CardContent>
-          </Card>
+        </Card>
 
         {/* Dispatch Line Items */}
         {selectedPO && (
@@ -732,7 +738,11 @@ function CreateDispatchForm() {
                     type="date"
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
-                    min={selectedPO?.poDate ? formatDateToYYYYMMDD(selectedPO.poDate) : undefined}
+                    min={
+                      selectedPO?.poDate
+                        ? formatDateToYYYYMMDD(selectedPO.poDate)
+                        : undefined
+                    }
                   />
                 </div>
               </div>
@@ -811,7 +821,7 @@ function CreateDispatchForm() {
                     placeholder="Enter tracking number"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Dispatch Date</Label>
                   <Input
@@ -821,21 +831,24 @@ function CreateDispatchForm() {
                   />
                 </div>
 
-                {selectedPO.deliveryLocations && selectedPO.deliveryLocations.length > 0 && (
-                  <div>
-                    <Label className="mb-2 block">Delivery Location</Label>
-                    <SearchableSelect
-                      options={selectedPO.deliveryLocations.map((loc: any) => ({
-                        value: loc.id,
-                        label: loc.name,
-                      }))}
-                      value={deliveryLocationId}
-                      onValueChange={setDeliveryLocationId}
-                      placeholder="Select delivery location"
-                      searchPlaceholder="Search locations..."
-                    />
-                  </div>
-                )}
+                {selectedPO.deliveryLocations &&
+                  selectedPO.deliveryLocations.length > 0 && (
+                    <div>
+                      <Label className="mb-2 block">Delivery Location</Label>
+                      <SearchableSelect
+                        options={selectedPO.deliveryLocations.map(
+                          (loc: any) => ({
+                            value: loc.id,
+                            label: loc.name,
+                          }),
+                        )}
+                        value={deliveryLocationId}
+                        onValueChange={setDeliveryLocationId}
+                        placeholder="Select delivery location"
+                        searchPlaceholder="Search locations..."
+                      />
+                    </div>
+                  )}
 
                 <div className="space-y-2">
                   <Label>Expected Delivery Date</Label>
@@ -845,7 +858,6 @@ function CreateDispatchForm() {
                     onChange={(e) => setExpectedDeliveryDate(e.target.value)}
                   />
                 </div>
-
 
                 <div className="space-y-2">
                   <Label>Delivery Date</Label>
@@ -894,12 +906,15 @@ function CreateDispatchForm() {
         )}
 
         {/* Shipment / Packing Details */}
-        {selectedPO && totalDispatchQty > 0 && (
-          !logisticsPartnerId ? (
+        {selectedPO &&
+          totalDispatchQty > 0 &&
+          (!logisticsPartnerId ? (
             <Card className="px-6">
               <CardContent className="py-6 text-center text-muted-foreground border-2 border-dashed rounded-lg">
                 <Info className="h-4 w-4 mx-auto mb-2" />
-                <p className="text-sm">Note: Select a Logistics Partner to add shipment details</p>
+                <p className="text-sm">
+                  Note: Select a Logistics Partner to add shipment details
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -911,331 +926,346 @@ function CreateDispatchForm() {
                     Add boxes/cartons with their dimensions and contents
                   </p>
                 </div>
-                <Button type="button" onClick={addNewBox} variant="outline" size="sm">
+                <Button
+                  type="button"
+                  onClick={addNewBox}
+                  variant="outline"
+                  size="sm"
+                >
                   <Package className="h-4 w-4 mr-2" />
                   Add Box
                 </Button>
               </CardHeader>
-            <CardContent className="space-y-6">
-              {shipmentBoxes.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-                  <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No boxes added yet</p>
-                  <p className="text-sm">
-                    Click "Add Box" to start adding shipment details
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {/* Packing Summary */}
-                  <Alert>
-                    <Package className="h-4 w-4" />
-                    <AlertDescription>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                          <p className="text-sm font-medium">Total Boxes</p>
-                          <p className="text-2xl font-bold">{getTotalBoxes()}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Total Volume</p>
-                          <p className="text-2xl font-bold">
-                            {getTotalVolume().toFixed(3)} m³
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Total Weight</p>
-                          <p className="text-2xl font-bold">
-                            {getTotalWeight().toFixed(2)} kg
-                          </p>
-                        </div>
-                        <div className="col-span-2 md:col-span-1">
-                          <p className="text-sm font-medium mb-2">
-                            Packing Status
-                          </p>
-                          {lineItems
-                            .filter((item) => item.dispatchQty > 0)
-                            .map((item) => {
-                              const packed = getPackedQuantity(item.poLineItemId);
-                              const isComplete = packed === item.dispatchQty;
-                              return (
-                                <div
-                                  key={item.poLineItemId}
-                                  className="flex justify-between text-sm mb-1"
-                                >
-                                  <span className="truncate">
-                                    {item.itemName}:
-                                  </span>
-                                  <span
-                                    className={
-                                      isComplete
-                                        ? "text-green-600 font-medium"
-                                        : "text-orange-600 font-medium"
-                                    }
-                                  >
-                                    {packed} / {item.dispatchQty}{" "}
-                                    {isComplete ? "✓" : "⚠"}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-
-                  {/* Individual Boxes */}
-                  {shipmentBoxes.map((box, boxIndex) => (
-                    <Card key={box.boxId} className="border-2">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-base">
-                            Box {box.boxNumber}
-                          </CardTitle>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeBox(box.boxId)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* Box Dimensions */}
-                        <div>
-                          <Label className="text-sm font-medium mb-2 block">
-                            Dimensions (in cm) & Weight (in kg)
-                          </Label>
-                          <div className="grid grid-cols-5 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">
-                                Length
-                              </Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={box.length || ""}
-                                onChange={(e) =>
-                                  updateBox(
-                                    box.boxId,
-                                    "length",
-                                    parseFloat(e.target.value) || 0,
-                                  )
-                                }
-                                placeholder="cm"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">
-                                Width
-                              </Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={box.width || ""}
-                                onChange={(e) =>
-                                  updateBox(
-                                    box.boxId,
-                                    "width",
-                                    parseFloat(e.target.value) || 0,
-                                  )
-                                }
-                                placeholder="cm"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">
-                                Height
-                              </Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={box.height || ""}
-                                onChange={(e) =>
-                                  updateBox(
-                                    box.boxId,
-                                    "height",
-                                    parseFloat(e.target.value) || 0,
-                                  )
-                                }
-                                placeholder="cm"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">
-                                Weight
-                              </Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={box.weight || ""}
-                                onChange={(e) =>
-                                  updateBox(
-                                    box.boxId,
-                                    "weight",
-                                    parseFloat(e.target.value) || 0,
-                                  )
-                                }
-                                placeholder="kg"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">
-                                # of Boxes
-                              </Label>
-                              <Input
-                                type="number"
-                                min="1"
-                                value={box.numberOfBoxes || ""}
-                                onChange={(e) =>
-                                  updateBox(
-                                    box.boxId,
-                                    "numberOfBoxes",
-                                    parseInt(e.target.value),
-                                  )
-                                }
-                                placeholder="0"
-                              />
-                            </div>
-                          </div>
-                          {box.length > 0 &&
-                            box.width > 0 &&
-                            box.height > 0 && (
-                              <p className="text-xs text-muted-foreground mt-2">
-                                Volume per box:{" "}
-                                {OMShipmentHelpers.calculateBoxVolume(
-                                  box,
-                                ).toFixed(4)}{" "}
-                                m³
-                                {box.numberOfBoxes > 1 &&
-                                  ` × ${box.numberOfBoxes} = ${OMShipmentHelpers.calculateTotalBoxVolume(
-                                    box,
-                                  ).toFixed(4)} m³`}
-                              </p>
-                            )}
-                          {box.weight > 0 && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Weight per box: {box.weight} kg
-                              {box.numberOfBoxes > 1 &&
-                                ` × ${box.numberOfBoxes} = ${(box.weight * box.numberOfBoxes).toFixed(2)} kg`}
+              <CardContent className="space-y-6">
+                {shipmentBoxes.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                    <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No boxes added yet</p>
+                    <p className="text-sm">
+                      Click "Add Box" to start adding shipment details
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Packing Summary */}
+                    <Alert>
+                      <Package className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-sm font-medium">Total Boxes</p>
+                            <p className="text-2xl font-bold">
+                              {getTotalBoxes()}
                             </p>
-                          )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              Volumetric Weight
+                            </p>
+                            <p className="text-2xl font-bold">
+                              {getVolumetricWeight().toFixed(3)} kg
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Actual Weight</p>
+                            <p className="text-2xl font-bold">
+                              {getTotalWeight().toFixed(2)} kg
+                            </p>
+                          </div>
+                          <div className="col-span-2 md:col-span-1">
+                            <p className="text-sm font-medium mb-2">
+                              Packing Status
+                            </p>
+                            {lineItems
+                              .filter((item) => item.dispatchQty > 0)
+                              .map((item) => {
+                                const packed = getPackedQuantity(
+                                  item.poLineItemId,
+                                );
+                                const isComplete = packed === item.dispatchQty;
+                                return (
+                                  <div
+                                    key={item.poLineItemId}
+                                    className="flex justify-between text-sm mb-1"
+                                  >
+                                    <span className="truncate">
+                                      {item.itemName}:
+                                    </span>
+                                    <span
+                                      className={
+                                        isComplete
+                                          ? "text-green-600 font-medium"
+                                          : "text-orange-600 font-medium"
+                                      }
+                                    >
+                                      {packed} / {item.dispatchQty}{" "}
+                                      {isComplete ? "✓" : "⚠"}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                          </div>
                         </div>
+                      </AlertDescription>
+                    </Alert>
 
-                        {/* Box Contents */}
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <Label className="text-sm font-medium">
-                              Contents (per box)
-                            </Label>
+                    {/* Individual Boxes */}
+                    {shipmentBoxes.map((box, boxIndex) => (
+                      <Card key={box.boxId} className="border-2">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">
+                              Box {box.boxNumber}
+                            </CardTitle>
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => addContentToBox(box.boxId)}
+                              onClick={() => removeBox(box.boxId)}
                             >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add Item
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* Box Dimensions */}
+                          <div>
+                            <Label className="text-sm font-medium mb-2 block">
+                              Dimensions (in cm) & Weight (in kg)
+                            </Label>
+                            <div className="grid grid-cols-5 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">
+                                  Length
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={box.length || ""}
+                                  onChange={(e) =>
+                                    updateBox(
+                                      box.boxId,
+                                      "length",
+                                      parseFloat(e.target.value) || 0,
+                                    )
+                                  }
+                                  placeholder="cm"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">
+                                  Width
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={box.width || ""}
+                                  onChange={(e) =>
+                                    updateBox(
+                                      box.boxId,
+                                      "width",
+                                      parseFloat(e.target.value) || 0,
+                                    )
+                                  }
+                                  placeholder="cm"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">
+                                  Height
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={box.height || ""}
+                                  onChange={(e) =>
+                                    updateBox(
+                                      box.boxId,
+                                      "height",
+                                      parseFloat(e.target.value) || 0,
+                                    )
+                                  }
+                                  placeholder="cm"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">
+                                  Weight
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={box.weight || ""}
+                                  onChange={(e) =>
+                                    updateBox(
+                                      box.boxId,
+                                      "weight",
+                                      parseFloat(e.target.value) || 0,
+                                    )
+                                  }
+                                  placeholder="kg"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">
+                                  # of Boxes
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={box.numberOfBoxes || ""}
+                                  onChange={(e) =>
+                                    updateBox(
+                                      box.boxId,
+                                      "numberOfBoxes",
+                                      parseInt(e.target.value),
+                                    )
+                                  }
+                                  placeholder="0"
+                                />
+                              </div>
+                            </div>
+                            {box.length > 0 &&
+                              box.width > 0 &&
+                              box.height > 0 && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Volumetric Weight per box:{" "}
+                                  {OMShipmentHelpers.calculateBoxVolumetricWeight(
+                                    box,
+                                  ).toFixed(4)}{" "}
+                                  kg
+                                  {box.numberOfBoxes > 1 &&
+                                    ` × ${box.numberOfBoxes} = ${OMShipmentHelpers.calculateTotalBoxVolumetricWeight(
+                                      box,
+                                    ).toFixed(4)} kg`}
+                                </p>
+                              )}
+                            {box.weight > 0 && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Weight per box: {box.weight} kg
+                                {box.numberOfBoxes > 1 &&
+                                  ` × ${box.numberOfBoxes} = ${(box.weight * box.numberOfBoxes).toFixed(2)} kg`}
+                              </p>
+                            )}
+                          </div>
 
-                          {box.contents.length === 0 ? (
-                            <div className="text-center py-4 border-2 border-dashed rounded text-sm text-muted-foreground">
-                              No items in this box yet
+                          {/* Box Contents */}
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-sm font-medium">
+                                Contents (per box)
+                              </Label>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => addContentToBox(box.boxId)}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add Item
+                              </Button>
                             </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {box.contents.map((content, contentIndex) => (
-                                <div key={contentIndex} className="flex gap-2">
-                                  <Select
-                                    value={content.itemId}
-                                    onValueChange={(value) =>
-                                      updateBoxContent(
-                                        box.boxId,
-                                        contentIndex,
-                                        "itemId",
-                                        value,
-                                      )
-                                    }
+
+                            {box.contents.length === 0 ? (
+                              <div className="text-center py-4 border-2 border-dashed rounded text-sm text-muted-foreground">
+                                No items in this box yet
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {box.contents.map((content, contentIndex) => (
+                                  <div
+                                    key={contentIndex}
+                                    className="flex gap-2"
                                   >
-                                    <SelectTrigger className="flex-1">
-                                      <SelectValue placeholder="Select item" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {lineItems
-                                        .filter((item) => item.dispatchQty > 0)
-                                        .map((item) => (
-                                          <SelectItem
-                                            key={item.poLineItemId}
-                                            value={item.poLineItemId}
-                                          >
-                                            {item.itemName} (Dispatch:{" "}
-                                            {item.dispatchQty})
-                                          </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    value={content.quantity || ""}
-                                    onChange={(e) =>
-                                      updateBoxContent(
-                                        box.boxId,
-                                        contentIndex,
-                                        "quantity",
-                                        parseInt(e.target.value) || 0,
-                                      )
-                                    }
-                                    placeholder="Qty"
-                                    className="w-24"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      removeContentFromBox(
-                                        box.boxId,
-                                        contentIndex,
-                                      )
-                                    }
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </div>
-                              ))}
-                              {box.numberOfBoxes > 1 &&
-                                box.contents.length > 0 && (
-                                  <p className="text-xs text-muted-foreground italic mt-2">
-                                    Total across {box.numberOfBoxes} boxes:
-                                    {box.contents
-                                      .map((c) => c.itemName)
-                                      .filter(Boolean)
-                                      .map((name, i) => (
-                                        <span key={i}>
-                                          {" "}
-                                          {name} (
-                                          {box.contents[i].quantity *
-                                            box.numberOfBoxes}
+                                    <Select
+                                      value={content.itemId}
+                                      onValueChange={(value) =>
+                                        updateBoxContent(
+                                          box.boxId,
+                                          contentIndex,
+                                          "itemId",
+                                          value,
+                                        )
+                                      }
+                                    >
+                                      <SelectTrigger className="flex-1">
+                                        <SelectValue placeholder="Select item" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {lineItems
+                                          .filter(
+                                            (item) => item.dispatchQty > 0,
                                           )
-                                        </span>
-                                      ))}
-                                  </p>
-                                )}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        )
-      )}
+                                          .map((item) => (
+                                            <SelectItem
+                                              key={item.poLineItemId}
+                                              value={item.poLineItemId}
+                                            >
+                                              {item.itemName} (Dispatch:{" "}
+                                              {item.dispatchQty})
+                                            </SelectItem>
+                                          ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      value={content.quantity || ""}
+                                      onChange={(e) =>
+                                        updateBoxContent(
+                                          box.boxId,
+                                          contentIndex,
+                                          "quantity",
+                                          parseInt(e.target.value) || 0,
+                                        )
+                                      }
+                                      placeholder="Qty"
+                                      className="w-24"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        removeContentFromBox(
+                                          box.boxId,
+                                          contentIndex,
+                                        )
+                                      }
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                ))}
+                                {box.numberOfBoxes > 1 &&
+                                  box.contents.length > 0 && (
+                                    <p className="text-xs text-muted-foreground italic mt-2">
+                                      Total across {box.numberOfBoxes} boxes:
+                                      {box.contents
+                                        .map((c) => c.itemName)
+                                        .filter(Boolean)
+                                        .map((name, i) => (
+                                          <span key={i}>
+                                            {" "}
+                                            {name} (
+                                            {box.contents[i].quantity *
+                                              box.numberOfBoxes}
+                                            )
+                                          </span>
+                                        ))}
+                                    </p>
+                                  )}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ))}
 
         {/* Dispatch Summary */}
         {selectedPO && totalDispatchQty > 0 && (
@@ -1285,12 +1315,15 @@ function CreateDispatchForm() {
 
         {/* Actions */}
         <div className="flex flex-col items-end gap-2">
-          {shipmentBoxes.length > 0 && !isPackingComplete && totalDispatchQty > 0 && (
-            <p className="text-sm text-destructive flex items-center bg-destructive/10 px-3 py-1 rounded-md">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Packing status not met. Please ensure all items are fully packed.
-            </p>
-          )}
+          {shipmentBoxes.length > 0 &&
+            !isPackingComplete &&
+            totalDispatchQty > 0 && (
+              <p className="text-sm text-destructive flex items-center bg-destructive/10 px-3 py-1 rounded-md">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                Packing status not met. Please ensure all items are fully
+                packed.
+              </p>
+            )}
           <div className="flex justify-end gap-4">
             <Button
               type="button"
@@ -1324,10 +1357,10 @@ function CreateDispatchForm() {
 
 export default function OMCreateDispatch() {
   return (
-    <Layout isClient={false}>
+    <div className="space-y-6">
       <Suspense fallback={<div>Loading form...</div>}>
         <CreateDispatchForm />
       </Suspense>
-    </Layout>
+    </div>
   );
 }

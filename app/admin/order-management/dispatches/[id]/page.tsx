@@ -54,8 +54,7 @@ export default function OMDispatchDetail() {
 
   if (isLoading) {
     return (
-      <Layout isClient={false}>
-        <div className="space-y-6">
+      <div className="space-y-6">
           {/* Header Skeleton */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -126,23 +125,20 @@ export default function OMDispatchDetail() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
     );
   }
 
   if (!dispatch) {
     return (
-      <Layout isClient={false}>
-        <div className="text-center py-12">
-          <h3 className="text-lg font-semibold mb-2">Dispatch Not Found</h3>
-          <p className="text-muted-foreground mb-4">
-            The dispatch you&apos;re looking for doesn&apos;t exist.
-          </p>
-          <Link href="/admin/order-management/dispatches">
-            <Button>Back to Dispatches</Button>
-          </Link>
-        </div>
-      </Layout>
+      <div className="text-center py-12">
+        <h3 className="text-lg font-semibold mb-2">Dispatch Not Found</h3>
+        <p className="text-muted-foreground mb-4">
+          The dispatch you&apos;re looking for doesn&apos;t exist.
+        </p>
+        <Link href="/admin/order-management/dispatches">
+          <Button>Back to Dispatches</Button>
+        </Link>
+      </div>
     );
   }
 
@@ -178,8 +174,7 @@ export default function OMDispatchDetail() {
     ) || 0;
 
   return (
-    <Layout isClient={false}>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -282,7 +277,9 @@ export default function OMDispatchDetail() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Delivery Location</p>
+                <p className="text-sm text-muted-foreground">
+                  Delivery Location
+                </p>
                 <p className="font-medium">
                   {dispatch.deliveryLocation?.name || "N/A"}
                 </p>
@@ -291,7 +288,9 @@ export default function OMDispatchDetail() {
                 <p className="text-sm text-muted-foreground">
                   Expected Delivery
                 </p>
-                <p className="font-medium">{formatDisplayDate(dispatch.expectedDeliveryDate)}</p>
+                <p className="font-medium">
+                  {formatDisplayDate(dispatch.expectedDeliveryDate)}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Tracking Number</p>
@@ -337,14 +336,17 @@ export default function OMDispatchDetail() {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="font-medium">{po.estimateNumber || "N/A"}</p>
-                  <p>
-                    PO: {po.poNumber}
-                  </p>
+                  <p>PO: {po.poNumber}</p>
                   <p className="text-sm text-muted-foreground">
                     PO Date: {po.poDate ? formatDisplayDate(po.poDate) : "N/A"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Delivery: {dispatch.deliveryLocation?.name || po.deliveryLocations?.map((l:any) => l.name).join(", ") || "Self-Pickup"}
+                    Delivery:{" "}
+                    {dispatch.deliveryLocation?.name ||
+                      po.deliveryLocations
+                        ?.map((l: any) => l.name)
+                        .join(", ") ||
+                      "Self-Pickup"}
                   </p>
                 </div>
                 <Link href={`/admin/order-management/purchase-orders/${po.id}`}>
@@ -448,7 +450,10 @@ export default function OMDispatchDetail() {
                     <div>
                       <p className="text-sm font-medium">Total Boxes</p>
                       <p className="text-2xl font-bold">
-                        {dispatch.shipmentBoxes.reduce((sum, box) => sum + box.numberOfBoxes, 0)}
+                        {dispatch.shipmentBoxes.reduce(
+                          (sum, box) => sum + box.numberOfBoxes,
+                          0,
+                        )}
                       </p>
                     </div>
 
@@ -460,21 +465,30 @@ export default function OMDispatchDetail() {
                     </div>
 
                     <div>
-                      <p className="text-sm font-medium">Total Volume</p>
+                      <p className="text-sm font-medium">Volumetric Weight</p>
                       <p className="text-2xl font-bold">
-                        {dispatch.shipmentBoxes.reduce((sum, box) => {
-                          const volumePerBox = (box.length * box.width * box.height) / 1000000;
-                          return sum + volumePerBox * box.numberOfBoxes;
-                        }, 0).toFixed(3)} m³
+                        {dispatch.shipmentBoxes
+                          .reduce((sum, box) => {
+                            const volumePerBox =
+                              (box.length * box.width * box.height) / 1000000;
+                            return sum + volumePerBox * box.numberOfBoxes;
+                          }, 0)
+                          .toFixed(3)}{" "}
+                        kg
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-sm font-medium">Total Weight</p>
+                      <p className="text-sm font-medium">Actual Weight</p>
                       <p className="text-2xl font-bold">
                         {dispatch.shipmentBoxes
-                          .reduce((sum, box) => sum + (box.weight || 0) * box.numberOfBoxes, 0)
-                          .toFixed(2)} kg
+                          .reduce(
+                            (sum, box) =>
+                              sum + (box.weight || 0) * box.numberOfBoxes,
+                            0,
+                          )
+                          .toFixed(2)}{" "}
+                        kg
                       </p>
                     </div>
 
@@ -489,15 +503,18 @@ export default function OMDispatchDetail() {
               {/* Individual Box Details */}
               <div className="space-y-4">
                 {dispatch.shipmentBoxes.map((box) => {
-                  const volumePerBox = (box.length * box.width * box.height) / 1000000;
+                  const volumePerBox =
+                    (box.length * box.width * box.height) / 1000000;
                   const totalVolume = volumePerBox * box.numberOfBoxes;
-                  
+
                   return (
                     <Card key={box.boxId} className="border-2">
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle className="text-base">Box {box.boxNumber}</CardTitle>
+                            <CardTitle className="text-base">
+                              Box {box.boxNumber}
+                            </CardTitle>
                             {box.numberOfBoxes > 1 && (
                               <p className="text-sm text-muted-foreground mt-1">
                                 {box.numberOfBoxes} identical boxes
@@ -513,29 +530,45 @@ export default function OMDispatchDetail() {
                         {/* Dimensions */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-muted/50 rounded-lg">
                           <div>
-                            <p className="text-xs text-muted-foreground">Length</p>
+                            <p className="text-xs text-muted-foreground">
+                              Length
+                            </p>
                             <p className="font-medium">{box.length} cm</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Width</p>
+                            <p className="text-xs text-muted-foreground">
+                              Width
+                            </p>
                             <p className="font-medium">{box.width} cm</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Height</p>
+                            <p className="text-xs text-muted-foreground">
+                              Height
+                            </p>
                             <p className="font-medium">{box.height} cm</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Weight</p>
+                            <p className="text-xs text-muted-foreground">
+                              Weight
+                            </p>
                             <p className="font-medium">{box.weight || 0} kg</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Volume</p>
-                            <p className="font-medium">{volumePerBox.toFixed(4)} m³</p>
+                            <p className="text-xs text-muted-foreground">
+                              Volume
+                            </p>
+                            <p className="font-medium">
+                              {volumePerBox.toFixed(4)} kg
+                            </p>
                             {box.numberOfBoxes > 1 && (
                               <p className="text-xs text-muted-foreground mt-1">
-                                Total Vol: {totalVolume.toFixed(4)} m³
+                                Total Vol: {totalVolume.toFixed(4)} kg
                                 <br />
-                                Total Wt: {((box.weight || 0) * box.numberOfBoxes).toFixed(2)} kg
+                                Total Wt:{" "}
+                                {(
+                                  (box.weight || 0) * box.numberOfBoxes
+                                ).toFixed(2)}{" "}
+                                kg
                               </p>
                             )}
                           </div>
@@ -543,22 +576,32 @@ export default function OMDispatchDetail() {
 
                         {/* Contents */}
                         <div>
-                          <p className="text-sm font-medium mb-2">Contents (per box):</p>
+                          <p className="text-sm font-medium mb-2">
+                            Contents (per box):
+                          </p>
                           <Table>
                             <TableHeader>
                               <TableRow>
                                 <TableHead>Item Name</TableHead>
-                                <TableHead className="text-right">Quantity per Box</TableHead>
+                                <TableHead className="text-right">
+                                  Quantity per Box
+                                </TableHead>
                                 {box.numberOfBoxes > 1 && (
-                                  <TableHead className="text-right">Total Quantity</TableHead>
+                                  <TableHead className="text-right">
+                                    Total Quantity
+                                  </TableHead>
                                 )}
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {box.contents.map((content, index) => (
                                 <TableRow key={index}>
-                                  <TableCell className="font-medium">{content.itemName}</TableCell>
-                                  <TableCell className="text-right">{content.quantity}</TableCell>
+                                  <TableCell className="font-medium">
+                                    {content.itemName}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {content.quantity}
+                                  </TableCell>
                                   {box.numberOfBoxes > 1 && (
                                     <TableCell className="text-right font-medium">
                                       {content.quantity * box.numberOfBoxes}
@@ -578,9 +621,18 @@ export default function OMDispatchDetail() {
               {/* Instructions for Client */}
               <Alert>
                 <AlertDescription>
-                  <p className="text-sm font-medium mb-2">📦 For Client Reference:</p>
+                  <p className="text-sm font-medium mb-2">
+                    📦 For Client Reference:
+                  </p>
                   <ul className="text-sm space-y-1 list-disc list-inside">
-                    <li>Total shipment consists of {dispatch.shipmentBoxes.reduce((sum, box) => sum + box.numberOfBoxes, 0)} box(es)</li>
+                    <li>
+                      Total shipment consists of{" "}
+                      {dispatch.shipmentBoxes.reduce(
+                        (sum, box) => sum + box.numberOfBoxes,
+                        0,
+                      )}{" "}
+                      box(es)
+                    </li>
                     <li>Please verify contents of each box upon delivery</li>
                     <li>Box dimensions provided for storage planning</li>
                   </ul>
@@ -589,7 +641,6 @@ export default function OMDispatchDetail() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </Layout>
+    </div>
   );
 }

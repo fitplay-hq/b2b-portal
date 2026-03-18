@@ -282,189 +282,187 @@ export function OMDashboardClient({
   }, [advancedFilters.itemName, products, brandOptions]);
 
   return (
-    <Layout isClient={false}>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Order Management Dashboard</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Overview of all purchase orders and dispatches</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <Select value={timeRange} onValueChange={(val: string) => {
-              setTimeRange(val);
-              updateUrl(advancedFilters, undefined, val);
-            }}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Time Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="7d">Last 7 Days</SelectItem>
-                <SelectItem value="30d">Last 30 Days</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold">Order Management Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Overview of all purchase orders and dispatches</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select value={timeRange} onValueChange={(val: string) => {
+            setTimeRange(val);
+            updateUrl(advancedFilters, undefined, val);
+          }}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Time Range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="7d">Last 7 Days</SelectItem>
+              <SelectItem value="30d">Last 30 Days</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        <MasterSearch
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onSearch={handleManualSearch}
-          onClear={() => {
-            clearSearch();
-            updateUrl(advancedFilters, "");
-          }}
-          isSearching={isSearching}
-          isFetching={isLoading}
-          showAdvancedFilters={showAdvancedFilters}
-          setShowAdvancedFilters={setShowAdvancedFilters}
-          dropdownMatches={searchResults.dropdownMatches}
-        >
-          {showAdvancedFilters && (
-            <div className="mt-6 pt-6 border-t animate-in fade-in slide-in-from-top-4 duration-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">From Date</label>
-                  <Input type="date" value={advancedFilters.fromDate} onChange={(e) => {
-                    const next = { ...advancedFilters, fromDate: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">To Date</label>
-                  <Input type="date" value={advancedFilters.toDate} onChange={(e) => {
-                    const next = { ...advancedFilters, toDate: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client Name</label>
-                  <SearchableSelect options={clientOptions} value={advancedFilters.clientName} onValueChange={(val) => {
-                    const next = { ...advancedFilters, clientName: val };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Select client..." />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Item Name</label>
-                  <SearchableSelect options={itemOptions} value={advancedFilters.itemName} onValueChange={(val) => {
-                    const next = { ...advancedFilters, itemName: val };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Select item..." />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PO Number</label>
-                  <Input value={advancedFilters.poNumber} onChange={(e) => {
-                    const next = { ...advancedFilters, poNumber: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="PO Number..." className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Invoice Number</label>
-                  <Input value={advancedFilters.invoiceNumber} onChange={(e) => {
-                    const next = { ...advancedFilters, invoiceNumber: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Invoice Number..." className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</label>
-                  <Input value={advancedFilters.sku} onChange={(e) => {
-                    const next = { ...advancedFilters, sku: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="SKU..." className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Logistics Partner</label>
-                  <SearchableSelect options={logisticsOptions} value={advancedFilters.logisticsPartnerId} onValueChange={(val) => {
-                    const next = { ...advancedFilters, logisticsPartnerId: val };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Select partner..." />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location</label>
-                  <SearchableSelect options={locationOptions} value={advancedFilters.locationId} onValueChange={(val) => {
-                    const next = { ...advancedFilters, locationId: val };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Select location..." />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</label>
-                  <MultiSearchableSelect
-                    options={Object.entries(PO_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
-                    value={advancedFilters.status}
-                    onValueChange={(val: string[]) => {
-                      const next = { ...advancedFilters, status: val };
-                      setAdvancedFilters(next);
-                      updateUrl(next);
-                    }}
-                    placeholder="Select statuses..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Min Amount</label>
-                  <Input type="number" value={advancedFilters.minAmount} onChange={(e) => {
-                    const next = { ...advancedFilters, minAmount: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Min ₹" className="text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Max Amount</label>
-                  <Input type="number" value={advancedFilters.maxAmount} onChange={(e) => {
-                    const next = { ...advancedFilters, maxAmount: e.target.value };
-                    setAdvancedFilters(next);
-                    updateUrl(next);
-                  }} placeholder="Max ₹" className="text-xs" />
-                </div>
+      <MasterSearch
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onSearch={handleManualSearch}
+        onClear={() => {
+          clearSearch();
+          updateUrl(advancedFilters, "");
+        }}
+        isSearching={isSearching}
+        isFetching={isLoading}
+        showAdvancedFilters={showAdvancedFilters}
+        setShowAdvancedFilters={setShowAdvancedFilters}
+        dropdownMatches={searchResults.dropdownMatches}
+      >
+        {showAdvancedFilters && (
+          <div className="mt-6 pt-6 border-t animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">From Date</label>
+                <Input type="date" value={advancedFilters.fromDate} onChange={(e) => {
+                  const next = { ...advancedFilters, fromDate: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} className="text-xs" />
               </div>
-
-              <div className="flex justify-end mt-6 pt-4 border-t">
-                <Button variant="ghost" size="sm" onClick={() => {
-                  resetFilters();
-                  updateUrl({});
-                }} className="text-xs gap-2">
-                  <RotateCcw className="h-3 w-3" />
-                  Reset Filters
-                </Button>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">To Date</label>
+                <Input type="date" value={advancedFilters.toDate} onChange={(e) => {
+                  const next = { ...advancedFilters, toDate: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} className="text-xs" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client Name</label>
+                <SearchableSelect options={clientOptions} value={advancedFilters.clientName} onValueChange={(val) => {
+                  const next = { ...advancedFilters, clientName: val };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Select client..." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Item Name</label>
+                <SearchableSelect options={itemOptions} value={advancedFilters.itemName} onValueChange={(val) => {
+                  const next = { ...advancedFilters, itemName: val };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Select item..." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PO Number</label>
+                <Input value={advancedFilters.poNumber} onChange={(e) => {
+                  const next = { ...advancedFilters, poNumber: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="PO Number..." className="text-xs" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Invoice Number</label>
+                <Input value={advancedFilters.invoiceNumber} onChange={(e) => {
+                  const next = { ...advancedFilters, invoiceNumber: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Invoice Number..." className="text-xs" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</label>
+                <Input value={advancedFilters.sku} onChange={(e) => {
+                  const next = { ...advancedFilters, sku: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="SKU..." className="text-xs" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Logistics Partner</label>
+                <SearchableSelect options={logisticsOptions} value={advancedFilters.logisticsPartnerId} onValueChange={(val) => {
+                  const next = { ...advancedFilters, logisticsPartnerId: val };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Select partner..." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location</label>
+                <SearchableSelect options={locationOptions} value={advancedFilters.locationId} onValueChange={(val) => {
+                  const next = { ...advancedFilters, locationId: val };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Select location..." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</label>
+                <MultiSearchableSelect
+                  options={Object.entries(PO_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+                  value={advancedFilters.status}
+                  onValueChange={(val: string[]) => {
+                    const next = { ...advancedFilters, status: val };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="Select statuses..."
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Min Amount</label>
+                <Input type="number" value={advancedFilters.minAmount} onChange={(e) => {
+                  const next = { ...advancedFilters, minAmount: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Min ₹" className="text-xs" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Max Amount</label>
+                <Input type="number" value={advancedFilters.maxAmount} onChange={(e) => {
+                  const next = { ...advancedFilters, maxAmount: e.target.value };
+                  setAdvancedFilters(next);
+                  updateUrl(next);
+                }} placeholder="Max ₹" className="text-xs" />
               </div>
             </div>
-          )}
-        </MasterSearch>
 
-        {!isSearching ? (
-          <div className="space-y-6">
-            <SummaryCards
-              totalActivePOs={totalActivePOs}
-              totalOrderValue={totalOrderValue}
-              overallFulfillment={overallFulfillment}
-              totalOrderedQty={totalOrderedQty}
-              totalDispatchedQty={totalDispatchedQty}
-              totalRemainingQty={totalRemainingQty}
-            />
-            <DashboardCharts statusBreakdown={statusBreakdown} clientSummaryArray={clientSummaryArray.slice(0, 10)} />
+            <div className="flex justify-end mt-6 pt-4 border-t">
+              <Button variant="ghost" size="sm" onClick={() => {
+                resetFilters();
+                updateUrl({});
+              }} className="text-xs gap-2">
+                <RotateCcw className="h-3 w-3" />
+                Reset Filters
+              </Button>
+            </div>
           </div>
-        ) : (
-          <SearchResultsList
-            searchResults={searchResults}
-            searchSummary={searchSummary}
-            searchQuery={searchQuery}
-            expandedSections={expandedSections}
-            toggleSection={toggleSection}
-            getTotalDispatchedForItem={getTotalDispatchedForItem}
-            omPurchaseOrders={initialData.pos}
-          />
         )}
-      </div>
-    </Layout>
+      </MasterSearch>
+
+      {!isSearching ? (
+        <div className="space-y-6">
+          <SummaryCards
+            totalActivePOs={totalActivePOs}
+            totalOrderValue={totalOrderValue}
+            overallFulfillment={overallFulfillment}
+            totalOrderedQty={totalOrderedQty}
+            totalDispatchedQty={totalDispatchedQty}
+            totalRemainingQty={totalRemainingQty}
+          />
+          <DashboardCharts statusBreakdown={statusBreakdown} clientSummaryArray={clientSummaryArray.slice(0, 10)} />
+        </div>
+      ) : (
+        <SearchResultsList
+          searchResults={searchResults}
+          searchSummary={searchSummary}
+          searchQuery={searchQuery}
+          expandedSections={expandedSections}
+          toggleSection={toggleSection}
+          getTotalDispatchedForItem={getTotalDispatchedForItem}
+          omPurchaseOrders={initialData.pos}
+        />
+      )}
+    </div>
   );
 }

@@ -1,6 +1,13 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,9 +37,12 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
           <div className="p-3 bg-muted rounded-full mb-4">
             <Package className="h-6 w-6 text-muted-foreground/50" />
           </div>
-          <h4 className="text-sm font-semibold text-gray-900">No Packing Details</h4>
+          <h4 className="text-sm font-semibold text-gray-900">
+            No Packing Details
+          </h4>
           <p className="text-xs text-muted-foreground max-w-[200px] mt-1">
-            No shipment boxes or packing configurations have been added to this dispatch yet.
+            No shipment boxes or packing configurations have been added to this
+            dispatch yet.
           </p>
         </CardContent>
       </Card>
@@ -51,7 +61,9 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
               <Box className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-xl">Shipment / Packing Details</CardTitle>
+              <CardTitle className="text-xl">
+                Shipment / Packing Details
+              </CardTitle>
               <p className="text-xs text-muted-foreground my-1">
                 Detailed packing information for this dispatch
               </p>
@@ -74,8 +86,8 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
               gradient="from-gray-500 to-gray-600"
             />
             <SummaryStat
-              label="Total Volume"
-              value={`${totalVolume.toFixed(3)} m³`}
+              label="Volumetric Weight"
+              value={`${totalVolume.toFixed(3)} kg`}
               icon={<Move className="h-4 w-4" />}
               gradient="from-slate-500 to-slate-600"
             />
@@ -93,7 +105,10 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
               const volumePerBox = OMShipmentHelpers.calculateBoxVolume(box);
               const totalVolume = volumePerBox * box.numberOfBoxes;
               return (
-                <Card key={box.boxId} className="border-2 border-muted transition-all duration-300 hover:border-neutral-300 hover:shadow-md">
+                <Card
+                  key={box.boxId}
+                  className="border-2 border-muted transition-all duration-300 hover:border-neutral-300 hover:shadow-md"
+                >
                   <CardHeader className="pb-3 bg-muted/20">
                     <div className="flex items-center justify-around">
                       <div className="flex items-center gap-3">
@@ -101,7 +116,9 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
                           {box.boxNumber}
                         </div>
                         <div>
-                          <CardTitle className="text-base font-semibold">Box {box.boxNumber}</CardTitle>
+                          <CardTitle className="text-base font-semibold">
+                            Box {box.boxNumber}
+                          </CardTitle>
                           {box.numberOfBoxes > 1 && (
                             <p className="text-xs text-neutral-600 font-medium mt-0.5">
                               {box.numberOfBoxes} identical boxes
@@ -109,7 +126,10 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
                           )}
                         </div>
                       </div>
-                      <Badge variant="secondary" className="bg-neutral-50 text-neutral-900 border-neutral-200 px-2.5 py-0.5 text-xs font-mono">
+                      <Badge
+                        variant="secondary"
+                        className="bg-neutral-50 text-neutral-900 border-neutral-200 px-2.5 py-0.5 text-xs font-mono"
+                      >
                         {box.length} × {box.width} × {box.height} cm
                       </Badge>
                     </div>
@@ -117,15 +137,25 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
                   <CardContent className="pt-4 space-y-4">
                     {/* Dimensions Glassmorphism Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                       <DimensionTile label="Length" value={`${box.length} cm`} />
-                       <DimensionTile label="Width" value={`${box.width} cm`} />
-                       <DimensionTile label="Height" value={`${box.height} cm`} />
-                       <DimensionTile 
-                         label="Volume" 
-                         value={`${volumePerBox.toFixed(4)} m³`}
-                         subValue={box.numberOfBoxes > 1 ? `Total: ${totalVolume.toFixed(4)} m³` : undefined}
-                         isHighlight
-                       />
+                      <DimensionTile
+                        label="Length"
+                        value={`${box.length} cm`}
+                      />
+                      <DimensionTile label="Width" value={`${box.width} cm`} />
+                      <DimensionTile
+                        label="Height"
+                        value={`${box.height} cm`}
+                      />
+                      <DimensionTile
+                        label="Volume"
+                        value={`${volumePerBox.toFixed(4)} kg`}
+                        subValue={
+                          box.numberOfBoxes > 1
+                            ? `Total: ${totalVolume.toFixed(4)} kg`
+                            : undefined
+                        }
+                        isHighlight
+                      />
                     </div>
 
                     {/* Contents Table */}
@@ -133,18 +163,31 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
                       <Table>
                         <TableHeader className="bg-muted/30">
                           <TableRow>
-                            <TableHead className="h-9 px-4 text-xs">Item Name</TableHead>
-                            <TableHead className="h-9 px-4 text-right text-xs">Qty per Box</TableHead>
+                            <TableHead className="h-9 px-4 text-xs">
+                              Item Name
+                            </TableHead>
+                            <TableHead className="h-9 px-4 text-right text-xs">
+                              Qty per Box
+                            </TableHead>
                             {box.numberOfBoxes > 1 && (
-                              <TableHead className="h-9 px-4 text-right text-xs">Total Qty</TableHead>
+                              <TableHead className="h-9 px-4 text-right text-xs">
+                                Total Qty
+                              </TableHead>
                             )}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {box.contents.map((content, index) => (
-                            <TableRow key={index} className="hover:bg-neutral-50 transition-colors">
-                              <TableCell className="py-2 px-4 text-sm font-medium">{content.itemName}</TableCell>
-                              <TableCell className="py-2 px-4 text-right text-sm">{content.quantity}</TableCell>
+                            <TableRow
+                              key={index}
+                              className="hover:bg-neutral-50 transition-colors"
+                            >
+                              <TableCell className="py-2 px-4 text-sm font-medium">
+                                {content.itemName}
+                              </TableCell>
+                              <TableCell className="py-2 px-4 text-right text-sm">
+                                {content.quantity}
+                              </TableCell>
                               {box.numberOfBoxes > 1 && (
                                 <TableCell className="py-2 px-4 text-right text-sm font-bold text-neutral-900">
                                   {content.quantity * box.numberOfBoxes}
@@ -169,7 +212,10 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
                 📦 For Client Reference:
               </p>
               <ul className="text-sm space-y-1 text-amber-800/90 list-disc list-inside marker:text-amber-500">
-                <li>Total shipment consists of <span className="font-bold">{totalBoxes}</span> box(es)</li>
+                <li>
+                  Total shipment consists of{" "}
+                  <span className="font-bold">{totalBoxes}</span> box(es)
+                </li>
                 <li>Please verify contents of each box upon delivery</li>
                 <li>Box dimensions provided for storage planning</li>
               </ul>
@@ -181,24 +227,68 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
   );
 };
 
-const SummaryStat = ({ label, value, icon, gradient }: { label: string, value: string | number, icon: React.ReactNode, gradient: string }) => (
+const SummaryStat = ({
+  label,
+  value,
+  icon,
+  gradient,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  gradient: string;
+}) => (
   <div className="relative overflow-hidden p-4 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all duration-300">
-    <div className={cn("absolute top-0 right-0 w-12 h-12 -mr-3 -mt-3 opacity-10 flex items-center justify-center rounded-full bg-linear-to-br", gradient)}>
+    <div
+      className={cn(
+        "absolute top-0 right-0 w-12 h-12 -mr-3 -mt-3 opacity-10 flex items-center justify-center rounded-full bg-linear-to-br",
+        gradient,
+      )}
+    >
       {icon}
     </div>
-    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+      {label}
+    </p>
     <p className="text-2xl font-bold mt-1 text-gray-900">{value}</p>
   </div>
 );
 
-const DimensionTile = ({ label, value, subValue, isHighlight = false }: { label: string, value: string, subValue?: string, isHighlight?: boolean }) => (
-  <div className={cn(
-    "p-3 rounded-lg border transition-all",
-    isHighlight ? "bg-neutral-50 border-neutral-200 shadow-sm" : "bg-muted/40 border-transparent"
-  )}>
-    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-tight">{label}</p>
-    <p className={cn("text-sm font-semibold", isHighlight ? "text-neutral-900" : "text-gray-900")}>{value}</p>
-    {subValue && <p className="text-[10px] text-neutral-600 mt-0.5 font-medium">{subValue}</p>}
+const DimensionTile = ({
+  label,
+  value,
+  subValue,
+  isHighlight = false,
+}: {
+  label: string;
+  value: string;
+  subValue?: string;
+  isHighlight?: boolean;
+}) => (
+  <div
+    className={cn(
+      "p-3 rounded-lg border transition-all",
+      isHighlight
+        ? "bg-neutral-50 border-neutral-200 shadow-sm"
+        : "bg-muted/40 border-transparent",
+    )}
+  >
+    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-tight">
+      {label}
+    </p>
+    <p
+      className={cn(
+        "text-sm font-semibold",
+        isHighlight ? "text-neutral-900" : "text-gray-900",
+      )}
+    >
+      {value}
+    </p>
+    {subValue && (
+      <p className="text-[10px] text-neutral-600 mt-0.5 font-medium">
+        {subValue}
+      </p>
+    )}
   </div>
 );
 

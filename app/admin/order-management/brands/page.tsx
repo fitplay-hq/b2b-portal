@@ -16,8 +16,6 @@ export default async function OMBrandsPage({ searchParams }: PageProps) {
   const brandsData = await getOMBrands({ page, limit });
 
   return (
-    <Layout isClient={false}>
-      <OMBrandsClient initialData={brandsData} />
-    </Layout>
+    <OMBrandsClient initialData={brandsData} />
   );
 }

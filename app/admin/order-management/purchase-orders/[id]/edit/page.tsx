@@ -133,8 +133,7 @@ export default function OMEditPurchaseOrder() {
   };
 
   return (
-    <Layout isClient={false}>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Button
             type="button"
@@ -168,7 +167,6 @@ export default function OMEditPurchaseOrder() {
             onRefreshData={fetchData}
           />
         )}
-      </div>
-    </Layout>
+    </div>
   );
 }

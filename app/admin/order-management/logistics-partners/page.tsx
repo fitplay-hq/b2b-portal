@@ -16,8 +16,6 @@ export default async function OMLogisticsPartnersPage({ searchParams }: PageProp
   const partnersData = await getOMLogisticsPartners({ page, limit });
 
   return (
-    <Layout isClient={false}>
-      <OMLogisticsPartnersClient initialData={partnersData} />
-    </Layout>
+    <OMLogisticsPartnersClient initialData={partnersData} />
   );
 }

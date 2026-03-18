@@ -5,7 +5,6 @@ import {
   getOMDeliveryLocations,
   getOMPONumberOptions,
 } from "@/lib/om-data";
-import Layout from "@/components/layout";
 
 export const dynamic = "force-dynamic";
 
@@ -29,13 +28,11 @@ export default async function OMPurchaseOrdersPage({ searchParams }: PageProps) 
   const locationOptions = locationsData.data.map((l: any) => ({ value: l.id, label: l.name }));
 
   return (
-    <Layout isClient={false}>
-      <OMPurchaseOrdersClient
-        initialData={purchaseOrdersData}
-        clientOptions={clientOptions}
-        locationOptions={locationOptions}
-        poOptions={poOptions}
-      />
-    </Layout>
+    <OMPurchaseOrdersClient
+      initialData={purchaseOrdersData}
+      clientOptions={clientOptions}
+      locationOptions={locationOptions}
+      poOptions={poOptions}
+    />
   );
 }
