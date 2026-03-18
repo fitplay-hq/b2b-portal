@@ -1,32 +1,15 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Eye, Edit, Trash2, Plus, Download, FileSpreadsheet, FileDown } from "lucide-react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
-import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
-import { formatStatus } from "@/lib/utils";
-import { format } from "date-fns";
-import {
-  TableRow,
-  TableCell,
-  TableHead,
-} from "@/components/ui/table";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { POFilters } from "./POFilters";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { type ComboboxOption } from "@/components/ui/combobox";
-import { Badge } from "@/components/ui/badge";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import type {
   OMPurchaseOrder,
@@ -35,6 +18,12 @@ import { useOMFilters } from "@/hooks/use-om-filters";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { PO_SORT_OPTIONS } from "@/constants/om-sort-options";
+import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
+import { useOMClientData } from "@/hooks/use-om-client-data";
+import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
+import { POTable } from "./POTable";
+import { POItemTable } from "./POItemTable";
+import { Grid3x3, Table as TableIcon } from "lucide-react";
 
 const PO_STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -58,34 +47,93 @@ export function OMPurchaseOrdersClient({
   poOptions,
 }: OMPurchaseOrdersClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  
   const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>(initialData.data);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("po_date_desc");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+  const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "po_date_desc");
   const [showFilters, setShowFilters] = useState(false);
-  const [totalCount, setTotalCount] = useState(initialData.meta.total);
-  const [isHydrating, setIsHydrating] = useState(false);
-  // Store initial values to prevent redundant fetches on mount due to state initialization
-  const initialValues = useRef({
-    sortBy: "po_date_desc" as SortOption,
-    searchTerm: "",
-    filters: {
-      fromDate: "",
-      toDate: "",
-      clientName: "",
-      poNumber: "",
-      status: "all",
-      locationId: "",
-    },
-  });
-
+  const [unfilteredTotal, setUnfilteredTotal] = useState(initialData.meta.total);
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [viewType, setViewType] = useState<"client" | "item">(
+    (searchParams.get("view") as "client" | "item") || "client"
+  );
+
+  const valueLabels = useMemo(
+    () => ({
+      status: (val: string) => PO_STATUS_LABELS[val] || val,
+      locationId: (val: string) =>
+        locationOptions.find((o) => o.value === val)?.label || val,
+      clientName: (val: string) =>
+        clientOptions.find((o) => o.value === val)?.label || val,
+    }),
+    [locationOptions, clientOptions],
+  );
+
+  const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
+    useOMFilters({
+      initialFilters: {
+        fromDate: searchParams.get("fromDate") || "",
+        toDate: searchParams.get("toDate") || "",
+        clientName: searchParams.get("clientId") || "",
+        poNumber: searchParams.get("poNumber") || "",
+        status: searchParams.get("status") || "all",
+        locationId: searchParams.get("locationId") || "",
+      },
+      labels: {
+        fromDate: "From",
+        toDate: "To",
+        clientName: "Client",
+        poNumber: "PO #",
+        locationId: "Location",
+        status: "Status",
+      },
+      valueLabels,
+    });
+
+  // Helper to update URL
+  const updateUrl = useCallback((newParams: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    let changed = false;
+    
+    Object.entries(newParams).forEach(([key, value]) => {
+      const currentValue = searchParams.get(key) || "";
+      const newValue = value === null || value === "all" ? "" : value;
+      
+      if (currentValue !== newValue) {
+        if (value === null || value === "" || value === "all") {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      params.set("page", "1");
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [searchParams, pathname, router]);
+
+  useEffect(() => {
+    const isFiltered = searchParams.get("q") || searchParams.get("status") !== "all" || searchParams.get("clientId");
+    if (isFiltered) {
+      fetch("/api/admin/om/counts")
+        .then(res => res.json())
+        .then(data => setUnfilteredTotal(data.purchaseOrders))
+        .catch(err => console.error("Failed to fetch total PO count", err));
+    } else {
+      setUnfilteredTotal(initialData.meta.total);
+    }
+  }, [initialData.meta.total, searchParams]);
 
   useEffect(() => {
     setPurchaseOrders(initialData.data);
-    setTotalCount(initialData.meta.total);
     setCurrentPage(initialData.meta.page);
     setHasMore(initialData.meta.page < initialData.meta.totalPages);
   }, [initialData]);
@@ -98,6 +146,12 @@ export function OMPurchaseOrdersClient({
       const url = new URL("/api/admin/om/purchase-orders", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
       url.searchParams.set("limit", "50");
+      
+      searchParams.forEach((value, key) => {
+        if (key !== "page" && key !== "limit") {
+          url.searchParams.set(key, value);
+        }
+      });
 
       const res = await fetch(url.toString());
       if (res.ok) {
@@ -118,159 +172,55 @@ export function OMPurchaseOrdersClient({
     }
   };
 
-  const hydrateData = async () => {
-    if (isHydrating || !hasMore) return;
-    setIsHydrating(true);
-    try {
-      let nextP = currentPage + 1;
-      let more: boolean = hasMore;
-      while (more) {
-        const url = new URL("/api/admin/om/purchase-orders", window.location.origin);
-        url.searchParams.set("page", nextP.toString());
-        url.searchParams.set("limit", "50");
-        const res = await fetch(url.toString());
-        if (!res.ok) break;
-        const result: PaginatedResponse<OMPurchaseOrder> = await res.json();
-        setPurchaseOrders((prev) => {
-          const existingIds = new Set(prev.map(po => po.id));
-          const uniqueNewData = result.data.filter(po => !existingIds.has(po.id));
-          return [...prev, ...uniqueNewData];
-        });
-        nextP = result.meta.page + 1;
-        more = result.meta.page < result.meta.totalPages;
-        setCurrentPage(result.meta.page);
-        setHasMore(more);
-        await new Promise(r => setTimeout(r, 100));
-      }
-    } catch (err) {
-      console.error("Hydration failed:", err);
-    } finally {
-      setIsHydrating(false);
-    }
-  };
+  const filterFn = useCallback((po: OMPurchaseOrder, searchTerm: string, filters: Record<string, any>) => {
+    const q = searchTerm.toLowerCase().trim();
+    const matchesSearch = !q || 
+      (po.poNumber || "").toLowerCase().includes(q) || 
+      (po.estimateNumber || "").toLowerCase().includes(q) || 
+      (po.client?.name || "").toLowerCase().includes(q);
+    
+    const matchesStatus = filters.status === "all" || po.status === filters.status;
+    const matchesClient = !filters.clientName || po.clientId === filters.clientName;
+    const matchesLocation = !filters.locationId || po.deliveryLocations?.some(l => l.id === filters.locationId);
+    const matchesPoNumber = !filters.poNumber || po.poNumber === filters.poNumber;
+    
+    // Date filtering (optional but good for consistency)
+    const matchesFromDate = !filters.fromDate || (po.poDate && new Date(po.poDate) >= new Date(filters.fromDate));
+    const matchesToDate = !filters.toDate || (po.poDate && new Date(po.poDate) <= new Date(filters.toDate));
 
-
-  const fetchPurchaseOrders = async () => {
-    setIsLoading(true);
-    try {
-      const url = new URL("/api/admin/om/purchase-orders", window.location.origin);
-      url.searchParams.set("page", "1");
-      url.searchParams.set("limit", "50");
-
-      const res = await fetch(url.toString());
-      if (res.ok) {
-        const result: PaginatedResponse<OMPurchaseOrder> = await res.json();
-        setPurchaseOrders(result.data);
-        setTotalCount(result.meta.total);
-        setCurrentPage(result.meta.page);
-        setHasMore(result.meta.page < result.meta.totalPages);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load purchase orders");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Only fetch if we don't have initial count or if we need fresh counts regularly
-    // For now, if we have initialData, we can skip the immediate fetch on mount
-    if (initialData.meta.total !== undefined && totalCount === initialData.meta.total) {
-      return;
-    }
-    const fetchTotalCount = async () => {
-      try {
-        const res = await fetch("/api/admin/om/counts");
-        if (res.ok) {
-          const data = await res.json();
-          setTotalCount(data.purchaseOrders);
-        }
-      } catch (err) {
-        console.error("Failed to fetch total count:", err);
-      }
-    };
-    fetchTotalCount();
+    return Boolean(matchesSearch && matchesStatus && matchesClient && matchesLocation && matchesPoNumber && matchesFromDate && matchesToDate);
   }, []);
 
-  const [deletePo, setDeletePo] = useState<OMPurchaseOrder | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const valueLabels = useMemo(
-    () => ({
-      status: (val: string) => PO_STATUS_LABELS[val] || val,
-      locationId: (val: string) =>
-        locationOptions.find((o) => o.value === val)?.label || val,
-    }),
-    [locationOptions],
-  );
-
-  const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
-    useOMFilters({
-      initialFilters: {
-        fromDate: "",
-        toDate: "",
-        clientName: "",
-        poNumber: "",
-        status: "all",
-        locationId: "",
-      },
-      labels: {
-        fromDate: "From",
-        toDate: "To",
-        clientName: "Client",
-        poNumber: "PO #",
-        locationId: "Location",
-        status: "Status",
-      },
-      valueLabels,
-    });
-
-  useEffect(() => {
-    const isSearchActive =
-      searchTerm.length > 0 ||
-      Object.values(filters).some((v) => v && v !== "all");
-    if (isSearchActive && hasMore && !isHydrating) {
-      void hydrateData();
+  const sortFn = useCallback((a: OMPurchaseOrder, b: OMPurchaseOrder, sortBy: SortOption) => {
+    switch (sortBy) {
+      case "po_date_asc":
+        return new Date(a.poDate || 0).getTime() - new Date(b.poDate || 0).getTime();
+      case "po_date_desc":
+        return new Date(b.poDate || 0).getTime() - new Date(a.poDate || 0).getTime();
+      case "po_number_asc":
+        return (a.poNumber || "").localeCompare(b.poNumber || "");
+      case "po_number_desc":
+        return (b.poNumber || "").localeCompare(a.poNumber || "");
+      case "client_asc":
+        return (a.client?.name || "").localeCompare(b.client?.name || "");
+      case "client_desc":
+        return (b.client?.name || "").localeCompare(a.client?.name || "");
+      default:
+        return 0;
     }
-  }, [searchTerm, filters, hasMore, isHydrating, hydrateData]);
+  }, []);
 
-  useEffect(() => {
-    // Only fetch if sortBy has actually changed from its initial value
-    // This prevents the dual fetch on mount
-    if (sortBy === initialValues.current.sortBy) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      fetchPurchaseOrders();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [sortBy]);
+  const processedDataFiltered = useOMClientData({
+    data: purchaseOrders,
+    searchTerm,
+    sortBy,
+    filters,
+    filterFn,
+    sortFn,
+  });
 
-
-  const handleDeletePO = async () => {
-    if (!deletePo) return;
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/om/purchase-orders/${deletePo.id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        toast.success("Purchase Order deleted successfully");
-        fetchPurchaseOrders();
-        setDeletePo(null);
-      } else {
-        toast.error("Failed to delete Purchase Order");
-      }
-    } catch {
-      toast.error("Something went wrong");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const poWithTotals = useMemo(() => {
-    return purchaseOrders.map(po => {
+  const processedData = useMemo(() => {
+    return processedDataFiltered.map((po) => {
       const totalQty = po.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
       const totalDispatched = po.items?.reduce(
         (sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0),
@@ -286,128 +236,145 @@ export function OMPurchaseOrdersClient({
         _totalAmount: totalAmount
       };
     });
-  }, [purchaseOrders]);
+  }, [processedDataFiltered]);
 
-  const filteredPOs = useMemo(() => {
-    return poWithTotals
-      .filter((po) => {
-        // Advanced filters
-        if (filters.status !== "all" && po.status !== filters.status)
-          return false;
-        if (
-          filters.poNumber &&
-          !po.poNumber?.toLowerCase().includes(filters.poNumber.toLowerCase())
-        )
-          return false;
-        if (
-          filters.fromDate &&
-          new Date(po.poDate!) < new Date(filters.fromDate)
-        )
-          return false;
-        if (filters.toDate && new Date(po.poDate!) > new Date(filters.toDate))
-          return false;
-        if (filters.clientName && po.client?.name !== filters.clientName)
-          return false;
+  const processedItemData = useMemo(() => {
+    if (viewType !== "item") return [];
+    
+    return processedData.flatMap((po) =>
+      (po.items || []).map((item) => ({
+        ...item,
+        poId: po.id,
+        poNumber: po.poNumber || po.estimateNumber,
+        poDate: po.poDate,
+        clientName: po.client?.name || "N/A",
+        itemName: item.product?.name || "N/A",
+        status: po.status,
+      }))
+    );
+  }, [processedData, viewType]);
 
-        const searchLower = searchTerm.toLowerCase();
-        const poNum = (po.poNumber || "").toLowerCase();
-        const estNum = (po.estimateNumber || "").toLowerCase();
-        const clientName = (po.client?.name || "").toLowerCase();
+  // Sync searchTerm with URL
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm !== (searchParams.get("q") || "")) {
+        updateUrl({ q: searchTerm || null });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm, updateUrl, searchParams]);
 
-        return (
-          poNum.includes(searchLower) ||
-          estNum.includes(searchLower) ||
-          clientName.includes(searchLower)
-        );
-      })
-      .sort((a, b) => {
-        if (sortBy === "po_date_asc" || sortBy === "oldest")
-          return new Date(a.poDate || 0).getTime() - new Date(b.poDate || 0).getTime();
-        if (sortBy === "po_date_desc" || sortBy === "newest")
-          return new Date(b.poDate || 0).getTime() - new Date(a.poDate || 0).getTime();
-
-        if (sortBy === "po_number_asc")
-          return (a.poNumber || "").localeCompare(b.poNumber || "");
-        if (sortBy === "po_number_desc")
-          return (b.poNumber || "").localeCompare(a.poNumber || "");
-
-        if (sortBy === "client_asc")
-          return (a.client?.name || "").localeCompare(b.client?.name || "");
-        if (sortBy === "client_desc")
-          return (b.client?.name || "").localeCompare(a.client?.name || "");
-
-        if (sortBy === "status_asc") return a.status.localeCompare(b.status);
-        if (sortBy === "status_desc") return b.status.localeCompare(a.status);
-
-        if (sortBy === "ordered_asc") return a._totalQty - b._totalQty;
-        if (sortBy === "ordered_desc") return b._totalQty - a._totalQty;
-
-        if (sortBy === "dispatched_asc") return a._totalDispatched - b._totalDispatched;
-        if (sortBy === "dispatched_desc") return b._totalDispatched - a._totalDispatched;
-
-        if (sortBy === "remaining_asc") return a._totalRemaining - b._totalRemaining;
-        if (sortBy === "remaining_desc") return b._totalRemaining - a._totalRemaining;
-
-        if (sortBy === "value_asc") return a._totalAmount - b._totalAmount;
-        if (sortBy === "value_desc") return b._totalAmount - a._totalAmount;
-
-        return 0;
+  // Sync filters with URL
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const newParams: Record<string, string | null> = {};
+      let changed = false;
+      Object.entries(filters).forEach(([key, value]) => {
+        if (searchParams.get(key) !== value) {
+          newParams[key] = value;
+          changed = true;
+        }
       });
-  }, [poWithTotals, searchTerm, filters, sortBy]);
+      if (changed) updateUrl(newParams);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filters, updateUrl, searchParams]);
 
-  const handleExportExcel = () => {
-    toast.info("Exporting to Excel...");
+  // Sync sortBy with URL
+  useEffect(() => {
+    const currentSort = (searchParams.get("sortBy") as SortOption) || "po_date_desc";
+    if (sortBy !== currentSort) {
+      updateUrl({ sortBy });
+    }
+  }, [sortBy, updateUrl, searchParams]);
+
+  // Sync viewType with URL
+  useEffect(() => {
+    const currentView = (searchParams.get("view") as "client" | "item") || "client";
+    if (viewType !== currentView) {
+      updateUrl({ view: viewType });
+    }
+  }, [viewType, updateUrl, searchParams]);
+
+  const [deletePo, setDeletePo] = useState<OMPurchaseOrder | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeletePO = async () => {
+    if (!deletePo) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/om/purchase-orders/${deletePo.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        toast.success("Purchase Order deleted successfully");
+        router.refresh();
+        setDeletePo(null);
+      } else {
+        toast.error("Failed to delete Purchase Order");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
-  const handleExportPDF = () => {
-    toast.info("Exporting to PDF...");
-  };
+  const handleExportExcel = useCallback(() => {
+    const exportData = processedData.map(po => ({
+      "PO Number": po.poNumber,
+      "Date": po.poDate ? new Date(po.poDate).toLocaleDateString() : "-",
+      "Client": po.client?.name || "-",
+      "Total Quantity": po._totalQty || 0,
+      "Total Amount": po._totalAmount || 0,
+      "Status": po.status
+    }));
+    
+    if (exportToExcel(exportData, "Purchase_Orders")) {
+      toast.success("Purchase orders exported to Excel successfully");
+    } else {
+      toast.error("Failed to export purchase orders to Excel");
+    }
+  }, [processedData]);
+  const handleExportPDF = useCallback(() => {
+    const exportData = processedData.map(po => ({
+      "PO Number": po.poNumber,
+      "Date": po.poDate ? new Date(po.poDate).toLocaleDateString() : "-",
+      "Client": po.client?.name || "-",
+      "Total Quantity": po._totalQty || 0,
+      "Total Amount": po._totalAmount || 0,
+      "Status": po.status
+    }));
+    
+    if (exportToPDF(exportData, "Purchase_Orders", "Purchase Orders Report")) {
+      toast.success("Purchase orders exported to PDF successfully");
+    } else {
+      toast.error("Failed to export purchase orders to PDF");
+    }
+  }, [processedData]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Purchase Orders</h1>
-          <p className="text-muted-foreground">
-            Manage client purchase orders and estimates
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={isLoading}>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportExcel}>
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Excel Format
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportPDF}>
-                <FileDown className="h-4 w-4 mr-2" />
-                PDF Document
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Link href="/admin/order-management/purchase-orders/create">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create PO
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <OMPageHeader
+        title="All Purchase Orders"
+        description="Manage and track client purchase orders"
+        onExportExcel={handleExportExcel}
+        onExportPDF={handleExportPDF}
+        addButton={{
+          label: "Create PO",
+          onClick: () => router.push("/admin/order-management/purchase-orders/create")
+        }}
+      />
 
       <OMFilterCard
-        title="Filters"
-        subtitle={`Showing ${totalCount} of ${totalCount} purchase orders`}
+        filteredCount={processedData.length}
+        totalCount={unfilteredTotal}
+        unit="purchase orders"
         searchPlaceholder="Search by PO/Estimate #, client name..."
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        sortBy={sortBy as any}
-        onSortChange={setSortBy as any}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
         sortOptions={PO_SORT_OPTIONS}
         sortNameLabel="PO Date"
         showFilters={showFilters}
@@ -415,8 +382,8 @@ export function OMPurchaseOrdersClient({
         onReset={() => {
           setSearchTerm("");
           resetFilters();
+          router.push(pathname);
         }}
-        isHydrating={isHydrating}
       >
         <POFilters
           filters={filters}
@@ -435,170 +402,45 @@ export function OMPurchaseOrdersClient({
         />
       </OMFilterCard>
 
-      <OMDataTable
-        data={filteredPOs}
-        isLoading={isLoading}
-        columnCount={9}
-        emptyMessage="No purchase orders found."
-        onRowClick={(po) =>
-          router.push(`/admin/order-management/purchase-orders/${po.id}`)
-        }
-        header={
-          <TableRow>
-            <OMSortableHeader
-              title="PO Date"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="po_date_asc"
-              descOption="po_date_desc"
-            />
-            <OMSortableHeader
-              title="PO / Estimate"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="po_number_asc"
-              descOption="po_number_desc"
-            />
-            <OMSortableHeader
-              title="Client"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="client_asc"
-              descOption="client_desc"
-            />
-            <OMSortableHeader
-              title="Total Ordered"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="ordered_asc"
-              descOption="ordered_desc"
-              className="text-right"
-            />
-            <OMSortableHeader
-              title="Dispatched"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="dispatched_asc"
-              descOption="dispatched_desc"
-              className="text-right"
-            />
-            <OMSortableHeader
-              title="Remaining"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="remaining_asc"
-              descOption="remaining_desc"
-              className="text-right"
-            />
-            <OMSortableHeader
-              title="Total Value"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="value_asc"
-              descOption="value_desc"
-              className="text-right"
-            />
-            <OMSortableHeader
-              title="Status"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="status_asc"
-              descOption="status_desc"
-            />
-            <TableHead className="text-right w-[100px] pr-7">Actions</TableHead>
-          </TableRow>
-        }
-        renderRow={(po: any) => {
-          return (
-            <TableRow key={po.id}>
-              <TableCell>
-                {po.poDate ? format(new Date(po.poDate), "dd MMM yyyy") : "N/A"}
-              </TableCell>
-              <TableCell>
-                <div className="font-medium">
-                  {po.poNumber || po.estimateNumber}
-                </div>
-                {po.poNumber && po.estimateNumber && (
-                  <div className="text-xs text-muted-foreground">
-                    Est: {po.estimateNumber}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell>{po.client?.name || "N/A"}</TableCell>
-              <TableCell className="text-right">{po._totalQty}</TableCell>
-              <TableCell className="text-right">{po._totalDispatched}</TableCell>
-              <TableCell className="text-right">{po._totalRemaining}</TableCell>
-              <TableCell className="text-right font-medium">
-                ₹
-                {po._totalAmount.toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                })}
-              </TableCell>
-              <TableCell>
-                <Badge
-                  className={
-                    po.status === "DRAFT"
-                      ? "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent line-clamp-1"
-                      : po.status === "CONFIRMED"
-                        ? "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent line-clamp-1"
-                        : po.status === "PARTIALLY_DISPATCHED"
-                          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent line-clamp-1"
-                          : po.status === "FULLY_DISPATCHED"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100 border-transparent line-clamp-1"
-                            : po.status === "CLOSED"
-                              ? "bg-red-100 text-red-800 hover:bg-red-100 border-transparent line-clamp-1"
-                              : "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent line-clamp-1"
-                  }
-                >
-                  {formatStatus(po.status)}
-                </Badge>
-              </TableCell>
-              <TableCell
-                className="text-right"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    asChild
-                    title="View Details"
-                  >
-                    <Link
-                      href={`/admin/order-management/purchase-orders/${po.id}`}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    asChild
-                    title="Edit PO"
-                  >
-                    <Link
-                      href={`/admin/order-management/purchase-orders/${po.id}/edit`}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => setDeletePo(po)}
-                    title="Delete PO"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          );
-        }}
-      />
+      <div className="flex justify-end gap-2 mb-4">
+        <Button
+          variant={viewType === "client" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setViewType("client")}
+          className="h-8"
+        >
+          <TableIcon className="h-4 w-4 mr-2" />
+          Client View
+        </Button>
+        <Button
+          variant={viewType === "item" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setViewType("item")}
+          className="h-8"
+        >
+          <Grid3x3 className="h-4 w-4 mr-2" />
+          Item View
+        </Button>
+      </div>
+
+      {viewType === "client" ? (
+        <POTable
+          data={processedData}
+          isLoading={isLoading}
+          sortBy={sortBy}
+          onSort={setSortBy}
+          onDelete={setDeletePo}
+          onRowClick={(po) => router.push(`/admin/order-management/purchase-orders/${po.id}`)}
+        />
+      ) : (
+        <POItemTable
+          data={processedItemData}
+          isLoading={isLoading}
+          sortBy={sortBy}
+          onSort={setSortBy}
+          onRowClick={(poId) => router.push(`/admin/order-management/purchase-orders/${poId}`)}
+        />
+      )}
 
       <DeleteConfirmationDialog
         isOpen={!!deletePo}
