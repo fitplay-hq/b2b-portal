@@ -143,8 +143,8 @@ export default function OMPurchaseOrderDetail() {
                 </div>
               </CardContent>
             </Card>
-          </div>
         </div>
+      </div>
     );
   }
 
