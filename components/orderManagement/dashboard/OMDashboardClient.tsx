@@ -15,11 +15,17 @@ import {
 import { SummaryCards } from "./SummaryCards";
 import { DashboardCharts } from "./DashboardCharts";
 import { SearchResultsList } from "./SearchResultsList";
-import { PO_STATUS_LABELS } from "@/constants/order-management";
-import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+} from "@/components/ui/table";
+import Link from "next/link";
 import {
   Select,
   SelectContent,
@@ -30,7 +36,17 @@ import {
 import {
   Calendar,
   RotateCcw,
+  Package,
+  Truck,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
+import {
+  PO_STATUS_LABELS,
+  getPoStatusClass,
+  getDispatchStatusClass,
+} from "@/constants/order-management";
+import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import {
   ComboboxOption,
   SearchableSelect,
@@ -210,17 +226,25 @@ export function OMDashboardClient({
 
   // Combined summary calculations to minimize iterations
   const {
-    totalActivePOs,
-    totalOrderValue,
+    inProgressCount,
+    fulfilledCount,
+    closedCount,
+    inProgressValue,
+    fulfillmentValue,
     totalOrderedQty,
     totalDispatchedQty,
     statusBreakdown,
     clientSummaryArray,
     itemSummaryArray,
+    totalOrderedValue,
   } = useMemo(() => {
     const dashboardPOs = initialData.pos;
-    let activePOs = 0;
-    let orderValue = 0;
+    let inProgressCount = 0;
+    let fulfilledCount = 0;
+    let closedCount = 0;
+    let inProgressValue = 0;
+    let fulfillmentValue = 0;
+    let totalOrderedValue = 0;
     let orderedQty = 0;
     let dispatchedTotal = 0;
 
@@ -236,8 +260,21 @@ export function OMDashboardClient({
     const itemAcc: Record<string, OMItemSummary> = {};
 
     dashboardPOs.forEach((po) => {
-      if (po.status !== "CLOSED") activePOs++;
-      orderValue += po.grandTotal;
+      // Metric calculations based on status
+      if (po.status === "CONFIRMED" || po.status === "PARTIALLY_DISPATCHED") {
+        inProgressCount++;
+        inProgressValue += po.grandTotal;
+      } else if (po.status === "FULLY_DISPATCHED") {
+        fulfilledCount++;
+      } else if (po.status === "CLOSED") {
+        closedCount++;
+      }
+
+      // Add to total ordered value for applicable statuses
+      if (["CONFIRMED", "PARTIALLY_DISPATCHED", "FULLY_DISPATCHED"].includes(po.status)) {
+        totalOrderedValue += po.grandTotal;
+      }
+
       orderedQty += po.totalQuantity;
       
       const dispatchedForPO = dispatchMaps.byPoId[po.id] || 0;
@@ -279,6 +316,12 @@ export function OMDashboardClient({
         itemAcc[item.itemId].ordered += item.quantity;
         itemAcc[item.itemId].dispatched += dispatchedForItem;
         itemAcc[item.itemId].remaining += item.quantity - dispatchedForItem;
+
+        // Calculate value dispatched for this item
+        if (item.quantity > 0) {
+          const itemDispatchedValue = (dispatchedForItem / item.quantity) * item.totalAmount;
+          fulfillmentValue += itemDispatchedValue;
+        }
       });
     });
 
@@ -291,18 +334,128 @@ export function OMDashboardClient({
     ].filter(item => item.value > 0);
 
     return {
-      totalActivePOs: activePOs,
-      totalOrderValue: orderValue,
+      inProgressCount,
+      fulfilledCount,
+      closedCount,
+      inProgressValue,
+      fulfillmentValue,
       totalOrderedQty: orderedQty,
       totalDispatchedQty: dispatchedTotal,
       statusBreakdown: statusBreakdownData,
       clientSummaryArray: Object.values(clientAcc),
       itemSummaryArray: Object.values(itemAcc),
+      totalOrderedValue,
     };
   }, [initialData.pos, dispatchMaps]);
 
-  const totalRemainingQty = useMemo(() => totalOrderedQty - totalDispatchedQty, [totalOrderedQty, totalDispatchedQty]);
-  const overallFulfillment = useMemo(() => totalOrderedQty > 0 ? ((totalDispatchedQty / totalOrderedQty) * 100).toFixed(1) : "0", [totalOrderedQty, totalDispatchedQty]);
+  // Handle Recent Orders State & Sorting
+  const [poSortBy, setPoSortBy] = useState<string>("date_desc");
+  const [dispatchSortBy, setDispatchSortBy] = useState<string>("date_desc");
+
+  const recentPOs = useMemo(() => {
+    const flattened = initialData.pos.flatMap((po) =>
+      po.lineItems.map((item) => ({
+        ...item,
+        poId: po.id,
+        poNumber: po.poNumber || po.estimateNumber,
+        poDate: po.poDate,
+        clientName: po.clientName,
+        status: po.status,
+        deliveryLocations: po.deliveryLocations,
+      }))
+    );
+
+    return [...flattened].sort((a, b) => {
+      const [key, direction] = poSortBy.split("_");
+      const isAsc = direction === "asc";
+      let comparison = 0;
+
+      switch (key) {
+        case "date":
+          comparison = new Date(a.poDate || 0).getTime() - new Date(b.poDate || 0).getTime();
+          break;
+        case "po":
+          comparison = (a.poNumber || "").localeCompare(b.poNumber || "");
+          break;
+        case "client":
+          comparison = (a.clientName || "").localeCompare(b.clientName || "");
+          break;
+        case "item":
+          comparison = (a.itemName || "").localeCompare(b.itemName || "");
+          break;
+        case "qty":
+          comparison = a.quantity - b.quantity;
+          break;
+        case "value":
+          comparison = a.totalAmount - b.totalAmount;
+          break;
+        case "status":
+          comparison = (a.status || "").localeCompare(b.status || "");
+          break;
+        default:
+          comparison = 0;
+      }
+
+      return isAsc ? comparison : -comparison;
+    }).slice(0, 5); // Show top 5 recent
+  }, [initialData.pos, poSortBy]);
+
+  const recentDispatches = useMemo(() => {
+    const flattened = initialData.dispatches.flatMap((dispatch) =>
+      dispatch.lineItems.map((item, idx) => {
+        const parentPOItem = initialData.pos
+          .flatMap((po) => po.lineItems)
+          .find((pi) => pi.id === item.poLineItemId);
+        const orderedQty = parentPOItem?.quantity || item.dispatchQty;
+
+        return {
+          ...item,
+          dispatchId: dispatch.id,
+          invoiceNumber: dispatch.invoiceNumber,
+          poNumber: dispatch.poNumber,
+          clientName: dispatch.clientName,
+          dispatchDate: dispatch.dispatchDate || dispatch.invoiceDate,
+          logisticsPartnerName: dispatch.logisticsPartnerName,
+          status: dispatch.status,
+          orderedQty,
+          uniqueKey: `${dispatch.id}-${idx}`,
+        };
+      })
+    );
+
+    return [...flattened].sort((a, b) => {
+      const [key, direction] = dispatchSortBy.split("_");
+      const isAsc = direction === "asc";
+      let comparison = 0;
+
+      switch (key) {
+        case "date":
+          comparison = new Date(a.dispatchDate || 0).getTime() - new Date(b.dispatchDate || 0).getTime();
+          break;
+        case "inv":
+          comparison = (a.invoiceNumber || "").localeCompare(b.invoiceNumber || "");
+          break;
+        case "po":
+          comparison = (a.poNumber || "").localeCompare(b.poNumber || "");
+          break;
+        case "client":
+          comparison = (a.clientName || "").localeCompare(b.clientName || "");
+          break;
+        case "item":
+          comparison = (a.itemName || "").localeCompare(b.itemName || "");
+          break;
+        case "status":
+          comparison = (a.status || "").localeCompare(b.status || "");
+          break;
+        default:
+          comparison = 0;
+      }
+
+      return isAsc ? comparison : -comparison;
+    }).slice(0, 5); // Show top 5 recent
+  }, [initialData.dispatches, dispatchSortBy, initialData.pos]);
+
+  const overallFulfillment = useMemo(() => totalOrderedValue > 0 ? ((fulfillmentValue / totalOrderedValue) * 100).toFixed(1) : "0", [totalOrderedValue, fulfillmentValue]);
 
   const getTotalDispatchedForItem = useCallback((poLineItemId: string) => {
     return dispatchMaps.byPoLineItemId[poLineItemId] || 0;
@@ -476,14 +629,254 @@ export function OMDashboardClient({
       {!isSearching ? (
         <div className="space-y-6">
           <SummaryCards
-            totalActivePOs={totalActivePOs}
-            totalOrderValue={totalOrderValue}
+            inProgressCount={inProgressCount}
+            fulfilledCount={fulfilledCount}
+            closedCount={closedCount}
+            inProgressValue={inProgressValue}
+            fulfillmentValue={fulfillmentValue}
             overallFulfillment={overallFulfillment}
-            totalOrderedQty={totalOrderedQty}
-            totalDispatchedQty={totalDispatchedQty}
-            totalRemainingQty={totalRemainingQty}
           />
           <DashboardCharts statusBreakdown={statusBreakdown} clientSummaryArray={clientSummaryArray.slice(0, 10)} />
+          
+          {/* Recent Purchase Orders */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                Recent Purchase Orders
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleSection("pos")}
+              >
+                {expandedSections.pos ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CardHeader>
+            {expandedSections.pos && (
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <thead className="bg-muted/50 border-b">
+                      <TableRow>
+                        <OMSortableHeader
+                          title="Date"
+                          currentSort={poSortBy}
+                          onSort={setPoSortBy}
+                          ascOption="date_asc"
+                          descOption="date_desc"
+                          className="text-left px-3 text-xs"
+                        />
+                        <OMSortableHeader
+                          title="PO Number"
+                          currentSort={poSortBy}
+                          onSort={setPoSortBy}
+                          ascOption="po_asc"
+                          descOption="po_desc"
+                          className="text-left px-3"
+                        />
+                        <OMSortableHeader
+                          title="Client"
+                          currentSort={poSortBy}
+                          onSort={setPoSortBy}
+                          ascOption="client_asc"
+                          descOption="client_desc"
+                          className="text-left px-3"
+                        />
+                        <OMSortableHeader
+                          title="Item"
+                          currentSort={poSortBy}
+                          onSort={setPoSortBy}
+                          ascOption="item_asc"
+                          descOption="item_desc"
+                          className="text-left px-3"
+                        />
+                        <OMSortableHeader
+                          title="Qty"
+                          currentSort={poSortBy}
+                          onSort={setPoSortBy}
+                          ascOption="qty_asc"
+                          descOption="qty_desc"
+                          className="text-left px-3"
+                        />
+                        <OMSortableHeader
+                          title="Value"
+                          currentSort={poSortBy}
+                          onSort={setPoSortBy}
+                          ascOption="value_asc"
+                          descOption="value_desc"
+                          className="text-left px-3"
+                        />
+                        <OMSortableHeader
+                          title="Status"
+                          currentSort={poSortBy}
+                          onSort={setPoSortBy}
+                          ascOption="status_asc"
+                          descOption="status_desc"
+                          className="text-left px-3"
+                        />
+                      </TableRow>
+                    </thead>
+                    <TableBody>
+                      {recentPOs.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="text-left px-3 text-xs">
+                            {item.poDate ? new Date(item.poDate).toLocaleDateString("en-IN") : "N/A"}
+                          </TableCell>
+                          <TableCell className="text-left px-3 font-medium text-xs">
+                            <Link href={`/admin/order-management/purchase-orders/${item.poId}`} className="hover:underline">
+                              {item.poNumber}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="text-left px-3 text-xs truncate max-w-[120px]">
+                            {item.clientName || "N/A"}
+                          </TableCell>
+                          <TableCell className="text-left px-3 text-xs truncate max-w-[150px]">
+                            {item.itemName || "N/A"}
+                          </TableCell>
+                          <TableCell className="text-left px-3 text-xs">
+                            {item.quantity}
+                          </TableCell>
+                          <TableCell className="text-left px-3 text-xs font-medium">
+                            ₹{item.totalAmount.toLocaleString("en-IN")}
+                          </TableCell>
+                          <TableCell className="text-left px-3 text-xs">
+                            <Badge className={getPoStatusClass(item.status)}>
+                              {PO_STATUS_LABELS[item.status] ?? item.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Recent Dispatches */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Truck className="h-5 w-5 text-primary" />
+                Recent Dispatches
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleSection("dispatches")}
+              >
+                {expandedSections.dispatches ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CardHeader>
+            {expandedSections.dispatches && (
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <thead className="bg-muted/50 border-b">
+                      <TableRow>
+                        <OMSortableHeader
+                          title="Date"
+                          currentSort={dispatchSortBy}
+                          onSort={setDispatchSortBy}
+                          ascOption="date_asc"
+                          descOption="date_desc"
+                          className="text-left px-3 text-xs"
+                        />
+                        <OMSortableHeader
+                          title="Invoice #"
+                          currentSort={dispatchSortBy}
+                          onSort={setDispatchSortBy}
+                          ascOption="inv_asc"
+                          descOption="inv_desc"
+                          className="text-left px-3"
+                        />
+                        <OMSortableHeader
+                          title="PO #"
+                          currentSort={dispatchSortBy}
+                          onSort={setDispatchSortBy}
+                          ascOption="po_asc"
+                          descOption="po_desc"
+                          className="text-left px-3"
+                        />
+                        <OMSortableHeader
+                          title="Client"
+                          currentSort={dispatchSortBy}
+                          onSort={setDispatchSortBy}
+                          ascOption="client_asc"
+                          descOption="client_desc"
+                          className="text-left px-3"
+                        />
+                        <OMSortableHeader
+                          title="Item"
+                          currentSort={dispatchSortBy}
+                          onSort={setDispatchSortBy}
+                          ascOption="item_asc"
+                          descOption="item_desc"
+                          className="text-left px-3"
+                        />
+                        <OMSortableHeader
+                          title="Qty"
+                          currentSort={dispatchSortBy}
+                          onSort={setDispatchSortBy}
+                          ascOption="qty_asc"
+                          descOption="qty_desc"
+                          className="text-left px-3"
+                        />
+                        <OMSortableHeader
+                          title="Status"
+                          currentSort={dispatchSortBy}
+                          onSort={setDispatchSortBy}
+                          ascOption="status_asc"
+                          descOption="status_desc"
+                          className="text-left px-3"
+                        />
+                      </TableRow>
+                    </thead>
+                    <TableBody>
+                      {recentDispatches.map((item) => (
+                        <TableRow key={item.uniqueKey}>
+                          <TableCell className="text-left px-3 text-xs">
+                            {item.dispatchDate ? new Date(item.dispatchDate).toLocaleDateString("en-IN") : "N/A"}
+                          </TableCell>
+                          <TableCell className="text-left px-3 font-medium text-xs">
+                            <Link href={`/admin/order-management/dispatches/${item.dispatchId}`} className="hover:underline">
+                              {item.invoiceNumber}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="text-left px-3 text-xs">
+                            {item.poNumber || "N/A"}
+                          </TableCell>
+                          <TableCell className="text-left px-3 text-xs truncate max-w-[120px]">
+                            {item.clientName || "N/A"}
+                          </TableCell>
+                          <TableCell className="text-left px-3 text-xs truncate max-w-[150px]">
+                            {item.itemName || "N/A"}
+                          </TableCell>
+                          <TableCell className="text-left px-3 text-xs font-medium text-blue-600">
+                            {item.dispatchQty}
+                          </TableCell>
+                          <TableCell className="text-left px-3 text-xs">
+                            <Badge className={getDispatchStatusClass(item.status)}>
+                              {item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase()}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            )}
+          </Card>
         </div>
       ) : (
         <SearchResultsList
