@@ -1,12 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { TableCell, TableHead, TableRow } from "@/components/ui/table";
-import { Plus, Loader2, Trash2, ArrowLeft, Edit, MapPin } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import {
@@ -18,15 +13,20 @@ import {
 import type { OMDeliveryLocation } from "@/types/order-management";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
-import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
-import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import { useOMFilters } from "@/hooks/use-om-filters";
 import { LocationFilters } from "./LocationFilters";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { LOCATION_SORT_OPTIONS } from "@/constants/om-sort-options";
 import { type ComboboxOption } from "@/components/ui/combobox";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
+import { useOMClientData } from "@/hooks/use-om-client-data";
+import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
+import { LocationsTable } from "./LocationsTable";
+import { LocationForm } from "./LocationForm";
 
 interface OMDeliveryLocationsClientProps {
   initialData: PaginatedResponse<OMDeliveryLocation>;
@@ -36,29 +36,61 @@ export function OMDeliveryLocationsClient({
   initialData,
 }: OMDeliveryLocationsClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   const [locations, setLocations] = useState<OMDeliveryLocation[]>(initialData.data);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locationName, setLocationName] = useState("");
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("name_asc");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+  const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const [totalCount, setTotalCount] = useState(initialData.meta.total);
-  const [isHydrating, setIsHydrating] = useState(false);
-  // Store initial values to prevent redundant fetches on mount due to state initialization
-  const initialValues = useRef({
-    sortBy: "name_asc" as SortOption,
-    searchTerm: "",
-  });
-
+  const [unfilteredTotal, setUnfilteredTotal] = useState(initialData.meta.total);
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
+  // Helper to update URL
+  const updateUrl = useCallback((newParams: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    let changed = false;
+    
+    Object.entries(newParams).forEach(([key, value]) => {
+      const currentValue = searchParams.get(key) || "";
+      const newValue = value === null || value === "all" ? "" : value;
+      
+      if (currentValue !== newValue) {
+        if (value === null || value === "" || value === "all") {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      params.set("page", "1");
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [searchParams, pathname, router]);
+
+  useEffect(() => {
+    const isFiltered = searchParams.get("q") || searchParams.get("cityName");
+    if (isFiltered) {
+      fetch("/api/admin/om/counts")
+        .then((res) => res.json())
+        .then((data) => setUnfilteredTotal(data.locations))
+        .catch((err) => console.error("Failed to fetch location counts", err));
+    } else {
+      setUnfilteredTotal(initialData.meta.total);
+    }
+  }, [initialData.meta.total, searchParams]);
+
   useEffect(() => {
     setLocations(initialData.data);
-    setTotalCount(initialData.meta.total);
     setCurrentPage(initialData.meta.page);
     setHasMore(initialData.meta.page < initialData.meta.totalPages);
   }, [initialData]);
@@ -72,6 +104,12 @@ export function OMDeliveryLocationsClient({
       url.searchParams.set("page", nextPage.toString());
       url.searchParams.set("limit", "50");
       
+      searchParams.forEach((value, key) => {
+        if (key !== "page" && key !== "limit") {
+          url.searchParams.set(key, value);
+        }
+      });
+
       const res = await fetch(url.toString());
       if (res.ok) {
         const result: PaginatedResponse<OMDeliveryLocation> = await res.json();
@@ -91,86 +129,89 @@ export function OMDeliveryLocationsClient({
     }
   };
 
-  const hydrateData = async () => {
-    if (isHydrating || !hasMore) return;
-    setIsHydrating(true);
-    try {
-      let nextP = currentPage + 1;
-      let more: boolean = hasMore;
-      while (more) {
-        const url = new URL("/api/admin/om/delivery-locations", window.location.origin);
-        url.searchParams.set("page", nextP.toString());
-        url.searchParams.set("limit", "50");
-        const res = await fetch(url.toString());
-        if (!res.ok) break;
-        const result: PaginatedResponse<OMDeliveryLocation> = await res.json();
-        setLocations((prev) => {
-          const existingIds = new Set(prev.map(loc => loc.id));
-          const uniqueNewData = result.data.filter(loc => !existingIds.has(loc.id));
-          return [...prev, ...uniqueNewData];
-        });
-        nextP = result.meta.page + 1;
-        more = result.meta.page < result.meta.totalPages;
-        setCurrentPage(result.meta.page);
-        setHasMore(more);
-        await new Promise(r => setTimeout(r, 100));
-      }
-    } catch (err) {
-      console.error("Hydration failed:", err);
-    } finally {
-      setIsHydrating(false);
-    }
-  };
-
-
-  const fetchLocations = async () => {
-    setIsLoading(true);
-    try {
-      const url = new URL("/api/admin/om/delivery-locations", window.location.origin);
-      url.searchParams.set("page", "1");
-      url.searchParams.set("limit", "50");
-
-      const res = await fetch(url.toString());
-      if (res.ok) {
-        const result: PaginatedResponse<OMDeliveryLocation> = await res.json();
-        setLocations(result.data);
-        setTotalCount(result.meta.total);
-        setCurrentPage(result.meta.page);
-        setHasMore(result.meta.page < result.meta.totalPages);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load locations");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
       initialFilters: {
-        cityName: "",
+        cityName: searchParams.get("cityName") || "",
       },
       labels: {
         cityName: "City",
       },
     });
 
-  useEffect(() => {
-    const isSearchActive =
-      searchTerm.length > 0 || Object.values(filters).some((v) => v);
-    if (isSearchActive && hasMore && !isHydrating) {
-      void hydrateData();
+  const filterFn = useCallback((loc: OMDeliveryLocation, searchTerm: string, filters: Record<string, any>) => {
+    const q = searchTerm.toLowerCase().trim();
+    const matchesSearch = !q || loc.name.toLowerCase().includes(q);
+    const matchesCity = !filters.cityName || loc.name === filters.cityName;
+    return matchesSearch && matchesCity;
+  }, []);
+
+  const sortFn = useCallback((a: OMDeliveryLocation, b: OMDeliveryLocation, sortBy: string) => {
+    switch (sortBy) {
+      case "name_asc":
+        return a.name.localeCompare(b.name);
+      case "name_desc":
+        return b.name.localeCompare(a.name);
+      case "newest":
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      case "oldest":
+        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      case "latest_update":
+        return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+      default:
+        return 0;
     }
-  }, [searchTerm, filters, hasMore, isHydrating, hydrateData]);
+  }, []);
+
+  const processedData = useOMClientData({
+    data: locations,
+    searchTerm,
+    sortBy,
+    filters,
+    filterFn,
+    sortFn,
+  });
+
+  // Sync searchTerm with URL
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm !== (searchParams.get("q") || "")) {
+        updateUrl({ q: searchTerm || null });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm, updateUrl, searchParams]);
+
+  // Sync filters with URL
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const newParams: Record<string, string | null> = {};
+      let changed = false;
+      Object.entries(filters).forEach(([key, value]) => {
+        if (searchParams.get(key) !== value) {
+          newParams[key] = value;
+          changed = true;
+        }
+      });
+      if (changed) updateUrl(newParams);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filters, updateUrl, searchParams]);
+
+  // Sync sortBy with URL
+  useEffect(() => {
+    const currentSort = searchParams.get("sortBy") || "name_asc";
+    if (sortBy !== currentSort) {
+      updateUrl({ sortBy });
+    }
+  }, [sortBy, updateUrl, searchParams]);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const [editingLocation, setEditingLocation] =
-    useState<OMDeliveryLocation | null>(null);
+  const [editingLocation, setEditingLocation] = useState<OMDeliveryLocation | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editName, setEditName] = useState("");
 
@@ -182,46 +223,6 @@ export function OMDeliveryLocationsClient({
       }),
     );
   }, [locations]);
-
-
-  useEffect(() => {
-    // Only fetch if sortBy has actually changed from its initial value
-    if (sortBy === initialValues.current.sortBy) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      fetchLocations();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [sortBy]);
-
-  const filteredLocations = useMemo(() => {
-    return locations
-      .filter((loc) => {
-        const matchesSearch =
-          !searchTerm ||
-          loc.name.toLowerCase().includes(searchTerm.toLowerCase());
-
-        const matchesCity = !filters.cityName || loc.name === filters.cityName;
-
-        return matchesSearch && matchesCity;
-      })
-      .sort((a, b) => {
-        if (sortBy === "name_asc") return a.name.localeCompare(b.name);
-        if (sortBy === "name_desc") return b.name.localeCompare(a.name);
-        if (sortBy === "newest")
-          return (
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime()
-          );
-        if (sortBy === "oldest")
-          return (
-            new Date(a.createdAt || 0).getTime() -
-            new Date(b.createdAt || 0).getTime()
-          );
-        return 0;
-      });
-  }, [locations, searchTerm, sortBy, filters.cityName]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,7 +238,7 @@ export function OMDeliveryLocationsClient({
         toast.success("Delivery location added successfully");
         setLocationName("");
         setIsAddDialogOpen(false);
-        fetchLocations();
+        router.refresh();
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to add delivery location");
@@ -272,7 +273,7 @@ export function OMDeliveryLocationsClient({
       if (res.ok) {
         toast.success("Delivery location updated successfully");
         setIsEditDialogOpen(false);
-        fetchLocations();
+        router.refresh();
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to update delivery location");
@@ -285,11 +286,6 @@ export function OMDeliveryLocationsClient({
     }
   };
 
-  const handleDelete = (id: string) => {
-    setDeleteId(id);
-    setIsDeleteDialogOpen(true);
-  };
-
   const onConfirmDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
@@ -299,7 +295,7 @@ export function OMDeliveryLocationsClient({
       });
       if (res.ok) {
         toast.success("Delivery location deleted successfully");
-        fetchLocations();
+        router.refresh();
         setIsDeleteDialogOpen(false);
       } else {
         const error = await res.json();
@@ -314,48 +310,72 @@ export function OMDeliveryLocationsClient({
     }
   };
 
+  const handleExportExcel = useCallback(() => {
+    const exportData = processedData.map(loc => ({
+      "ID": loc.id,
+      "Location Name": loc.name
+    }));
+    
+    if (exportToExcel(exportData, "Delivery_Locations")) {
+      toast.success("Locations exported to Excel successfully");
+    } else {
+      toast.error("Failed to export locations to Excel");
+    }
+  }, [processedData]);
+  const handleExportPDF = useCallback(() => {
+    const exportData = processedData.map(loc => ({
+      "ID": loc.id,
+      "Location Name": loc.name
+    }));
+    
+    if (exportToPDF(exportData, "Delivery_Locations", "Delivery Locations Report")) {
+      toast.success("Locations exported to PDF successfully");
+    } else {
+      toast.error("Failed to export locations to PDF");
+    }
+  }, [processedData]);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/admin/order-management")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-semibold">Delivery Locations</h1>
-            <p className="text-muted-foreground">
-              Manage city-based delivery locations for purchase orders
-            </p>
-          </div>
-        </div>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Location
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push("/admin/order-management")}
+        >
+          <ArrowLeft className="h-5 w-5" />
         </Button>
+        <OMPageHeader
+          title="Delivery Locations"
+          description="Manage city-based delivery locations for purchase orders"
+          className="flex-1"
+          onExportExcel={handleExportExcel}
+          onExportPDF={handleExportPDF}
+          addButton={{
+            label: "Add Location",
+            onClick: () => setIsAddDialogOpen(true)
+          }}
+        />
       </div>
 
       <OMFilterCard
-        title="Filters"
-        subtitle={`Showing ${totalCount} of ${totalCount} delivery locations`}
+        filteredCount={processedData.length}
+        totalCount={unfilteredTotal}
+        unit="delivery locations"
         searchPlaceholder="Search by city name..."
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
+        sortBy={sortBy as any}
+        onSortChange={setSortBy as any}
         sortOptions={LOCATION_SORT_OPTIONS}
         sortNameLabel="City Name"
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         onReset={() => {
           setSearchTerm("");
-          setSortBy("name_asc");
           resetFilters();
+          router.push(pathname);
         }}
-        isHydrating={isHydrating}
       >
         <LocationFilters
           filters={filters}
@@ -365,61 +385,21 @@ export function OMDeliveryLocationsClient({
         <OMActiveFilters
           activeFilters={activeFilters}
           onRemove={removeFilter}
-          onClearAll={resetFilters}
+          onClearAll={() => {
+            setSearchTerm("");
+            resetFilters();
+            router.push(pathname);
+          }}
         />
       </OMFilterCard>
 
-      <OMDataTable
-        data={filteredLocations}
+      <LocationsTable
+        data={processedData}
         isLoading={isLoading}
-        columnCount={2}
-        emptyMessage={
-          searchTerm
-            ? "No locations matching your search."
-            : "No delivery locations found."
-        }
-        header={
-          <TableRow>
-            <OMSortableHeader
-              title="Location / City Name"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="name_asc"
-              descOption="name_desc"
-            />
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        }
-        renderRow={(location: OMDeliveryLocation) => (
-          <TableRow key={location.id} className="group">
-            <TableCell className="font-medium">
-              <div className="flex items-center gap-2">
-                <MapPin
-                  className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors"
-                />
-                {location.name}
-              </div>
-            </TableCell>
-
-            <TableCell className="text-right flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleEdit(location)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(location.id)}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        )}
+        sortBy={sortBy}
+        onSort={setSortBy}
+        onEdit={handleEdit}
+        onDelete={(id) => { setDeleteId(id); setIsDeleteDialogOpen(true); }}
       />
 
       <OMInfiniteScroll
@@ -434,84 +414,37 @@ export function OMDeliveryLocationsClient({
         onConfirm={onConfirmDelete}
         isLoading={isDeleting}
         title="Delete Location"
-        description="Are you sure you want to delete this delivery location? This may affect orders assigned to this city."
+        description="Are you sure you want to delete this delivery location?"
       />
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-150">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add Delivery Location</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAdd} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="locationName">City Name *</Label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="locationName"
-                  required
-                  className="pl-9"
-                  value={locationName}
-                  onChange={(e) => setLocationName(e.target.value)}
-                  placeholder="e.g. Mumbai, Bangalore"
-                  maxLength={100}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAddDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="mr-2 h-4 w-4" />
-                )}
-                Add Location
-              </Button>
-            </div>
-          </form>
+          <LocationForm
+            name={locationName}
+            setName={setLocationName}
+            onSubmit={handleAdd}
+            isSubmitting={isSubmitting}
+            onCancel={() => setIsAddDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Location</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="editName">City Name *</Label>
-              <Input
-                id="editName"
-                required
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="Enter city name"
-                maxLength={100}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Save Changes
-              </Button>
-            </div>
-          </form>
+          <LocationForm
+            name={editName}
+            setName={setEditName}
+            onSubmit={handleUpdate}
+            isSubmitting={isSubmitting}
+            isEdit={true}
+            onCancel={() => setIsEditDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>
