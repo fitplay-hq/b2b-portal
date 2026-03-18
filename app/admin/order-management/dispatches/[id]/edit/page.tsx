@@ -1029,7 +1029,7 @@ function EditDispatchForm() {
                     <Alert>
                       <Package className="h-4 w-4" />
                       <AlertDescription>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4">
                           <div>
                             <p className="text-sm font-medium">Total Boxes</p>
                             <p className="text-2xl font-bold">
