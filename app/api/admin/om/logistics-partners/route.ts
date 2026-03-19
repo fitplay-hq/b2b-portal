@@ -4,6 +4,7 @@ import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMLogisticsPartnerCreateSchema } from "@/lib/validations/om";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getOMLogisticsPartners } from "@/lib/om-data";
 
 export async function GET(req: NextRequest) {
@@ -53,6 +54,9 @@ export async function POST(req: NextRequest) {
     const logisticsPartner = await prisma.oMLogisticsPartner.create({
       data: validatedData,
     });
+
+    revalidateTag("om-clients", "max");
+    revalidatePath("/admin/order-management/logistics-partners");
 
     return NextResponse.json(
       {

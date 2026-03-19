@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { withPermissions } from "@/lib/auth-middleware";
 import { min } from "date-fns";
 
@@ -108,6 +109,9 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      revalidateTag("om-dashboard", "max");
+      revalidatePath("/admin/products");
+
       return NextResponse.json(product, { status: 201 });
     } catch (e: any) {
       return NextResponse.json({ error: e.message }, { status: 500 });
@@ -164,6 +168,9 @@ export async function PATCH(req: NextRequest) {
         },
       });
 
+      revalidateTag("om-dashboard", "max");
+      revalidatePath("/admin/products");
+
       return NextResponse.json(product);
     } catch (e: any) {
       return NextResponse.json({ error: e.message }, { status: 500 });
@@ -211,6 +218,9 @@ export async function DELETE(req: NextRequest) {
       await prisma.product.delete({
         where: { id: id },
       });
+
+      revalidateTag("om-dashboard", "max");
+      revalidatePath("/admin/products");
 
       return NextResponse.json({ 
         success: true,

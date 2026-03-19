@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMDispatchOrderCreateSchema } from "@/lib/validations/om";
 import { OMPoStatus } from "@/lib/generated/prisma";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getOMDispatches } from "@/lib/om-data";
 
 export async function POST(req: NextRequest) {
@@ -256,6 +256,14 @@ export async function POST(req: NextRequest) {
 
       return dispatch;
     });
+
+    revalidateTag("om-dispatch-orders", "max");
+    revalidateTag("om-purchase-orders", "max");
+    revalidateTag("om-dashboard", "max");
+
+    revalidatePath("/admin/order-management/dispatches");
+    revalidatePath("/admin/order-management/purchase-orders");
+    revalidatePath("/admin/dashboard");
 
     return NextResponse.json(
       {

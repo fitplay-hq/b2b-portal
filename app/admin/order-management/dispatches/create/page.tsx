@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Layout from "@/components/layout";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,10 +65,15 @@ interface DispatchLineItem {
   gstPercentage: number;
   gstAmount: number;
   totalAmount: number;
+  blockedByFifo?: boolean;
+  blockingPoNumber?: string;
+  blockingPoQuantity?: number;
+  blockingPoId?: string;
 }
 
 function CreateDispatchForm() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const preSelectedPoId = searchParams.get("poId");
 
@@ -128,7 +132,11 @@ function CreateDispatchForm() {
 
         if (posRes.ok) {
           const poData = await posRes.json();
-          setAvailablePOs(Array.isArray(poData) ? poData : poData.data || []);
+          const pos = Array.isArray(poData) ? poData : poData.data || [];
+          // Filter out fully dispatched or closed POs for the initial selection
+          setAvailablePOs(pos.filter((po: any) => 
+            po.status !== "FULLY_DISPATCHED" && po.status !== "CLOSED"
+          ));
         }
         if (logisticsRes.ok) {
           const logisticsData = await logisticsRes.json();
@@ -185,24 +193,73 @@ function CreateDispatchForm() {
                 i.remainingQty > 0,
             );
 
-          // Initialize dispatch line items
+          // Initialize dispatch line items with FIFO check
+          const otherClientPOs = availablePOs
+            .filter((p) => p.clientId === po.clientId && p.id !== po.id)
+            .sort(
+              (a, b) =>
+                new Date(a.poDate || a.createdAt || 0).getTime() -
+                new Date(b.poDate || b.createdAt || 0).getTime(),
+            );
+
+          const currentPoDate = new Date(
+            po.poDate || po.createdAt || 0,
+          ).getTime();
+
           const newLineItems: DispatchLineItem[] = items.map(
             (
               item: OMPurchaseOrderItem & { remainingQty: number },
               index: number,
-            ) => ({
-              tempId: `dispatch-${index}`,
-              poLineItemId: item.id,
-              productId: item.productId,
-              itemName: item.product?.name || "Unknown Item",
-              remainingQty: item.remainingQty,
-              dispatchQty: 0,
-              rate: item.rate,
-              amount: 0,
-              gstPercentage: item.gstPercentage,
-              gstAmount: 0,
-              totalAmount: 0,
-            }),
+            ) => {
+              // Find if this product exists in an older PO for the same client
+              const olderBlockingPO = otherClientPOs.find((otherPO) => {
+                // Strictly only consider CONFIRMED or PARTIALLY_DISPATCHED as blocking
+                if (otherPO.status !== "CONFIRMED" && otherPO.status !== "PARTIALLY_DISPATCHED") {
+                  return false;
+                }
+
+                const otherPoDate = new Date(
+                  otherPO.poDate || otherPO.createdAt || 0,
+                ).getTime();
+                if (otherPoDate >= currentPoDate) return false;
+
+                // Check if this product is in the older PO and has remaining quantity
+                return otherPO.items?.some((otherItem) => {
+                  if (otherItem.productId !== item.productId) return false;
+                  const totalDispatched =
+                    otherItem.dispatchItems?.reduce(
+                      (sum, di) => sum + (di.quantity || 0),
+                      0,
+                    ) || 0;
+                  const remaining = Number(otherItem.quantity) - totalDispatched;
+                  
+                  // Only block if there is actual remaining quantity
+                  if (remaining > 0) {
+                    (item as any)._tempBlockingQty = remaining;
+                    return true;
+                  }
+                  return false;
+                });
+              });
+
+              return {
+                tempId: `dispatch-${index}`,
+                poLineItemId: item.id,
+                productId: item.productId,
+                itemName: item.product?.name || "Unknown Item",
+                remainingQty: item.remainingQty,
+                dispatchQty: 0,
+                rate: item.rate,
+                amount: 0,
+                gstPercentage: item.gstPercentage,
+                gstAmount: 0,
+                totalAmount: 0,
+                blockedByFifo: !!olderBlockingPO,
+                blockingPoNumber: olderBlockingPO?.poNumber || undefined,
+                blockingPoQuantity: (item as any)._tempBlockingQty,
+                blockingPoId: olderBlockingPO?.id || undefined,
+              };
+            },
           );
 
           setLineItems(newLineItems);
@@ -606,6 +663,47 @@ function CreateDispatchForm() {
           </CardContent>
         </Card>
 
+        {/* FIFO Blocking Warning */}
+        {selectedPO && lineItems.some((li) => li.blockedByFifo) && (
+          <Alert variant="destructive" className="border-orange-500 bg-orange-50 text-orange-900">
+            <AlertCircle className="h-5 w-5 text-orange-600" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <p className="font-semibold text-lg">Pending Older Orders</p>
+                <p>We already have pending orders for this client and these items. Please fulfill the older orders first:</p>
+                <div className="space-y-3 mt-4">
+                  {lineItems
+                    .filter((li) => li.blockedByFifo)
+                    .map((li) => (
+                      <div key={li.tempId} className="flex items-center justify-between bg-white/50 p-3 rounded-lg border border-orange-200">
+                        <div className="flex-1">
+                          <p className="font-semibold text-orange-900">{li.itemName}</p>
+                          <p className="text-sm text-orange-800">
+                            {li.blockingPoQuantity} units remaining in <strong>PO #{li.blockingPoNumber}</strong>
+                          </p>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="bg-white hover:bg-orange-100 text-orange-700 border-orange-300 ml-4"
+                          onClick={() => {
+                            if (li.blockingPoId) {
+                              setPoId(li.blockingPoId);
+                              router.push(`${pathname}?poId=${li.blockingPoId}`, { scroll: false });
+                            }
+                          }}
+                        >
+                          Switch to PO #{li.blockingPoNumber}
+                        </Button>
+                      </div>
+                    ))}
+                </div>
+                <p className="text-sm mt-4 italic font-medium">Please fulfill the units from the older purchase orders listed above before dispatching from this one.</p>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Dispatch Line Items */}
         {selectedPO && (
           <Card>
@@ -624,6 +722,7 @@ function CreateDispatchForm() {
                     <TableHead className="text-right">GST %</TableHead>
                     <TableHead className="text-right">GST Amt</TableHead>
                     <TableHead className="text-right">Total</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -667,7 +766,8 @@ function CreateDispatchForm() {
                                 e.target.value,
                               )
                             }
-                            placeholder="0"
+                            placeholder={item.blockedByFifo ? "Blocked" : "0"}
+                            disabled={item.blockedByFifo}
                           />
                         </TableCell>
                         <TableCell className="text-right">

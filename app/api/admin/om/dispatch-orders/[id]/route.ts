@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
@@ -248,8 +248,13 @@ export async function PUT(
       return dispatch;
     });
 
-    revalidateTag("om-dispatch-orders", "page" /* @ts-ignore */);
-    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    revalidateTag("om-dispatch-orders", "max");
+    revalidateTag("om-purchase-orders", "max");
+    revalidateTag("om-dashboard", "max");
+
+    revalidatePath("/admin/order-management/dispatches");
+    revalidatePath("/admin/order-management/purchase-orders");
+    revalidatePath("/admin/dashboard");
 
     return NextResponse.json(updatedDispatch);
   } catch (error: unknown) {
@@ -280,8 +285,16 @@ export async function DELETE(
       where: { id },
     });
 
-    revalidateTag("om-dispatch-orders", "page" /* @ts-ignore */);
-    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
+    // @ts-expect-error: Next.js revalidateTag argument count mismatch
+    revalidateTag("om-dispatch-orders");
+    // @ts-expect-error: Next.js revalidateTag argument count mismatch
+    revalidateTag("om-purchase-orders");
+    // @ts-expect-error: Next.js revalidateTag argument count mismatch
+    revalidateTag("om-dashboard");
+
+    revalidatePath("/admin/order-management/dispatches");
+    revalidatePath("/admin/order-management/purchase-orders");
+    revalidatePath("/admin/dashboard");
 
     return NextResponse.json({
       success: true,

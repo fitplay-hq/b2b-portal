@@ -268,30 +268,77 @@ export function OMPurchaseOrdersClient({
   });
 
   const processedData = useMemo(() => {
-    return processedDataFiltered.map((po) => {
+    return processedDataFiltered.map((po: OMPurchaseOrder) => {
       const totalQty = po.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
       const totalDispatched = po.items?.reduce(
         (sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0),
         0
       ) || 0;
       const totalAmount = po.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
+
+      // FIFO Check for PO level (Client View)
+      const otherClientPOs = purchaseOrders
+        .filter((p) => p.clientId === po.clientId && p.id !== po.id)
+        .sort((a, b) => new Date(a.poDate || a.createdAt || 0).getTime() - new Date(b.poDate || b.createdAt || 0).getTime());
+
+      const currentPoDate = new Date(po.poDate || po.createdAt || 0).getTime();
+      let isFifoBlocked = false;
+      let blockingPoNumber = "";
+
+      if (po.status === "CONFIRMED" || po.status === "PARTIALLY_DISPATCHED") {
+        for (const item of po.items || []) {
+          const olderPO = otherClientPOs.find(p => {
+            const otherDate = new Date(p.poDate || p.createdAt || 0).getTime();
+            if (otherDate >= currentPoDate) return false;
+            return p.items?.some(oi => {
+              if (oi.productId !== item.productId) return false;
+              const rem = oi.quantity - (oi.dispatchItems?.reduce((s, d: any) => s + d.quantity, 0) || 0);
+              return rem > 0;
+            });
+          });
+          if (olderPO) {
+            isFifoBlocked = true;
+            blockingPoNumber = olderPO.poNumber || olderPO.estimateNumber || "Older PO";
+            break;
+          }
+        }
+      }
       
       return {
         ...po,
         _totalQty: totalQty,
         _totalDispatched: totalDispatched,
         _totalRemaining: totalQty - totalDispatched,
-        _totalAmount: totalAmount
+        _totalAmount: totalAmount,
+        _isFifoBlocked: isFifoBlocked,
+        _blockingPoNumber: blockingPoNumber
       };
     });
-  }, [processedDataFiltered]);
+  }, [processedDataFiltered, purchaseOrders]);
 
   const processedItemData = useMemo(() => {
     if (viewType !== "item") return [];
     
-    let items = processedData.flatMap((po) =>
-      (po.items || []).map((item) => {
+    let items = processedData.flatMap((po: any) =>
+      (po.items || []).map((item: any) => {
         const itemDispatched = item.dispatchItems?.reduce((acc: number, d: any) => acc + d.quantity, 0) || 0;
+        
+        // Item-level FIFO check
+        const otherClientPOs = purchaseOrders
+          .filter((p) => p.clientId === po.clientId && p.id !== po.id)
+          .sort((a, b) => new Date(a.poDate || a.createdAt || 0).getTime() - new Date(b.poDate || b.createdAt || 0).getTime());
+        
+        const currentPoDate = new Date(po.poDate || po.createdAt || 0).getTime();
+        const olderPO = otherClientPOs.find(p => {
+          const otherDate = new Date(p.poDate || p.createdAt || 0).getTime();
+          if (otherDate >= currentPoDate) return false;
+          return p.items?.some(oi => {
+            if (oi.productId !== item.productId) return false;
+            const rem = oi.quantity - (oi.dispatchItems?.reduce((s, d: any) => s + d.quantity, 0) || 0);
+            return rem > 0;
+          });
+        });
+
         return {
           ...item,
           poId: po.id,
@@ -303,6 +350,8 @@ export function OMPurchaseOrdersClient({
           status: po.status,
           itemDispatched,
           itemRemaining: item.quantity - itemDispatched,
+          isFifoBlocked: !!olderPO,
+          blockingPoNumber: olderPO?.poNumber || olderPO?.estimateNumber || "Older PO",
         };
       })
     );
@@ -310,7 +359,7 @@ export function OMPurchaseOrdersClient({
     // Apply search filtering for items
     const q = searchTerm.toLowerCase().trim();
     if (q) {
-      items = items.filter(item => 
+      items = items.filter((item: any) => 
         (item.poNumber || "").toLowerCase().includes(q) ||
         (item.clientName || "").toLowerCase().includes(q) ||
         (item.itemName || "").toLowerCase().includes(q) ||
@@ -320,25 +369,25 @@ export function OMPurchaseOrdersClient({
 
     // Apply item-level sorting for specific fields
     if (sortBy === "name_asc") {
-      items.sort((a, b) => a.itemName.localeCompare(b.itemName));
+      items.sort((a: any, b: any) => a.itemName.localeCompare(b.itemName));
     } else if (sortBy === "name_desc") {
-      items.sort((a, b) => b.itemName.localeCompare(a.itemName));
+      items.sort((a: any, b: any) => b.itemName.localeCompare(a.itemName));
     } else if (sortBy === "qty_asc") {
-      items.sort((a, b) => a.quantity - b.quantity);
+      items.sort((a: any, b: any) => a.quantity - b.quantity);
     } else if (sortBy === "qty_desc") {
-      items.sort((a, b) => b.quantity - a.quantity);
+      items.sort((a: any, b: any) => b.quantity - a.quantity);
     } else if (sortBy === "dispatched_asc") {
-      items.sort((a, b) => (a as any).itemDispatched - (b as any).itemDispatched);
+      items.sort((a: any, b: any) => (a as any).itemDispatched - (b as any).itemDispatched);
     } else if (sortBy === "dispatched_desc") {
-      items.sort((a, b) => (b as any).itemDispatched - (a as any).itemDispatched);
+      items.sort((a: any, b: any) => (b as any).itemDispatched - (a as any).itemDispatched);
     } else if (sortBy === "remaining_asc") {
-      items.sort((a, b) => (a as any).itemRemaining - (b as any).itemRemaining);
+      items.sort((a: any, b: any) => (a as any).itemRemaining - (b as any).itemRemaining);
     } else if (sortBy === "remaining_desc") {
-      items.sort((a, b) => (b as any).itemRemaining - (a as any).itemRemaining);
+      items.sort((a: any, b: any) => (b as any).itemRemaining - (a as any).itemRemaining);
     } else if (sortBy === "value_asc") {
-      items.sort((a, b) => a.totalAmount - b.totalAmount);
+      items.sort((a: any, b: any) => a.totalAmount - b.totalAmount);
     } else if (sortBy === "value_desc") {
-      items.sort((a, b) => b.totalAmount - a.totalAmount);
+      items.sort((a: any, b: any) => b.totalAmount - a.totalAmount);
     }
     
     return items;
@@ -411,37 +460,78 @@ export function OMPurchaseOrdersClient({
   };
 
   const handleExportExcel = useCallback(() => {
-    const exportData = processedData.map(po => ({
-      "PO Number": po.poNumber,
-      "Date": po.poDate ? new Date(po.poDate).toLocaleDateString() : "-",
-      "Client": po.client?.name || "-",
-      "Total Quantity": po._totalQty || 0,
-      "Total Amount": po._totalAmount || 0,
-      "Status": po.status
-    }));
-    
-    if (exportToExcel(exportData, "Purchase_Orders")) {
-      toast.success("Purchase orders exported to Excel successfully");
+    let exportData: any[] = [];
+    let filename = "Purchase_Orders";
+
+    if (viewType === "item") {
+      exportData = processedItemData.map((item: any) => ({
+        "PO / Estimate #": item.poNumber,
+        "Date": item.poDate ? new Date(item.poDate).toLocaleDateString() : "-",
+        "Client": item.clientName,
+        "Item Name": item.itemName,
+        "Brand": item.brandName,
+        "Quantity": item.quantity,
+        "Dispatched": item.itemDispatched,
+        "Remaining": item.itemRemaining,
+        "Total Value": item.totalAmount || 0,
+        "Status": item.status
+      }));
+      filename = "Purchase_Order_Items";
     } else {
-      toast.error("Failed to export purchase orders to Excel");
+      exportData = processedData.map((po: any) => ({
+        "PO / Estimate #": po.poNumber || po.estimateNumber,
+        "Date": po.poDate ? new Date(po.poDate).toLocaleDateString() : "-",
+        "Client": po.client?.name || "-",
+        "Total Quantity": po._totalQty || 0,
+        "Total Amount": po._totalAmount || 0,
+        "Status": po.status
+      }));
     }
-  }, [processedData]);
+    
+    if (exportToExcel(exportData, filename)) {
+      toast.success(`${viewType === "item" ? "Item list" : "Purchase orders"} exported to Excel successfully`);
+    } else {
+      toast.error(`Failed to export to Excel`);
+    }
+  }, [processedData, processedItemData, viewType]);
+
   const handleExportPDF = useCallback(() => {
-    const exportData = processedData.map(po => ({
-      "PO Number": po.poNumber,
-      "Date": po.poDate ? new Date(po.poDate).toLocaleDateString() : "-",
-      "Client": po.client?.name || "-",
-      "Total Quantity": po._totalQty || 0,
-      "Total Amount": po._totalAmount || 0,
-      "Status": po.status
-    }));
-    
-    if (exportToPDF(exportData, "Purchase_Orders", "Purchase Orders Report")) {
-      toast.success("Purchase orders exported to PDF successfully");
+    let exportData: any[] = [];
+    let filename = "Purchase_Orders";
+    let title = "Purchase Orders Report";
+
+    if (viewType === "item") {
+      exportData = processedItemData.map((item: any) => ({
+        "PO / Est #": item.poNumber,
+        "Date": item.poDate ? new Date(item.poDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "-",
+        "Client": item.clientName,
+        "Item Name": item.itemName,
+        "Brand": item.brandName,
+        "Qty": item.quantity,
+        "Disp": item.itemDispatched,
+        "Rem": item.itemRemaining,
+        "Value": item.totalAmount || 0,
+        "Status": item.status
+      }));
+      filename = "Purchase_Order_Items";
+      title = "Purchase Order Items Report";
     } else {
-      toast.error("Failed to export purchase orders to PDF");
+      exportData = processedData.map((po: any) => ({
+        "PO / Est #": po.poNumber || po.estimateNumber,
+        "Date": po.poDate ? new Date(po.poDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "-",
+        "Client": po.client?.name || "-",
+        "Total Qty": po._totalQty || 0,
+        "Total Amount": po._totalAmount || 0,
+        "Status": po.status
+      }));
     }
-  }, [processedData]);
+    
+    if (exportToPDF(exportData, filename, title)) {
+      toast.success(`${viewType === "item" ? "Item list" : "Purchase orders"} exported to PDF successfully`);
+    } else {
+      toast.error(`Failed to export to PDF`);
+    }
+  }, [processedData, processedItemData, viewType]);
 
   return (
     <div className="space-y-6">
@@ -520,7 +610,7 @@ export function OMPurchaseOrdersClient({
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeletePo}
-          onRowClick={(po) => router.push(`/admin/order-management/purchase-orders/${po.id}`)}
+          onRowClick={(po: any) => router.push(`/admin/order-management/purchase-orders/${po.id}`)}
         />
       ) : (
         <POItemTable

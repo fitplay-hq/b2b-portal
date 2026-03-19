@@ -89,58 +89,44 @@ export function OMDataTable<T>({
   };
 
   return (
-    <Card className={cn("shadow-sm", className)}>
-      {(title || subtitle) && (
-        <CardHeader className="gap-1">
-          {title && <CardTitle className="pl-1">{title}</CardTitle>}
-          {subtitle && (
-            <CardDescription className="text-xs pl-1">
-              {subtitle}
-            </CardDescription>
-          )}
-        </CardHeader>
+    <div
+      className={cn(
+        "border rounded-lg overflow-hidden",
+        tableWrapperClassName,
       )}
-      <CardContent className={cn(!title && !subtitle && "")}>
-        <div
-          className={cn(
-            "border rounded-lg overflow-hidden",
-            tableWrapperClassName,
-          )}
-        >
-          <Table>
-            <TableHeader>{header}</TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [...Array(skeletonRows)].map((_, i) => (
-                  <TableRow key={i}>
-                    {[...Array(columnCount)].map((_, j) => (
-                      <TableCell key={j}>
-                        <Skeleton className="h-4 w-full" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : data.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columnCount}
-                    className="text-center py-12 text-muted-foreground"
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      {emptyIcon || (
-                        <Inbox className="h-8 w-8 text-muted-foreground/50" />
-                      )}
-                      {emptyMessage}
-                    </div>
+    >
+      <Table>
+        <TableHeader>{header}</TableHeader>
+        <TableBody>
+          {isLoading ? (
+            [...Array(skeletonRows)].map((_, i) => (
+              <TableRow key={i}>
+                {[...Array(columnCount)].map((_, j) => (
+                  <TableCell key={j}>
+                    <Skeleton className="h-4 w-full" />
                   </TableCell>
-                </TableRow>
-              ) : (
-                data.map((item, index) => wrapRow(item, index))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+                ))}
+              </TableRow>
+            ))
+          ) : data.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={columnCount}
+                className="text-center py-12 text-muted-foreground"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  {emptyIcon || (
+                    <Inbox className="h-8 w-8 text-muted-foreground/50" />
+                  )}
+                  {emptyMessage}
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : (
+            data.map((item, index) => wrapRow(item, index))
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
