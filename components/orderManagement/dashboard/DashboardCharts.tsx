@@ -48,8 +48,6 @@ export function DashboardCharts({ statusBreakdown, clientSummaryArray }: Dashboa
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={clientSummaryArray}>
-              <XAxis dataKey="clientName" tickMargin={10} height={60} fontSize={12} />
-              <YAxis />
               <Tooltip
                 formatter={(value: any) =>
                   typeof value === "number" ? `₹${value.toLocaleString("en-IN")}` : value
