@@ -21,6 +21,7 @@ interface DispatchesTableProps {
   sortBy: SortOption;
   onSort: (newSort: SortOption) => void;
   onDelete: (id: string) => void;
+  onRowClick: (id: string) => void;
 }
 
 export const DispatchesTable = memo(function DispatchesTable({
@@ -29,6 +30,7 @@ export const DispatchesTable = memo(function DispatchesTable({
   sortBy,
   onSort,
   onDelete,
+  onRowClick,
 }: DispatchesTableProps) {
   return (
     <OMDataTable
@@ -106,7 +108,11 @@ export const DispatchesTable = memo(function DispatchesTable({
         </TableRow>
       }
       renderRow={(dispatch: TableDispatchOrder) => (
-        <TableRow key={dispatch.id} className="cursor-pointer">
+        <TableRow
+          key={dispatch.id}
+          className="cursor-pointer hover:bg-muted/50"
+          onClick={() => onRowClick(dispatch.id)}
+        >
           <TableCell className="pr-2">
             {dispatch.dispatchDate ? format(new Date(dispatch.dispatchDate), "dd MMM yyyy") : "N/A"}
           </TableCell>

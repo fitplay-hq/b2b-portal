@@ -475,6 +475,7 @@ export function OMDispatchesClient({
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeleteDispatchId}
+          onRowClick={(id) => router.push(`/admin/order-management/dispatches/${id}`)}
         />
       ) : (
         <DispatchItemTable

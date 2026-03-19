@@ -108,7 +108,7 @@ export const DispatchItemTable = memo(function DispatchItemTable({
       renderRow={(item: any) => (
         <TableRow 
           key={item.uniqueKey} 
-          className="cursor-pointer"
+          className="cursor-pointer hover:bg-muted/50"
           onClick={() => onRowClick(item.dispatchId)}
         >
           <TableCell className="pr-2">
