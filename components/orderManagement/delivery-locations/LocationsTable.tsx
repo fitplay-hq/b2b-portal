@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { TableRow, TableCell, TableHead } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, MapPin } from "lucide-react";
+import { Edit, Trash2, MapPin, Eye } from "lucide-react";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 
@@ -14,6 +14,8 @@ interface LocationsTableProps {
   onSort: (newSort: string) => void;
   onEdit: (location: any) => void;
   onDelete: (id: string) => void;
+  onView: (location: any) => void;
+  onRowClick?: (location: any) => void;
 }
 
 export const LocationsTable = memo(function LocationsTable({
@@ -23,6 +25,8 @@ export const LocationsTable = memo(function LocationsTable({
   onSort,
   onEdit,
   onDelete,
+  onView,
+  onRowClick,
 }: LocationsTableProps) {
   return (
     <OMDataTable
@@ -30,6 +34,7 @@ export const LocationsTable = memo(function LocationsTable({
       isLoading={isLoading}
       columnCount={2}
       emptyMessage="No delivery locations found."
+      onRowClick={onView}
       header={
         <TableRow>
           <OMSortableHeader
@@ -54,14 +59,30 @@ export const LocationsTable = memo(function LocationsTable({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onEdit(location)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onView(location);
+              }}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(location);
+              }}
             >
               <Edit className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onDelete(location.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(location.id);
+              }}
               className="text-destructive hover:text-destructive"
             >
               <Trash2 className="h-4 w-4" />

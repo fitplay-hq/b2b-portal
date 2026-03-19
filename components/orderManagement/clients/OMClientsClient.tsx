@@ -19,6 +19,7 @@ import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHe
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { ClientsTable } from "./ClientsTable";
+import { ClientViewDialog } from "./ClientViewDialog";
 
 interface OMClientsClientProps {
   initialData: PaginatedResponse<OMClient>;
@@ -33,7 +34,9 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<OMClient | null>(null);
+  const [viewingClient, setViewingClient] = useState<OMClient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
@@ -269,6 +272,11 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
     });
     setIsAddDialogOpen(true);
   };
+  
+  const handleView = (client: OMClient) => {
+    setViewingClient(client);
+    setIsViewDialogOpen(true);
+  };
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -393,6 +401,7 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
         onSort={setSortBy}
         onEdit={handleEdit}
         onDelete={(id) => { setDeleteId(id); setIsDeleteDialogOpen(true); }}
+        onView={handleView}
       />
 
       <DeleteConfirmationDialog
@@ -424,6 +433,13 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
           />
         </DialogContent>
       </Dialog>
+      
+      <ClientViewDialog
+        client={viewingClient}
+        isOpen={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+        onEdit={handleEdit}
+      />
     </div>
   );
 }

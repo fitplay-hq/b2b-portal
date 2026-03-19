@@ -27,6 +27,7 @@ import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { LocationsTable } from "./LocationsTable";
 import { LocationForm } from "./LocationForm";
+import { LocationViewDialog } from "./LocationViewDialog";
 
 interface OMDeliveryLocationsClientProps {
   initialData: PaginatedResponse<OMDeliveryLocation>;
@@ -212,7 +213,9 @@ export function OMDeliveryLocationsClient({
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const [editingLocation, setEditingLocation] = useState<OMDeliveryLocation | null>(null);
+  const [viewingLocation, setViewingLocation] = useState<OMDeliveryLocation | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editName, setEditName] = useState("");
 
   const cityOptions = useMemo<ComboboxOption[]>(() => {
@@ -255,6 +258,11 @@ export function OMDeliveryLocationsClient({
     setEditingLocation(location);
     setEditName(location.name);
     setIsEditDialogOpen(true);
+  };
+
+  const handleView = (location: OMDeliveryLocation) => {
+    setViewingLocation(location);
+    setIsViewDialogOpen(true);
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -400,6 +408,7 @@ export function OMDeliveryLocationsClient({
         onSort={setSortBy}
         onEdit={handleEdit}
         onDelete={(id) => { setDeleteId(id); setIsDeleteDialogOpen(true); }}
+        onView={handleView}
       />
 
       <OMInfiniteScroll
@@ -447,6 +456,13 @@ export function OMDeliveryLocationsClient({
           />
         </DialogContent>
       </Dialog>
+      
+      <LocationViewDialog
+        location={viewingLocation}
+        isOpen={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+        onEdit={handleEdit}
+      />
     </div>
   );
 }

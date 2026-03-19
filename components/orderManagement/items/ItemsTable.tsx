@@ -34,6 +34,7 @@ export const ItemsTable = memo(function ItemsTable({
       isLoading={isLoading}
       columnCount={6}
       emptyMessage="No items found."
+      onRowClick={onView}
       header={
         <TableRow>
           <OMSortableHeader
@@ -95,13 +96,37 @@ export const ItemsTable = memo(function ItemsTable({
           <TableCell>{item.defaultGstPct}%</TableCell>
           <TableCell className="text-right">
             <div className="flex justify-end gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(item)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onView(item);
+                }}
+              >
                 <Eye className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(item)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(item);
+                }}
+              >
                 <Edit className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(item.id)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(item.id);
+                }}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>

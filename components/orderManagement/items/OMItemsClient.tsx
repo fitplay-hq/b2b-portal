@@ -560,6 +560,7 @@ export function OMItemsClient({
         item={viewingItem}
         isOpen={isViewDialogOpen}
         onOpenChange={setIsViewDialogOpen}
+        onEdit={handleEdit}
       />
     </div>
   );

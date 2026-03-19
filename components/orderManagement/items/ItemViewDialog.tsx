@@ -10,17 +10,20 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Edit } from "lucide-react";
 
 interface ItemViewDialogProps {
   item: any | null;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit: (item: any) => void;
 }
 
 export const ItemViewDialog = memo(function ItemViewDialog({
   item,
   isOpen,
   onOpenChange,
+  onEdit,
 }: ItemViewDialogProps) {
   if (!item) return null;
 
@@ -71,6 +74,15 @@ export const ItemViewDialog = memo(function ItemViewDialog({
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Close
+            </Button>
+            <Button
+              onClick={() => {
+                onOpenChange(false);
+                onEdit(item);
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Item
             </Button>
           </div>
         </div>

@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { TableRow, TableCell, TableHead } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Eye } from "lucide-react";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 
@@ -14,6 +14,8 @@ interface ClientsTableProps {
   onSort: (newSort: string) => void;
   onEdit: (client: any) => void;
   onDelete: (id: string) => void;
+  onView: (client: any) => void;
+  onRowClick?: (client: any) => void;
 }
 
 export const ClientsTable = memo(function ClientsTable({
@@ -23,6 +25,8 @@ export const ClientsTable = memo(function ClientsTable({
   onSort,
   onEdit,
   onDelete,
+  onView,
+  onRowClick,
 }: ClientsTableProps) {
   return (
     <OMDataTable
@@ -30,6 +34,7 @@ export const ClientsTable = memo(function ClientsTable({
       isLoading={isLoading}
       columnCount={6}
       emptyMessage="No clients found"
+      onRowClick={onView}
       header={
         <TableRow>
           <OMSortableHeader
@@ -55,10 +60,34 @@ export const ClientsTable = memo(function ClientsTable({
           <TableCell>{client.gstNumber || "-"}</TableCell>
           <TableCell className="text-right">
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => onEdit(client)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onView(client);
+                }}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(client);
+                }}
+              >
                 <Edit className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => onDelete(client.id)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(client.id);
+                }}
+              >
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </div>

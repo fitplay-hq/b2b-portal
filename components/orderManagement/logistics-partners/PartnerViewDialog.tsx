@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
 
@@ -34,39 +33,23 @@ export const PartnerViewDialog = memo(function PartnerViewDialog({
           <DialogTitle>View Logistics Partner Details</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2 col-span-2">
-              <Label>Partner Name</Label>
-              <Input
-                value={partner.name}
-                readOnly
-                className="bg-muted"
-              />
+            <div className="space-y-1 col-span-2">
+              <Label className="text-xs text-muted-foreground">Partner Name</Label>
+              <div className="font-medium text-sm">{partner.name}</div>
             </div>
-            <div className="space-y-2">
-              <Label>Contact Person</Label>
-              <Input
-                value={partner.contactPerson || "-"}
-                readOnly
-                className="bg-muted"
-              />
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Contact Person</Label>
+              <div className="text-sm">{partner.contactPerson || "-"}</div>
             </div>
-            <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input
-                value={partner.phone || "-"}
-                readOnly
-                className="bg-muted"
-              />
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Phone</Label>
+              <div className="text-sm">{partner.phone || "-"}</div>
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                value={partner.email || "-"}
-                readOnly
-                className="bg-muted"
-              />
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Email</Label>
+              <div className="text-sm">{partner.email || "-"}</div>
             </div>
           </div>
 
