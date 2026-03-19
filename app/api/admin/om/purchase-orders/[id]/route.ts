@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
@@ -89,11 +89,14 @@ export async function DELETE(
       where: { id },
     });
 
-    revalidateTag("om-clients", "page" /* @ts-ignore */);
-    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
-    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
-    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
-    revalidateTag("om-delivery-locations", "page");
+    revalidateTag("om-clients", "max");
+    revalidateTag("om-dashboard", "max");
+    revalidateTag("om-purchase-orders", "max");
+    revalidateTag("om-dispatch-orders", "max");
+    revalidateTag("om-delivery-locations", "max");
+
+    revalidatePath("/admin/order-management/purchase-orders");
+    revalidatePath("/admin/dashboard");
 
     return NextResponse.json({
       success: true,
@@ -276,11 +279,14 @@ export async function PATCH(
       });
     });
 
-    revalidateTag("om-clients", "page" /* @ts-ignore */);
-    revalidateTag("om-dashboard-data", "page" /* @ts-ignore */);
-    revalidateTag("om-purchase-orders", "page" /* @ts-ignore */);
-    revalidateTag("om-dispatches", "page" /* @ts-ignore */);
-    revalidateTag("om-delivery-locations", "page");
+    revalidateTag("om-clients", "max");
+    revalidateTag("om-dashboard", "max");
+    revalidateTag("om-purchase-orders", "max");
+    revalidateTag("om-dispatch-orders", "max");
+    revalidateTag("om-delivery-locations", "max");
+
+    revalidatePath("/admin/order-management/purchase-orders");
+    revalidatePath("/admin/dashboard");
 
     return NextResponse.json({
       message: "Purchase Order updated successfully",

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
       data: validatedData,
     });
 
-    revalidateTag("om-delivery-locations", "page");
+    revalidateTag("om-delivery-locations", "max");
+    revalidatePath("/admin/order-management/delivery-locations");
 
     return NextResponse.json(
       {

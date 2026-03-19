@@ -16,6 +16,7 @@ import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortable
 interface OMDispatchHistoryProps {
   dispatches: OMDispatchOrder[];
   poItems: OMPurchaseOrderItem[];
+  itemId?: string;
 }
 
 interface FlattenedDispatchItem {
@@ -56,29 +57,43 @@ type HistorySortOption =
 export function OMDispatchHistory({
   dispatches,
   poItems,
+  itemId,
 }: OMDispatchHistoryProps) {
   const router = useRouter();
   const [sortBy, setSortBy] = useState<HistorySortOption>("date_desc");
 
-  // Flatten dispatches into item-level rows
+  // Flatten dispatches into item-level rows with date-wise remaining quantity
   const flattenedItems: FlattenedDispatchItem[] = useMemo(() => {
-    return dispatches.flatMap((dispatch) => {
+    // 1. Sort dispatches by date ascending to process chronologically for running totals
+    const sortedDispatches = [...dispatches].sort((a, b) => {
+      const dateA = new Date(a.dispatchDate || a.invoiceDate || 0).getTime();
+      const dateB = new Date(b.dispatchDate || b.invoiceDate || 0).getTime();
+      if (dateA !== dateB) return dateA - dateB;
+      // Secondary sort to ensure consistent order for same-day dispatches
+      return (a.invoiceNumber || "").localeCompare(b.invoiceNumber || "");
+    });
+
+    const runningTotals: Record<string, number> = {};
+
+    return sortedDispatches.flatMap((dispatch) => {
+      const itemsToFlatten = itemId
+        ? dispatch.items?.filter((item) => item.purchaseOrderItemId === itemId)
+        : dispatch.items;
+
       return (
-        dispatch.items?.map((item: OMDispatchOrderItem) => {
+        itemsToFlatten?.map((item: OMDispatchOrderItem) => {
           const poItem = poItems.find(
             (pi) => pi.id === item.purchaseOrderItemId,
           );
 
-          const totalDispatchedForItem = dispatches.reduce((sum, d) => {
-            const di = d.items?.find(
-              (i) => i.purchaseOrderItemId === item.purchaseOrderItemId,
-            );
-            return sum + (di?.quantity || 0);
-          }, 0);
+          // Track running total for this specific PO item
+          const poItemId = item.purchaseOrderItemId;
+          runningTotals[poItemId] =
+            (runningTotals[poItemId] || 0) + (item.quantity || 0);
 
           const remainingQty = Math.max(
             0,
-            (poItem?.quantity || 0) - totalDispatchedForItem,
+            (poItem?.quantity || 0) - runningTotals[poItemId],
           );
 
           return {
@@ -106,16 +121,22 @@ export function OMDispatchHistory({
         }) || []
       );
     });
-  }, [dispatches, poItems]);
+  }, [dispatches, poItems, itemId]);
 
   // Sort the flattened items
   const sortedItems = useMemo(() => {
     return [...flattenedItems].sort((a, b) => {
       switch (sortBy) {
         case "date_asc":
-          return new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime();
+          const diffAsc =
+            new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime();
+          if (diffAsc !== 0) return diffAsc;
+          return b.remainingQty - a.remainingQty; // Tie-breaker: higher remaining qty (older) first
         case "date_desc":
-          return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+          const diffDesc =
+            new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+          if (diffDesc !== 0) return diffDesc;
+          return a.remainingQty - b.remainingQty; // Tie-breaker: lower remaining qty (more recent) first
         case "inv_asc":
           return (a.invoiceNumber || "").localeCompare(b.invoiceNumber || "");
         case "inv_desc":

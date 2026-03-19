@@ -50,7 +50,7 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
   }
 
   const totalBoxes = OMShipmentHelpers.getTotalBoxes(shipmentBoxes);
-  const totalVolume = OMShipmentHelpers.getTotalVolume(shipmentBoxes);
+  const totalVolumetricWeight = OMShipmentHelpers.getVolumetricWeight(shipmentBoxes);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -72,7 +72,7 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           {/* Packing Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-10">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-10">
             <SummaryStat
               label="Total Boxes"
               value={totalBoxes}
@@ -87,7 +87,7 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
             />
             <SummaryStat
               label="Volumetric Weight"
-              value={`${totalVolume.toFixed(3)} kg`}
+              value={`${totalVolumetricWeight.toFixed(3)} kg`}
               icon={<Move className="h-4 w-4" />}
               gradient="from-slate-500 to-slate-600"
             />
@@ -102,8 +102,8 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
           {/* Individual Box Details */}
           <div className="space-y-4">
             {shipmentBoxes.map((box) => {
-              const volumePerBox = OMShipmentHelpers.calculateBoxVolume(box);
-              const totalVolume = volumePerBox * box.numberOfBoxes;
+              const volumetricWeightPerBox = OMShipmentHelpers.calculateBoxVolumetricWeight(box);
+              const totalBoxVolumetricWeight = volumetricWeightPerBox * box.numberOfBoxes;
               return (
                 <Card
                   key={box.boxId}
@@ -148,10 +148,10 @@ export const OMShipmentPackingView: React.FC<OMShipmentPackingViewProps> = ({
                       />
                       <DimensionTile
                         label="Volume"
-                        value={`${volumePerBox.toFixed(4)} kg`}
+                        value={`${volumetricWeightPerBox.toFixed(4)} kg`}
                         subValue={
                           box.numberOfBoxes > 1
-                            ? `Total: ${totalVolume.toFixed(4)} kg`
+                            ? `Total: ${totalBoxVolumetricWeight.toFixed(4)} kg`
                             : undefined
                         }
                         isHighlight

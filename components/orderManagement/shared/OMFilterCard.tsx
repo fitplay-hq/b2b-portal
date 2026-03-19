@@ -15,7 +15,10 @@ import { cn } from "@/lib/utils";
 
 interface OMFilterCardProps {
   title?: string;
-  subtitle?: string;
+  subtitle?: string; // Optional custom subtitle
+  filteredCount?: number;
+  totalCount?: number;
+  unit?: string;
   searchPlaceholder?: string;
   searchTerm: string;
   onSearchChange: (value: string) => void;
@@ -33,7 +36,10 @@ interface OMFilterCardProps {
 
 export function OMFilterCard({
   title,
-  subtitle,
+  subtitle: customSubtitle,
+  filteredCount,
+  totalCount,
+  unit = "items",
   searchPlaceholder = "Search...",
   searchTerm,
   onSearchChange,
@@ -48,6 +54,11 @@ export function OMFilterCard({
   className,
   isHydrating = false,
 }: OMFilterCardProps) {
+  const subtitle = customSubtitle || (
+    filteredCount !== undefined && totalCount !== undefined 
+      ? `Showing ${filteredCount} of ${totalCount} ${unit}`
+      : undefined
+  );
   return (
     <Card className={cn("shadow-sm", className)}>
       <CardHeader className="flex flex-row items-center justify-start space-y-0">

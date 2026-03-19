@@ -1,35 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { TableCell, TableHead, TableRow } from "@/components/ui/table";
-
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  FileDown,
-  FileSpreadsheet,
-  ChevronDown,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { OMClient } from "@/types/order-management";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
@@ -38,43 +11,79 @@ import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { ClientFilters } from "./ClientFilters";
-import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
-import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
 import { useOMFilters } from "@/hooks/use-om-filters";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { CLIENT_SORT_OPTIONS } from "@/constants/om-sort-options";
+import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
+import { useOMClientData } from "@/hooks/use-om-client-data";
+import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
+import { ClientsTable } from "./ClientsTable";
+import { ClientViewDialog } from "./ClientViewDialog";
 
 interface OMClientsClientProps {
   initialData: PaginatedResponse<OMClient>;
 }
 
 export function OMClientsClient({ initialData }: OMClientsClientProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   const [clients, setClients] = useState<OMClient[]>(initialData.data);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<OMClient | null>(null);
   const [viewingClient, setViewingClient] = useState<OMClient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("name_asc");
+  const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const [totalCount, setTotalCount] = useState(initialData.meta.total);
-  const [isHydrating, setIsHydrating] = useState(false);
-  // Store initial values to prevent redundant fetches on mount due to state initialization
-  const initialValues = useRef({
-    sortBy: "name_asc" as SortOption,
-    searchTerm: "",
-  });
-
+  const [unfilteredTotal, setUnfilteredTotal] = useState(initialData.meta.total);
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
+  // Helper to update URL
+  const updateUrl = useCallback((newParams: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    let changed = false;
+    
+    Object.entries(newParams).forEach(([key, value]) => {
+      const currentValue = searchParams.get(key) || "";
+      const newValue = value === null || value === "all" ? "" : value;
+      
+      if (currentValue !== newValue) {
+        if (value === null || value === "" || value === "all") {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      params.set("page", "1");
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [searchParams, pathname, router]);
+
+  useEffect(() => {
+    const isFiltered = searchParams.get("q") || searchParams.get("clientName");
+    if (isFiltered) {
+      fetch("/api/admin/om/counts")
+        .then(res => res.json())
+        .then(data => setUnfilteredTotal(data.clients))
+        .catch(err => console.error("Failed to fetch client counts", err));
+    } else {
+      setUnfilteredTotal(initialData.meta.total);
+    }
+  }, [initialData.meta.total, searchParams]);
+
   useEffect(() => {
     setClients(initialData.data);
-    setTotalCount(initialData.meta.total);
     setCurrentPage(initialData.meta.page);
     setHasMore(initialData.meta.page < initialData.meta.totalPages);
   }, [initialData]);
@@ -87,6 +96,12 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
       const url = new URL("/api/admin/om/clients", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
       url.searchParams.set("limit", "50");
+      
+      searchParams.forEach((value, key) => {
+        if (key !== "page" && key !== "limit") {
+          url.searchParams.set(key, value);
+        }
+      });
 
       const res = await fetch(url.toString());
       if (res.ok) {
@@ -107,91 +122,89 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
     }
   };
 
-  const hydrateData = async () => {
-    if (isHydrating || !hasMore) return;
-    setIsHydrating(true);
-    try {
-      let nextP = currentPage + 1;
-      let more: boolean = hasMore;
-      while (more) {
-        const url = new URL("/api/admin/om/clients", window.location.origin);
-        url.searchParams.set("page", nextP.toString());
-        url.searchParams.set("limit", "50");
-        const res = await fetch(url.toString());
-        if (!res.ok) break;
-        const result: PaginatedResponse<OMClient> = await res.json();
-        setClients((prev) => {
-          const existingIds = new Set(prev.map(c => c.id));
-          const uniqueNewData = result.data.filter(c => !existingIds.has(c.id));
-          return [...prev, ...uniqueNewData];
-        });
-        nextP = result.meta.page + 1;
-        more = result.meta.page < result.meta.totalPages;
-        setCurrentPage(result.meta.page);
-        setHasMore(more);
-        await new Promise(r => setTimeout(r, 100));
-      }
-    } catch (err) {
-      console.error("Hydration failed:", err);
-    } finally {
-      setIsHydrating(false);
-    }
-  };
-
-
-  const fetchClients = async () => {
-    setIsLoading(true);
-    try {
-      const url = new URL("/api/admin/om/clients", window.location.origin);
-      url.searchParams.set("page", "1");
-      url.searchParams.set("limit", "50");
-
-      const res = await fetch(url.toString());
-      if (res.ok) {
-        const result: PaginatedResponse<OMClient> = await res.json();
-        setClients(result.data);
-        setTotalCount(result.meta.total);
-        setCurrentPage(result.meta.page);
-        setHasMore(result.meta.page < result.meta.totalPages);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load clients");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
       initialFilters: {
-        clientName: "",
+        clientName: searchParams.get("clientName") || "",
       },
       labels: {
         clientName: "Client",
       },
     });
 
-  useEffect(() => {
-    const isSearchActive = searchTerm.length > 0 || Object.values(filters).some(v => v);
-    if (isSearchActive && hasMore && !isHydrating) {
-      void hydrateData();
-    }
-  }, [searchTerm, filters, hasMore, isHydrating, hydrateData]);
+  const filterFn = useCallback((client: OMClient, searchTerm: string, filters: Record<string, any>) => {
+    const q = searchTerm.toLowerCase().trim();
+    const matchesSearch = !q || 
+      client.name.toLowerCase().includes(q) || 
+      (client.contactPerson || "").toLowerCase().includes(q) || 
+      (client.email || "").toLowerCase().includes(q) || 
+      (client.gstNumber || "").toLowerCase().includes(q);
+    
+    const matchesFilter = !filters.clientName || client.name === filters.clientName;
+    
+    return matchesSearch && matchesFilter;
+  }, []);
 
-  useEffect(() => {
-    // Only fetch if sortBy or searchTerm has actually changed from its initial value
-    if (
-      sortBy === initialValues.current.sortBy &&
-      searchTerm === initialValues.current.searchTerm
-    ) {
-      return;
+  const sortFn = useCallback((a: OMClient, b: OMClient, sortBy: string) => {
+    switch (sortBy) {
+      case "name_asc":
+        return a.name.localeCompare(b.name);
+      case "name_desc":
+        return b.name.localeCompare(a.name);
+      case "newest":
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      case "oldest":
+        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      case "latest_update":
+        return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+      default:
+        return 0;
     }
+  }, []);
+
+  const processedData = useOMClientData({
+    data: clients,
+    searchTerm,
+    sortBy,
+    filters,
+    filterFn,
+    sortFn,
+  });
+
+  // Sync searchTerm with URL (debounced server search)
+  useEffect(() => {
     const timer = setTimeout(() => {
-      fetchClients();
-    }, 500);
+      const currentQ = searchParams.get("q") || "";
+      if (searchTerm.trim() !== currentQ) {
+        updateUrl({ q: searchTerm.trim() || null });
+      }
+    }, 1000);
     return () => clearTimeout(timer);
-  }, [searchTerm, sortBy]);
+  }, [searchTerm, updateUrl, searchParams]);
+
+  // Sync filters with URL
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const newParams: Record<string, string | null> = {};
+      let changed = false;
+      Object.entries(filters).forEach(([key, value]) => {
+        if (searchParams.get(key) !== value) {
+          newParams[key] = value;
+          changed = true;
+        }
+      });
+      if (changed) updateUrl(newParams);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [filters, updateUrl, searchParams]);
+
+  // Sync sortBy with URL
+  useEffect(() => {
+    const currentSort = searchParams.get("sortBy") || "name_asc";
+    if (sortBy !== currentSort) {
+      updateUrl({ sortBy });
+    }
+  }, [sortBy, updateUrl, searchParams]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -216,31 +229,24 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
     setEditingClient(null);
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
       const url = editingClient
         ? `/api/admin/om/clients/${editingClient.id}`
         : "/api/admin/om/clients";
-
       const method = editingClient ? "PATCH" : "POST";
-
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-
       if (res.ok) {
-        toast.success(
-          `Client ${editingClient ? "updated" : "added"} successfully`,
-        );
+        toast.success(`Client ${editingClient ? "updated" : "added"} successfully`);
         setIsAddDialogOpen(false);
         resetForm();
-        fetchClients();
+        router.refresh();
       } else {
         const error = await res.json();
         toast.error(error.error || "Something went wrong");
@@ -266,7 +272,7 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
     });
     setIsAddDialogOpen(true);
   };
-
+  
   const handleView = (client: OMClient) => {
     setViewingClient(client);
     setIsViewDialogOpen(true);
@@ -276,11 +282,6 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const handleDelete = (clientId: string) => {
-    setDeleteId(clientId);
-    setIsDeleteDialogOpen(true);
-  };
-
   const onConfirmDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
@@ -288,10 +289,9 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
       const res = await fetch(`/api/admin/om/clients/${deleteId}`, {
         method: "DELETE",
       });
-
       if (res.ok) {
         toast.success("Client deleted successfully");
-        fetchClients();
+        router.refresh();
         setIsDeleteDialogOpen(false);
       } else {
         const errorData = await res.json();
@@ -306,60 +306,6 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
     }
   };
 
-  const resetFiltersAll = () => {
-    setSearchTerm("");
-    resetFilters();
-  };
-
-  const filteredClients = useMemo(() => {
-    return clients
-      .filter((client) => {
-        // Advanced filters
-        if (filters.clientName && client.name !== filters.clientName)
-          return false;
-
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          client.name.toLowerCase().includes(searchLower) ||
-          (client.contactPerson || "").toLowerCase().includes(searchLower) ||
-          (client.email || "").toLowerCase().includes(searchLower) ||
-          (client.phone || "").toLowerCase().includes(searchLower) ||
-          (client.gstNumber || "").toLowerCase().includes(searchLower)
-        );
-      })
-      .sort((a, b) => {
-        const [field, direction] = sortBy.split("_");
-        const modifier = direction === "desc" ? -1 : 1;
-
-        const fieldMap: Record<string, keyof OMClient> = {
-          name: "name",
-          contact: "contactPerson",
-          email: "email",
-          phone: "phone",
-          gst: "gstNumber",
-        };
-
-        const property = fieldMap[field] || (field as keyof OMClient);
-        const valA = String(a[property] || "").toLowerCase();
-        const valB = String(b[property] || "").toLowerCase();
-
-        if (sortBy === "newest")
-          return (
-            (new Date(b.createdAt || 0).getTime() -
-              new Date(a.createdAt || 0).getTime()) *
-            modifier
-          );
-        if (sortBy === "oldest")
-          return (
-            (new Date(a.createdAt || 0).getTime() -
-              new Date(b.createdAt || 0).getTime()) *
-            modifier
-          );
-
-        return valA.localeCompare(valB) * modifier;
-      });
-  }, [clients, searchTerm, filters, sortBy]);
-
   const clientOptions = useMemo(() => {
     return Array.from(new Set(clients.map((c) => c.name))).map((name) => ({
       value: name,
@@ -367,291 +313,70 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
     }));
   }, [clients]);
 
-  const exportToExcel = () => {
-    const headers = [
-      "Client Name",
-      "Contact Person",
-      "Email",
-      "Phone",
-      "GST Number",
-      "Billing Address",
-      "Notes",
-    ];
-    const rows = filteredClients.map((client) => [
-      client.name,
-      client.contactPerson || "-",
-      client.email || "-",
-      client.phone || "-",
-      client.gstNumber || "-",
-      client.billingAddress || "-",
-      client.notes || "-",
-    ]);
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
-      ),
-    ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute(
-      "download",
-      `clients_${new Date().toISOString().split("T")[0]}.csv`,
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Clients exported to Excel");
-  };
-
-  const exportToPDF = async () => {
-    const jsPDF = (await import("jspdf")).default;
-    const autoTable = (await import("jspdf-autotable")).default;
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-      format: "a4",
-    });
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Clients Master Report", 8, 10);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text(
-      `Generated: ${new Date().toLocaleString("en-IN")} | Total Records: ${filteredClients.length}`,
-      8,
-      15,
-    );
-    doc.setTextColor(0, 0, 0);
-    autoTable(doc, {
-      head: [
-        [
-          "Client Name",
-          "Contact Person",
-          "Email",
-          "Phone",
-          "GST Number",
-          "Billing Address",
-        ],
-      ],
-      body: filteredClients.map((client) => [
-        client.name,
-        client.contactPerson || "-",
-        client.email || "-",
-        client.phone || "-",
-        client.gstNumber || "-",
-        client.billingAddress || "-",
-      ]),
-      startY: 18,
-      margin: { left: 6, right: 6, top: 8, bottom: 8 },
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-        valign: "middle",
-        overflow: "linebreak",
-      },
-      headStyles: {
-        fillColor: [55, 65, 81],
-        textColor: [255, 255, 255],
-        fontSize: 8,
-        fontStyle: "bold",
-        halign: "center",
-      },
-      alternateRowStyles: { fillColor: [250, 250, 250] },
-      didDrawPage: (data) => {
-        const pageCount = (doc as any).internal.getNumberOfPages();
-        doc.setFontSize(8);
-        doc.setTextColor(128, 128, 128);
-        doc.text(
-          `Page ${data.pageNumber} of ${pageCount}`,
-          doc.internal.pageSize.width - 25,
-          doc.internal.pageSize.height - 5,
-        );
-      },
-    });
-    doc.save(`clients_${new Date().toISOString().split("T")[0]}.pdf`);
-    toast.success("Clients exported to PDF");
-  };
+  const handleExportExcel = useCallback(() => {
+    const exportData = processedData.map(client => ({
+      "Client Name": client.name,
+      "Contact Person": client.contactPerson || "-",
+      "Email": client.email || "-",
+      "Phone": client.phone || "-",
+      "GST Number": client.gstNumber || "-",
+      "Billing Address": client.billingAddress || "-"
+    }));
+    
+    if (exportToExcel(exportData, "Clients_Master")) {
+      toast.success("Clients exported to Excel successfully");
+    } else {
+      toast.error("Failed to export clients to Excel");
+    }
+  }, [processedData]);
+  const handleExportPDF = useCallback(() => {
+    const exportData = processedData.map(client => ({
+      "Client Name": client.name,
+      "Contact Person": client.contactPerson || "-",
+      "Email": client.email || "-",
+      "Phone": client.phone || "-",
+      "GST Number": client.gstNumber || "-",
+      "Billing Address": client.billingAddress || "-"
+    }));
+    
+    if (exportToPDF(exportData, "Clients_Master", "Clients Master Report")) {
+      toast.success("Clients exported to PDF successfully");
+    } else {
+      toast.error("Failed to export clients to PDF");
+    }
+  }, [processedData]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Clients Master</h1>
-          <p className="text-muted-foreground">Manage your client database</p>
-        </div>
-        <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <FileDown className="h-4 w-4 mr-2" />
-                Export
-                <ChevronDown className="h-4 w-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={exportToExcel}>
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Export to Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToPDF}>
-                <FileDown className="h-4 w-4 mr-2" />
-                Export to PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Dialog
-            open={isAddDialogOpen}
-            onOpenChange={(open) => {
-              setIsAddDialogOpen(open);
-              if (!open) resetForm();
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Client
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingClient ? "Edit Client" : "Add New Client"}
-                </DialogTitle>
-              </DialogHeader>
-
-              <OMClientForm
-                formData={formData}
-                onChange={setFormData}
-                onSubmit={handleSubmit}
-                isSubmitting={isSubmitting}
-                isEdit={!!editingClient}
-              />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog
-            open={isViewDialogOpen}
-            onOpenChange={(open) => {
-              setIsViewDialogOpen(open);
-              if (!open) setViewingClient(null);
-            }}
-          >
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>View Client Details</DialogTitle>
-              </DialogHeader>
-
-              {viewingClient && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Client Name</Label>
-                      <Input
-                        value={viewingClient.name}
-                        readOnly
-                        className="bg-muted"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Contact Person</Label>
-                      <Input
-                        value={viewingClient.contactPerson || "-"}
-                        readOnly
-                        className="bg-muted"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input
-                        value={viewingClient.email || "-"}
-                        readOnly
-                        className="bg-muted"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Phone</Label>
-                      <Input
-                        value={viewingClient.phone || "-"}
-                        readOnly
-                        className="bg-muted"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>GST Number</Label>
-                      <Input
-                        value={viewingClient.gstNumber || "-"}
-                        readOnly
-                        className="bg-muted"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Billing Address</Label>
-                    <Textarea
-                      value={viewingClient.billingAddress || "-"}
-                      readOnly
-                      className="bg-muted"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Notes</Label>
-                    <Textarea
-                      value={viewingClient.notes || "-"}
-                      readOnly
-                      className="bg-muted"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4 border-t">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsViewDialogOpen(false)}
-                    >
-                      Close
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setIsViewDialogOpen(false);
-                        handleEdit(viewingClient);
-                      }}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Client
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+      <OMPageHeader
+        title="Clients Master"
+        description="Manage your client database"
+        onExportExcel={handleExportExcel}
+        onExportPDF={handleExportPDF}
+        addButton={{
+          label: "Add Client",
+          onClick: () => setIsAddDialogOpen(true)
+        }}
+      />
 
       <OMFilterCard
-        subtitle={`Showing ${totalCount} of ${totalCount} clients`}
+        filteredCount={processedData.length}
+        totalCount={unfilteredTotal}
+        unit="clients"
         searchPlaceholder="Search by name, contact, email, or GST number..."
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
+        sortBy={sortBy as any}
+        onSortChange={setSortBy as any}
         sortOptions={CLIENT_SORT_OPTIONS}
         sortNameLabel="Client Name"
         showFilters={showFilters}
         setShowFilters={setShowFilters}
-        onReset={resetFiltersAll}
-        isHydrating={isHydrating}
+        onReset={() => {
+          setSearchTerm("");
+          resetFilters();
+          router.push(pathname);
+        }}
       >
         <ClientFilters
           filters={filters}
@@ -661,102 +386,22 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
         <OMActiveFilters
           activeFilters={activeFilters}
           onRemove={removeFilter}
-          onClearAll={resetFiltersAll}
+          onClearAll={() => {
+            setSearchTerm("");
+            resetFilters();
+            router.push(pathname);
+          }}
         />
       </OMFilterCard>
 
-      <OMDataTable
-        data={filteredClients}
+      <ClientsTable
+        data={processedData}
         isLoading={isLoading}
-        columnCount={6}
-        emptyMessage="No clients found"
-        onRowClick={(client) => handleView(client)}
-        header={
-          <TableRow>
-            <OMSortableHeader
-              title="Client Name"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="name_asc"
-              descOption="name_desc"
-            />
-            <OMSortableHeader
-              title="Contact Person"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="contact_asc"
-              descOption="contact_desc"
-            />
-            <OMSortableHeader
-              title="Email"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="email_asc"
-              descOption="email_desc"
-            />
-            <OMSortableHeader
-              title="Phone"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="phone_asc"
-              descOption="phone_desc"
-            />
-            <OMSortableHeader
-              title="GST Number"
-              currentSort={sortBy}
-              onSort={setSortBy}
-              ascOption="gst_asc"
-              descOption="gst_desc"
-            />
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        }
-        renderRow={(client: OMClient) => (
-          <TableRow key={client.id}>
-            <TableCell>{client.name}</TableCell>
-            <TableCell>{client.contactPerson || "-"}</TableCell>
-            <TableCell>{client.email || "-"}</TableCell>
-            <TableCell>{client.phone || "-"}</TableCell>
-            <TableCell>{client.gstNumber || "-"}</TableCell>
-            <TableCell className="text-right">
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleView(client);
-                  }}
-                  title="View Client"
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEdit(client);
-                  }}
-                  title="Edit Client"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(client.id);
-                  }}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        )}
+        sortBy={sortBy}
+        onSort={setSortBy}
+        onEdit={handleEdit}
+        onDelete={(id) => { setDeleteId(id); setIsDeleteDialogOpen(true); }}
+        onView={handleView}
       />
 
       <DeleteConfirmationDialog
@@ -765,13 +410,35 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
         onConfirm={onConfirmDelete}
         isLoading={isDeleting}
         title="Delete Client"
-        description="Are you sure you want to delete this client? This action cannot be undone."
+        description="Are you sure you want to delete this client?"
       />
 
       <OMInfiniteScroll
         onLoadMore={loadMore}
         hasMore={hasMore}
         isLoading={isFetchingMore}
+      />
+      
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingClient ? "Edit Client" : "Add Client"}</DialogTitle>
+          </DialogHeader>
+          <OMClientForm
+            formData={formData}
+            onChange={setFormData}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+            isEdit={!!editingClient}
+          />
+        </DialogContent>
+      </Dialog>
+      
+      <ClientViewDialog
+        client={viewingClient}
+        isOpen={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+        onEdit={handleEdit}
       />
     </div>
   );

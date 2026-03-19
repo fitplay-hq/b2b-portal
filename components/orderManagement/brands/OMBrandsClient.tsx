@@ -1,27 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { TableCell, TableHead, TableRow } from "@/components/ui/table";
-import { Plus, Loader2, Trash2, ArrowLeft, Edit } from "lucide-react";
-
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import { type SortOption } from "@/components/orderManagement/OMSortControl";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +16,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { OMBrand } from "@/types/order-management";
+import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
+import { useOMClientData } from "@/hooks/use-om-client-data";
+import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
+import { BrandForm } from "./BrandForm";
+import { BrandsTable } from "./BrandsTable";
+import { Button } from "@/components/ui/button";
 
 interface OMBrandsClientProps {
   initialData: PaginatedResponse<OMBrand>;
@@ -36,53 +29,68 @@ interface OMBrandsClientProps {
 
 export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   const [brands, setBrands] = useState<OMBrand[]>(initialData.data);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [brandName, setBrandName] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("name_asc");
+  const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const [isHydrating, setIsHydrating] = useState(false);
 
   const [editingBrand, setEditingBrand] = useState<OMBrand | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editName, setEditName] = useState("");
-  const [totalCount, setTotalCount] = useState(initialData.meta.total);
-
-  useEffect(() => {
-    const fetchTotalCount = async () => {
-      try {
-        const res = await fetch("/api/admin/om/counts");
-        if (res.ok) {
-          const data = await res.json();
-          setTotalCount(data.brands);
-        }
-      } catch (err) {
-        console.error("Failed to fetch total count:", err);
-      }
-    };
-    fetchTotalCount();
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchBrands();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
+  const [unfilteredTotal, setUnfilteredTotal] = useState(initialData.meta.total);
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
+  // Helper to update URL
+  const updateUrl = useCallback((newParams: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    let changed = false;
+    
+    Object.entries(newParams).forEach(([key, value]) => {
+      const currentValue = searchParams.get(key) || "";
+      const newValue = value === null || value === "all" ? "" : value;
+      
+      if (currentValue !== newValue) {
+        if (value === null || value === "" || value === "all") {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      params.set("page", "1");
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [searchParams, pathname, router]);
+
+  useEffect(() => {
+    const isFiltered = searchParams.get("q");
+    if (isFiltered) {
+      fetch("/api/admin/om/counts")
+        .then((res) => res.json())
+        .then((data) => setUnfilteredTotal(data.brands))
+        .catch((err) => console.error("Failed to fetch brand counts", err));
+    } else {
+      setUnfilteredTotal(initialData.meta.total);
+    }
+  }, [initialData.meta.total, searchParams]);
+
   useEffect(() => {
     setBrands(initialData.data);
-    setTotalCount(initialData.meta.total);
     setCurrentPage(initialData.meta.page);
     setHasMore(initialData.meta.page < initialData.meta.totalPages);
   }, [initialData]);
@@ -96,6 +104,12 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
       url.searchParams.set("page", nextPage.toString());
       url.searchParams.set("limit", "50");
       
+      searchParams.forEach((value, key) => {
+        if (key !== "page" && key !== "limit") {
+          url.searchParams.set(key, value);
+        }
+      });
+
       const res = await fetch(url.toString());
       if (res.ok) {
         const result: PaginatedResponse<OMBrand> = await res.json();
@@ -115,76 +129,54 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
     }
   };
 
-  const hydrateData = async () => {
-    if (isHydrating || !hasMore) return;
-    setIsHydrating(true);
-    try {
-      let nextP = currentPage + 1;
-      let more: boolean = hasMore;
-      while (more) {
-        const url = new URL("/api/admin/om/brands", window.location.origin);
-        url.searchParams.set("page", nextP.toString());
-        url.searchParams.set("limit", "50");
-        const res = await fetch(url.toString());
-        if (!res.ok) break;
-        const result: PaginatedResponse<OMBrand> = await res.json();
-        setBrands((prev) => {
-          const existingIds = new Set(prev.map(b => b.id));
-          const uniqueNewData = result.data.filter(b => !existingIds.has(b.id));
-          return [...prev, ...uniqueNewData];
-        });
-        nextP = result.meta.page + 1;
-        more = result.meta.page < result.meta.totalPages;
-        setCurrentPage(result.meta.page);
-        setHasMore(more);
-        await new Promise(r => setTimeout(r, 100));
-      }
-    } catch (err) {
-      console.error("Hydration failed:", err);
-    } finally {
-      setIsHydrating(false);
-    }
-  };
+  const filterFn = useCallback((brand: OMBrand, searchTerm: string) => {
+    const q = searchTerm.toLowerCase().trim();
+    return !q || brand.name.toLowerCase().includes(q);
+  }, []);
 
-  useEffect(() => {
-    const isSearchActive = searchTerm.length > 0;
-    if (isSearchActive && hasMore && !isHydrating) {
-      void hydrateData();
-    }
-  }, [searchTerm, hasMore, isHydrating, hydrateData]);
-
-  const fetchBrands = async () => {
-    setIsLoading(true);
-    try {
-      const url = new URL("/api/admin/om/brands", window.location.origin);
-      url.searchParams.set("page", "1");
-      url.searchParams.set("limit", "50");
-
-      const res = await fetch(url.toString());
-      if (res.ok) {
-        const result: PaginatedResponse<OMBrand> = await res.json();
-        setBrands(result.data);
-        setTotalCount(result.meta.total);
-        setCurrentPage(result.meta.page);
-        setHasMore(result.meta.page < result.meta.totalPages);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load brands");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const filteredBrands = useMemo(() => {
-    return brands
-      .filter((b) => b.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      .sort((a, b) => {
-        if (sortBy === "name_asc") return a.name.localeCompare(b.name);
-        if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+  const sortFn = useCallback((a: OMBrand, b: OMBrand, sortBy: string) => {
+    switch (sortBy) {
+      case "name_asc":
+        return a.name.localeCompare(b.name);
+      case "name_desc":
+        return b.name.localeCompare(a.name);
+      case "newest":
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      case "oldest":
+        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      case "latest_update":
+        return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+      default:
         return 0;
-      });
-  }, [brands, searchTerm, sortBy]);
+    }
+  }, []);
+
+  const processedData = useOMClientData({
+    data: brands,
+    searchTerm,
+    sortBy,
+    filters: {},
+    filterFn,
+    sortFn,
+  });
+
+  // Sync searchTerm with URL
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm !== (searchParams.get("q") || "")) {
+        updateUrl({ q: searchTerm || null });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm, updateUrl, searchParams]);
+
+  // Sync sortBy with URL
+  useEffect(() => {
+    const currentSort = searchParams.get("sortBy") || "name_asc";
+    if (sortBy !== currentSort) {
+      updateUrl({ sortBy });
+    }
+  }, [sortBy, updateUrl, searchParams]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,7 +191,6 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
       if (res.ok) {
         toast.success("Brand added successfully");
         setBrandName("");
-        fetchBrands();
         router.refresh();
       } else {
         const error = await res.json();
@@ -232,7 +223,6 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
       if (res.ok) {
         toast.success("Brand updated successfully");
         setIsEditDialogOpen(false);
-        fetchBrands();
         router.refresh();
       } else {
         const error = await res.json();
@@ -246,11 +236,6 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
     }
   };
 
-  const handleDelete = (id: string) => {
-    setDeleteId(id);
-    setIsDeleteDialogOpen(true);
-  };
-
   const onConfirmDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
@@ -260,9 +245,8 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
       });
       if (res.ok) {
         toast.success("Brand deleted successfully");
-        fetchBrands();
-        setIsDeleteDialogOpen(false);
         router.refresh();
+        setIsDeleteDialogOpen(false);
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to delete brand");
@@ -275,106 +259,84 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
       setDeleteId(null);
     }
   };
+  const handleExportExcel = useCallback(() => {
+    const exportData = processedData.map(brand => ({
+      "Brand Name": brand.name,
+      "Created At": brand.createdAt ? new Date(brand.createdAt).toLocaleDateString() : "-"
+    }));
+    
+    if (exportToExcel(exportData, "Brands_Master")) {
+      toast.success("Brands exported to Excel successfully");
+    } else {
+      toast.error("Failed to export brands to Excel");
+    }
+  }, [processedData]);
+
+  const handleExportPDF = useCallback(() => {
+    const exportData = processedData.map(brand => ({
+      "Brand Name": brand.name,
+      "Created At": brand.createdAt ? new Date(brand.createdAt).toLocaleDateString() : "-"
+    }));
+    
+    if (exportToPDF(exportData, "Brands_Master", "Brands Master Report")) {
+      toast.success("Brands exported to PDF successfully");
+    } else {
+      toast.error("Failed to export brands to PDF");
+    }
+  }, [processedData]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/admin/order-management/items")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-semibold">Manage Brands</h1>
-            <p className="text-muted-foreground">
-              Add or remove brands for your product catalog
-            </p>
-          </div>
-        </div>
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push("/admin/order-management/items")}
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <OMPageHeader
+          title="Manage Brands"
+          description="Add or remove brands for your product catalog"
+          className="flex-1"
+          onExportExcel={handleExportExcel}
+          onExportPDF={handleExportPDF}
+        />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Add Brand</CardTitle>
-          <CardDescription>
-            Create a new brand to assign to items
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAdd} className="flex items-end gap-4">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="brandName">Brand Name *</Label>
-              <Input
-                id="brandName"
-                required
-                value={brandName}
-                onChange={(e) => setBrandName(e.target.value)}
-                placeholder="Enter brand name"
-                maxLength={100}
-              />
-            </div>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="mr-2 h-4 w-4" />
-              )}
-              Add Brand
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <BrandForm
+        name={brandName}
+        setName={setBrandName}
+        onSubmit={handleAdd}
+        isSubmitting={isSubmitting}
+      />
+
       <OMFilterCard
-        subtitle={`Showing ${totalCount} of ${totalCount} brands`}
+        filteredCount={processedData.length}
+        totalCount={unfilteredTotal}
+        unit="brands"
         searchPlaceholder="Search by brand name..."
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
+        sortBy={sortBy as any}
+        onSortChange={setSortBy as any}
         showFilters={showFilters}
         setShowFilters={setShowFilters}
-        isHydrating={isHydrating}
+        onReset={() => {
+          setSearchTerm("");
+          router.push(pathname);
+        }}
       >
         {null}
       </OMFilterCard>
 
-      <OMDataTable
-        title="Brand List"
-        data={filteredBrands}
+      <BrandsTable
+        data={processedData}
         isLoading={isLoading}
-        columnCount={2}
-        emptyMessage="No brands found. Add one above."
-        header={
-          <TableRow>
-            <TableHead>Brand Name</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        }
-        renderRow={(brand: OMBrand) => (
-          <TableRow key={brand.id}>
-            <TableCell className="font-medium">{brand.name}</TableCell>
-            <TableCell className="text-right flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleEdit(brand)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(brand.id)}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        )}
+        sortBy={sortBy}
+        onSort={setSortBy}
+        onEdit={handleEdit}
+        onDelete={(id) => { setDeleteId(id); setIsDeleteDialogOpen(true); }}
       />
 
       <DeleteConfirmationDialog
@@ -383,7 +345,13 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
         onConfirm={onConfirmDelete}
         isLoading={isDeleting}
         title="Delete Brand"
-        description="Are you sure you want to delete this brand? Products using this brand must be reassigned first."
+        description="Are you sure you want to delete this brand?"
+      />
+
+      <OMInfiniteScroll
+        onLoadMore={loadMore}
+        hasMore={hasMore}
+        isLoading={isFetchingMore}
       />
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -391,37 +359,15 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
           <DialogHeader>
             <DialogTitle>Edit Brand</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="editName">Brand Name *</Label>
-              <Input
-                id="editName"
-                required
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="Enter brand name"
-                maxLength={100}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Save Changes
-              </Button>
-            </div>
-          </form>
+          <BrandForm
+            name={editName}
+            setName={setEditName}
+            onSubmit={handleUpdate}
+            isSubmitting={isSubmitting}
+            isEdit={true}
+          />
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
