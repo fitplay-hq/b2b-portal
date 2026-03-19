@@ -1,17 +1,28 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { TableRow, TableCell, TableHead } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { Eye, Edit, Trash2, ChevronDown, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortableHeader";
-import { getDispatchStatusVisuals, type OMDispatchOrder } from "@/types/order-management";
+import {
+  getDispatchStatusVisuals,
+  OM_DISPATCH_STATUS_CONFIG,
+  type OMDispatchOrder,
+  type OMDispatchStatus,
+} from "@/types/order-management";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import { formatStatus } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type TableDispatchOrder = OMDispatchOrder & { _totalQty: number };
 
@@ -22,6 +33,7 @@ interface DispatchesTableProps {
   onSort: (newSort: SortOption) => void;
   onDelete: (id: string) => void;
   onRowClick: (id: string) => void;
+  onStatusChange?: (id: string, newStatus: OMDispatchStatus) => void;
 }
 
 export const DispatchesTable = memo(function DispatchesTable({
@@ -31,7 +43,10 @@ export const DispatchesTable = memo(function DispatchesTable({
   onSort,
   onDelete,
   onRowClick,
+  onStatusChange,
 }: DispatchesTableProps) {
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+
   return (
     <OMDataTable
       data={data}
@@ -128,13 +143,60 @@ export const DispatchesTable = memo(function DispatchesTable({
           <TableCell className="font-mono text-sm px-3 max-w-32 wrap-break-word">
             {dispatch.docketNumber || "N/A"}
           </TableCell>
-          <TableCell className="px-3">
-            <Badge 
-              variant="outline"
-              className={getDispatchStatusVisuals(dispatch.status || "PENDING").color}
-            >
-              {formatStatus(dispatch.status || "PENDING")}
-            </Badge>
+          <TableCell className="px-3" onClick={(e) => e.stopPropagation()}>
+            {onStatusChange ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="inline-flex items-center gap-1.5 cursor-pointer rounded-md transition-opacity hover:opacity-80 focus:outline-none"
+                    disabled={updatingStatusId === dispatch.id}
+                  >
+                    <Badge
+                      variant="outline"
+                      className={getDispatchStatusVisuals(dispatch.status || "PENDING").color}
+                    >
+                      {updatingStatusId === dispatch.id && (
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      )}
+                      {formatStatus(dispatch.status || "PENDING")}
+                    </Badge>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[180px]">
+                  {(Object.entries(OM_DISPATCH_STATUS_CONFIG) as [OMDispatchStatus, { label: string; color: string }][]).map(
+                    ([statusKey, config]) => (
+                      <DropdownMenuItem
+                        key={statusKey}
+                        onClick={() => {
+                          if (dispatch.status !== statusKey) {
+                            setUpdatingStatusId(dispatch.id);
+                            onStatusChange(dispatch.id, statusKey);
+                            // Clear loading after a short delay (parent handles actual state)
+                            setTimeout(() => setUpdatingStatusId(null), 1500);
+                          }
+                        }}
+                        className={`flex items-center gap-2 ${dispatch.status === statusKey ? "font-semibold" : ""}`}
+                      >
+                        <Badge variant="outline" className={`${config.color} text-xs`}>
+                          {config.label}
+                        </Badge>
+                        {dispatch.status === statusKey && (
+                          <span className="ml-auto text-xs text-muted-foreground">✓</span>
+                        )}
+                      </DropdownMenuItem>
+                    )
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Badge
+                variant="outline"
+                className={getDispatchStatusVisuals(dispatch.status || "PENDING").color}
+              >
+                {formatStatus(dispatch.status || "PENDING")}
+              </Badge>
+            )}
           </TableCell>
           <TableCell className="text-right pr-2" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-end gap-2">

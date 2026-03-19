@@ -262,6 +262,57 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+    const permissionCheck = await checkPermission(RESOURCES.ORDERS, "update");
+    if (!permissionCheck.success) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        {
+          status:
+            permissionCheck.error === "Authentication required" ? 401 : 403,
+        },
+      );
+    }
+
+    const body = await req.json();
+    const { status } = body;
+
+    // Validate status value
+    const validStatuses = [
+      "PENDING", "APPROVED", "READY_FOR_DISPATCH",
+      "DISPATCHED", "AT_DESTINATION", "DELIVERED", "CANCELLED",
+    ];
+    if (!status || !validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: "Invalid status value" },
+        { status: 400 },
+      );
+    }
+
+    const updatedDispatch = await prisma.oMDispatchOrder.update({
+      where: { id },
+      data: { status },
+    });
+
+    revalidateTag("om-dispatch-orders", "max");
+    revalidateTag("om-purchase-orders", "max");
+    revalidateTag("om-dashboard", "max");
+
+    revalidatePath("/admin/order-management/dispatches");
+    revalidatePath("/admin/order-management/purchase-orders");
+    revalidatePath("/admin/dashboard");
+
+    return NextResponse.json(updatedDispatch);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },

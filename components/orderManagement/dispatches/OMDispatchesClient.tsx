@@ -9,7 +9,9 @@ import { type ComboboxOption } from "@/components/ui/combobox";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import {
   type OMDispatchOrder,
+  type OMDispatchStatus,
   type TableDispatchOrder,
+  OM_DISPATCH_STATUS_CONFIG,
 } from "@/types/order-management";
 import { useOMFilters } from "@/hooks/use-om-filters";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
@@ -335,6 +337,42 @@ export function OMDispatchesClient({
     }
   }, [viewType, updateUrl, searchParams]);
 
+  const handleStatusChange = useCallback(async (dispatchId: string, newStatus: OMDispatchStatus) => {
+    const currentDispatch = dispatches.find(d => d.id === dispatchId);
+    if (!currentDispatch || currentDispatch.status === newStatus) return;
+
+    const oldStatus = currentDispatch.status;
+
+    // Optimistic update
+    setDispatches(prev =>
+      prev.map(d => d.id === dispatchId ? { ...d, status: newStatus } : d)
+    );
+
+    try {
+      const res = await fetch(`/api/admin/om/dispatch-orders/${dispatchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (res.ok) {
+        toast.success(`Status updated to ${OM_DISPATCH_STATUS_CONFIG[newStatus].label}`);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to update status");
+        setDispatches(prev =>
+          prev.map(d => d.id === dispatchId ? { ...d, status: oldStatus } : d)
+        );
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+      toast.error("Failed to update status");
+      setDispatches(prev =>
+        prev.map(d => d.id === dispatchId ? { ...d, status: oldStatus } : d)
+      );
+    }
+  }, [dispatches]);
+
   const [deleteDispatchId, setDeleteDispatchId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -476,6 +514,7 @@ export function OMDispatchesClient({
           onSort={setSortBy}
           onDelete={setDeleteDispatchId}
           onRowClick={(id) => router.push(`/admin/order-management/dispatches/${id}`)}
+          onStatusChange={handleStatusChange}
         />
       ) : (
         <DispatchItemTable
