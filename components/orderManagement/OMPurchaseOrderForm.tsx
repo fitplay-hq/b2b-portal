@@ -396,29 +396,6 @@ export function OMPurchaseOrderForm({
                 onChange={(e) => setPoReceivedDate(e.target.value)}
               />
             </div>
-
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={status}
-                onValueChange={(val: OMPoStatus) => setStatus(val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                  <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                  <SelectItem value="PARTIALLY_DISPATCHED">
-                    Partially Dispatched
-                  </SelectItem>
-                  <SelectItem value="FULLY_DISPATCHED">
-                    Fully Dispatched
-                  </SelectItem>
-                  <SelectItem value="CLOSED">Closed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </CardContent>
       </Card>

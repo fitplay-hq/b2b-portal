@@ -1,6 +1,5 @@
 import { OMDeliveryLocationsClient } from "@/components/orderManagement/delivery-locations/OMDeliveryLocationsClient";
 import { getOMDeliveryLocations } from "@/lib/om-data";
-import Layout from "@/components/layout";
 
 export const dynamic = "force-dynamic";
 
