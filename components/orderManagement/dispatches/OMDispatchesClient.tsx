@@ -167,7 +167,11 @@ export function OMDispatchesClient({
       (d.invoiceNumber || "").toLowerCase().includes(q) || 
       (d.docketNumber || "").toLowerCase().includes(q) || 
       (d.purchaseOrder?.poNumber || "").toLowerCase().includes(q) || 
-      (d.purchaseOrder?.client?.name || "").toLowerCase().includes(q);
+      (d.purchaseOrder?.client?.name || "").toLowerCase().includes(q) ||
+      d.items?.some(i => 
+        (i.product?.name || i.purchaseOrderItem?.product?.name || "").toLowerCase().includes(q) || 
+        (i.brandName || i.purchaseOrderItem?.OMBrand?.name || "").toLowerCase().includes(q)
+      );
     
     const matchesStatus = filters.status === "all" || d.status === filters.status;
     const matchesClient = !filters.clientId || d.purchaseOrder?.clientId === filters.clientId;
@@ -236,7 +240,7 @@ export function OMDispatchesClient({
   const processedItemData = useMemo(() => {
     if (viewType !== "item") return [];
 
-    return processedData.flatMap((dispatch) =>
+    let items = processedData.flatMap((dispatch) =>
       (dispatch.items || []).map((item, idx) => ({
         ...item,
         dispatchId: dispatch.id,
@@ -244,13 +248,49 @@ export function OMDispatchesClient({
         poNumber: dispatch.purchaseOrder?.poNumber || "N/A",
         clientName: dispatch.purchaseOrder?.client?.name || "N/A",
         itemName: item.product?.name || item.purchaseOrderItem?.product?.name || "N/A",
+        brandName: item.brandName || item.purchaseOrderItem?.OMBrand?.name || "N/A",
+        courierName: dispatch.logisticsPartner?.name || "N/A",
         dispatchDate: dispatch.dispatchDate || dispatch.invoiceDate,
         status: dispatch.status,
         dispatchQty: item.quantity,
         uniqueKey: `${dispatch.id}-${idx}`,
       }))
     );
-  }, [processedData, viewType]);
+
+    // Apply search filtering for items
+    const q = searchTerm.toLowerCase().trim();
+    if (q) {
+      items = items.filter(item => 
+        (item.invoiceNumber || "").toLowerCase().includes(q) ||
+        (item.poNumber || "").toLowerCase().includes(q) ||
+        (item.clientName || "").toLowerCase().includes(q) ||
+        (item.itemName || "").toLowerCase().includes(q) ||
+        (item.brandName || "").toLowerCase().includes(q) ||
+        (item.courierName || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Apply item-level sorting
+    if (sortBy === "name_asc") {
+      items.sort((a, b) => (a as any).itemName.localeCompare((b as any).itemName));
+    } else if (sortBy === "name_desc") {
+      items.sort((a, b) => (b as any).itemName.localeCompare((a as any).itemName));
+    } else if (sortBy === "qty_asc") {
+      items.sort((a, b) => (a as any).dispatchQty - (b as any).dispatchQty);
+    } else if (sortBy === "qty_desc") {
+      items.sort((a, b) => (b as any).dispatchQty - (a as any).dispatchQty);
+    } else if (sortBy === "courier_asc") {
+      items.sort((a, b) => (a as any).courierName.localeCompare((b as any).courierName));
+    } else if (sortBy === "courier_desc") {
+      items.sort((a, b) => (b as any).courierName.localeCompare((a as any).courierName));
+    } else if (sortBy === "status_asc") {
+      items.sort((a, b) => ((a as any).status || "").localeCompare((b as any).status || ""));
+    } else if (sortBy === "status_desc") {
+      items.sort((a, b) => ((b as any).status || "").localeCompare((a as any).status || ""));
+    }
+
+    return items;
+  }, [processedData, viewType, sortBy]);
 
   // Sync searchTerm with URL (debounced server search)
   useEffect(() => {
@@ -442,6 +482,7 @@ export function OMDispatchesClient({
           isLoading={isLoading}
           sortBy={sortBy}
           onSort={setSortBy}
+          onDelete={setDeleteDispatchId}
           onRowClick={(dispatchId) => router.push(`/admin/order-management/dispatches/${dispatchId}`)}
         />
       )}

@@ -59,11 +59,45 @@ export const POTable = memo(function POTable({
             ascOption="client_asc"
             descOption="client_desc"
           />
-          <TableHead className="text-right">Ordered</TableHead>
-          <TableHead className="text-right">Dispatched</TableHead>
-          <TableHead className="text-right">Remaining</TableHead>
-          <TableHead className="text-right">Total Value</TableHead>
-          <TableHead>Status</TableHead>
+          <OMSortableHeader
+            title="Ordered"
+            currentSort={sortBy}
+            onSort={onSort}
+            ascOption="ordered_asc"
+            descOption="ordered_desc"
+            className="text-right"
+          />
+          <OMSortableHeader
+            title="Dispatched"
+            currentSort={sortBy}
+            onSort={onSort}
+            ascOption="dispatched_asc"
+            descOption="dispatched_desc"
+            className="text-right"
+          />
+          <OMSortableHeader
+            title="Remaining"
+            currentSort={sortBy}
+            onSort={onSort}
+            ascOption="remaining_asc"
+            descOption="remaining_desc"
+            className="text-right"
+          />
+          <OMSortableHeader
+            title="Total Value"
+            currentSort={sortBy}
+            onSort={onSort}
+            ascOption="value_asc"
+            descOption="value_desc"
+            className="text-right"
+          />
+          <OMSortableHeader
+            title="Status"
+            currentSort={sortBy}
+            onSort={onSort}
+            ascOption="status_asc"
+            descOption="status_desc"
+          />
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       }

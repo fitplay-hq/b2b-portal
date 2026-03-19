@@ -574,6 +574,9 @@ export async function getOMDispatches(params: {
             { docketNumber: { contains: search, mode: "insensitive" as const } },
             { purchaseOrder: { poNumber: { contains: search, mode: "insensitive" as const } } },
             { purchaseOrder: { client: { name: { contains: search, mode: "insensitive" as const } } } },
+            { items: { some: { purchaseOrderItem: { product: { name: { contains: search, mode: "insensitive" } } } } } },
+            { items: { some: { purchaseOrderItem: { OMBrand: { name: { contains: search, mode: "insensitive" } } } } } },
+            { items: { some: { purchaseOrderItem: { product: { brands: { some: { name: { contains: search, mode: "insensitive" } } } } } } } },
           ],
         });
       }
@@ -777,6 +780,9 @@ export async function getOMPurchaseOrders(params: {
             { poNumber: { contains: search, mode: "insensitive" as const } },
             { estimateNumber: { contains: search, mode: "insensitive" as const } },
             { client: { name: { contains: search, mode: "insensitive" as const } } },
+            { items: { some: { product: { name: { contains: search, mode: "insensitive" } } } } },
+            { items: { some: { OMBrand: { name: { contains: search, mode: "insensitive" } } } } },
+            { items: { some: { product: { brands: { some: { name: { contains: search, mode: "insensitive" } } } } } } },
           ],
         });
       }

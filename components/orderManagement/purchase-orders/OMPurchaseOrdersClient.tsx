@@ -177,7 +177,11 @@ export function OMPurchaseOrdersClient({
     const matchesSearch = !q || 
       (po.poNumber || "").toLowerCase().includes(q) || 
       (po.estimateNumber || "").toLowerCase().includes(q) || 
-      (po.client?.name || "").toLowerCase().includes(q);
+      (po.client?.name || "").toLowerCase().includes(q) ||
+      po.items?.some(i => 
+        (i.product?.name || "").toLowerCase().includes(q) || 
+        (i.OMBrand?.name || i.product?.OMBrand?.name || "").toLowerCase().includes(q)
+      );
     
     const matchesStatus = filters.status === "all" || po.status === filters.status;
     const matchesClient = !filters.clientName || po.clientId === filters.clientName;
@@ -205,6 +209,50 @@ export function OMPurchaseOrdersClient({
         return (a.client?.name || "").localeCompare(b.client?.name || "");
       case "client_desc":
         return (b.client?.name || "").localeCompare(a.client?.name || "");
+      case "ordered_asc": {
+        const aQty = a.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
+        const bQty = b.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
+        return aQty - bQty;
+      }
+      case "ordered_desc": {
+        const aQty = a.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
+        const bQty = b.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
+        return bQty - aQty;
+      }
+      case "dispatched_asc": {
+        const aDisp = a.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0;
+        const bDisp = b.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0;
+        return aDisp - bDisp;
+      }
+      case "dispatched_desc": {
+        const aDisp = a.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0;
+        const bDisp = b.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0;
+        return bDisp - aDisp;
+      }
+      case "remaining_asc": {
+        const aRem = (a.items?.reduce((sum, i) => sum + i.quantity, 0) || 0) - (a.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0);
+        const bRem = (b.items?.reduce((sum, i) => sum + i.quantity, 0) || 0) - (b.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0);
+        return aRem - bRem;
+      }
+      case "remaining_desc": {
+        const aRem = (a.items?.reduce((sum, i) => sum + i.quantity, 0) || 0) - (a.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0);
+        const bRem = (b.items?.reduce((sum, i) => sum + i.quantity, 0) || 0) - (b.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0);
+        return bRem - aRem;
+      }
+      case "value_asc": {
+        const aVal = a.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
+        const bVal = b.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
+        return aVal - bVal;
+      }
+      case "value_desc": {
+        const aVal = a.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
+        const bVal = b.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
+        return bVal - aVal;
+      }
+      case "status_asc":
+        return (a.status || "").localeCompare(b.status || "");
+      case "status_desc":
+        return (b.status || "").localeCompare(a.status || "");
       default:
         return 0;
     }
@@ -241,18 +289,60 @@ export function OMPurchaseOrdersClient({
   const processedItemData = useMemo(() => {
     if (viewType !== "item") return [];
     
-    return processedData.flatMap((po) =>
-      (po.items || []).map((item) => ({
-        ...item,
-        poId: po.id,
-        poNumber: po.poNumber || po.estimateNumber,
-        poDate: po.poDate,
-        clientName: po.client?.name || "N/A",
-        itemName: item.product?.name || "N/A",
-        status: po.status,
-      }))
+    let items = processedData.flatMap((po) =>
+      (po.items || []).map((item) => {
+        const itemDispatched = item.dispatchItems?.reduce((acc: number, d: any) => acc + d.quantity, 0) || 0;
+        return {
+          ...item,
+          poId: po.id,
+          poNumber: po.poNumber || po.estimateNumber,
+          poDate: po.poDate,
+          clientName: po.client?.name || "N/A",
+          itemName: item.product?.name || "N/A",
+          brandName: item.OMBrand?.name || item.product?.OMBrand?.name || "N/A",
+          status: po.status,
+          itemDispatched,
+          itemRemaining: item.quantity - itemDispatched,
+        };
+      })
     );
-  }, [processedData, viewType]);
+
+    // Apply search filtering for items
+    const q = searchTerm.toLowerCase().trim();
+    if (q) {
+      items = items.filter(item => 
+        (item.poNumber || "").toLowerCase().includes(q) ||
+        (item.clientName || "").toLowerCase().includes(q) ||
+        (item.itemName || "").toLowerCase().includes(q) ||
+        (item.brandName || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Apply item-level sorting for specific fields
+    if (sortBy === "name_asc") {
+      items.sort((a, b) => a.itemName.localeCompare(b.itemName));
+    } else if (sortBy === "name_desc") {
+      items.sort((a, b) => b.itemName.localeCompare(a.itemName));
+    } else if (sortBy === "qty_asc") {
+      items.sort((a, b) => a.quantity - b.quantity);
+    } else if (sortBy === "qty_desc") {
+      items.sort((a, b) => b.quantity - a.quantity);
+    } else if (sortBy === "dispatched_asc") {
+      items.sort((a, b) => (a as any).itemDispatched - (b as any).itemDispatched);
+    } else if (sortBy === "dispatched_desc") {
+      items.sort((a, b) => (b as any).itemDispatched - (a as any).itemDispatched);
+    } else if (sortBy === "remaining_asc") {
+      items.sort((a, b) => (a as any).itemRemaining - (b as any).itemRemaining);
+    } else if (sortBy === "remaining_desc") {
+      items.sort((a, b) => (b as any).itemRemaining - (a as any).itemRemaining);
+    } else if (sortBy === "value_asc") {
+      items.sort((a, b) => a.totalAmount - b.totalAmount);
+    } else if (sortBy === "value_desc") {
+      items.sort((a, b) => b.totalAmount - a.totalAmount);
+    }
+    
+    return items;
+  }, [processedData, viewType, sortBy]);
 
   // Sync searchTerm with URL
   useEffect(() => {
@@ -438,6 +528,7 @@ export function OMPurchaseOrdersClient({
           isLoading={isLoading}
           sortBy={sortBy}
           onSort={setSortBy}
+          onDelete={setDeletePo}
           onRowClick={(poId) => router.push(`/admin/order-management/purchase-orders/${poId}`)}
         />
       )}
