@@ -447,7 +447,7 @@ export function OMDispatchesClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={dispatches.length} // Simplified total count
+        totalCount={initialData?.meta.unfilteredTotal || initialData?.meta.total || dispatches.length}
         unit="dispatch orders"
         searchPlaceholder="Search by invoice, docket, PO #, client..."
         searchTerm={searchTerm}
