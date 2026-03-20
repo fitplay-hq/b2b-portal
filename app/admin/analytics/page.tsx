@@ -52,7 +52,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAnalytics, type AnalyticsFilters } from '@/hooks/use-analytics';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import Layout from '@/components/layout';
 import { usePermissions } from '@/hooks/use-permissions';
 import useSWR from 'swr';
 

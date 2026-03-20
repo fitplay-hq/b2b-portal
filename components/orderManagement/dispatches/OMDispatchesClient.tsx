@@ -20,6 +20,7 @@ import { DISPATCH_SORT_OPTIONS } from "@/constants/om-sort-options";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
+import { useOMCounts } from "@/hooks/use-om-counts";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { DispatchFilters } from "./DispatchFilters";
@@ -52,7 +53,8 @@ export function OMDispatchesClient({
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "dispatch_date_desc");
   const [showFilters, setShowFilters] = useState(false);
-  const [unfilteredTotal, setUnfilteredTotal] = useState(initialData.meta.total);
+  const { count: fetchedCount, mutate } = useOMCounts('dispatches');
+  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -85,17 +87,6 @@ export function OMDispatchesClient({
     }
   }, [searchParams, pathname, router]);
 
-  useEffect(() => {
-    const isFiltered = searchParams.get("q") || searchParams.get("status") !== "all" || searchParams.get("clientId");
-    if (isFiltered) {
-      fetch("/api/admin/om/counts")
-        .then(res => res.json())
-        .then(data => setUnfilteredTotal(data.dispatches))
-        .catch(err => console.error("Failed to fetch dispatch counts", err));
-    } else {
-      setUnfilteredTotal(initialData.meta.total);
-    }
-  }, [initialData.meta.total, searchParams]);
 
   useEffect(() => {
     setDispatches(initialData.data);
@@ -108,7 +99,7 @@ export function OMDispatchesClient({
     setIsFetchingMore(true);
     try {
       const nextPage = currentPage + 1;
-      const url = new URL("/api/admin/om/dispatches", window.location.origin);
+      const url = new URL("/api/admin/om/dispatch-orders", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
       url.searchParams.set("limit", "500");
       
@@ -380,15 +371,17 @@ export function OMDispatchesClient({
     if (!deleteDispatchId) return;
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/admin/om/dispatches/${deleteDispatchId}`, {
+      const res = await fetch(`/api/admin/om/dispatch-orders/${deleteDispatchId}`, {
         method: "DELETE",
       });
       if (res.ok) {
         toast.success("Dispatch Order deleted successfully");
+        mutate();
         router.refresh();
         setDeleteDispatchId(null);
       } else {
-        toast.error("Failed to delete Dispatch Order");
+        const error = await res.json();
+        toast.error(error.error || "Failed to delete Dispatch Order");
       }
     } catch {
       toast.error("Something went wrong");

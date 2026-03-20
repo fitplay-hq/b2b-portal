@@ -4,7 +4,7 @@ import { RESOURCES } from "@/lib/utils";
 import { handleApiError } from "@/lib/api-errors";
 import { getOMTableCounts } from "@/lib/om-data";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const permissionCheck = await checkPermission(RESOURCES.COMPANIES, "view");
     if (!permissionCheck.success) {
@@ -17,7 +17,10 @@ export async function GET() {
       );
     }
 
-    const result = await getOMTableCounts();
+    const { searchParams } = new URL(request.url);
+    const key = searchParams.get("key") || undefined;
+
+    const result = await getOMTableCounts(key);
 
     return NextResponse.json(result);
   } catch (error: unknown) {

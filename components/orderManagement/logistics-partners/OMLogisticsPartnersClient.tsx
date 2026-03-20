@@ -19,6 +19,7 @@ import { useOMFilters } from "@/hooks/use-om-filters";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { LOGISTICS_SORT_OPTIONS } from "@/constants/om-sort-options";
+import { useOMCounts } from "@/hooks/use-om-counts";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
@@ -47,7 +48,8 @@ export function OMLogisticsPartnersClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const [unfilteredTotal, setUnfilteredTotal] = useState(initialData.meta.total);
+  const { count: fetchedCount, mutate } = useOMCounts('logisticsPartners');
+  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -77,17 +79,6 @@ export function OMLogisticsPartnersClient({
     }
   }, [searchParams, pathname, router]);
 
-  useEffect(() => {
-    const isFiltered = searchParams.get("q") || searchParams.get("partnerName");
-    if (isFiltered) {
-      fetch("/api/admin/om/counts")
-        .then(res => res.json())
-        .then(data => setUnfilteredTotal(data.logisticsPartners))
-        .catch(err => console.error("Failed to fetch logistics counts", err));
-    } else {
-      setUnfilteredTotal(initialData.meta.total);
-    }
-  }, [initialData.meta.total, searchParams]);
 
   useEffect(() => {
     setPartners(initialData.data);
@@ -254,6 +245,7 @@ export function OMLogisticsPartnersClient({
         toast.success(`Partner ${editingPartner ? "updated" : "added"} successfully`);
         setIsAddDialogOpen(false);
         resetForm();
+        mutate();
         router.refresh();
       } else {
         const error = await res.json();
@@ -297,6 +289,7 @@ export function OMLogisticsPartnersClient({
       });
       if (res.ok) {
         toast.success("Logistics partner deleted successfully");
+        mutate();
         router.refresh();
         setIsDeleteDialogOpen(false);
       } else {

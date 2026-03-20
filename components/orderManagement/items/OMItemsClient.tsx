@@ -23,6 +23,7 @@ import { useOMFilters } from "@/hooks/use-om-filters";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { ITEM_SORT_OPTIONS } from "@/constants/om-sort-options";
+import { useOMCounts } from "@/hooks/use-om-counts";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
@@ -70,7 +71,8 @@ export function OMItemsClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const [unfilteredTotal, setUnfilteredTotal] = useState(initialData.meta.total);
+  const { count: fetchedCount, mutate } = useOMCounts('items');
+  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -100,17 +102,6 @@ export function OMItemsClient({
     }
   }, [searchParams, pathname, router]);
 
-  useEffect(() => {
-    const isFiltered = searchParams.get("q") || searchParams.get("brandId");
-    if (isFiltered) {
-      fetch("/api/admin/om/counts")
-        .then(res => res.json())
-        .then(data => setUnfilteredTotal(data.items))
-        .catch(err => console.error("Failed to fetch item counts", err));
-    } else {
-      setUnfilteredTotal(initialData.meta.total);
-    }
-  }, [initialData.meta.total, searchParams]);
 
   useEffect(() => {
     setItems(initialData.data);
@@ -405,6 +396,7 @@ export function OMItemsClient({
       });
       if (res.ok) {
         toast.success("Item deleted successfully");
+        mutate();
         router.refresh();
         setIsDeleteDialogOpen(false);
       } else {

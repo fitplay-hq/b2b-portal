@@ -18,6 +18,7 @@ import { useOMFilters } from "@/hooks/use-om-filters";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { PO_SORT_OPTIONS } from "@/constants/om-sort-options";
+import { useOMCounts } from "@/hooks/use-om-counts";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
@@ -55,7 +56,8 @@ export function OMPurchaseOrdersClient({
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "po_date_desc");
   const [showFilters, setShowFilters] = useState(false);
-  const [unfilteredTotal, setUnfilteredTotal] = useState(initialData.meta.total);
+  const { count: fetchedCount, mutate } = useOMCounts('purchaseOrders');
+  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -120,17 +122,6 @@ export function OMPurchaseOrdersClient({
     }
   }, [searchParams, pathname, router]);
 
-  useEffect(() => {
-    const isFiltered = searchParams.get("q") || searchParams.get("status") !== "all" || searchParams.get("clientId");
-    if (isFiltered) {
-      fetch("/api/admin/om/counts")
-        .then(res => res.json())
-        .then(data => setUnfilteredTotal(data.purchaseOrders))
-        .catch(err => console.error("Failed to fetch total PO count", err));
-    } else {
-      setUnfilteredTotal(initialData.meta.total);
-    }
-  }, [initialData.meta.total, searchParams]);
 
   useEffect(() => {
     setPurchaseOrders(initialData.data);
@@ -447,10 +438,12 @@ export function OMPurchaseOrdersClient({
       });
       if (res.ok) {
         toast.success("Purchase Order deleted successfully");
+        mutate();
         router.refresh();
         setDeletePo(null);
       } else {
-        toast.error("Failed to delete Purchase Order");
+        const error = await res.json();
+        toast.error(error.error || "Failed to delete Purchase Order");
       }
     } catch {
       toast.error("Something went wrong");
