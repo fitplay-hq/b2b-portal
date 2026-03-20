@@ -86,3 +86,67 @@ export function useOMDispatch(id?: string, options: any = {}) {
     mutate,
   };
 }
+
+/**
+ * Hook to fetch all clients for options
+ */
+export function useOMClients() {
+  const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/clients?limit=500", fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+  });
+
+  return {
+    clients: data?.data || [],
+    isLoading,
+    error,
+  };
+}
+
+/**
+ * Hook to fetch all delivery locations for options
+ */
+export function useOMDeliveryLocations() {
+  const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/delivery-locations?limit=500", fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+  });
+
+  return {
+    locations: data?.data || [],
+    isLoading,
+    error,
+  };
+}
+
+/**
+ * Hook to fetch all logistics partners for options
+ */
+export function useOMLogisticsPartners() {
+  const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/logistics-partners?limit=500", fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+  });
+
+  return {
+    partners: data?.data || [],
+    isLoading,
+    error,
+  };
+}
+
+/**
+ * Hook to fetch PO numbers for options
+ */
+export function useOMPONumbers() {
+  const { data, error, isLoading } = useSWR<any[]>("/api/admin/om/purchase-orders/options", fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+  });
+
+  return {
+    poNumbers: data || [],
+    isLoading,
+    error,
+  };
+}

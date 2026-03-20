@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
@@ -24,7 +23,12 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { POTable } from "./POTable";
 import { POItemTable } from "./POItemTable";
 import { Grid3x3, Table as TableIcon } from "lucide-react";
-import { useOMPurchaseOrders } from "@/data/om/admin.hooks";
+import { 
+  useOMPurchaseOrders, 
+  useOMClients, 
+  useOMDeliveryLocations, 
+  useOMPONumbers 
+} from "@/data/om/admin.hooks";
 
 const PO_STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -35,22 +39,44 @@ const PO_STATUS_LABELS: Record<string, string> = {
 };
 
 interface OMPurchaseOrdersClientProps {
-  initialData: PaginatedResponse<OMPurchaseOrder>;
-  clientOptions: ComboboxOption[];
-  locationOptions: ComboboxOption[];
-  poOptions: ComboboxOption[];
+  initialData?: PaginatedResponse<OMPurchaseOrder>;
+  clientOptions?: ComboboxOption[];
+  locationOptions?: ComboboxOption[];
+  poOptions?: ComboboxOption[];
 }
 
 export function OMPurchaseOrdersClient({
   initialData,
-  clientOptions,
-  locationOptions,
-  poOptions,
+  clientOptions: propsClientOptions,
+  locationOptions: propsLocationOptions,
+  poOptions: propsPoOptions,
 }: OMPurchaseOrdersClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   
+  // 1. Fetch data via SWR
+  const { purchaseOrders: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMPurchaseOrders(searchParams.toString(), {
+    fallbackData: initialData
+  });
+
+  // 2. Fetch options via SWR
+  const { clients: clientsRaw } = useOMClients();
+  const { locations: locationsRaw } = useOMDeliveryLocations();
+  const { poNumbers: poOptionsRaw } = useOMPONumbers();
+
+  const clientOptions = useMemo(() => 
+    propsClientOptions || clientsRaw.map(c => ({ value: c.name, label: c.name })), 
+    [propsClientOptions, clientsRaw]
+  );
+  
+  const locationOptions = useMemo(() => 
+    propsLocationOptions || locationsRaw.map(l => ({ value: l.id, label: l.name })), 
+    [propsLocationOptions, locationsRaw]
+  );
+  
+  const poOptions = useMemo(() => propsPoOptions || poOptionsRaw, [propsPoOptions, poOptionsRaw]);
+
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "po_date_desc");
   const [showFilters, setShowFilters] = useState(false);
@@ -58,13 +84,9 @@ export function OMPurchaseOrdersClient({
     (searchParams.get("view") as "client" | "item") || "client"
   );
 
-  const { purchaseOrders: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMPurchaseOrders(searchParams.toString(), {
-    fallbackData: initialData
-  });
-
-  const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>(initialData.data);
-  const [currentPage, setCurrentPage] = useState(initialData.meta.page);
-  const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
+  const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>(initialData?.data || []);
+  const [currentPage, setCurrentPage] = useState(initialData?.meta.page || 1);
+  const [hasMore, setHasMore] = useState(initialData ? initialData.meta.page < initialData.meta.totalPages : false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   // Sync SWR data to local state for infinite scroll
@@ -141,7 +163,7 @@ export function OMPurchaseOrdersClient({
 
   useEffect(() => {
     // Only reset if no SWR data yet (initial load)
-    if (!swrData || swrData.length === 0) {
+    if ((!swrData || swrData.length === 0) && initialData) {
       setPurchaseOrders(initialData.data);
       setCurrentPage(initialData.meta.page);
       setHasMore(initialData.meta.page < initialData.meta.totalPages);
@@ -550,7 +572,7 @@ export function OMPurchaseOrdersClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
+        totalCount={swrMeta?.unfilteredTotal || swrMeta?.total || purchaseOrders.length}
         unit="purchase orders"
         searchPlaceholder="Search by PO/Estimate #, client name..."
         searchTerm={searchTerm}

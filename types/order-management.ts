@@ -385,4 +385,5 @@ export interface OMPaginationMeta {
   page: number;
   limit: number;
   totalPages: number;
+  unfilteredTotal?: number;
 }

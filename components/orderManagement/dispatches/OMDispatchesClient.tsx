@@ -27,26 +27,61 @@ import { DispatchesTable } from "./DispatchesTable";
 import { DispatchItemTable } from "./DispatchItemTable";
 import { Grid3x3, Table as TableIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useOMDispatches } from "@/data/om/admin.hooks";
+import { 
+  useOMDispatches, 
+  useOMClients, 
+  useOMLogisticsPartners, 
+  useOMDeliveryLocations,
+  useOMPONumbers
+} from "@/data/om/admin.hooks";
 
 interface OMDispatchesClientProps {
-  initialData: PaginatedResponse<OMDispatchOrder>;
-  clientOptions: ComboboxOption[];
-  logisticsOptions: ComboboxOption[];
-  invoiceOptions: ComboboxOption[];
-  docketOptions: ComboboxOption[];
+  initialData?: PaginatedResponse<OMDispatchOrder>;
+  clientOptions?: ComboboxOption[];
+  logisticsOptions?: ComboboxOption[];
+  invoiceOptions?: ComboboxOption[];
+  docketOptions?: ComboboxOption[];
 }
 
 export function OMDispatchesClient({
   initialData,
-  clientOptions,
-  logisticsOptions,
-  invoiceOptions,
-  docketOptions,
+  clientOptions: propsClientOptions,
+  logisticsOptions: propsLogisticsOptions,
+  invoiceOptions: propsInvoiceOptions,
+  docketOptions: propsDocketOptions,
 }: OMDispatchesClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+
+  // 1. Fetch data via SWR
+  const { dispatches: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMDispatches(searchParams.toString(), {
+    fallbackData: initialData
+  });
+
+  // 2. Fetch options via SWR
+  const { clients: clientsRaw } = useOMClients();
+  const { partners: logisticsRaw } = useOMLogisticsPartners();
+  const { locations: locationsRaw } = useOMDeliveryLocations();
+  const { poNumbers: poOptionsRaw } = useOMPONumbers();
+
+  const clientOptions = useMemo(() => 
+    propsClientOptions || clientsRaw.map(c => ({ value: c.id, label: c.name })), 
+    [propsClientOptions, clientsRaw]
+  );
+
+  const logisticsOptions = useMemo(() => 
+    propsLogisticsOptions || logisticsRaw.map(p => ({ value: p.id, label: p.name })), 
+    [propsLogisticsOptions, logisticsRaw]
+  );
+  
+  const deliveryLocationOptions = useMemo(() => 
+    locationsRaw.map(l => ({ value: l.id, label: l.name })), 
+    [locationsRaw]
+  );
+
+  const invoiceOptions = useMemo(() => propsInvoiceOptions || [], [propsInvoiceOptions]);
+  const docketOptions = useMemo(() => propsDocketOptions || [], [propsDocketOptions]);
 
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "dispatch_date_desc");
@@ -55,13 +90,9 @@ export function OMDispatchesClient({
     (searchParams.get("view") as "client" | "item") || "client"
   );
 
-  const { dispatches: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMDispatches(searchParams.toString(), {
-    fallbackData: initialData
-  });
-
-  const [dispatches, setDispatches] = useState<OMDispatchOrder[]>(initialData.data);
-  const [currentPage, setCurrentPage] = useState(initialData.meta.page);
-  const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
+  const [dispatches, setDispatches] = useState<OMDispatchOrder[]>(initialData?.data || []);
+  const [currentPage, setCurrentPage] = useState(initialData?.meta.page || 1);
+  const [hasMore, setHasMore] = useState(initialData ? initialData.meta.page < initialData.meta.totalPages : false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   // Sync SWR data to local state for infinite scroll
@@ -106,7 +137,7 @@ export function OMDispatchesClient({
 
   useEffect(() => {
     // Only reset if no SWR data yet (initial load)
-    if (!swrData || swrData.length === 0) {
+    if ((!swrData || swrData.length === 0) && initialData) {
       setDispatches(initialData.data);
       setCurrentPage(initialData.meta.page);
       setHasMore(initialData.meta.page < initialData.meta.totalPages);
@@ -468,7 +499,7 @@ export function OMDispatchesClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
+        totalCount={swrMeta?.unfilteredTotal || swrMeta?.total || dispatches.length}
         unit="dispatch orders"
         searchPlaceholder="Search by invoice, docket, PO #, client..."
         searchTerm={searchTerm}
