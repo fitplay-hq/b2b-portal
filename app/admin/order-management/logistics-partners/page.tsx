@@ -16,7 +16,7 @@ interface PageProps {
 export default async function OMLogisticsPartnersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = params.page ? parseInt(params.page as string) : 1;
-  const limit = params.limit ? parseInt(params.limit as string) : 50;
+  const limit = params.limit ? parseInt(params.limit as string) : 500;
   const search = (params.q as string) || (params.partnerName as string) || "";
   const sortBy = params.sortBy as string;
 

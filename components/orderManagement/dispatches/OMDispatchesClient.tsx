@@ -116,7 +116,7 @@ export function OMDispatchesClient({
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/dispatch-orders", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "500");
+      url.searchParams.set("limit", "50");
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
