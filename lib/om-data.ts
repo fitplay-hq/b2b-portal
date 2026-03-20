@@ -948,32 +948,31 @@ export async function getOMDeliveryLocations(params: {
   )(params);
 }
 
-export async function getOMTableCounts() {
-  const [
-    brands,
-    clients,
-    deliveryLocations,
-    dispatches,
-    products,
-    logisticsPartners,
-    purchaseOrders,
-  ] = await Promise.all([
-    prisma.oMBrand.count(),
-    prisma.oMClient.count(),
-    prisma.oMDeliveryLocation.count(),
-    prisma.oMDispatchOrder.count(),
-    prisma.oMProduct.count(),
-    prisma.oMLogisticsPartner.count(),
-    prisma.oMPurchaseOrder.count(),
-  ]);
-
-  return {
-    brands,
-    clients,
-    deliveryLocations,
-    dispatches,
-    products,
-    logisticsPartners,
-    purchaseOrders,
+export async function getOMTableCounts(key?: string) {
+  const countsMap: Record<string, () => Promise<number>> = {
+    brands: () => prisma.oMBrand.count(),
+    clients: () => prisma.oMClient.count(),
+    deliveryLocations: () => prisma.oMDeliveryLocation.count(),
+    locations: () => prisma.oMDeliveryLocation.count(), // alias
+    dispatches: () => prisma.oMDispatchOrder.count(),
+    products: () => prisma.oMProduct.count(),
+    items: () => prisma.oMProduct.count(), // alias
+    logisticsPartners: () => prisma.oMLogisticsPartner.count(),
+    purchaseOrders: () => prisma.oMPurchaseOrder.count(),
   };
+
+  if (key && countsMap[key]) {
+    const count = await countsMap[key]();
+    return { [key]: count };
+  }
+
+  const keys = Object.keys(countsMap).filter(k => k !== 'locations' && k !== 'items');
+  const counts = await Promise.all(keys.map(k => countsMap[k]()));
+
+  const result: Record<string, number> = {};
+  keys.forEach((k, i) => {
+    result[k] = counts[i];
+  });
+
+  return result;
 }

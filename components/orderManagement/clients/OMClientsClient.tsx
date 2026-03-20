@@ -18,6 +18,7 @@ import { CLIENT_SORT_OPTIONS } from "@/constants/om-sort-options";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
+import { useOMCounts } from "@/hooks/use-om-counts";
 import { ClientsTable } from "./ClientsTable";
 import { ClientViewDialog } from "./ClientViewDialog";
 
@@ -40,7 +41,8 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const [unfilteredTotal, setUnfilteredTotal] = useState(initialData.meta.total);
+  const { count: fetchedCount, mutate } = useOMCounts('clients');
+  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -70,17 +72,6 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
     }
   }, [searchParams, pathname, router]);
 
-  useEffect(() => {
-    const isFiltered = searchParams.get("q") || searchParams.get("clientName");
-    if (isFiltered) {
-      fetch("/api/admin/om/counts")
-        .then(res => res.json())
-        .then(data => setUnfilteredTotal(data.clients))
-        .catch(err => console.error("Failed to fetch client counts", err));
-    } else {
-      setUnfilteredTotal(initialData.meta.total);
-    }
-  }, [initialData.meta.total, searchParams]);
 
   useEffect(() => {
     setClients(initialData.data);
@@ -246,6 +237,7 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
         toast.success(`Client ${editingClient ? "updated" : "added"} successfully`);
         setIsAddDialogOpen(false);
         resetForm();
+        mutate();
         router.refresh();
       } else {
         const error = await res.json();
@@ -291,6 +283,7 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
       });
       if (res.ok) {
         toast.success("Client deleted successfully");
+        mutate();
         router.refresh();
         setIsDeleteDialogOpen(false);
       } else {
