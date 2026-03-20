@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { OMSortControl, type SortOption } from "../OMSortControl";
 import { cn } from "@/lib/utils";
-import { Label } from "recharts";
+import { Label } from "@/components/ui/label";
 
 interface OMFilterCardProps {
   title?: string;
