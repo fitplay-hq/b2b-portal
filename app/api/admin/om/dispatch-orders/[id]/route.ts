@@ -4,6 +4,7 @@ import { checkPermission } from "@/lib/auth-middleware";
 import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
+import { OMPoStatus } from "@/lib/generated/prisma";
 import {
   OMDispatchOrderCreateSchema,
   OMDispatchOrderUpdateSchema,
@@ -175,10 +176,25 @@ export async function PUT(
         where: { dispatchOrderId: id },
       });
 
+      let doTotalQuantity = 0;
+      const createItems = (items || []).map((item: any) => {
+        doTotalQuantity += (item.quantity || item.dispatchQty);
+        return {
+          purchaseOrderItemId: item.purchaseOrderItemId || item.poLineItemId,
+          quantity: item.quantity || item.dispatchQty,
+          rate: item.rate,
+          amount: item.amount,
+          gstPercentage: item.gstPercentage,
+          gstAmount: item.gstAmount,
+          totalAmount: item.totalAmount,
+        };
+      });
+
       // 2. Update the main dispatch order and create new items
       const dispatch = await tx.oMDispatchOrder.update({
         where: { id },
         data: {
+          totalQuantity: doTotalQuantity,
           invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
           invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
           logisticsPartnerId: logisticsPartnerId || null,
@@ -189,15 +205,7 @@ export async function PUT(
           deliveryLocationId: deliveryLocationId || null,
           status,
           items: {
-            create: (items || []).map((item: any) => ({
-              purchaseOrderItemId: item.purchaseOrderItemId || item.poLineItemId,
-              quantity: item.quantity || item.dispatchQty,
-              rate: item.rate,
-              amount: item.amount,
-              gstPercentage: item.gstPercentage,
-              gstAmount: item.gstAmount,
-              totalAmount: item.totalAmount,
-            })),
+            create: createItems,
           },
         },
         include: {
@@ -242,6 +250,60 @@ export async function PUT(
               }
             }
           }
+        }
+      }
+
+      // Re-aggregate and update PO and PO items
+      const purchaseOrder = await tx.oMPurchaseOrder.findUnique({
+        where: { id: dispatch.purchaseOrderId },
+        include: { items: true },
+      });
+
+      if (purchaseOrder) {
+        const updatedDispatches = await tx.oMDispatchOrderItem.groupBy({
+          by: ["purchaseOrderItemId"],
+          where: { purchaseOrderItemId: { in: purchaseOrder.items.map(i => i.id) } },
+          _sum: { quantity: true },
+        });
+
+        const updatedDispatchMap = new Map(
+          updatedDispatches.map((d) => [
+            d.purchaseOrderItemId,
+            d._sum.quantity ?? 0,
+          ]),
+        );
+
+        let totalPoDispatched = 0;
+        const fullyDispatched = purchaseOrder.items.every(
+          (poItem) => {
+            const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
+            totalPoDispatched += dQty;
+            return dQty >= (poItem.quantity || 0);
+          }
+        );
+
+        const newStatus: OMPoStatus = fullyDispatched
+          ? OMPoStatus.FULLY_DISPATCHED
+          : OMPoStatus.PARTIALLY_DISPATCHED;
+
+        await tx.oMPurchaseOrder.update({
+          where: { id: dispatch.purchaseOrderId },
+          data: { 
+            status: newStatus,
+            dispatchedQuantity: totalPoDispatched,
+            remainingQuantity: (purchaseOrder.totalQuantity || 0) - totalPoDispatched
+          },
+        });
+
+        for (const poItem of purchaseOrder.items) {
+          const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
+          await tx.oMPurchaseOrderItem.update({
+            where: { id: poItem.id },
+            data: {
+              dispatchedQuantity: dQty,
+              remainingQuantity: Math.max(0, (poItem.quantity || 0) - dQty)
+            }
+          });
         }
       }
 
@@ -330,18 +392,80 @@ export async function DELETE(
       );
     }
 
-    // Logic to revert PO status might be complex if deleting a dispatch
-    // For now, simple delete or handle status reversion
-    await prisma.oMDispatchOrder.delete({
+    // We need the PO ID to revert quantities
+    const dispatchOrder = await prisma.oMDispatchOrder.findUnique({
       where: { id },
+      select: { purchaseOrderId: true }
     });
 
-    // @ts-expect-error: Next.js revalidateTag argument count mismatch
-    revalidateTag("om-dispatch-orders");
-    // @ts-expect-error: Next.js revalidateTag argument count mismatch
-    revalidateTag("om-purchase-orders");
-    // @ts-expect-error: Next.js revalidateTag argument count mismatch
-    revalidateTag("om-dashboard");
+    if (!dispatchOrder) {
+      return NextResponse.json({ error: "Dispatch Order not found" }, { status: 404 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete dispatch
+      await tx.oMDispatchOrder.delete({
+        where: { id },
+      });
+
+      // 2. Re-aggregate PO items
+      const purchaseOrder = await tx.oMPurchaseOrder.findUnique({
+        where: { id: dispatchOrder.purchaseOrderId },
+        include: { items: true },
+      });
+
+      if (purchaseOrder) {
+        const updatedDispatches = await tx.oMDispatchOrderItem.groupBy({
+          by: ["purchaseOrderItemId"],
+          where: { purchaseOrderItemId: { in: purchaseOrder.items.map(i => i.id) } },
+          _sum: { quantity: true },
+        });
+
+        const updatedDispatchMap = new Map(
+          updatedDispatches.map((d) => [
+            d.purchaseOrderItemId,
+            d._sum.quantity ?? 0,
+          ]),
+        );
+
+        let totalPoDispatched = 0;
+        const fullyDispatched = purchaseOrder.items.every(
+          (poItem) => {
+            const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
+            totalPoDispatched += dQty;
+            return dQty >= (poItem.quantity || 0);
+          }
+        );
+
+        const newStatus: OMPoStatus = (totalPoDispatched === 0 && purchaseOrder.status !== "DRAFT") 
+          ? OMPoStatus.CONFIRMED 
+          : fullyDispatched ? OMPoStatus.FULLY_DISPATCHED : OMPoStatus.PARTIALLY_DISPATCHED;
+
+        await tx.oMPurchaseOrder.update({
+          where: { id: dispatchOrder.purchaseOrderId },
+          data: { 
+            status: newStatus,
+            dispatchedQuantity: totalPoDispatched,
+            remainingQuantity: (purchaseOrder.totalQuantity || 0) - totalPoDispatched
+          },
+        });
+
+        for (const poItem of purchaseOrder.items) {
+          const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
+          await tx.oMPurchaseOrderItem.update({
+            where: { id: poItem.id },
+            data: {
+              dispatchedQuantity: dQty,
+              remainingQuantity: Math.max(0, (poItem.quantity || 0) - dQty)
+            }
+          });
+        }
+      }
+    });
+
+    revalidateTag("om-dispatch-orders", "max");
+    revalidateTag("om-purchase-orders", "max");
+    revalidateTag("om-dashboard", "max");
 
     revalidatePath("/admin/order-management/dispatches");
     revalidatePath("/admin/order-management/purchase-orders");

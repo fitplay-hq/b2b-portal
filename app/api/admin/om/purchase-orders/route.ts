@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
     // 3. Process items and calculate totals
     let totalGst = 0;
     let grandTotal = 0;
+    let totalQuantity = 0;
 
     const processedItems = items.map((item) => {
       const amount = item.quantity * item.rate;
@@ -82,10 +83,13 @@ export async function POST(req: NextRequest) {
 
       totalGst += gstAmount;
       grandTotal += totalAmount;
+      totalQuantity += item.quantity;
 
       return {
         productId: item.productId,
         quantity: item.quantity,
+        dispatchedQuantity: 0,
+        remainingQuantity: item.quantity,
         rate: item.rate,
         amount,
         gstPercentage: item.gstPercentage,
@@ -113,6 +117,9 @@ export async function POST(req: NextRequest) {
           status,
           totalGst,
           grandTotal,
+          totalQuantity,
+          dispatchedQuantity: 0,
+          remainingQuantity: totalQuantity,
           items: {
             create: processedItems,
           },
@@ -161,7 +168,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const limit = parseInt(searchParams.get("limit") || "500");
     const search = searchParams.get("search") || searchParams.get("q") || "";
     const clientId = searchParams.get("clientId") || undefined;
     const status = searchParams.get("status") || undefined;

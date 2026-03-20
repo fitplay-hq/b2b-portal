@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { ActiveFilter } from "@/components/orderManagement/shared/OMActiveFilters";
 
 interface UseOMFiltersOptions<T extends Record<string, any>> {
@@ -19,7 +19,7 @@ export function useOMFilters<T extends Record<string, any>>({
   const [filters, setFilters] = useState<T>(initialFilters);
 
   // Load from persistence
-  useMemo(() => {
+  useEffect(() => {
     if (typeof window !== "undefined" && persistenceKey) {
       const saved = localStorage.getItem(persistenceKey);
       if (saved) {
@@ -32,10 +32,10 @@ export function useOMFilters<T extends Record<string, any>>({
         }
       }
     }
-  }, [persistenceKey]);
+  }, [persistenceKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save to persistence
-  useMemo(() => {
+  useEffect(() => {
     if (typeof window !== "undefined" && persistenceKey) {
       localStorage.setItem(persistenceKey, JSON.stringify(filters));
     }

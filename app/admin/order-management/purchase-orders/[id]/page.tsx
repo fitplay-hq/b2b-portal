@@ -16,31 +16,16 @@ import { OMPurchaseOrderSummaryCards } from "@/components/orderManagement/OMPurc
 import { OMPurchaseOrderItemsTable } from "@/components/orderManagement/OMPurchaseOrderItemsTable";
 import { OMDispatchHistory } from "@/components/orderManagement/OMDispatchHistory";
 import type { OMPurchaseOrder } from "@/types/order-management";
+import { useOMPurchaseOrder } from "@/data/om/admin.hooks";
 
 export default function OMPurchaseOrderDetail() {
   const params = useParams();
   const id = params.id as string;
-  const [po, setPO] = useState<OMPurchaseOrder | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { purchaseOrder: po, isLoading, mutate } = useOMPurchaseOrder(id);
 
   const fetchPO = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/admin/om/purchase-orders/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
-      setPO(data.data || data);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load purchase order");
-    } finally {
-      setIsLoading(false);
-    }
+    mutate();
   };
-
-  useEffect(() => {
-    if (id) fetchPO();
-  }, [id]);
 
   if (isLoading) {
     return (

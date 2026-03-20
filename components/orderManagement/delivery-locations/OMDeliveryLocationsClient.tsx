@@ -25,10 +25,10 @@ import { Button } from "@/components/ui/button";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
-import { useOMCounts } from "@/hooks/use-om-counts";
 import { LocationsTable } from "./LocationsTable";
 import { LocationForm } from "./LocationForm";
 import { LocationViewDialog } from "./LocationViewDialog";
+import { useMutateLocations } from "@/data/om/admin.hooks";
 
 interface OMDeliveryLocationsClientProps {
   initialData: PaginatedResponse<OMDeliveryLocation>;
@@ -41,17 +41,14 @@ export function OMDeliveryLocationsClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
+
   const [locations, setLocations] = useState<OMDeliveryLocation[]>(initialData.data);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locationName, setLocationName] = useState("");
 
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const { count: fetchedCount, mutate } = useOMCounts('locations');
-  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
-
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -82,10 +79,13 @@ export function OMDeliveryLocationsClient({
   }, [searchParams, pathname, router]);
 
 
+
   useEffect(() => {
-    setLocations(initialData.data);
-    setCurrentPage(initialData.meta.page);
-    setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    if (initialData.data.length > 0) {
+      setLocations(initialData.data);
+      setCurrentPage(initialData.meta.page);
+      setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    }
   }, [initialData]);
 
   const loadMore = async () => {
@@ -95,7 +95,7 @@ export function OMDeliveryLocationsClient({
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/delivery-locations", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "50");
+      url.searchParams.set("limit", "500");
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
@@ -121,6 +121,16 @@ export function OMDeliveryLocationsClient({
       setIsFetchingMore(false);
     }
   };
+
+  // Silent background prefetching
+  useEffect(() => {
+    if (hasMore && !isFetchingMore) {
+      const timer = setTimeout(() => {
+        loadMore();
+      }, 2000); // 2 second delay between background fetches
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isFetchingMore, loadMore]);
 
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
@@ -168,10 +178,11 @@ export function OMDeliveryLocationsClient({
   // Sync searchTerm with URL
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchTerm !== (searchParams.get("q") || "")) {
-        updateUrl({ q: searchTerm || null });
+      const currentQ = searchParams.get("q") || "";
+      if (searchTerm.trim() !== currentQ) {
+        updateUrl({ q: searchTerm.trim() || null });
       }
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [searchTerm, updateUrl, searchParams]);
 
@@ -187,7 +198,7 @@ export function OMDeliveryLocationsClient({
         }
       });
       if (changed) updateUrl(newParams);
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [filters, updateUrl, searchParams]);
 
@@ -202,6 +213,7 @@ export function OMDeliveryLocationsClient({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { saveLocation, deleteLocation } = useMutateLocations();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const [editingLocation, setEditingLocation] = useState<OMDeliveryLocation | null>(null);
@@ -223,28 +235,16 @@ export function OMDeliveryLocationsClient({
     e.preventDefault();
     if (!locationName.trim()) return;
     setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/admin/om/delivery-locations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: locationName.trim() }),
-      });
-      if (res.ok) {
-        toast.success("Delivery location added successfully");
-        setLocationName("");
-        setIsAddDialogOpen(false);
-        mutate();
-        router.refresh();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to add delivery location");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to add delivery location");
-    } finally {
-      setIsSubmitting(false);
+    const result = await saveLocation(locationName.trim());
+    if (result.success) {
+      toast.success("Delivery location added successfully");
+      setLocationName("");
+      setIsAddDialogOpen(false);
+      router.refresh();
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   const handleEdit = (location: OMDeliveryLocation) => {
@@ -262,55 +262,30 @@ export function OMDeliveryLocationsClient({
     e.preventDefault();
     if (!editingLocation || !editName.trim()) return;
     setIsSubmitting(true);
-    try {
-      const res = await fetch(
-        `/api/admin/om/delivery-locations/${editingLocation.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: editName.trim() }),
-        },
-      );
-      if (res.ok) {
-        toast.success("Delivery location updated successfully");
-        setIsEditDialogOpen(false);
-        mutate();
-        router.refresh();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to update delivery location");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error updating delivery location");
-    } finally {
-      setIsSubmitting(false);
+    const result = await saveLocation(editName.trim(), editingLocation.id);
+    if (result.success) {
+      toast.success("Delivery location updated successfully");
+      setIsEditDialogOpen(false);
+      router.refresh();
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   const onConfirmDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/om/delivery-locations/${deleteId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        toast.success("Delivery location deleted successfully");
-        mutate();
-        router.refresh();
-        setIsDeleteDialogOpen(false);
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to delete delivery location");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error deleting delivery location");
-    } finally {
-      setIsDeleting(false);
-      setDeleteId(null);
+    const success = await deleteLocation(deleteId);
+    if (success) {
+      toast.success("Delivery location deleted successfully");
+      setIsDeleteDialogOpen(false);
+      router.refresh();
+    } else {
+      toast.error("Failed to delete delivery location");
     }
+    setIsDeleting(false);
+    setDeleteId(null);
   };
 
   const handleExportExcel = useCallback(() => {
@@ -341,13 +316,6 @@ export function OMDeliveryLocationsClient({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push("/admin/order-management")}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
         <OMPageHeader
           title="Delivery Locations"
           description="Manage city-based delivery locations for purchase orders"
@@ -363,7 +331,7 @@ export function OMDeliveryLocationsClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={unfilteredTotal}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="delivery locations"
         searchPlaceholder="Search by city name..."
         searchTerm={searchTerm}
@@ -398,7 +366,7 @@ export function OMDeliveryLocationsClient({
 
       <LocationsTable
         data={processedData}
-        isLoading={isLoading}
+        isLoading={false}
         sortBy={sortBy}
         onSort={setSortBy}
         onEdit={handleEdit}

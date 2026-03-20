@@ -57,6 +57,11 @@ import {
   type OMShipmentBox,
   OMShipmentHelpers,
 } from "@/types/order-management";
+import { 
+  useOMMutate, 
+  useOMPurchaseOrders, 
+  useOMLogisticsPartners 
+} from "@/data/om/admin.hooks";
 
 interface DispatchLineItem {
   tempId: string;
@@ -76,6 +81,7 @@ function EditDispatchForm() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
+  const { revalidateOM } = useOMMutate();
 
   // Form state
   const [poId, setPoId] = useState("");
@@ -99,12 +105,16 @@ function EditDispatchForm() {
   const [shipmentBoxes, setShipmentBoxes] = useState<OMShipmentBox[]>([]);
   const [nextBoxNumber, setNextBoxNumber] = useState(1);
 
-  // Master data
-  const [availablePOs, setAvailablePOs] = useState<OMPurchaseOrder[]>([]);
-  const [logisticsPartners, setLogisticsPartners] = useState<
-    OMLogisticsPartner[]
-  >([]);
-  const [isLoadingMaster, setIsLoadingMaster] = useState(true);
+  // Master data via SWR
+  const { purchaseOrders: rawPos, isLoading: loadingSOs } = useOMPurchaseOrders("status=active&limit=1000");
+  const { partners: logisticsPartners, isLoading: loadingPartners } = useOMLogisticsPartners();
+  
+  // Filter out fully dispatched or closed POs for the initial selection
+  const availablePOs = rawPos.filter((po: any) => 
+    po.status !== "FULLY_DISPATCHED" && po.status !== "CLOSED"
+  );
+  
+  const isLoadingMaster = loadingSOs || loadingPartners;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDispatch, setIsLoadingDispatch] = useState(true);
 
@@ -120,37 +130,7 @@ function EditDispatchForm() {
   const [newLogisticsName, setNewLogisticsName] = useState("");
   const [isAddingLogistics, setIsAddingLogistics] = useState(false);
 
-  // Fetch Logistics Partners & Available POs
-  useEffect(() => {
-    const fetchMaster = async () => {
-      setIsLoadingMaster(true);
-      try {
-        const [posRes, logisticsRes] = await Promise.all([
-          fetch("/api/admin/om/purchase-orders?status=active"),
-          fetch("/api/admin/om/logistics-partners"),
-        ]);
-
-        if (posRes.ok) {
-          const poData = await posRes.json();
-          setAvailablePOs(Array.isArray(poData) ? poData : poData.data || []);
-        }
-        if (logisticsRes.ok) {
-          const logisticsData = await logisticsRes.json();
-          setLogisticsPartners(
-            Array.isArray(logisticsData)
-              ? logisticsData
-              : logisticsData.data || [],
-          );
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to load Master data");
-      } finally {
-        setIsLoadingMaster(false);
-      }
-    };
-    fetchMaster();
-  }, []);
+  // Empty line replaced
 
   // Fetch Existing Dispatch Order
   useEffect(() => {
@@ -550,6 +530,7 @@ function EditDispatchForm() {
 
       if (res.ok) {
         toast.success("Dispatch updated successfully");
+        revalidateOM();
         router.push("/admin/order-management/dispatches");
       } else {
         const err = await res.json();
@@ -577,11 +558,13 @@ function EditDispatchForm() {
       });
       if (res.ok) {
         const data = await res.json();
-        setLogisticsPartners([...logisticsPartners, data.data]);
-        setLogisticsPartnerId(data.id);
+        const newId = data.id || data.data?.id;
+        if (newId) setLogisticsPartnerId(newId);
+        
         toast.success("Logistics partner added successfully");
         setShowNewLogisticsDialog(false);
         setNewLogisticsName("");
+        revalidateOM();
       }
     } catch (err) {
       console.error(err);

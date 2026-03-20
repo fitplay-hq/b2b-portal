@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -19,13 +18,13 @@ import { useOMFilters } from "@/hooks/use-om-filters";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { LOGISTICS_SORT_OPTIONS } from "@/constants/om-sort-options";
-import { useOMCounts } from "@/hooks/use-om-counts";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { PartnersTable } from "./PartnersTable";
 import { PartnerForm } from "./PartnerForm";
 import { PartnerViewDialog } from "./PartnerViewDialog";
+import { useMutatePartners } from "@/data/om/admin.hooks";
 
 interface OMLogisticsPartnersClientProps {
   initialData: PaginatedResponse<OMLogisticsPartner>;
@@ -38,9 +37,10 @@ export function OMLogisticsPartnersClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
+
   const [partners, setPartners] = useState<OMLogisticsPartner[]>(initialData.data);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+  const { savePartner, deletePartner } = useMutatePartners();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<OMLogisticsPartner | null>(null);
@@ -48,8 +48,6 @@ export function OMLogisticsPartnersClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const { count: fetchedCount, mutate } = useOMCounts('logisticsPartners');
-  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -80,10 +78,13 @@ export function OMLogisticsPartnersClient({
   }, [searchParams, pathname, router]);
 
 
+
   useEffect(() => {
-    setPartners(initialData.data);
-    setCurrentPage(initialData.meta.page);
-    setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    if (initialData.data.length > 0) {
+      setPartners(initialData.data);
+      setCurrentPage(initialData.meta.page);
+      setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    }
   }, [initialData]);
 
   const loadMore = async () => {
@@ -93,7 +94,7 @@ export function OMLogisticsPartnersClient({
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/logistics-partners", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "50");
+      url.searchParams.set("limit", "500");
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
@@ -119,6 +120,16 @@ export function OMLogisticsPartnersClient({
       setIsFetchingMore(false);
     }
   };
+
+  // Silent background prefetching
+  useEffect(() => {
+    if (hasMore && !isFetchingMore) {
+      const timer = setTimeout(() => {
+        loadMore();
+      }, 2000); // 2 second delay between background fetches
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isFetchingMore, loadMore]);
 
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
@@ -178,10 +189,11 @@ export function OMLogisticsPartnersClient({
   // Sync searchTerm with URL
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchTerm !== (searchParams.get("q") || "")) {
-        updateUrl({ q: searchTerm || null });
+      const currentQ = searchParams.get("q") || "";
+      if (searchTerm.trim() !== currentQ) {
+        updateUrl({ q: searchTerm.trim() || null });
       }
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [searchTerm, updateUrl, searchParams]);
 
@@ -197,7 +209,7 @@ export function OMLogisticsPartnersClient({
         }
       });
       if (changed) updateUrl(newParams);
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [filters, updateUrl, searchParams]);
 
@@ -231,32 +243,16 @@ export function OMLogisticsPartnersClient({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    try {
-      const url = editingPartner
-        ? `/api/admin/om/logistics-partners/${editingPartner.id}`
-        : "/api/admin/om/logistics-partners";
-      const method = editingPartner ? "PATCH" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (res.ok) {
-        toast.success(`Partner ${editingPartner ? "updated" : "added"} successfully`);
-        setIsAddDialogOpen(false);
-        resetForm();
-        mutate();
-        router.refresh();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Something went wrong");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to save partner");
-    } finally {
-      setIsSubmitting(false);
+    const result = await savePartner(formData, editingPartner?.id);
+    if (result.success) {
+      toast.success(`Partner ${editingPartner ? "updated" : "added"} successfully`);
+      setIsAddDialogOpen(false);
+      resetForm();
+      router.refresh();
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   const handleEdit = (partner: OMLogisticsPartner) => {
@@ -283,26 +279,16 @@ export function OMLogisticsPartnersClient({
   const onConfirmDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/om/logistics-partners/${deleteId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        toast.success("Logistics partner deleted successfully");
-        mutate();
-        router.refresh();
-        setIsDeleteDialogOpen(false);
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to delete partner");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error deleting partner");
-    } finally {
-      setIsDeleting(false);
-      setDeleteId(null);
+    const success = await deletePartner(deleteId);
+    if (success) {
+      toast.success("Logistics partner deleted successfully");
+      setIsDeleteDialogOpen(false);
+      router.refresh();
+    } else {
+      toast.error("Failed to delete partner");
     }
+    setIsDeleting(false);
+    setDeleteId(null);
   };
 
   const handleExportExcel = useCallback(() => {
@@ -353,7 +339,7 @@ export function OMLogisticsPartnersClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={unfilteredTotal}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="logistics partners"
         searchPlaceholder="Search by name, contact person, or email..."
         searchTerm={searchTerm}
@@ -388,7 +374,7 @@ export function OMLogisticsPartnersClient({
 
       <PartnersTable
         data={processedData}
-        isLoading={isLoading}
+        isLoading={false}
         sortBy={sortBy}
         onSort={setSortBy}
         onEdit={handleEdit}

@@ -10,6 +10,34 @@ export type OMPoStatus =
   | "FULLY_DISPATCHED"
   | "CLOSED";
 
+export type OMPurchaseOrderStatus = OMPoStatus;
+
+export const OM_PO_STATUS_CONFIG: Record<
+  OMPoStatus,
+  { label: string; color: string }
+> = {
+  DRAFT: {
+    label: "Draft",
+    color: "bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent",
+  },
+  CONFIRMED: {
+    label: "Confirmed",
+    color: "bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent",
+  },
+  PARTIALLY_DISPATCHED: {
+    label: "Partially Dispatched",
+    color: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent",
+  },
+  FULLY_DISPATCHED: {
+    label: "Fully Dispatched",
+    color: "bg-green-100 text-green-800 hover:bg-green-100 border-transparent",
+  },
+  CLOSED: {
+    label: "Closed",
+    color: "bg-red-100 text-red-800 hover:bg-red-100 border-transparent",
+  },
+};
+
 export type OMDispatchStatus =
   | "PENDING"
   | "APPROVED"
@@ -136,6 +164,8 @@ export interface OMPurchaseOrderItem {
   };
   OMBrand?: OMBrand | null;
   dispatchItems?: { quantity: number }[];
+  dispatchedQuantity?: number;
+  remainingQuantity?: number;
 }
 
 export interface OMDispatchOrderItem {
@@ -166,6 +196,7 @@ export interface OMDispatchOrder {
   dispatchDate?: string;
   deliveryDate?: string;
   status: OMDispatchStatus;
+  totalQuantity?: number;
   items?: OMDispatchOrderItem[];
   shipmentBoxes?: OMShipmentBox[];
   purchaseOrder?: {
@@ -199,10 +230,15 @@ export interface OMPurchaseOrder {
   grandTotal: number;
   subtotal?: number;
   totalQuantity?: number;
+  dispatchedQuantity?: number;
+  remainingQuantity?: number;
   items?: OMPurchaseOrderItem[];
   dispatchOrders?: OMDispatchOrder[];
   client?: OMClient;
   deliveryLocations?: OMDeliveryLocation[];
+  totalAmount?: number;
+  paymentTerms?: string;
+  notes?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -380,4 +416,5 @@ export interface OMPaginationMeta {
   page: number;
   limit: number;
   totalPages: number;
+  unfilteredTotal?: number;
 }

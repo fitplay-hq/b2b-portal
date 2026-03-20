@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
-    const search = searchParams.get("search") || "";
+    const search = searchParams.get("q") || searchParams.get("search") || "";
 
     const result = await getOMClients({ page, limit, search });
 

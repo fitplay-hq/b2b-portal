@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       data: validatedData,
     });
 
-    revalidateTag("om-clients", "max");
+    revalidateTag("om-logistics-partners", "max");
     revalidatePath("/admin/order-management/logistics-partners");
 
     return NextResponse.json(

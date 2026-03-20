@@ -2,20 +2,13 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Tags, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Tags, Plus } from "lucide-react";
 import type { OMProduct, OMBrand } from "@/types/order-management";
-import type { SortOption } from "@/components/orderManagement/OMSortControl";
-import { formatDateToYYYYMMDD } from "@/lib/utils";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import { OMNewItemDialog } from "@/components/orderManagement/OMNewItemDialog";
+import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { ItemFilters } from "./ItemFilters";
@@ -23,14 +16,15 @@ import { useOMFilters } from "@/hooks/use-om-filters";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { ITEM_SORT_OPTIONS } from "@/constants/om-sort-options";
-import { useOMCounts } from "@/hooks/use-om-counts";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
+import { useMutateItems } from "@/data/om/admin.hooks";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { ItemsTable } from "./ItemsTable";
 import { ItemForm } from "./ItemForm";
 import { ItemViewDialog } from "./ItemViewDialog";
 
+// --- SKU Helpers ---
 function skuBrandPart(brandName: string | undefined): string {
   return brandName
     ? brandName
@@ -46,24 +40,24 @@ function skuProductPart(productName: string): string {
     .substring(0, 3)
     .toUpperCase();
 }
+// -------------------
 
 interface OMItemsClientProps {
   initialData: PaginatedResponse<OMProduct>;
   initialBrands: PaginatedResponse<OMBrand>;
 }
 
-export function OMItemsClient({
-  initialData,
-  initialBrands,
-}: OMItemsClientProps) {
+export function OMItemsClient({ initialData, initialBrands }: OMItemsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
+  // 1. Initial State Syncing
   const [items, setItems] = useState<OMProduct[]>(initialData.data);
-  const [brands, setBrands] = useState<OMBrand[]>(initialBrands.data);
-  const [isLoading, setIsLoading] = useState(false);
+  const [brands, setBrands] = useState<OMBrand[]>(initialBrands.data || []);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+  const { saveItem, deleteItem } = useMutateItems();
+  
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<OMProduct | null>(null);
@@ -71,13 +65,12 @@ export function OMItemsClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const { count: fetchedCount, mutate } = useOMCounts('items');
-  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
+  
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  // Helper to update URL
+  // 2. Navigation Helper (exact pattern from OMClientsClient)
   const updateUrl = useCallback((newParams: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
     let changed = false;
@@ -103,20 +96,26 @@ export function OMItemsClient({
   }, [searchParams, pathname, router]);
 
 
+  // 3. LAYER 3: Revalidation Handlers (Prop Sync)
   useEffect(() => {
     setItems(initialData.data);
     setCurrentPage(initialData.meta.page);
     setHasMore(initialData.meta.page < initialData.meta.totalPages);
   }, [initialData]);
 
-  const loadMore = async () => {
+  useEffect(() => {
+    setBrands(initialBrands.data || []);
+  }, [initialBrands]);
+
+  // 4. Infinite Scrolling
+  const loadMore = useCallback(async () => {
     if (isFetchingMore || !hasMore) return;
     setIsFetchingMore(true);
     try {
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/products", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "50");
+      url.searchParams.set("limit", "500");
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
@@ -128,8 +127,8 @@ export function OMItemsClient({
       if (res.ok) {
         const result: PaginatedResponse<OMProduct> = await res.json();
         setItems((prev) => {
-          const existingIds = new Set(prev.map(item => item.id));
-          const uniqueNewData = result.data.filter(item => !existingIds.has(item.id));
+          const existingIds = new Set(prev.map(c => c.id));
+          const uniqueNewData = result.data.filter(c => !existingIds.has(c.id));
           return [...prev, ...uniqueNewData];
         });
         setCurrentPage(result.meta.page);
@@ -141,38 +140,44 @@ export function OMItemsClient({
     } finally {
       setIsFetchingMore(false);
     }
-  };
+  }, [currentPage, hasMore, isFetchingMore, searchParams]);
 
-  const valueLabels = useMemo(
-    () => ({
-      brandIds: (val: any) => {
-        if (Array.isArray(val)) {
-          return val
-            .map((id) => brands.find((b) => b.id === id)?.name || id)
-            .join(", ");
-        }
-        return brands.find((b) => b.id === val)?.name || val;
-      },
-      gst: (val: string) => (val === "all" ? "All" : `${val}%`),
-    }),
-    [brands],
-  );
+  // Background Prefetching (match OMClients standard)
+  useEffect(() => {
+    if (hasMore && !isFetchingMore) {
+      const timer = setTimeout(() => {
+        loadMore();
+      }, 2000); 
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isFetchingMore, loadMore]);
+
+  // 5. Filters Logic
+  const valueLabels = useMemo(() => ({
+    brandIds: (val: any) => {
+      if (Array.isArray(val)) {
+        return val.map(id => brands.find(b => b.id === id)?.name || id).join(", ");
+      }
+      return brands.find(b => b.id === val)?.name || val;
+    },
+    gst: (val: string) => val === "all" ? "All" : `${val}%`,
+  }), [brands]);
 
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
       initialFilters: {
         brandIds: searchParams.get("brandIds")?.split(",") || [],
-        minPrice: "",
-        maxPrice: "",
-        gst: "all",
-        minTotalOrdered: "",
-        maxTotalOrdered: "",
+        minPrice: searchParams.get("minPrice") || "",
+        maxPrice: searchParams.get("maxPrice") || "",
+        gst: searchParams.get("gst") || "all",
+        minTotalOrdered: searchParams.get("minTotalOrdered") || "",
+        maxTotalOrdered: searchParams.get("maxTotalOrdered") || "",
       },
       labels: {
         brandIds: "Brands",
         minPrice: "Min Price",
         maxPrice: "Max Price",
-        gst: "GST",
+        gst: "GST %",
         minTotalOrdered: "Min Ordered",
         maxTotalOrdered: "Max Ordered",
       },
@@ -200,40 +205,17 @@ export function OMItemsClient({
     return Boolean(matchesSearch && matchesBrand && matchesGst && matchesPrice && matchesQty);
   }, []);
 
-  const sortFn = useCallback((a: OMProduct, b: OMProduct, sortBy: SortOption) => {
+  const sortFn = useCallback((a: OMProduct, b: OMProduct, sortBy: string) => {
     switch (sortBy) {
-      case "name_asc":
-        return a.name.localeCompare(b.name);
-      case "name_desc":
-        return b.name.localeCompare(a.name);
-      case "sku_asc":
-        return (a.sku || "").localeCompare(b.sku || "");
-      case "sku_desc":
-        return (b.sku || "").localeCompare(a.sku || "");
-      case "brand_asc": {
-        const aBrand = a.brands?.[0]?.name || "";
-        const bBrand = b.brands?.[0]?.name || "";
-        return aBrand.localeCompare(bBrand);
-      }
-      case "brand_desc": {
-        const aBrand = a.brands?.[0]?.name || "";
-        const bBrand = b.brands?.[0]?.name || "";
-        return bBrand.localeCompare(aBrand);
-      }
-      case "rate_asc":
-        return (a.price || 0) - (b.price || 0);
-      case "rate_desc":
-        return (b.price || 0) - (a.price || 0);
-      case "gst_asc":
-        return (a.defaultGstPct || 0) - (b.defaultGstPct || 0);
-      case "gst_desc":
-        return (b.defaultGstPct || 0) - (a.defaultGstPct || 0);
-      case "newest":
-        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-      case "oldest":
-        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
-      default:
-        return 0;
+      case "name_asc": return a.name.localeCompare(b.name);
+      case "name_desc": return b.name.localeCompare(a.name);
+      case "sku_asc": return (a.sku || "").localeCompare(b.sku || "");
+      case "sku_desc": return (b.sku || "").localeCompare(a.sku || "");
+      case "rate_asc": return (a.price || 0) - (b.price || 0);
+      case "rate_desc": return (b.price || 0) - (a.price || 0);
+      case "newest": return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      case "oldest": return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      default: return 0;
     }
   }, []);
 
@@ -246,42 +228,47 @@ export function OMItemsClient({
     sortFn,
   });
 
-  // Sync searchTerm with URL
+  // 6. URL Debounced Sync (Matched to 1000ms pattern)
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchTerm !== (searchParams.get("q") || "")) {
-        updateUrl({ q: searchTerm || null });
+      const currentQ = searchParams.get("q") || "";
+      if (searchTerm.trim() !== currentQ) {
+        updateUrl({ q: searchTerm.trim() || null });
       }
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [searchTerm, updateUrl, searchParams]);
 
-  // Sync filters with URL
   useEffect(() => {
     const timer = setTimeout(() => {
       const newParams: Record<string, string | null> = {};
       let changed = false;
       Object.entries(filters).forEach(([key, value]) => {
-        if (typeof value === "string") {
-          if (searchParams.get(key) !== value) {
-            newParams[key] = value;
-            changed = true;
-          }
+        let stringValue = "";
+        if (Array.isArray(value)) {
+          stringValue = value.join(",");
+        } else if (typeof value === "string") {
+          stringValue = value;
+        }
+
+        if (searchParams.get(key) !== (stringValue || null) && !(searchParams.get(key) === null && stringValue === "")) {
+          newParams[key] = stringValue || null;
+          changed = true;
         }
       });
       if (changed) updateUrl(newParams);
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [filters, updateUrl, searchParams]);
 
-  // Sync sortBy with URL
   useEffect(() => {
-    const currentSort = (searchParams.get("sortBy") as SortOption) || "name_asc";
+    const currentSort = searchParams.get("sortBy") || "name_asc";
     if (sortBy !== currentSort) {
       updateUrl({ sortBy });
     }
   }, [sortBy, updateUrl, searchParams]);
 
+  // 7. Form Management & Mutate Pattern
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
@@ -331,34 +318,16 @@ export function OMItemsClient({
     };
     delete (submissionData as any).skuNotApplicable;
 
-    try {
-      const url = editingItem
-        ? `/api/admin/om/products/${editingItem.id}`
-        : "/api/admin/om/products";
-
-      const method = editingItem ? "PATCH" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submissionData),
-      });
-
-      if (res.ok) {
-        toast.success(`Item ${editingItem ? "updated" : "added"} successfully`);
-        setIsAddDialogOpen(false);
-        resetForm();
-        router.refresh();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Something went wrong");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to save item");
-    } finally {
-      setIsSubmitting(false);
+    const result = await saveItem(submissionData, editingItem?.id);
+    if (result.success) {
+      toast.success(`Item ${editingItem ? "updated" : "added"} successfully`);
+      setIsAddDialogOpen(false);
+      resetForm();
+      router.refresh(); // Layer 2: Server Refresh (triggers initialData update)
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   const handleEdit = (item: OMProduct) => {
@@ -378,11 +347,6 @@ export function OMItemsClient({
     setIsAddDialogOpen(true);
   };
 
-  const handleView = (item: OMProduct) => {
-    setViewingItem(item);
-    setIsViewDialogOpen(true);
-  };
-
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -390,28 +354,19 @@ export function OMItemsClient({
   const onConfirmDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/om/products/${deleteId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        toast.success("Item deleted successfully");
-        mutate();
-        router.refresh();
-        setIsDeleteDialogOpen(false);
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to delete item");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error deleting item");
-    } finally {
-      setIsDeleting(false);
-      setDeleteId(null);
+    const success = await deleteItem(deleteId);
+    if (success) {
+      toast.success("Item deleted successfully");
+      router.refresh();
+      setIsDeleteDialogOpen(false);
+    } else {
+      toast.error("Failed to delete item");
     }
+    setIsDeleting(false);
+    setDeleteId(null);
   };
 
+  // 8. Exports
   const handleExportExcel = useCallback(() => {
     const exportData = processedData.map(item => ({
       "Item Name": item.name,
@@ -421,13 +376,10 @@ export function OMItemsClient({
       "GST %": item.defaultGstPct || 0,
       "Total Ordered": item.totalOrdered || 0
     }));
-    
-    if (exportToExcel(exportData, "Items_Master")) {
-      toast.success("Items exported to Excel successfully");
-    } else {
-      toast.error("Failed to export items to Excel");
-    }
+    exportToExcel(exportData, "Items_Master");
+    toast.success("Exported to Excel");
   }, [processedData]);
+
   const handleExportPDF = useCallback(() => {
     const exportData = processedData.map(item => ({
       "Item Name": item.name,
@@ -437,15 +389,11 @@ export function OMItemsClient({
       "GST %": item.defaultGstPct || 0,
       "Total Ordered": item.totalOrdered || 0
     }));
-    
-    if (exportToPDF(exportData, "Items_Master", "Items Master Report")) {
-      toast.success("Items exported to PDF successfully");
-    } else {
-      toast.error("Failed to export items to PDF");
-    }
+    exportToPDF(exportData, "Items_Master", "Items Master Report");
+    toast.success("Exported to PDF");
   }, [processedData]);
 
-  const brandOptions = useMemo(() => brands.map((b) => ({ value: b.id, label: b.name })), [brands]);
+  const brandOptions = useMemo(() => brands.map(b => ({ value: b.id, label: b.name })), [brands]);
 
   return (
     <div className="space-y-6">
@@ -456,24 +404,20 @@ export function OMItemsClient({
         onExportPDF={handleExportPDF}
       >
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push("/admin/order-management/brands")}
-          >
+          <Button variant="outline" onClick={() => router.push("/admin/order-management/brands")}>
             <Tags className="h-4 w-4 mr-2" />
             Manage Brands
           </Button>
-          <OMNewItemDialog
-            brands={brands}
-            onItemAdded={() => router.refresh()}
-            trigger={<Button><Plus className="h-4 w-4 mr-2" />Add Item</Button>}
-          />
+          <Button onClick={() => { resetForm(); setIsAddDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Item
+          </Button>
         </div>
       </OMPageHeader>
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={unfilteredTotal}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="items"
         searchPlaceholder="Search by name, SKU, or description..."
         searchTerm={searchTerm}
@@ -490,37 +434,25 @@ export function OMItemsClient({
           router.push(pathname);
         }}
       >
-        <ItemFilters
-          filters={filters}
-          setFilters={setFilters}
-          brandOptions={brandOptions}
-        />
+        <ItemFilters filters={filters} setFilters={setFilters} brandOptions={brandOptions} />
         <OMActiveFilters
           activeFilters={activeFilters}
           onRemove={removeFilter}
-          onClearAll={() => {
-            setSearchTerm("");
-            resetFilters();
-            router.push(pathname);
-          }}
+          onClearAll={() => { setSearchTerm(""); resetFilters(); router.push(pathname); }}
         />
       </OMFilterCard>
 
       <ItemsTable
         data={processedData}
-        isLoading={isLoading}
+        isLoading={false}
         sortBy={sortBy}
         onSort={setSortBy}
         onEdit={handleEdit}
         onDelete={(id) => { setDeleteId(id); setIsDeleteDialogOpen(true); }}
-        onView={handleView}
+        onView={(item) => { setViewingItem(item); setIsViewDialogOpen(true); }}
       />
 
-      <OMInfiniteScroll
-        onLoadMore={loadMore}
-        hasMore={hasMore}
-        isLoading={isFetchingMore}
-      />
+      <OMInfiniteScroll onLoadMore={loadMore} hasMore={hasMore} isLoading={isFetchingMore} />
 
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
@@ -534,7 +466,7 @@ export function OMItemsClient({
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Item</DialogTitle>
+            <DialogTitle>{editingItem ? "Edit Item" : "Add Item"}</DialogTitle>
           </DialogHeader>
           <ItemForm
             formData={formData}
@@ -543,7 +475,7 @@ export function OMItemsClient({
             isSubmitting={isSubmitting}
             onSubmit={handleSubmit}
             onCancel={() => setIsAddDialogOpen(false)}
-            isEdit={true}
+            isEdit={!!editingItem}
           />
         </DialogContent>
       </Dialog>

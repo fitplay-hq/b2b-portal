@@ -9,9 +9,9 @@ import {
   CardHeader,
   CardDescription,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { OMSortControl, type SortOption } from "../OMSortControl";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
 
 interface OMFilterCardProps {
   title?: string;
@@ -35,7 +35,6 @@ interface OMFilterCardProps {
 }
 
 export function OMFilterCard({
-  title,
   subtitle: customSubtitle,
   filteredCount,
   totalCount,

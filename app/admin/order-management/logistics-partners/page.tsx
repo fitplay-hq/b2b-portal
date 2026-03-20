@@ -8,7 +8,8 @@ interface PageProps {
     page?: string; 
     limit?: string;
     q?: string;
-    search?: string;
+    sortBy?: string;
+    partnerName?: string;
   }>;
 }
 
@@ -16,11 +17,12 @@ export default async function OMLogisticsPartnersPage({ searchParams }: PageProp
   const params = await searchParams;
   const page = params.page ? parseInt(params.page as string) : 1;
   const limit = params.limit ? parseInt(params.limit as string) : 50;
-  const search = (params.q as string) || (params.search as string) || "";
+  const search = (params.q as string) || (params.partnerName as string) || "";
+  const sortBy = params.sortBy as string;
 
-  const partnersData = await getOMLogisticsPartners({ page, limit, search });
+  const initialData = await getOMLogisticsPartners({ page, limit, search });
 
   return (
-    <OMLogisticsPartnersClient initialData={partnersData} />
+    <OMLogisticsPartnersClient initialData={initialData} />
   );
 }

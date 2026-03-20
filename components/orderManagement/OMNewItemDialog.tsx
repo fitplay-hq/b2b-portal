@@ -24,6 +24,7 @@ import { MultiSearchableSelect } from "@/components/ui/combobox";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { OMBrand, OMProduct } from "@/types/order-management";
+import { useMutateItems } from "@/data/om/admin.hooks";
 
 interface OMNewItemDialogProps {
   brands: OMBrand[];
@@ -57,6 +58,8 @@ export function OMNewItemDialog({
 
   const brandOptions = brands.map((b) => ({ value: b.id, label: b.name }));
 
+  const { saveItem } = useMutateItems();
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) {
       e.preventDefault();
@@ -87,36 +90,27 @@ export function OMNewItemDialog({
       ? null
       : `FP-${brandPart}-${productPart}-${codePart}`;
 
+    const submissionData = {
+      name,
+      sku: finalSku,
+      code: codePart,
+      price: rate ? parseFloat(rate) : null,
+      brandIds,
+      defaultGstPct: parseFloat(gstPct),
+      description: description || null,
+    };
+
     setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/admin/om/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          sku: finalSku,
-          code: codePart,
-          price: rate ? parseFloat(rate) : null,
-          brandIds,
-          defaultGstPct: parseFloat(gstPct),
-          description: description || null,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        onItemAdded(data.data);
-        toast.success("Item added successfully");
-        setIsOpen(false);
-        resetForm();
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Failed to add item");
-      }
-    } catch {
-      toast.error("Failed to add item");
-    } finally {
-      setIsSubmitting(false);
+    const result = await saveItem(submissionData);
+    if (result.success) {
+      onItemAdded({} as any); // Inform parent about update (they rely on SWR anyway)
+      toast.success("Item added successfully");
+      setIsOpen(false);
+      resetForm();
+    } else {
+      toast.error(result.error || "Failed to add item");
     }
+    setIsSubmitting(false);
   };
 
   const resetForm = () => {

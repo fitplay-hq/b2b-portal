@@ -1,4 +1,5 @@
-import useSWR from 'swr';
+import useSWR, { SWRConfiguration } from 'swr';
+import { useMemo } from 'react';
 import { OMDispatchOrder } from '@/types/order-management';
 import { toast } from 'sonner';
 
@@ -11,13 +12,14 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-export function useDispatches() {
-  const { data, error, isLoading, mutate } = useSWR<{ data: OMDispatchOrder[]; meta: any }>(
-    '/api/admin/om/dispatch-orders',
+export function useDispatches(options: SWRConfiguration = {}) {
+  const { data, error, isLoading, mutate } = useSWR<{ data: OMDispatchOrder[] }>(
+    '/api/admin/om/dispatch-orders?limit=1000', // Fetch more for client-side sorting/filtering
     fetcher,
     {
       revalidateOnFocus: false,
       dedupingInterval: 30000,
+      ...options,
       onError: (err) => {
         console.error('Error fetching dispatches:', err);
         toast.error('Failed to load dispatches');
@@ -25,11 +27,10 @@ export function useDispatches() {
     }
   );
 
-  return {
+  return useMemo(() => ({
     dispatches: data?.data || [],
-    meta: data?.meta,
     isLoading,
     isError: error,
     mutate,
-  };
+  }), [data, error, isLoading, mutate]);
 }

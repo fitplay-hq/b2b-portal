@@ -32,6 +32,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useOMMutate, useOMPurchaseOrders, useOMLogisticsPartners } from "@/data/om/admin.hooks";
 import { formatDateForApi, formatDateToYYYYMMDD } from "@/lib/utils";
 import { getFinancialYearString } from "@/lib/utils/financial-year";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -75,6 +76,7 @@ function CreateDispatchForm() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { revalidateOM } = useOMMutate();
   const preSelectedPoId = searchParams.get("poId");
 
   // Form state
@@ -100,12 +102,16 @@ function CreateDispatchForm() {
   const [shipmentBoxes, setShipmentBoxes] = useState<OMShipmentBox[]>([]);
   const [nextBoxNumber, setNextBoxNumber] = useState(1);
 
-  // Master data
-  const [availablePOs, setAvailablePOs] = useState<OMPurchaseOrder[]>([]);
-  const [logisticsPartners, setLogisticsPartners] = useState<
-    OMLogisticsPartner[]
-  >([]);
-  const [isLoadingMaster, setIsLoadingMaster] = useState(true);
+  // Master data via SWR
+  const { purchaseOrders: rawPos, isLoading: loadingSOs } = useOMPurchaseOrders("status=active&limit=1000");
+  const { partners: logisticsPartners, isLoading: loadingPartners } = useOMLogisticsPartners();
+  
+  // Filter out fully dispatched or closed POs for the initial selection
+  const availablePOs = rawPos.filter((po: any) => 
+    po.status !== "FULLY_DISPATCHED" && po.status !== "CLOSED"
+  );
+  
+  const isLoadingMaster = loadingSOs || loadingPartners;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Line items
@@ -121,40 +127,7 @@ function CreateDispatchForm() {
   const [newLogisticsName, setNewLogisticsName] = useState("");
   const [isAddingLogistics, setIsAddingLogistics] = useState(false);
 
-  useEffect(() => {
-    const fetchMaster = async () => {
-      setIsLoadingMaster(true);
-      try {
-        const [posRes, logisticsRes] = await Promise.all([
-          fetch("/api/admin/om/purchase-orders?status=active"),
-          fetch("/api/admin/om/logistics-partners"),
-        ]);
-
-        if (posRes.ok) {
-          const poData = await posRes.json();
-          const pos = Array.isArray(poData) ? poData : poData.data || [];
-          // Filter out fully dispatched or closed POs for the initial selection
-          setAvailablePOs(pos.filter((po: any) => 
-            po.status !== "FULLY_DISPATCHED" && po.status !== "CLOSED"
-          ));
-        }
-        if (logisticsRes.ok) {
-          const logisticsData = await logisticsRes.json();
-          setLogisticsPartners(
-            Array.isArray(logisticsData)
-              ? logisticsData
-              : logisticsData.data || [],
-          );
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to load form data");
-      } finally {
-        setIsLoadingMaster(false);
-      }
-    };
-    fetchMaster();
-  }, []);
+  // Empty line replaced
 
   // When PO is selected, fetch full details with items and calculate remaining
   useEffect(() => {
@@ -539,6 +512,8 @@ function CreateDispatchForm() {
 
       if (res.ok) {
         toast.success("Dispatch created successfully");
+        revalidateOM(); // Trigger global revalidation
+        router.refresh(); // Refresh server components
         router.push("/admin/order-management/dispatches");
       } else {
         const err = await res.json();
@@ -566,11 +541,13 @@ function CreateDispatchForm() {
       });
       if (res.ok) {
         const data = await res.json();
-        setLogisticsPartners([...logisticsPartners, data.data]);
-        setLogisticsPartnerId(data.id);
+        const newId = data.id || data.data?.id;
+        if (newId) setLogisticsPartnerId(newId);
+        
         toast.success("Logistics partner added successfully");
         setShowNewLogisticsDialog(false);
         setNewLogisticsName("");
+        revalidateOM();
       }
     } catch (err) {
       toast.error("Failed to add partner");
