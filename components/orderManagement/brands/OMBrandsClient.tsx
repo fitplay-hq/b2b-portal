@@ -90,7 +90,7 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/brands", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "50");
+      url.searchParams.set("limit", "500");
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
@@ -116,6 +116,16 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
       setIsFetchingMore(false);
     }
   };
+
+  // Silent background prefetching
+  useEffect(() => {
+    if (hasMore && !isFetchingMore) {
+      const timer = setTimeout(() => {
+        loadMore();
+      }, 2000); // 2 second delay between background fetches
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isFetchingMore, loadMore]);
 
   const filterFn = useCallback((brand: OMBrand, searchTerm: string) => {
     const q = searchTerm.toLowerCase().trim();
@@ -151,10 +161,11 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
   // Sync searchTerm with URL
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchTerm !== (searchParams.get("q") || "")) {
-        updateUrl({ q: searchTerm || null });
+      const currentQ = searchParams.get("q") || "";
+      if (searchTerm.trim() !== currentQ) {
+        updateUrl({ q: searchTerm.trim() || null });
       }
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [searchTerm, updateUrl, searchParams]);
 

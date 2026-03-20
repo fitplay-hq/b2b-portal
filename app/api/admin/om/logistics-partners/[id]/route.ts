@@ -4,6 +4,7 @@ import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMLogisticsPartnerUpdateSchema } from "@/lib/validations/om";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function PATCH(
   req: NextRequest,
@@ -32,6 +33,9 @@ export async function PATCH(
       where: { id },
       data: validatedData,
     });
+
+    revalidateTag("om-logistics-partners", "max");
+    revalidatePath("/admin/order-management/logistics-partners");
 
     return NextResponse.json(
       {
@@ -68,6 +72,9 @@ export async function DELETE(
     await prisma.oMLogisticsPartner.delete({
       where: { id },
     });
+
+    revalidateTag("om-logistics-partners", "max");
+    revalidatePath("/admin/order-management/logistics-partners");
 
     return NextResponse.json(
       { message: "Logistics Partner deleted successfully" },

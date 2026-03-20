@@ -4,6 +4,7 @@ import { RESOURCES } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMProductUpdateSchema } from "@/lib/validations/om";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function PATCH(
   req: NextRequest,
@@ -56,6 +57,9 @@ export async function PATCH(
       },
     });
 
+    revalidateTag("om-products", "max");
+    revalidatePath("/admin/order-management/items");
+
     return NextResponse.json(
       { message: "Product updated successfully", data: product },
       { status: 200 },
@@ -87,6 +91,8 @@ export async function DELETE(
       await prisma.oMProduct.delete({
         where: { id },
       });
+      revalidateTag("om-products", "max");
+      revalidatePath("/admin/order-management/items");
       return NextResponse.json(
         { message: "Product deleted successfully" },
         { status: 200 },
@@ -98,6 +104,8 @@ export async function DELETE(
           where: { id },
           data: { isActive: false },
         });
+        revalidateTag("om-products", "max");
+        revalidatePath("/admin/order-management/items");
         return NextResponse.json(
           {
             message:

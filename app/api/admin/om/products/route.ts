@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-errors";
 import { OMProductCreateSchema } from "@/lib/validations/om";
 import { getOMProducts } from "@/lib/om-data";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function GET(req: NextRequest) {
   try {
@@ -91,6 +92,9 @@ export async function POST(req: NextRequest) {
         brands: true,
       },
     });
+
+    revalidateTag("om-products", "max");
+    revalidatePath("/admin/order-management/items");
 
     return NextResponse.json(
       {

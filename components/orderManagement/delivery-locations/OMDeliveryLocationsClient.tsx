@@ -28,7 +28,7 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { LocationsTable } from "./LocationsTable";
 import { LocationForm } from "./LocationForm";
 import { LocationViewDialog } from "./LocationViewDialog";
-import { useOMDeliveryLocationsList, useMutateLocations } from "@/data/om/admin.hooks";
+import { useMutateLocations } from "@/data/om/admin.hooks";
 
 interface OMDeliveryLocationsClientProps {
   initialData: PaginatedResponse<OMDeliveryLocation>;
@@ -41,8 +41,6 @@ export function OMDeliveryLocationsClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  // SWR Hook for locations
-  const { locations: swrLocations, meta: swrMeta, isLoading: isSWRLoading } = useOMDeliveryLocationsList(searchParams.toString());
 
   const [locations, setLocations] = useState<OMDeliveryLocation[]>(initialData.data);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,18 +79,6 @@ export function OMDeliveryLocationsClient({
   }, [searchParams, pathname, router]);
 
 
-  // Sync SWR data to local state for infinite scroll
-  useEffect(() => {
-    if (swrLocations && swrLocations.length > 0) {
-      if (searchParams.get("page") === "1" || !searchParams.get("page")) {
-        setLocations(swrLocations);
-        if (swrMeta) {
-          setCurrentPage(swrMeta.page);
-          setHasMore(swrMeta.page < swrMeta.totalPages);
-        }
-      }
-    }
-  }, [swrLocations, swrMeta, searchParams]);
 
   useEffect(() => {
     if (initialData.data.length > 0) {
@@ -109,7 +95,7 @@ export function OMDeliveryLocationsClient({
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/delivery-locations", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "50");
+      url.searchParams.set("limit", "500");
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
@@ -135,6 +121,16 @@ export function OMDeliveryLocationsClient({
       setIsFetchingMore(false);
     }
   };
+
+  // Silent background prefetching
+  useEffect(() => {
+    if (hasMore && !isFetchingMore) {
+      const timer = setTimeout(() => {
+        loadMore();
+      }, 2000); // 2 second delay between background fetches
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isFetchingMore, loadMore]);
 
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
@@ -182,10 +178,11 @@ export function OMDeliveryLocationsClient({
   // Sync searchTerm with URL
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchTerm !== (searchParams.get("q") || "")) {
-        updateUrl({ q: searchTerm || null });
+      const currentQ = searchParams.get("q") || "";
+      if (searchTerm.trim() !== currentQ) {
+        updateUrl({ q: searchTerm.trim() || null });
       }
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [searchTerm, updateUrl, searchParams]);
 
@@ -201,7 +198,7 @@ export function OMDeliveryLocationsClient({
         }
       });
       if (changed) updateUrl(newParams);
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [filters, updateUrl, searchParams]);
 
@@ -243,6 +240,7 @@ export function OMDeliveryLocationsClient({
       toast.success("Delivery location added successfully");
       setLocationName("");
       setIsAddDialogOpen(false);
+      router.refresh();
     } else {
       toast.error(result.error);
     }
@@ -268,6 +266,7 @@ export function OMDeliveryLocationsClient({
     if (result.success) {
       toast.success("Delivery location updated successfully");
       setIsEditDialogOpen(false);
+      router.refresh();
     } else {
       toast.error(result.error);
     }
@@ -281,6 +280,7 @@ export function OMDeliveryLocationsClient({
     if (success) {
       toast.success("Delivery location deleted successfully");
       setIsDeleteDialogOpen(false);
+      router.refresh();
     } else {
       toast.error("Failed to delete delivery location");
     }
@@ -331,7 +331,7 @@ export function OMDeliveryLocationsClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={swrMeta?.unfilteredTotal || swrMeta?.total || initialData.meta.unfilteredTotal || initialData.meta.total}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="delivery locations"
         searchPlaceholder="Search by city name..."
         searchTerm={searchTerm}
@@ -366,7 +366,7 @@ export function OMDeliveryLocationsClient({
 
       <LocationsTable
         data={processedData}
-        isLoading={isSWRLoading && locations.length === 0}
+        isLoading={false}
         sortBy={sortBy}
         onSort={setSortBy}
         onEdit={handleEdit}

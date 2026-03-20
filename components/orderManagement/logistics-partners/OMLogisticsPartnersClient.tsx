@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +24,7 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { PartnersTable } from "./PartnersTable";
 import { PartnerForm } from "./PartnerForm";
 import { PartnerViewDialog } from "./PartnerViewDialog";
-import { useOMLogisticsPartnersList, useMutatePartners } from "@/data/om/admin.hooks";
+import { useMutatePartners } from "@/data/om/admin.hooks";
 
 interface OMLogisticsPartnersClientProps {
   initialData: PaginatedResponse<OMLogisticsPartner>;
@@ -38,8 +37,6 @@ export function OMLogisticsPartnersClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  // SWR Hook for partners
-  const { partners: swrPartners, meta: swrMeta, isLoading: isSWRLoading } = useOMLogisticsPartnersList(searchParams.toString());
 
   const [partners, setPartners] = useState<OMLogisticsPartner[]>(initialData.data);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
@@ -81,18 +78,6 @@ export function OMLogisticsPartnersClient({
   }, [searchParams, pathname, router]);
 
 
-  // Sync SWR data to local state for infinite scroll
-  useEffect(() => {
-    if (swrPartners && swrPartners.length > 0) {
-      if (searchParams.get("page") === "1" || !searchParams.get("page")) {
-        setPartners(swrPartners);
-        if (swrMeta) {
-          setCurrentPage(swrMeta.page);
-          setHasMore(swrMeta.page < swrMeta.totalPages);
-        }
-      }
-    }
-  }, [swrPartners, swrMeta, searchParams]);
 
   useEffect(() => {
     if (initialData.data.length > 0) {
@@ -109,7 +94,7 @@ export function OMLogisticsPartnersClient({
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/logistics-partners", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "50");
+      url.searchParams.set("limit", "500");
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
@@ -135,6 +120,16 @@ export function OMLogisticsPartnersClient({
       setIsFetchingMore(false);
     }
   };
+
+  // Silent background prefetching
+  useEffect(() => {
+    if (hasMore && !isFetchingMore) {
+      const timer = setTimeout(() => {
+        loadMore();
+      }, 2000); // 2 second delay between background fetches
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isFetchingMore, loadMore]);
 
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
@@ -194,10 +189,11 @@ export function OMLogisticsPartnersClient({
   // Sync searchTerm with URL
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchTerm !== (searchParams.get("q") || "")) {
-        updateUrl({ q: searchTerm || null });
+      const currentQ = searchParams.get("q") || "";
+      if (searchTerm.trim() !== currentQ) {
+        updateUrl({ q: searchTerm.trim() || null });
       }
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [searchTerm, updateUrl, searchParams]);
 
@@ -213,7 +209,7 @@ export function OMLogisticsPartnersClient({
         }
       });
       if (changed) updateUrl(newParams);
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [filters, updateUrl, searchParams]);
 
@@ -252,6 +248,7 @@ export function OMLogisticsPartnersClient({
       toast.success(`Partner ${editingPartner ? "updated" : "added"} successfully`);
       setIsAddDialogOpen(false);
       resetForm();
+      router.refresh();
     } else {
       toast.error(result.error);
     }
@@ -286,6 +283,7 @@ export function OMLogisticsPartnersClient({
     if (success) {
       toast.success("Logistics partner deleted successfully");
       setIsDeleteDialogOpen(false);
+      router.refresh();
     } else {
       toast.error("Failed to delete partner");
     }
@@ -341,7 +339,7 @@ export function OMLogisticsPartnersClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={swrMeta?.unfilteredTotal || swrMeta?.total || initialData.meta.unfilteredTotal || initialData.meta.total}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="logistics partners"
         searchPlaceholder="Search by name, contact person, or email..."
         searchTerm={searchTerm}
@@ -376,7 +374,7 @@ export function OMLogisticsPartnersClient({
 
       <PartnersTable
         data={processedData}
-        isLoading={isSWRLoading && partners.length === 0}
+        isLoading={false}
         sortBy={sortBy}
         onSort={setSortBy}
         onEdit={handleEdit}
