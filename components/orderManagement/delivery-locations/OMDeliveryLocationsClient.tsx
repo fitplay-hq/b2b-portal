@@ -28,7 +28,7 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { LocationsTable } from "./LocationsTable";
 import { LocationForm } from "./LocationForm";
 import { LocationViewDialog } from "./LocationViewDialog";
-import { useOMDeliveryLocationsList, useOMMutate } from "@/data/om/admin.hooks";
+import { useOMDeliveryLocationsList, useMutateLocations } from "@/data/om/admin.hooks";
 
 interface OMDeliveryLocationsClientProps {
   initialData: PaginatedResponse<OMDeliveryLocation>;
@@ -43,7 +43,6 @@ export function OMDeliveryLocationsClient({
 
   // SWR Hook for locations
   const { locations: swrLocations, meta: swrMeta, isLoading: isSWRLoading } = useOMDeliveryLocationsList(searchParams.toString());
-  const { revalidateOM } = useOMMutate();
 
   const [locations, setLocations] = useState<OMDeliveryLocation[]>(initialData.data);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -217,6 +216,7 @@ export function OMDeliveryLocationsClient({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { saveLocation, deleteLocation } = useMutateLocations();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const [editingLocation, setEditingLocation] = useState<OMDeliveryLocation | null>(null);
@@ -238,27 +238,15 @@ export function OMDeliveryLocationsClient({
     e.preventDefault();
     if (!locationName.trim()) return;
     setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/admin/om/delivery-locations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: locationName.trim() }),
-      });
-      if (res.ok) {
-        toast.success("Delivery location added successfully");
-        setLocationName("");
-        setIsAddDialogOpen(false);
-        revalidateOM();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to add delivery location");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to add delivery location");
-    } finally {
-      setIsSubmitting(false);
+    const result = await saveLocation(locationName.trim());
+    if (result.success) {
+      toast.success("Delivery location added successfully");
+      setLocationName("");
+      setIsAddDialogOpen(false);
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   const handleEdit = (location: OMDeliveryLocation) => {
@@ -276,53 +264,28 @@ export function OMDeliveryLocationsClient({
     e.preventDefault();
     if (!editingLocation || !editName.trim()) return;
     setIsSubmitting(true);
-    try {
-      const res = await fetch(
-        `/api/admin/om/delivery-locations/${editingLocation.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: editName.trim() }),
-        },
-      );
-      if (res.ok) {
-        toast.success("Delivery location updated successfully");
-        setIsEditDialogOpen(false);
-        revalidateOM();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to update delivery location");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error updating delivery location");
-    } finally {
-      setIsSubmitting(false);
+    const result = await saveLocation(editName.trim(), editingLocation.id);
+    if (result.success) {
+      toast.success("Delivery location updated successfully");
+      setIsEditDialogOpen(false);
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   const onConfirmDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/om/delivery-locations/${deleteId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        toast.success("Delivery location deleted successfully");
-        revalidateOM();
-        setIsDeleteDialogOpen(false);
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to delete delivery location");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error deleting delivery location");
-    } finally {
-      setIsDeleting(false);
-      setDeleteId(null);
+    const success = await deleteLocation(deleteId);
+    if (success) {
+      toast.success("Delivery location deleted successfully");
+      setIsDeleteDialogOpen(false);
+    } else {
+      toast.error("Failed to delete delivery location");
     }
+    setIsDeleting(false);
+    setDeleteId(null);
   };
 
   const handleExportExcel = useCallback(() => {

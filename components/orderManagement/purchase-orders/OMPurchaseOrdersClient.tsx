@@ -24,12 +24,8 @@ import { POTable } from "./POTable";
 import { POItemTable } from "./POItemTable";
 import { Grid3x3, Table as TableIcon } from "lucide-react";
 import { 
-  useOMClients, 
-  useOMDeliveryLocations, 
-  useOMPONumbers,
-  useOMMutate
+  useMutatePurchaseOrders
 } from "@/data/om/admin.hooks";
-import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
 
 const PO_STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -56,26 +52,12 @@ export function OMPurchaseOrdersClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   
-  // 1. Fetch data via SWR
-  const { purchaseOrders: swrData, isLoading: isSWRLoading, mutate } = usePurchaseOrders();
-  const { revalidateOM } = useOMMutate();
 
   // 2. Fetch options via SWR
-  const { clients: clientsRaw } = useOMClients();
-  const { locations: locationsRaw } = useOMDeliveryLocations();
-  const { poNumbers: poOptionsRaw } = useOMPONumbers();
 
-  const clientOptions = useMemo(() => 
-    propsClientOptions || clientsRaw.map(c => ({ value: c.name, label: c.name })), 
-    [propsClientOptions, clientsRaw]
-  );
-  
-  const locationOptions = useMemo(() => 
-    propsLocationOptions || locationsRaw.map(l => ({ value: l.id, label: l.name })), 
-    [propsLocationOptions, locationsRaw]
-  );
-  
-  const poOptions = useMemo(() => propsPoOptions || poOptionsRaw, [propsPoOptions, poOptionsRaw]);
+  const clientOptions = useMemo(() => propsClientOptions || [], [propsClientOptions]);
+  const locationOptions = useMemo(() => propsLocationOptions || [], [propsLocationOptions]);
+  const poOptions = useMemo(() => propsPoOptions || [], [propsPoOptions]);
 
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "po_date_desc");
@@ -89,16 +71,6 @@ export function OMPurchaseOrdersClient({
   const [hasMore, setHasMore] = useState(initialData ? initialData.meta.page < initialData.meta.totalPages : false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  // Sync SWR data to local state if needed (for background updates)
-  useEffect(() => {
-    if (swrData && swrData.length > 0) {
-      // Only update from SWR if it's different from what we have
-      // or if we're on the first page
-      if (searchParams.get("page") === "1" || !searchParams.get("page")) {
-        setPurchaseOrders(swrData);
-      }
-    }
-  }, [swrData, searchParams]);
 
   const valueLabels = useMemo(
     () => ({
@@ -453,30 +425,22 @@ export function OMPurchaseOrdersClient({
     }
   }, [viewType, updateUrl, searchParams]);
 
+  const { deletePurchaseOrder } = useMutatePurchaseOrders();
   const [deletePo, setDeletePo] = useState<OMPurchaseOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeletePO = async () => {
     if (!deletePo) return;
     setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/om/purchase-orders/${deletePo.id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        toast.success("Purchase Order deleted successfully");
-        revalidateOM(); // Global revalidation
-        router.refresh();
-        setDeletePo(null);
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to delete Purchase Order");
-      }
-    } catch {
-      toast.error("Something went wrong");
-    } finally {
-      setIsDeleting(false);
+    const success = await deletePurchaseOrder(deletePo.id);
+    if (success) {
+      toast.success("Purchase Order deleted successfully");
+      router.refresh();
+      setDeletePo(null);
+    } else {
+      toast.error("Failed to delete Purchase Order");
     }
+    setIsDeleting(false);
   };
 
   const handleExportExcel = useCallback(() => {
@@ -626,7 +590,7 @@ export function OMPurchaseOrdersClient({
       {viewType === "client" ? (
         <POTable
           data={processedData}
-          isLoading={isSWRLoading && purchaseOrders.length === 0}
+          isLoading={false}
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeletePo}
@@ -635,7 +599,7 @@ export function OMPurchaseOrdersClient({
       ) : (
         <POItemTable
           data={processedItemData}
-          isLoading={isSWRLoading && purchaseOrders.length === 0}
+          isLoading={false}
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeletePo}

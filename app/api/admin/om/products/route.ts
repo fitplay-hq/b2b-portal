@@ -22,10 +22,31 @@ export async function GET(req: NextRequest) {
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
-    const search = searchParams.get("search") || "";
-    const brandId = searchParams.get("brandId") || undefined;
+    
+    // Support both 'q' (standard browser URL) and 'search' (legacy/API standard)
+    const search = searchParams.get("q") || searchParams.get("search") || "";
+    
+    // Support plural 'brandIds' (comma-separated string) and singular 'brandId'
+    const brandIdsRaw = searchParams.get("brandIds") || searchParams.get("brandId");
+    const brandIds = brandIdsRaw ? brandIdsRaw.split(",") : undefined;
 
-    const result = await getOMProducts({ page, limit, search, brandId });
+    const minPrice = searchParams.get("minPrice") ? parseFloat(searchParams.get("minPrice")!) : undefined;
+    const maxPrice = searchParams.get("maxPrice") ? parseFloat(searchParams.get("maxPrice")!) : undefined;
+    const gst = searchParams.get("gst") || undefined;
+    const minTotalOrdered = searchParams.get("minTotalOrdered") ? parseInt(searchParams.get("minTotalOrdered")!) : undefined;
+    const maxTotalOrdered = searchParams.get("maxTotalOrdered") ? parseInt(searchParams.get("maxTotalOrdered")!) : undefined;
+
+    const result = await getOMProducts({ 
+      page, 
+      limit, 
+      search, 
+      brandIds,
+      minPrice,
+      maxPrice,
+      gst,
+      minTotalOrdered,
+      maxTotalOrdered
+    });
 
     return NextResponse.json(result);
   } catch (error: unknown) {

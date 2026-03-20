@@ -27,20 +27,15 @@ import { DispatchItemTable } from "./DispatchItemTable";
 import { Grid3x3, Table as TableIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
-  useOMDispatches, 
-  useOMClients, 
-  useOMLogisticsPartners, 
-  useOMDeliveryLocations,
-  useOMPONumbers,
-  useOMMutate
+  useMutateDispatches
 } from "@/data/om/admin.hooks";
-import { useDispatches } from "@/hooks/use-dispatches";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 
 interface OMDispatchesClientProps {
   initialData?: PaginatedResponse<OMDispatchOrder>;
   clientOptions?: ComboboxOption[];
   logisticsOptions?: ComboboxOption[];
+  deliveryLocationOptions?: ComboboxOption[];
   invoiceOptions?: ComboboxOption[];
   docketOptions?: ComboboxOption[];
 }
@@ -49,6 +44,7 @@ export function OMDispatchesClient({
   initialData,
   clientOptions: propsClientOptions,
   logisticsOptions: propsLogisticsOptions,
+  deliveryLocationOptions: propsDeliveryLocationOptions,
   invoiceOptions: propsInvoiceOptions,
   docketOptions: propsDocketOptions,
 }: OMDispatchesClientProps) {
@@ -56,35 +52,12 @@ export function OMDispatchesClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  // 1. Fetch data via SWR
-  const swrOptions = useMemo(() => ({
-    revalidateOnMount: true,
-    revalidateIfStale: true,
-  }), []);
-
-  const { dispatches: swrData, isLoading: isSWRLoading, mutate } = useDispatches(swrOptions);
-  const { revalidateOM } = useOMMutate();
 
   // 2. Fetch options via SWR
-  const { clients: clientsRaw } = useOMClients();
-  const { partners: logisticsRaw } = useOMLogisticsPartners();
-  const { locations: locationsRaw } = useOMDeliveryLocations();
-  const { poNumbers: poOptionsRaw } = useOMPONumbers();
 
-  const clientOptions = useMemo(() => 
-    propsClientOptions || clientsRaw.map(c => ({ value: c.id, label: c.name })), 
-    [propsClientOptions, clientsRaw]
-  );
-
-  const logisticsOptions = useMemo(() => 
-    propsLogisticsOptions || logisticsRaw.map(p => ({ value: p.id, label: p.name })), 
-    [propsLogisticsOptions, logisticsRaw]
-  );
-  
-  const deliveryLocationOptions = useMemo(() => 
-    locationsRaw.map(l => ({ value: l.id, label: l.name })), 
-    [locationsRaw]
-  );
+  const clientOptions = useMemo(() => propsClientOptions || [], [propsClientOptions]);
+  const logisticsOptions = useMemo(() => propsLogisticsOptions || [], [propsLogisticsOptions]);
+  const deliveryLocationOptions = useMemo(() => propsDeliveryLocationOptions || [], [propsDeliveryLocationOptions]);
 
   const invoiceOptions = useMemo(() => propsInvoiceOptions || [], [propsInvoiceOptions]);
   const docketOptions = useMemo(() => propsDocketOptions || [], [propsDocketOptions]);
@@ -110,16 +83,6 @@ export function OMDispatchesClient({
     }
   }, [initialData]);
 
-  // Sync SWR data to local state if needed (for background updates)
-  useEffect(() => {
-    if (swrData && swrData.length > 0) {
-      // Only overwrite if we are on the first page or searching
-      const isFirstPage = searchParams.get("page") === "1" || !searchParams.get("page");
-      if (isFirstPage) {
-        setDispatches(swrData);
-      }
-    }
-  }, [swrData, searchParams]); // Removed dispatches from dependencies
 
   // Helper to update URL
   const updateUrl = useCallback((newParams: Record<string, string | null>) => {
@@ -392,6 +355,8 @@ export function OMDispatchesClient({
     }
   }, [viewType, updateUrl, searchParams]);
 
+  const { updateDispatchStatus, deleteDispatch } = useMutateDispatches();
+
   const handleStatusChange = useCallback(async (dispatchId: string, newStatus: OMDispatchStatus) => {
     const currentDispatch = dispatches.find(d => d.id === dispatchId);
     if (!currentDispatch || currentDispatch.status === newStatus) return;
@@ -403,33 +368,17 @@ export function OMDispatchesClient({
       prev.map(d => d.id === dispatchId ? { ...d, status: newStatus } : d)
     );
 
-    try {
-      const res = await fetch(`/api/admin/om/dispatch-orders/${dispatchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (res.ok) {
-        toast.success(`Status updated to ${OM_DISPATCH_STATUS_CONFIG[newStatus].label}`);
-        mutate(); // Immediate local revalidation
-        revalidateOM(); // Revalidate all OM data (POs, Dispatches, etc.)
-        router.refresh(); // Refresh server components
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Failed to update status");
-        setDispatches(prev =>
-          prev.map(d => d.id === dispatchId ? { ...d, status: oldStatus } : d)
-        );
-      }
-    } catch (err) {
-      console.error("Error updating status:", err);
+    const success = await updateDispatchStatus(dispatchId, newStatus);
+    if (success) {
+      toast.success(`Status updated to ${OM_DISPATCH_STATUS_CONFIG[newStatus].label}`);
+      router.refresh(); // Refresh server components
+    } else {
       toast.error("Failed to update status");
       setDispatches(prev =>
         prev.map(d => d.id === dispatchId ? { ...d, status: oldStatus } : d)
       );
     }
-  }, [dispatches]);
+  }, [dispatches, updateDispatchStatus, router]);
 
   const [deleteDispatchId, setDeleteDispatchId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -437,25 +386,15 @@ export function OMDispatchesClient({
   const handleDeleteDispatch = async () => {
     if (!deleteDispatchId) return;
     setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/om/dispatch-orders/${deleteDispatchId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        toast.success("Dispatch Order deleted successfully");
-        mutate(); // Immediate local revalidation
-        revalidateOM(); // Global revalidation
-        router.refresh(); // Refresh server components
-        setDeleteDispatchId(null);
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to delete Dispatch Order");
-      }
-    } catch {
-      toast.error("Something went wrong");
-    } finally {
-      setIsDeleting(false);
+    const success = await deleteDispatch(deleteDispatchId);
+    if (success) {
+      toast.success("Dispatch Order deleted successfully");
+      router.refresh();
+      setDeleteDispatchId(null);
+    } else {
+      toast.error("Failed to delete Dispatch Order");
     }
+    setIsDeleting(false);
   };
 
   const handleExportExcel = useCallback(() => {
@@ -570,7 +509,7 @@ export function OMDispatchesClient({
       {viewType === "client" ? (
         <DispatchesTable
           data={processedData}
-          isLoading={isSWRLoading && dispatches.length === 0}
+          isLoading={false}
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeleteDispatchId}
@@ -580,7 +519,7 @@ export function OMDispatchesClient({
       ) : (
         <DispatchItemTable
           data={processedItemData}
-          isLoading={isSWRLoading && dispatches.length === 0}
+          isLoading={false}
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeleteDispatchId}

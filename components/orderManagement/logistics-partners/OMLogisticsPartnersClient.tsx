@@ -25,7 +25,7 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { PartnersTable } from "./PartnersTable";
 import { PartnerForm } from "./PartnerForm";
 import { PartnerViewDialog } from "./PartnerViewDialog";
-import { useOMLogisticsPartnersList, useOMMutate } from "@/data/om/admin.hooks";
+import { useOMLogisticsPartnersList, useMutatePartners } from "@/data/om/admin.hooks";
 
 interface OMLogisticsPartnersClientProps {
   initialData: PaginatedResponse<OMLogisticsPartner>;
@@ -40,10 +40,10 @@ export function OMLogisticsPartnersClient({
 
   // SWR Hook for partners
   const { partners: swrPartners, meta: swrMeta, isLoading: isSWRLoading } = useOMLogisticsPartnersList(searchParams.toString());
-  const { revalidateOM } = useOMMutate();
 
   const [partners, setPartners] = useState<OMLogisticsPartner[]>(initialData.data);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+  const { savePartner, deletePartner } = useMutatePartners();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<OMLogisticsPartner | null>(null);
@@ -247,31 +247,15 @@ export function OMLogisticsPartnersClient({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    try {
-      const url = editingPartner
-        ? `/api/admin/om/logistics-partners/${editingPartner.id}`
-        : "/api/admin/om/logistics-partners";
-      const method = editingPartner ? "PATCH" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (res.ok) {
-        toast.success(`Partner ${editingPartner ? "updated" : "added"} successfully`);
-        setIsAddDialogOpen(false);
-        resetForm();
-        revalidateOM();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Something went wrong");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to save partner");
-    } finally {
-      setIsSubmitting(false);
+    const result = await savePartner(formData, editingPartner?.id);
+    if (result.success) {
+      toast.success(`Partner ${editingPartner ? "updated" : "added"} successfully`);
+      setIsAddDialogOpen(false);
+      resetForm();
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   const handleEdit = (partner: OMLogisticsPartner) => {
@@ -298,25 +282,15 @@ export function OMLogisticsPartnersClient({
   const onConfirmDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/om/logistics-partners/${deleteId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        toast.success("Logistics partner deleted successfully");
-        revalidateOM();
-        setIsDeleteDialogOpen(false);
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to delete partner");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error deleting partner");
-    } finally {
-      setIsDeleting(false);
-      setDeleteId(null);
+    const success = await deletePartner(deleteId);
+    if (success) {
+      toast.success("Logistics partner deleted successfully");
+      setIsDeleteDialogOpen(false);
+    } else {
+      toast.error("Failed to delete partner");
     }
+    setIsDeleting(false);
+    setDeleteId(null);
   };
 
   const handleExportExcel = useCallback(() => {

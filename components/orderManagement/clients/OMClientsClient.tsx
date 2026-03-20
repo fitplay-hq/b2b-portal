@@ -17,6 +17,7 @@ import { type PaginatedResponse } from "@/lib/om-data";
 import { CLIENT_SORT_OPTIONS } from "@/constants/om-sort-options";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
+import { useMutateClients } from "@/data/om/admin.hooks";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { ClientsTable } from "./ClientsTable";
 import { ClientViewDialog } from "./ClientViewDialog";
@@ -33,6 +34,7 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
   const [clients, setClients] = useState<OMClient[]>(initialData.data);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+  const { saveClient, deleteClient } = useMutateClients();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<OMClient | null>(null);
@@ -230,31 +232,16 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    try {
-      const url = editingClient
-        ? `/api/admin/om/clients/${editingClient.id}`
-        : "/api/admin/om/clients";
-      const method = editingClient ? "PATCH" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (res.ok) {
-        toast.success(`Client ${editingClient ? "updated" : "added"} successfully`);
-        setIsAddDialogOpen(false);
-        resetForm();
-        router.refresh();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Something went wrong");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to save client");
-    } finally {
-      setIsSubmitting(false);
+    const result = await saveClient(formData, editingClient?.id);
+    if (result.success) {
+      toast.success(`Client ${editingClient ? "updated" : "added"} successfully`);
+      setIsAddDialogOpen(false);
+      resetForm();
+      router.refresh();
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   const handleEdit = (client: OMClient) => {
@@ -283,25 +270,16 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
   const onConfirmDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/om/clients/${deleteId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        toast.success("Client deleted successfully");
-        router.refresh();
-        setIsDeleteDialogOpen(false);
-      } else {
-        const errorData = await res.json();
-        toast.error(errorData.error || "Failed to delete client");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error deleting client");
-    } finally {
-      setIsDeleting(false);
-      setDeleteId(null);
+    const success = await deleteClient(deleteId);
+    if (success) {
+      toast.success("Client deleted successfully");
+      router.refresh();
+      setIsDeleteDialogOpen(false);
+    } else {
+      toast.error("Failed to delete client");
     }
+    setIsDeleting(false);
+    setDeleteId(null);
   };
 
   const clientOptions = useMemo(() => {

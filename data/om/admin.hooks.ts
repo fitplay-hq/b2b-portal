@@ -249,6 +249,293 @@ export async function updateOMPurchaseOrderStatus(id: string, status: string) {
 }
 
 /**
+ * Hook providing mutation functions for Purchase Orders
+ */
+export function useMutatePurchaseOrders() {
+  const { mutate } = useSWRConfig();
+  const { revalidateOM } = useOMMutate();
+
+  const deletePurchaseOrder = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/admin/om/purchase-orders/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          revalidateOM();
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error deleting PO:", error);
+        return false;
+      }
+    },
+    [revalidateOM]
+  );
+
+  return { deletePurchaseOrder };
+}
+
+/**
+ * Hook providing mutation functions for Dispatch Orders
+ */
+export function useMutateDispatches() {
+  const { mutate } = useSWRConfig();
+  const { revalidateOM } = useOMMutate();
+
+  const updateDispatchStatus = useCallback(
+    async (id: string, status: string) => {
+      try {
+        const res = await fetch(`/api/admin/om/dispatch-orders/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        if (res.ok) {
+          revalidateOM();
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error updating dispatch status:", error);
+        return false;
+      }
+    },
+    [revalidateOM]
+  );
+
+  const deleteDispatch = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/admin/om/dispatch-orders/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          revalidateOM();
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error deleting dispatch:", error);
+        return false;
+      }
+    },
+    [revalidateOM]
+  );
+
+  return { updateDispatchStatus, deleteDispatch };
+}
+
+/**
+ * Hook providing mutation functions for Products/Items
+ */
+export function useMutateItems() {
+  const { revalidateOM } = useOMMutate();
+
+  const saveItem = useCallback(
+    async (data: any, id?: string) => {
+      try {
+        const url = id ? `/api/admin/om/products/${id}` : "/api/admin/om/products";
+        const method = id ? "PATCH" : "POST";
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (res.ok) {
+          revalidateOM();
+          return { success: true };
+        }
+        const error = await res.json();
+        return { success: false, error: error.error || "Failed to save item" };
+      } catch (error) {
+        console.error("Error saving item:", error);
+        return { success: false, error: "Something went wrong" };
+      }
+    },
+    [revalidateOM]
+  );
+
+  const deleteItem = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/admin/om/products/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          revalidateOM();
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error deleting item:", error);
+        return false;
+      }
+    },
+    [revalidateOM]
+  );
+
+  return { saveItem, deleteItem };
+}
+
+/**
+ * Hook providing mutation functions for Clients
+ */
+export function useMutateClients() {
+  const { revalidateOM } = useOMMutate();
+
+  const saveClient = useCallback(
+    async (data: any, id?: string) => {
+      try {
+        const url = id ? `/api/admin/om/clients/${id}` : "/api/admin/om/clients";
+        const method = id ? "PATCH" : "POST";
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (res.ok) {
+          revalidateOM();
+          return { success: true };
+        }
+        const error = await res.json();
+        return { success: false, error: error.error || "Failed to save client" };
+      } catch (error) {
+        console.error("Error saving client:", error);
+        return { success: false, error: "Something went wrong" };
+      }
+    },
+    [revalidateOM]
+  );
+
+  const deleteClient = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/admin/om/clients/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          revalidateOM();
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error deleting client:", error);
+        return false;
+      }
+    },
+    [revalidateOM]
+  );
+
+  return { saveClient, deleteClient };
+}
+
+/**
+ * Hook providing mutation functions for Delivery Locations
+ */
+export function useMutateLocations() {
+  const { revalidateOM } = useOMMutate();
+
+  const saveLocation = useCallback(
+    async (name: string, id?: string) => {
+      try {
+        const url = id ? `/api/admin/om/delivery-locations/${id}` : "/api/admin/om/delivery-locations";
+        const method = id ? "PATCH" : "POST";
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        if (res.ok) {
+          revalidateOM();
+          return { success: true };
+        }
+        const error = await res.json();
+        return { success: false, error: error.error || "Failed to save location" };
+      } catch (error) {
+        console.error("Error saving location:", error);
+        return { success: false, error: "Something went wrong" };
+      }
+    },
+    [revalidateOM]
+  );
+
+  const deleteLocation = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/admin/om/delivery-locations/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          revalidateOM();
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error deleting location:", error);
+        return false;
+      }
+    },
+    [revalidateOM]
+  );
+
+  return { saveLocation, deleteLocation };
+}
+
+/**
+ * Hook providing mutation functions for Logistics Partners
+ */
+export function useMutatePartners() {
+  const { revalidateOM } = useOMMutate();
+
+  const savePartner = useCallback(
+    async (data: any, id?: string) => {
+      try {
+        const url = id ? `/api/admin/om/logistics-partners/${id}` : "/api/admin/om/logistics-partners";
+        const method = id ? "PATCH" : "POST";
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (res.ok) {
+          revalidateOM();
+          return { success: true };
+        }
+        const error = await res.json();
+        return { success: false, error: error.error || "Failed to save partner" };
+      } catch (error) {
+        console.error("Error saving partner:", error);
+        return { success: false, error: "Something went wrong" };
+      }
+    },
+    [revalidateOM]
+  );
+
+  const deletePartner = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/admin/om/logistics-partners/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          revalidateOM();
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error deleting partner:", error);
+        return false;
+      }
+    },
+    [revalidateOM]
+  );
+
+  return { savePartner, deletePartner };
+}
+
+/**
  * Hook providing a global revalidation function for all Order Management lists.
  * This ensures that a mutation in one area (e.g. Dispatches) 
  * refreshes and shows up-to-date values in others (e.g. Purchase Orders).

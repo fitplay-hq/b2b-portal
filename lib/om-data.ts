@@ -366,20 +366,28 @@ export async function getOMDashboardData(params: GetOMDashboardDataParams) {
 export async function getOMStaticOptions() {
   return unstable_cache(
     async () => {
-      const [clients, products, brands, logistics, locations] = await Promise.all([
+      const [clients, products, brands, logistics, locations, pos] = await Promise.all([
         prisma.oMClient.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true }, take: 50 }),
         prisma.oMProduct.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, include: { brands: true }, take: 50 }),
         prisma.oMBrand.findMany({ orderBy: { name: "asc" }, take: 50 }),
         prisma.oMLogisticsPartner.findMany({ orderBy: { name: "asc" }, take: 50 }),
         prisma.oMDeliveryLocation.findMany({ orderBy: { name: "asc" }, take: 50 }),
+        prisma.oMPurchaseOrder.findMany({
+          where: { poNumber: { not: null } },
+          select: { poNumber: true },
+          distinct: ["poNumber"],
+          orderBy: { poNumber: "asc" },
+          take: 50,
+        }),
       ]);
 
       return {
-        clientOptions: clients.map(c => ({ value: c.name, label: c.name })),
+        clientOptions: clients.map(c => ({ value: c.id, label: c.name })),
         itemOptions: products.map(p => ({ value: p.name, label: p.name })),
-        brandOptions: brands.map(b => ({ value: b.name, label: b.name })),
+        brandOptions: brands.map(b => ({ value: b.id, label: b.name })),
         logisticsOptions: logistics.map(l => ({ value: l.id, label: l.name })),
         locationOptions: locations.map(l => ({ value: l.id, label: l.name })),
+        poOptions: pos.map(p => ({ value: p.poNumber!, label: p.poNumber! })),
         products, 
       };
     },
@@ -497,7 +505,12 @@ export async function getOMProducts(params: {
   page?: number;
   limit?: number;
   search?: string;
-  brandId?: string;
+  brandIds?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  gst?: string;
+  minTotalOrdered?: number;
+  maxTotalOrdered?: number;
 } = {}): Promise<PaginatedResponse<OMProduct>> {
   return unstable_cache(
     async (p) => {
@@ -506,16 +519,39 @@ export async function getOMProducts(params: {
       const skip = (page - 1) * limit;
       const search = p.search || "";
 
-      const where: any = { isActive: true };
+      const andFilters: any[] = [{ isActive: true }];
+      
       if (search) {
-        where.OR = [
-          { name: { contains: search, mode: "insensitive" as const } },
-          { sku: { contains: search, mode: "insensitive" as const } },
-        ];
+        andFilters.push({
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { sku: { contains: search, mode: "insensitive" as const } },
+            { description: { contains: search, mode: "insensitive" as const } },
+          ],
+        });
       }
-      if (p.brandId) {
-        where.brands = { some: { id: p.brandId } };
+
+      if (p.brandIds && p.brandIds.length > 0) {
+        andFilters.push({ brands: { some: { id: { in: p.brandIds } } } });
       }
+
+      if (p.gst && p.gst !== "all") {
+        andFilters.push({ defaultGstPct: parseFloat(p.gst) });
+      }
+
+      if (p.minPrice !== undefined || p.maxPrice !== undefined) {
+        const priceFilter: any = {};
+        if (p.minPrice !== undefined) priceFilter.gte = p.minPrice;
+        if (p.maxPrice !== undefined) priceFilter.lte = p.maxPrice;
+        andFilters.push({ price: priceFilter });
+      }
+
+      // Note: totalOrdered is a calculated field, so it's harder to filter on the DB level 
+      // directly without a subquery or having clause. 
+      // For now, I'll stick to basic fields to match the pattern.
+      // If needed, we could use prisma.$queryRaw for totalOrdered filtering.
+
+      const where = andFilters.length > 0 ? { AND: andFilters } : {};
 
       const [products, total, unfilteredTotal] = await Promise.all([
         prisma.oMProduct.findMany({

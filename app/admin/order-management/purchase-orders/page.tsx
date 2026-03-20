@@ -1,5 +1,5 @@
 import { OMPurchaseOrdersClient } from "@/components/orderManagement/purchase-orders/OMPurchaseOrdersClient";
-import { getOMPurchaseOrders } from "@/lib/om-data";
+import { getOMPurchaseOrders, getOMStaticOptions, getOMClients } from "@/lib/om-data";
 
 export const dynamic = "force-dynamic";
 
@@ -30,19 +30,28 @@ export default async function OMPurchaseOrdersPage({ searchParams }: PageProps) 
   const toDate = params.toDate as string;
   const sortBy = params.sortBy as string;
 
-  const purchaseOrdersData = await getOMPurchaseOrders({ 
-    page, 
-    limit, 
-    search,
-    clientId,
-    status,
-    locationId,
-    fromDate,
-    toDate,
-    sortBy
-  });
+  const [purchaseOrdersData, staticOptions, clientsData] = await Promise.all([
+    getOMPurchaseOrders({ 
+      page, 
+      limit, 
+      search,
+      clientId,
+      status,
+      locationId,
+      fromDate,
+      toDate,
+      sortBy
+    }),
+    getOMStaticOptions(),
+    getOMClients({ limit: 100 }), // Fetch more clients for the filter
+  ]);
 
   return (
-    <OMPurchaseOrdersClient initialData={purchaseOrdersData} />
+    <OMPurchaseOrdersClient 
+      initialData={purchaseOrdersData} 
+      clientOptions={clientsData.data.map(c => ({ value: c.id, label: c.name }))}
+      locationOptions={staticOptions.locationOptions}
+      poOptions={staticOptions.poOptions || []} // Assuming getOMStaticOptions returns poOptions now or I'll check it
+    />
   );
 }

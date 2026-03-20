@@ -1,5 +1,5 @@
 import { OMDispatchesClient } from "@/components/orderManagement/dispatches/OMDispatchesClient";
-import { getOMDispatches } from "@/lib/om-data";
+import { getOMDispatches, getOMStaticOptions, getOMClients, getOMDispatchOptions } from "@/lib/om-data";
 
 export const dynamic = "force-dynamic";
 
@@ -29,18 +29,30 @@ export default async function OMDispatchesPage({ searchParams }: PageProps) {
   const toDate = params.toDate as string;
   const sortBy = params.sortBy as string;
 
-  const dispatchesData = await getOMDispatches({
-    page,
-    limit,
-    search,
-    clientId,
-    status,
-    fromDate,
-    toDate,
-    sortBy,
-  });
+  const [dispatchesData, staticOptions, clientsData, invoiceOptions, docketOptions] = await Promise.all([
+    getOMDispatches({
+      page,
+      limit,
+      search,
+      clientId,
+      status,
+      fromDate,
+      toDate,
+      sortBy,
+    }),
+    getOMStaticOptions(),
+    getOMClients({ limit: 100 }),
+    getOMDispatchOptions("invoice"),
+    getOMDispatchOptions("docket"),
+  ]);
 
   return (
-    <OMDispatchesClient initialData={dispatchesData} />
+    <OMDispatchesClient 
+      initialData={dispatchesData} 
+      clientOptions={clientsData.data.map(c => ({ value: c.id, label: c.name }))}
+      logisticsOptions={staticOptions.logisticsOptions}
+      invoiceOptions={invoiceOptions}
+      docketOptions={docketOptions}
+    />
   );
 }
