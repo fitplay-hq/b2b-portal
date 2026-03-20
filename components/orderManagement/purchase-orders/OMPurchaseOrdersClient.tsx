@@ -24,12 +24,12 @@ import { POTable } from "./POTable";
 import { POItemTable } from "./POItemTable";
 import { Grid3x3, Table as TableIcon } from "lucide-react";
 import { 
-  useOMPurchaseOrders, 
   useOMClients, 
   useOMDeliveryLocations, 
   useOMPONumbers,
   useOMMutate
 } from "@/data/om/admin.hooks";
+import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
 
 const PO_STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -57,9 +57,7 @@ export function OMPurchaseOrdersClient({
   const pathname = usePathname();
   
   // 1. Fetch data via SWR
-  const { purchaseOrders: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMPurchaseOrders(searchParams.toString(), {
-    fallbackData: initialData
-  });
+  const { purchaseOrders: swrData, isLoading: isSWRLoading, mutate } = usePurchaseOrders();
   const { revalidateOM } = useOMMutate();
 
   // 2. Fetch options via SWR
@@ -91,19 +89,16 @@ export function OMPurchaseOrdersClient({
   const [hasMore, setHasMore] = useState(initialData ? initialData.meta.page < initialData.meta.totalPages : false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  // Sync SWR data to local state for infinite scroll
+  // Sync SWR data to local state if needed (for background updates)
   useEffect(() => {
-    if (swrData) {
-      // If page is 1, reset. Otherwise, append (handled by loadMore)
+    if (swrData && swrData.length > 0) {
+      // Only update from SWR if it's different from what we have
+      // or if we're on the first page
       if (searchParams.get("page") === "1" || !searchParams.get("page")) {
         setPurchaseOrders(swrData);
-        if (swrMeta) {
-          setCurrentPage(swrMeta.page);
-          setHasMore(swrMeta.page < swrMeta.totalPages);
-        }
       }
     }
-  }, [swrData, swrMeta, searchParams]);
+  }, [swrData, searchParams]);
 
   const valueLabels = useMemo(
     () => ({
@@ -164,13 +159,13 @@ export function OMPurchaseOrdersClient({
 
 
   useEffect(() => {
-    // Only reset if no SWR data yet (initial load)
-    if (!swrData && initialData) {
+    // Initial sync from server data (Fresh from router.refresh() or initial load)
+    if (initialData) {
       setPurchaseOrders(initialData.data);
       setCurrentPage(initialData.meta.page);
       setHasMore(initialData.meta.page < initialData.meta.totalPages);
     }
-  }, [initialData, swrData]);
+  }, [initialData]);
 
   const loadMore = async () => {
     if (isFetchingMore || !hasMore) return;
@@ -573,7 +568,7 @@ export function OMPurchaseOrdersClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={swrMeta?.unfilteredTotal || swrMeta?.total || purchaseOrders.length}
+        totalCount={initialData?.meta?.unfilteredTotal || initialData?.meta?.total || purchaseOrders.length}
         unit="purchase orders"
         searchPlaceholder="Search by PO/Estimate #, client name..."
         searchTerm={searchTerm}

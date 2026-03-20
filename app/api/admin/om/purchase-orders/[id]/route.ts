@@ -163,8 +163,14 @@ export async function PUT(
       }
     }
 
-    // Execute standard update transaction or handle items properly based on existing payload structure
-    // Since full update structure depends on frontend, this block enforces rules but avoids rewriting entire update graph
+    revalidateTag("om-clients", "max");
+    revalidateTag("om-dashboard", "max");
+    revalidateTag("om-purchase-orders", "max");
+    revalidateTag("om-dispatch-orders", "max");
+    revalidateTag("om-delivery-locations", "max");
+
+    revalidatePath("/admin/order-management/purchase-orders");
+    revalidatePath("/admin/dashboard");
 
     return NextResponse.json({
       success: true,

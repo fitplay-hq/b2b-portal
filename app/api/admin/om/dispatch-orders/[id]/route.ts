@@ -463,12 +463,9 @@ export async function DELETE(
       }
     });
 
-    // @ts-expect-error: Next.js revalidateTag argument count mismatch
-    revalidateTag("om-dispatch-orders");
-    // @ts-expect-error: Next.js revalidateTag argument count mismatch
-    revalidateTag("om-purchase-orders");
-    // @ts-expect-error: Next.js revalidateTag argument count mismatch
-    revalidateTag("om-dashboard");
+    revalidateTag("om-dispatch-orders", "max");
+    revalidateTag("om-purchase-orders", "max");
+    revalidateTag("om-dashboard", "max");
 
     revalidatePath("/admin/order-management/dispatches");
     revalidatePath("/admin/order-management/purchase-orders");

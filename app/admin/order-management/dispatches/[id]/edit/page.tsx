@@ -530,6 +530,7 @@ function EditDispatchForm() {
 
       if (res.ok) {
         toast.success("Dispatch updated successfully");
+        revalidateOM();
         router.push("/admin/order-management/dispatches");
       } else {
         const err = await res.json();

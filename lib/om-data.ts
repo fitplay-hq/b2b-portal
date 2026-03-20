@@ -1026,3 +1026,163 @@ export async function getOMTableCounts(key?: string) {
 
   return result;
 }
+
+export async function getOMPurchaseOrderById(id: string): Promise<OMPurchaseOrder | null> {
+  return unstable_cache(
+    async (poId: string) => {
+      const po = await prisma.oMPurchaseOrder.findUnique({
+        where: { id: poId },
+        include: {
+          client: true,
+          deliveryLocations: true,
+          items: {
+            include: {
+              product: true,
+              dispatchItems: true,
+              OMBrand: true,
+            },
+          },
+          dispatchOrders: {
+            include: {
+              logisticsPartner: true,
+              deliveryLocation: true,
+              items: {
+                include: {
+                  purchaseOrderItem: {
+                    include: {
+                      product: true,
+                      OMBrand: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!po) return null;
+
+      return {
+        ...po,
+        poDate: po.poDate?.toISOString() || null,
+        estimateDate: po.estimateDate?.toISOString() || null,
+        poReceivedDate: po.poReceivedDate?.toISOString() || null,
+        createdAt: po.createdAt.toISOString(),
+        updatedAt: po.updatedAt.toISOString(),
+        client: po.client
+          ? {
+              ...po.client,
+              createdAt: po.client.createdAt.toISOString(),
+              updatedAt: po.client.updatedAt.toISOString(),
+            }
+          : null,
+        items: po.items.map((i) => ({
+          ...i,
+          createdAt: i.createdAt.toISOString(),
+          updatedAt: i.updatedAt.toISOString(),
+          dispatchItems: (i.dispatchItems || []).map((d) => ({
+            ...d,
+            createdAt: d.createdAt.toISOString(),
+            updatedAt: d.updatedAt.toISOString(),
+          })),
+        })),
+        dispatchOrders: po.dispatchOrders.map((d) => ({
+          ...d,
+          expectedDeliveryDate: d.expectedDeliveryDate?.toISOString() || null,
+          dispatchDate: d.dispatchDate?.toISOString() || null,
+          deliveryDate: d.deliveryDate?.toISOString() || null,
+          createdAt: d.createdAt.toISOString(),
+          updatedAt: d.updatedAt.toISOString(),
+        })),
+      } as any as OMPurchaseOrder;
+    },
+    [`om-purchase-order-${id}`],
+    { tags: ["om-purchase-orders"], revalidate: 3600 }
+  )(id);
+}
+
+export async function getOMDispatchById(id: string): Promise<OMDispatchOrder | null> {
+  return unstable_cache(
+    async (dispatchId: string) => {
+      const dispatch = await prisma.oMDispatchOrder.findUnique({
+        where: { id: dispatchId },
+        include: {
+          purchaseOrder: {
+            include: {
+              client: true,
+              deliveryLocations: true,
+            },
+          },
+          logisticsPartner: true,
+          deliveryLocation: true,
+          items: {
+            include: {
+              purchaseOrderItem: {
+                include: {
+                  product: true,
+                  OMBrand: true,
+                },
+              },
+            },
+          },
+          shipmentBoxes: {
+            include: {
+              contents: true,
+            },
+          },
+        },
+      });
+
+      if (!dispatch) return null;
+
+      return {
+        ...dispatch,
+        expectedDeliveryDate: dispatch.expectedDeliveryDate?.toISOString() || null,
+        dispatchDate: dispatch.dispatchDate?.toISOString() || null,
+        deliveryDate: dispatch.deliveryDate?.toISOString() || null,
+        invoiceDate: dispatch.invoiceDate?.toISOString() || null,
+        createdAt: dispatch.createdAt.toISOString(),
+        updatedAt: dispatch.updatedAt.toISOString(),
+        purchaseOrder: dispatch.purchaseOrder
+          ? {
+              ...dispatch.purchaseOrder,
+              poDate: dispatch.purchaseOrder.poDate?.toISOString() || null,
+              estimateDate: dispatch.purchaseOrder.estimateDate?.toISOString() || null,
+              createdAt: dispatch.purchaseOrder.createdAt.toISOString(),
+              updatedAt: dispatch.purchaseOrder.updatedAt.toISOString(),
+              client: dispatch.purchaseOrder.client
+                ? {
+                    ...dispatch.purchaseOrder.client,
+                    createdAt: dispatch.purchaseOrder.client.createdAt.toISOString(),
+                    updatedAt: dispatch.purchaseOrder.client.updatedAt.toISOString(),
+                  }
+                : null,
+            }
+          : null,
+          items: dispatch.items.map((i) => ({
+            ...i,
+            createdAt: i.createdAt.toISOString(),
+            updatedAt: i.updatedAt.toISOString(),
+            purchaseOrderItem: i.purchaseOrderItem ? {
+              ...i.purchaseOrderItem,
+              createdAt: i.purchaseOrderItem.createdAt.toISOString(),
+              updatedAt: i.purchaseOrderItem.updatedAt.toISOString(),
+              product: i.purchaseOrderItem.product ? {
+                ...i.purchaseOrderItem.product,
+                createdAt: i.purchaseOrderItem.product.createdAt.toISOString(),
+                updatedAt: i.purchaseOrderItem.product.updatedAt.toISOString(),
+              } : null,
+              OMBrand: i.purchaseOrderItem.OMBrand ? {
+                ...i.purchaseOrderItem.OMBrand,
+                createdAt: i.purchaseOrderItem.OMBrand.createdAt.toISOString(),
+                updatedAt: i.purchaseOrderItem.OMBrand.updatedAt.toISOString(),
+              } : null,
+            } : null,
+          })),
+      } as any as OMDispatchOrder;
+    },
+    [`om-dispatch-${id}`],
+    { tags: ["om-dispatch-orders"], revalidate: 3600 }
+  )(id);
+}

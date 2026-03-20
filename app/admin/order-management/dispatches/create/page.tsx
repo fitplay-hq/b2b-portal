@@ -513,6 +513,7 @@ function CreateDispatchForm() {
       if (res.ok) {
         toast.success("Dispatch created successfully");
         revalidateOM(); // Trigger global revalidation
+        router.refresh(); // Refresh server components
         router.push("/admin/order-management/dispatches");
       } else {
         const err = await res.json();

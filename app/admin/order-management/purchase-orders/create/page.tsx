@@ -69,6 +69,7 @@ export default function OMCreatePurchaseOrder() {
       if (res.ok) {
         toast.success("Purchase Order created successfully");
         revalidateOM(); // Trigger global revalidation
+        router.refresh(); // Refresh server components
         router.push("/admin/order-management/purchase-orders");
       } else {
         const err = await res.json();

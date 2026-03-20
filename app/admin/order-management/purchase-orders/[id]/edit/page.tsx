@@ -59,7 +59,7 @@ export default function OMEditPurchaseOrder() {
   const { brands, isLoading: loadingBrands } = useOMBrands();
   
   const { purchaseOrder: poDataResponse, isLoading: loadingPO } = useOMPurchaseOrder(id);
-  const poData = poDataResponse?.data || poDataResponse;
+  const poData = poDataResponse;
   
   const isDataLoading = loadingClients || loadingLocations || loadingProducts || loadingBrands || loadingPO;
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,6 +80,7 @@ export default function OMEditPurchaseOrder() {
       if (res.ok) {
         toast.success("Purchase Order updated successfully");
         revalidateOM();
+        router.refresh(); // Refresh server components
         router.push("/admin/order-management/purchase-orders");
       } else {
         const err = await res.json();

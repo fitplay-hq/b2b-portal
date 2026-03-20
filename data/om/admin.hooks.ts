@@ -4,6 +4,8 @@ import { OMPurchaseOrder, OMDispatchOrder, OMPaginationMeta } from "@/types/orde
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+const EMPTY_ARRAY: any[] = [];
+
 export interface OMResponse<T> {
   success: boolean;
   data: T;
@@ -17,12 +19,12 @@ export function useOMPurchaseOrders(params?: string, options: any = {}) {
   const url = `/api/admin/om/purchase-orders${params ? `?${params}` : ""}`;
   const { data, error, isLoading, mutate } = useSWR<OMResponse<OMPurchaseOrder[]>>(url, fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
     ...options
   });
 
   return {
-    purchaseOrders: data?.data || [],
+    purchaseOrders: data?.data || EMPTY_ARRAY,
     meta: data?.meta,
     error,
     isLoading,
@@ -37,7 +39,7 @@ export function useOMPurchaseOrder(id?: string, options: any = {}) {
   const url = id ? `/api/admin/om/purchase-orders/${id}` : null;
   const { data, error, isLoading, mutate } = useSWR<OMPurchaseOrder>(url, fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
     ...options
   });
 
@@ -56,12 +58,12 @@ export function useOMDispatches(params?: string, options: any = {}) {
   const url = `/api/admin/om/dispatch-orders${params ? `?${params}` : ""}`;
   const { data, error, isLoading, mutate } = useSWR<OMResponse<OMDispatchOrder[]>>(url, fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
     ...options
   });
 
   return {
-    dispatches: data?.data || [],
+    dispatches: data?.data || EMPTY_ARRAY,
     meta: data?.meta,
     error,
     isLoading,
@@ -76,7 +78,7 @@ export function useOMDispatch(id?: string, options: any = {}) {
   const url = id ? `/api/admin/om/dispatch-orders/${id}` : null;
   const { data, error, isLoading, mutate } = useSWR<OMDispatchOrder>(url, fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
     ...options
   });
 
@@ -94,11 +96,11 @@ export function useOMDispatch(id?: string, options: any = {}) {
 export function useOMClients() {
   const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/clients?limit=500", fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
   });
 
   return {
-    clients: data?.data || [],
+    clients: data?.data || EMPTY_ARRAY,
     isLoading,
     error,
   };
@@ -110,11 +112,11 @@ export function useOMClients() {
 export function useOMDeliveryLocations() {
   const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/delivery-locations?limit=500", fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
   });
 
   return {
-    locations: data?.data || [],
+    locations: data?.data || EMPTY_ARRAY,
     isLoading,
     error,
   };
@@ -126,11 +128,11 @@ export function useOMDeliveryLocations() {
 export function useOMLogisticsPartners() {
   const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/logistics-partners?limit=500", fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
   });
 
   return {
-    partners: data?.data || [],
+    partners: data?.data || EMPTY_ARRAY,
     isLoading,
     error,
   };
@@ -143,12 +145,12 @@ export function useOMDeliveryLocationsList(params?: string, options: any = {}) {
   const url = `/api/admin/om/delivery-locations${params ? `?${params}` : ""}`;
   const { data, error, isLoading, mutate } = useSWR<OMResponse<any[]>>(url, fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
     ...options
   });
 
   return {
-    locations: data?.data || [],
+    locations: data?.data || EMPTY_ARRAY,
     meta: data?.meta,
     error,
     isLoading,
@@ -163,12 +165,12 @@ export function useOMLogisticsPartnersList(params?: string, options: any = {}) {
   const url = `/api/admin/om/logistics-partners${params ? `?${params}` : ""}`;
   const { data, error, isLoading, mutate } = useSWR<OMResponse<any[]>>(url, fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
     ...options
   });
 
   return {
-    partners: data?.data || [],
+    partners: data?.data || EMPTY_ARRAY,
     meta: data?.meta,
     error,
     isLoading,
@@ -182,12 +184,12 @@ export function useOMLogisticsPartnersList(params?: string, options: any = {}) {
 export function useOMBrands(options: any = {}) {
   const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/brands?limit=500", fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
     ...options
   });
 
   return {
-    brands: data?.data || [],
+    brands: data?.data || EMPTY_ARRAY,
     isLoading,
     error,
   };
@@ -199,11 +201,11 @@ export function useOMBrands(options: any = {}) {
 export function useOMPONumbers() {
   const { data, error, isLoading } = useSWR<any[]>("/api/admin/om/purchase-orders/options", fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
   });
 
   return {
-    poNumbers: data || [],
+    poNumbers: data || EMPTY_ARRAY,
     isLoading,
     error,
   };
@@ -216,17 +218,34 @@ export function useOMProducts(params?: string, options: any = {}) {
   const url = `/api/admin/om/products${params ? `?${params}` : ""}`;
   const { data, error, isLoading, mutate } = useSWR<OMResponse<any[]>>(url, fetcher, {
     revalidateOnFocus: false,
-    revalidateIfStale: false,
+    revalidateIfStale: true,
     ...options
   });
 
   return {
-    products: data?.data || [],
+    products: data?.data || EMPTY_ARRAY,
     meta: data?.meta,
     error,
     isLoading,
     mutate,
   };
+}
+
+/**
+ * Update the status of a purchase order
+ */
+export async function updateOMPurchaseOrderStatus(id: string, status: string) {
+  try {
+    const res = await fetch(`/api/admin/om/purchase-orders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error("Error updating PO status:", error);
+    return false;
+  }
 }
 
 /**
