@@ -1,6 +1,7 @@
 import useSWR, { useSWRConfig } from "swr";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { OMPurchaseOrder, OMDispatchOrder, OMPaginationMeta } from "@/types/order-management";
+import { type PaginatedResponse } from "@/lib/om-data";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -554,4 +555,36 @@ export function useOMMutate() {
   }, [mutate]);
 
   return { revalidateOM };
+}
+
+/**
+ * Generic SWR cache hook for OM pages.
+ * Uses server-provided `initialData` as SWR fallback so that:
+ * - First load: server data is used immediately (no extra fetch)
+ * - Re-navigation: SWR serves cached data instantly (snappy!)
+ * - Background revalidation keeps data fresh
+ */
+export function useOMSWRCache<T>(
+  apiUrl: string | null,
+  initialData?: PaginatedResponse<T>
+) {
+  const { data, mutate } = useSWR<PaginatedResponse<T>>(
+    apiUrl,
+    fetcher,
+    {
+      fallbackData: initialData,
+      revalidateOnFocus: false,
+      revalidateIfStale: true,
+      dedupingInterval: 0,
+    }
+  );
+
+  // Sync SWR cache when server data changes (after router.refresh)
+  useEffect(() => {
+    if (initialData) {
+      mutate(initialData, false);
+    }
+  }, [initialData, mutate]);
+
+  return data || initialData;
 }

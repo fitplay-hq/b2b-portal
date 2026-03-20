@@ -28,7 +28,7 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { LocationsTable } from "./LocationsTable";
 import { LocationForm } from "./LocationForm";
 import { LocationViewDialog } from "./LocationViewDialog";
-import { useMutateLocations } from "@/data/om/admin.hooks";
+import { useMutateLocations, useOMSWRCache } from "@/data/om/admin.hooks";
 
 interface OMDeliveryLocationsClientProps {
   initialData: PaginatedResponse<OMDeliveryLocation>;
@@ -41,8 +41,10 @@ export function OMDeliveryLocationsClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
+  // SWR cache layer for snappy navigation
+  const cachedData = useOMSWRCache("/api/admin/om/delivery-locations?limit=500", initialData);
 
-  const [locations, setLocations] = useState<OMDeliveryLocation[]>(initialData.data);
+  const [locations, setLocations] = useState<OMDeliveryLocation[]>(cachedData?.data || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locationName, setLocationName] = useState("");
 
@@ -81,12 +83,12 @@ export function OMDeliveryLocationsClient({
 
 
   useEffect(() => {
-    if (initialData.data.length > 0) {
-      setLocations(initialData.data);
-      setCurrentPage(initialData.meta.page);
-      setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    if (cachedData && cachedData.data.length > 0) {
+      setLocations(cachedData.data);
+      setCurrentPage(cachedData.meta.page);
+      setHasMore(cachedData.meta.page < cachedData.meta.totalPages);
     }
-  }, [initialData]);
+  }, [cachedData]);
 
   const loadMore = async () => {
     if (isFetchingMore || !hasMore) return;

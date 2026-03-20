@@ -24,7 +24,8 @@ import { POTable } from "./POTable";
 import { POItemTable } from "./POItemTable";
 import { Grid3x3, Table as TableIcon } from "lucide-react";
 import { 
-  useMutatePurchaseOrders
+  useMutatePurchaseOrders,
+  useOMSWRCache
 } from "@/data/om/admin.hooks";
 
 const PO_STATUS_LABELS: Record<string, string> = {
@@ -52,6 +53,8 @@ export function OMPurchaseOrdersClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   
+  // SWR cache layer for snappy navigation
+  const cachedData = useOMSWRCache("/api/admin/om/purchase-orders?limit=500", initialData);
 
   // 2. Fetch options via SWR
 
@@ -66,9 +69,9 @@ export function OMPurchaseOrdersClient({
     (searchParams.get("view") as "client" | "item") || "client"
   );
 
-  const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>(initialData?.data || []);
-  const [currentPage, setCurrentPage] = useState(initialData?.meta.page || 1);
-  const [hasMore, setHasMore] = useState(initialData ? initialData.meta.page < initialData.meta.totalPages : false);
+  const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>(cachedData?.data || []);
+  const [currentPage, setCurrentPage] = useState(cachedData?.meta.page || 1);
+  const [hasMore, setHasMore] = useState(cachedData ? cachedData.meta.page < cachedData.meta.totalPages : false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
 
@@ -131,13 +134,13 @@ export function OMPurchaseOrdersClient({
 
 
   useEffect(() => {
-    // Initial sync from server data (Fresh from router.refresh() or initial load)
-    if (initialData) {
-      setPurchaseOrders(initialData.data);
-      setCurrentPage(initialData.meta.page);
-      setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    // Sync from cached/server data (Fresh from router.refresh() or SWR cache)
+    if (cachedData) {
+      setPurchaseOrders(cachedData.data);
+      setCurrentPage(cachedData.meta.page);
+      setHasMore(cachedData.meta.page < cachedData.meta.totalPages);
     }
-  }, [initialData]);
+  }, [cachedData]);
 
   const loadMore = async () => {
     if (isFetchingMore || !hasMore) return;

@@ -24,7 +24,7 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { PartnersTable } from "./PartnersTable";
 import { PartnerForm } from "./PartnerForm";
 import { PartnerViewDialog } from "./PartnerViewDialog";
-import { useMutatePartners } from "@/data/om/admin.hooks";
+import { useMutatePartners, useOMSWRCache } from "@/data/om/admin.hooks";
 
 interface OMLogisticsPartnersClientProps {
   initialData: PaginatedResponse<OMLogisticsPartner>;
@@ -37,8 +37,10 @@ export function OMLogisticsPartnersClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
+  // SWR cache layer for snappy navigation
+  const cachedData = useOMSWRCache("/api/admin/om/logistics-partners?limit=500", initialData);
 
-  const [partners, setPartners] = useState<OMLogisticsPartner[]>(initialData.data);
+  const [partners, setPartners] = useState<OMLogisticsPartner[]>(cachedData?.data || []);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const { savePartner, deletePartner } = useMutatePartners();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -80,12 +82,12 @@ export function OMLogisticsPartnersClient({
 
 
   useEffect(() => {
-    if (initialData.data.length > 0) {
-      setPartners(initialData.data);
-      setCurrentPage(initialData.meta.page);
-      setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    if (cachedData && cachedData.data.length > 0) {
+      setPartners(cachedData.data);
+      setCurrentPage(cachedData.meta.page);
+      setHasMore(cachedData.meta.page < cachedData.meta.totalPages);
     }
-  }, [initialData]);
+  }, [cachedData]);
 
   const loadMore = async () => {
     if (isFetchingMore || !hasMore) return;

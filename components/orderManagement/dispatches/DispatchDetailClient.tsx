@@ -24,10 +24,9 @@ import {
   getDispatchStatusVisuals,
 } from "@/types/order-management";
 import { useOMDispatch } from "@/data/om/admin.hooks";
-import { useState, useEffect } from "react";
 
 interface DispatchDetailClientProps {
-  initialData: OMDispatchOrder;
+  initialData?: OMDispatchOrder;
 }
 
 export default function DispatchDetailClient({ initialData }: DispatchDetailClientProps) {
@@ -36,24 +35,11 @@ export default function DispatchDetailClient({ initialData }: DispatchDetailClie
   
   // Use SWR for background updates and manual mutations
   const { dispatch: swrData, isLoading, mutate } = useOMDispatch(id, {
-    fallbackData: initialData
+    ...(initialData ? { fallbackData: initialData } : {})
   });
 
-  const [dispatch, setDispatch] = useState<OMDispatchOrder>(initialData);
-
-  // Sync with initialData (from server refresh)
-  useEffect(() => {
-    if (initialData) {
-      setDispatch(initialData);
-    }
-  }, [initialData]);
-
-  // Sync with SWR data (for background updates)
-  useEffect(() => {
-    if (swrData) {
-      setDispatch(swrData);
-    }
-  }, [swrData]);
+  // Use the best available data source: SWR > initialData
+  const dispatch = swrData || initialData || null;
 
   if (!dispatch && isLoading) {
     return (

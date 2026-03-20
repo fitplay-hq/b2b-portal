@@ -18,7 +18,7 @@ import { type PaginatedResponse } from "@/lib/om-data";
 import { ITEM_SORT_OPTIONS } from "@/constants/om-sort-options";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
-import { useMutateItems } from "@/data/om/admin.hooks";
+import { useMutateItems, useOMSWRCache } from "@/data/om/admin.hooks";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { ItemsTable } from "./ItemsTable";
 import { ItemForm } from "./ItemForm";
@@ -52,8 +52,11 @@ export function OMItemsClient({ initialData, initialBrands }: OMItemsClientProps
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
+  // SWR cache layer for snappy navigation
+  const cachedData = useOMSWRCache("/api/admin/om/products?limit=500", initialData);
+
   // 1. Initial State Syncing
-  const [items, setItems] = useState<OMProduct[]>(initialData.data);
+  const [items, setItems] = useState<OMProduct[]>(cachedData?.data || []);
   const [brands, setBrands] = useState<OMBrand[]>(initialBrands.data || []);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const { saveItem, deleteItem } = useMutateItems();
@@ -98,10 +101,12 @@ export function OMItemsClient({ initialData, initialBrands }: OMItemsClientProps
 
   // 3. LAYER 3: Revalidation Handlers (Prop Sync)
   useEffect(() => {
-    setItems(initialData.data);
-    setCurrentPage(initialData.meta.page);
-    setHasMore(initialData.meta.page < initialData.meta.totalPages);
-  }, [initialData]);
+    if (cachedData) {
+      setItems(cachedData.data);
+      setCurrentPage(cachedData.meta.page);
+      setHasMore(cachedData.meta.page < cachedData.meta.totalPages);
+    }
+  }, [cachedData]);
 
   useEffect(() => {
     setBrands(initialBrands.data || []);

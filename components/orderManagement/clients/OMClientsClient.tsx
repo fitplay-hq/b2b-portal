@@ -17,7 +17,7 @@ import { type PaginatedResponse } from "@/lib/om-data";
 import { CLIENT_SORT_OPTIONS } from "@/constants/om-sort-options";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
-import { useMutateClients } from "@/data/om/admin.hooks";
+import { useMutateClients, useOMSWRCache } from "@/data/om/admin.hooks";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { ClientsTable } from "./ClientsTable";
 import { ClientViewDialog } from "./ClientViewDialog";
@@ -31,7 +31,10 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  const [clients, setClients] = useState<OMClient[]>(initialData.data);
+  // SWR cache layer for snappy navigation
+  const cachedData = useOMSWRCache("/api/admin/om/clients?limit=500", initialData);
+
+  const [clients, setClients] = useState<OMClient[]>(cachedData?.data || []);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const { saveClient, deleteClient } = useMutateClients();
@@ -73,10 +76,12 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
 
 
   useEffect(() => {
-    setClients(initialData.data);
-    setCurrentPage(initialData.meta.page);
-    setHasMore(initialData.meta.page < initialData.meta.totalPages);
-  }, [initialData]);
+    if (cachedData) {
+      setClients(cachedData.data);
+      setCurrentPage(cachedData.meta.page);
+      setHasMore(cachedData.meta.page < cachedData.meta.totalPages);
+    }
+  }, [cachedData]);
 
   const loadMore = useCallback(async () => {
     if (isFetchingMore || !hasMore) return;

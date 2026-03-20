@@ -6,6 +6,7 @@ import { OMDataTable } from "@/components/orderManagement/shared/OMDataTable";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
+import { useOMSWRCache } from "@/data/om/admin.hooks";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
@@ -32,7 +33,10 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  const [brands, setBrands] = useState<OMBrand[]>(initialData.data);
+  // SWR cache layer for snappy navigation
+  const cachedData = useOMSWRCache("/api/admin/om/brands?limit=500", initialData);
+
+  const [brands, setBrands] = useState<OMBrand[]>(cachedData?.data || []);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [brandName, setBrandName] = useState("");
@@ -78,10 +82,12 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
 
 
   useEffect(() => {
-    setBrands(initialData.data);
-    setCurrentPage(initialData.meta.page);
-    setHasMore(initialData.meta.page < initialData.meta.totalPages);
-  }, [initialData]);
+    if (cachedData) {
+      setBrands(cachedData.data);
+      setCurrentPage(cachedData.meta.page);
+      setHasMore(cachedData.meta.page < cachedData.meta.totalPages);
+    }
+  }, [cachedData]);
 
   const loadMore = async () => {
     if (isFetchingMore || !hasMore) return;

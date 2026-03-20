@@ -27,7 +27,8 @@ import { DispatchItemTable } from "./DispatchItemTable";
 import { Grid3x3, Table as TableIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
-  useMutateDispatches
+  useMutateDispatches,
+  useOMSWRCache
 } from "@/data/om/admin.hooks";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 
@@ -52,6 +53,8 @@ export function OMDispatchesClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
+  // SWR cache layer for snappy navigation
+  const cachedData = useOMSWRCache("/api/admin/om/dispatch-orders?limit=50", initialData);
 
   // 2. Fetch options via SWR
 
@@ -69,19 +72,19 @@ export function OMDispatchesClient({
     (searchParams.get("view") as "client" | "item") || "client"
   );
 
-  const [dispatches, setDispatches] = useState<OMDispatchOrder[]>(initialData?.data || []);
-  const [currentPage, setCurrentPage] = useState(initialData?.meta.page || 1);
-  const [hasMore, setHasMore] = useState(initialData ? initialData.meta.page < initialData.meta.totalPages : false);
+  const [dispatches, setDispatches] = useState<OMDispatchOrder[]>(cachedData?.data || []);
+  const [currentPage, setCurrentPage] = useState(cachedData?.meta.page || 1);
+  const [hasMore, setHasMore] = useState(cachedData ? cachedData.meta.page < cachedData.meta.totalPages : false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  // Sync initialData to local state (for router.refresh() or initial load)
+  // Sync from cached/server data (for router.refresh() or SWR cache)
   useEffect(() => {
-    if (initialData) {
-      setDispatches(initialData.data);
-      setCurrentPage(initialData.meta.page);
-      setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    if (cachedData) {
+      setDispatches(cachedData.data);
+      setCurrentPage(cachedData.meta.page);
+      setHasMore(cachedData.meta.page < cachedData.meta.totalPages);
     }
-  }, [initialData]);
+  }, [cachedData]);
 
 
   // Helper to update URL
