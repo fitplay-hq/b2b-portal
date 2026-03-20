@@ -138,7 +138,7 @@ export const DispatchesTable = memo(function DispatchesTable({
           </TableCell>
           <TableCell className="px-3">{dispatch.purchaseOrder?.poNumber || "N/A"}</TableCell>
           <TableCell className="px-3">{dispatch.purchaseOrder?.client?.name || "N/A"}</TableCell>
-          <TableCell className="text-left px-3">{dispatch._totalQty}</TableCell>
+          <TableCell className="text-left px-3">{dispatch.totalQuantity || 0}</TableCell>
           <TableCell className="px-3">{dispatch.logisticsPartner?.name || "N/A"}</TableCell>
           <TableCell className="font-mono text-sm px-3 max-w-32 wrap-break-word">
             {dispatch.docketNumber || "N/A"}

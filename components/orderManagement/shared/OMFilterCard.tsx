@@ -35,7 +35,6 @@ interface OMFilterCardProps {
 }
 
 export function OMFilterCard({
-  title,
   subtitle: customSubtitle,
   filteredCount,
   totalCount,

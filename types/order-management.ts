@@ -136,6 +136,8 @@ export interface OMPurchaseOrderItem {
   };
   OMBrand?: OMBrand | null;
   dispatchItems?: { quantity: number }[];
+  dispatchedQuantity?: number;
+  remainingQuantity?: number;
 }
 
 export interface OMDispatchOrderItem {
@@ -166,6 +168,7 @@ export interface OMDispatchOrder {
   dispatchDate?: string;
   deliveryDate?: string;
   status: OMDispatchStatus;
+  totalQuantity?: number;
   items?: OMDispatchOrderItem[];
   shipmentBoxes?: OMShipmentBox[];
   purchaseOrder?: {
@@ -199,6 +202,8 @@ export interface OMPurchaseOrder {
   grandTotal: number;
   subtotal?: number;
   totalQuantity?: number;
+  dispatchedQuantity?: number;
+  remainingQuantity?: number;
   items?: OMPurchaseOrderItem[];
   dispatchOrders?: OMDispatchOrder[];
   client?: OMClient;

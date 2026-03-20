@@ -117,9 +117,9 @@ export const POTable = memo(function POTable({
             )}
           </TableCell>
           <TableCell>{po.client?.name || "N/A"}</TableCell>
-          <TableCell className="text-right">{po._totalQty}</TableCell>
-          <TableCell className="text-right">{po._totalDispatched}</TableCell>
-          <TableCell className="text-right">{po._totalRemaining}</TableCell>
+          <TableCell className="text-right">{po.totalQuantity || 0}</TableCell>
+          <TableCell className="text-right">{po.dispatchedQuantity || 0}</TableCell>
+          <TableCell className="text-right">{po.remainingQuantity || 0}</TableCell>
           <TableCell className="text-right font-medium">
             ₹{po._totalAmount.toLocaleString("en-IN")}
           </TableCell>

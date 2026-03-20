@@ -24,6 +24,7 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { POTable } from "./POTable";
 import { POItemTable } from "./POItemTable";
 import { Grid3x3, Table as TableIcon } from "lucide-react";
+import { useOMPurchaseOrders } from "@/data/om/admin.hooks";
 
 const PO_STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -50,17 +51,33 @@ export function OMPurchaseOrdersClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   
-  const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>(initialData.data);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "po_date_desc");
   const [showFilters, setShowFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(initialData.meta.page);
-  const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [viewType, setViewType] = useState<"client" | "item">(
     (searchParams.get("view") as "client" | "item") || "client"
   );
+
+  const { purchaseOrders: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMPurchaseOrders(searchParams.toString());
+
+  const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>(initialData.data);
+  const [currentPage, setCurrentPage] = useState(initialData.meta.page);
+  const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+  // Sync SWR data to local state for infinite scroll
+  useEffect(() => {
+    if (swrData && swrData.length > 0) {
+      // If page is 1, reset. Otherwise, append (handled by loadMore)
+      if (searchParams.get("page") === "1" || !searchParams.get("page")) {
+        setPurchaseOrders(swrData);
+        if (swrMeta) {
+          setCurrentPage(swrMeta.page);
+          setHasMore(swrMeta.page < swrMeta.totalPages);
+        }
+      }
+    }
+  }, [swrData, swrMeta, searchParams]);
 
   const valueLabels = useMemo(
     () => ({
@@ -121,10 +138,13 @@ export function OMPurchaseOrdersClient({
 
 
   useEffect(() => {
-    setPurchaseOrders(initialData.data);
-    setCurrentPage(initialData.meta.page);
-    setHasMore(initialData.meta.page < initialData.meta.totalPages);
-  }, [initialData]);
+    // Only reset if no SWR data yet (initial load)
+    if (!swrData || swrData.length === 0) {
+      setPurchaseOrders(initialData.data);
+      setCurrentPage(initialData.meta.page);
+      setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    }
+  }, [initialData, swrData]);
 
   const loadMore = async () => {
     if (isFetchingMore || !hasMore) return;
@@ -198,44 +218,28 @@ export function OMPurchaseOrdersClient({
       case "client_desc":
         return (b.client?.name || "").localeCompare(a.client?.name || "");
       case "ordered_asc": {
-        const aQty = a.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
-        const bQty = b.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
-        return aQty - bQty;
+        return (a.totalQuantity || 0) - (b.totalQuantity || 0);
       }
       case "ordered_desc": {
-        const aQty = a.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
-        const bQty = b.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
-        return bQty - aQty;
+        return (b.totalQuantity || 0) - (a.totalQuantity || 0);
       }
       case "dispatched_asc": {
-        const aDisp = a.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0;
-        const bDisp = b.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0;
-        return aDisp - bDisp;
+        return (a.dispatchedQuantity || 0) - (b.dispatchedQuantity || 0);
       }
       case "dispatched_desc": {
-        const aDisp = a.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0;
-        const bDisp = b.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0;
-        return bDisp - aDisp;
+        return (b.dispatchedQuantity || 0) - (a.dispatchedQuantity || 0);
       }
       case "remaining_asc": {
-        const aRem = (a.items?.reduce((sum, i) => sum + i.quantity, 0) || 0) - (a.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0);
-        const bRem = (b.items?.reduce((sum, i) => sum + i.quantity, 0) || 0) - (b.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0);
-        return aRem - bRem;
+        return (a.remainingQuantity || 0) - (b.remainingQuantity || 0);
       }
       case "remaining_desc": {
-        const aRem = (a.items?.reduce((sum, i) => sum + i.quantity, 0) || 0) - (a.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0);
-        const bRem = (b.items?.reduce((sum, i) => sum + i.quantity, 0) || 0) - (b.items?.reduce((sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0), 0) || 0);
-        return bRem - aRem;
+        return (b.remainingQuantity || 0) - (a.remainingQuantity || 0);
       }
       case "value_asc": {
-        const aVal = a.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
-        const bVal = b.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
-        return aVal - bVal;
+        return (a.grandTotal || 0) - (b.grandTotal || 0);
       }
       case "value_desc": {
-        const aVal = a.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
-        const bVal = b.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
-        return bVal - aVal;
+        return (b.grandTotal || 0) - (a.grandTotal || 0);
       }
       case "status_asc":
         return (a.status || "").localeCompare(b.status || "");
@@ -257,12 +261,9 @@ export function OMPurchaseOrdersClient({
 
   const processedData = useMemo(() => {
     return processedDataFiltered.map((po: OMPurchaseOrder) => {
-      const totalQty = po.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
-      const totalDispatched = po.items?.reduce(
-        (sum, i) => sum + (i.dispatchItems?.reduce((acc, d: any) => acc + d.quantity, 0) || 0),
-        0
-      ) || 0;
-      const totalAmount = po.items?.reduce((sum, i) => sum + i.totalAmount, 0) || 0;
+      const totalQty = po.totalQuantity || 0;
+      const totalDispatched = po.dispatchedQuantity || 0;
+      const totalAmount = po.grandTotal || 0;
 
       // FIFO Check for PO level (Client View)
       const otherClientPOs = purchaseOrders
@@ -435,7 +436,7 @@ export function OMPurchaseOrdersClient({
       });
       if (res.ok) {
         toast.success("Purchase Order deleted successfully");
-        router.refresh();
+        mutate(); // Revalidate SWR
         setDeletePo(null);
       } else {
         const error = await res.json();
@@ -595,7 +596,7 @@ export function OMPurchaseOrdersClient({
       {viewType === "client" ? (
         <POTable
           data={processedData}
-          isLoading={isLoading}
+          isLoading={isSWRLoading}
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeletePo}
@@ -604,7 +605,7 @@ export function OMPurchaseOrdersClient({
       ) : (
         <POItemTable
           data={processedItemData}
-          isLoading={isLoading}
+          isLoading={isSWRLoading}
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeletePo}

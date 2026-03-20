@@ -37,8 +37,13 @@ export function OMPurchaseOrderItemsTable({
     setExpandedItemId(expandedItemId === itemId ? null : itemId);
   };
 
+  const subtotal = items?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
+  const totalGst = items?.reduce((sum, item) => sum + (item.gstAmount || 0), 0) || 0;
+  const grandTotal = items?.reduce((sum, item) => sum + (item.totalAmount || 0), 0) || 0;
+
   return (
-    <div className="border rounded-md">
+    <div className="space-y-4">
+      <div className="border rounded-md">
       <Table>
         <TableHeader>
           <TableRow>
@@ -56,16 +61,8 @@ export function OMPurchaseOrderItemsTable({
         </TableHeader>
         <TableBody>
           {items?.map((item: OMPurchaseOrderItem) => {
-            const dispatchedQty =
-              dispatches?.reduce((sum: number, d) => {
-                const dispatchItem = d.items?.find(
-                  (di: OMDispatchOrderItem) =>
-                    di.purchaseOrderItemId === item.id,
-                );
-                return sum + (dispatchItem?.quantity || 0);
-              }, 0) || 0;
-
-            const remainingQty = Math.max(0, item.quantity - dispatchedQty);
+            const dispatchedQty = item.dispatchedQuantity || 0;
+            const remainingQty = item.remainingQuantity || 0;
             const status =
               dispatchedQty === 0
                 ? "Pending"
@@ -173,6 +170,28 @@ export function OMPurchaseOrderItemsTable({
           })}
         </TableBody>
       </Table>
+      </div>
+
+      <div className="space-y-2 max-w-md ml-auto p-4">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground text-sm">Subtotal:</span>
+          <span className="font-medium text-sm">
+            ₹{subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground text-sm">Total GST:</span>
+          <span className="font-medium text-sm">
+            ₹{totalGst.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+        <div className="flex justify-between pt-2 border-t border-muted-foreground/20">
+          <span className="font-bold">Grand Total:</span>
+          <span className="font-bold text-lg text-primary">
+            ₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

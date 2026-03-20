@@ -221,7 +221,7 @@ export function OMDispatchesClient({
     return dispatches
       .map(d => ({
         ...d,
-        _totalQty: d.items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0,
+        _totalQty: d.totalQuantity || 0,
       }))
       .filter((item) => filterFn(item, searchTerm, filters))
       .sort((a, b) => sortFn(a, b, sortBy));

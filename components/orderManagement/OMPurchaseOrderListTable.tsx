@@ -112,27 +112,10 @@ export function OMPurchaseOrderListTable({
             </TableRow>
           ) : (
             purchaseOrders.map((po) => {
-              const totalQty =
-                po.items?.reduce(
-                  (sum: number, i: OMPurchaseOrderItem) => sum + i.quantity,
-                  0,
-                ) || 0;
-              const totalDispatched =
-                po.items?.reduce(
-                  (sum: number, i: OMPurchaseOrderItem) =>
-                    sum +
-                    (i.dispatchItems?.reduce(
-                      (acc: number, d: any) => acc + d.quantity,
-                      0,
-                    ) || 0),
-                  0,
-                ) || 0;
-              const totalRemaining = totalQty - totalDispatched;
-              const totalAmount =
-                po.items?.reduce(
-                  (sum: number, i: OMPurchaseOrderItem) => sum + i.totalAmount,
-                  0,
-                ) || 0;
+              const totalQty = po.totalQuantity || 0;
+              const totalDispatched = po.dispatchedQuantity || 0;
+              const totalRemaining = po.remainingQuantity || 0;
+              const totalAmount = po.grandTotal || 0;
 
               return (
                 <TableRow
