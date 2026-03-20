@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const limit = parseInt(searchParams.get("limit") || "500");
     const search = searchParams.get("search") || searchParams.get("q") || "";
     const clientId = searchParams.get("clientId") || undefined;
     const status = searchParams.get("status") || undefined;

@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
 
       const previouslyDispatched =
         dispatchedMap.get(item.purchaseOrderItemId) ?? 0;
-      const remaining = poItem.quantity - previouslyDispatched;
+      const remaining = (poItem.quantity || 0) - previouslyDispatched;
 
       if (item.quantity > remaining) {
         return NextResponse.json(
@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
       );
 
       const fullyDispatched = purchaseOrder.items.every(
-        (poItem) => (updatedDispatchMap.get(poItem.id) ?? 0) >= poItem.quantity,
+        (poItem) => (updatedDispatchMap.get(poItem.id) ?? 0) >= (poItem.quantity || 0),
       );
 
       const newStatus: OMPoStatus = fullyDispatched
@@ -293,7 +293,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const limit = parseInt(searchParams.get("limit") || "500");
     const search = searchParams.get("search") || searchParams.get("q") || "";
     const status = searchParams.get("status");
     const purchaseOrderId = searchParams.get("purchaseOrderId");

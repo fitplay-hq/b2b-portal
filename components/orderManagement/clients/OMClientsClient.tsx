@@ -76,14 +76,14 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
     setHasMore(initialData.meta.page < initialData.meta.totalPages);
   }, [initialData]);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (isFetchingMore || !hasMore) return;
     setIsFetchingMore(true);
     try {
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/clients", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "50");
+      url.searchParams.set("limit", "500");
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
@@ -108,7 +108,17 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
     } finally {
       setIsFetchingMore(false);
     }
-  };
+  }, [currentPage, hasMore, isFetchingMore, searchParams]);
+
+  // Silent background prefetching
+  useEffect(() => {
+    if (hasMore && !isFetchingMore) {
+      const timer = setTimeout(() => {
+        loadMore();
+      }, 2000); // 2 second delay between background fetches
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isFetchingMore, loadMore]);
 
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({

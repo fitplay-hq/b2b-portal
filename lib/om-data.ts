@@ -393,42 +393,48 @@ export async function getOMBrands(params: {
   limit?: number;
   search?: string;
 } = {}): Promise<PaginatedResponse<OMBrand>> {
-  const page = params.page || 1;
-  const limit = params.limit || 50;
-  const skip = (page - 1) * limit;
-  const search = params.search || "";
+  return unstable_cache(
+    async (p) => {
+      const page = p.page || 1;
+      const limit = p.limit || 50;
+      const skip = (page - 1) * limit;
+      const search = p.search || "";
 
-  const where = search
-    ? { name: { contains: search, mode: "insensitive" as const } }
-    : {};
+      const where = search
+        ? { name: { contains: search, mode: "insensitive" as const } }
+        : {};
 
-  const [brands, total, unfilteredTotal] = await Promise.all([
-    prisma.oMBrand.findMany({
-      where,
-      orderBy: { name: "asc" },
-      skip,
-      take: limit,
-    }),
-    prisma.oMBrand.count({ where }),
-    prisma.oMBrand.count(),
-  ]);
+      const [brands, total, unfilteredTotal] = await Promise.all([
+        prisma.oMBrand.findMany({
+          where,
+          orderBy: { name: "asc" },
+          skip,
+          take: limit,
+        }),
+        prisma.oMBrand.count({ where }),
+        prisma.oMBrand.count(),
+      ]);
 
-  const data = brands.map((b) => ({
-    ...b,
-    createdAt: b.createdAt.toISOString(),
-    updatedAt: b.updatedAt.toISOString(),
-  })) as OMBrand[];
+      const data = brands.map((b) => ({
+        ...b,
+        createdAt: b.createdAt.toISOString(),
+        updatedAt: b.updatedAt.toISOString(),
+      })) as OMBrand[];
 
-  return {
-    data,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      unfilteredTotal,
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          unfilteredTotal,
+        },
+      };
     },
-  };
+    ["om-brands"],
+    { tags: ["om-brands"], revalidate: 3600 }
+  )(params);
 }
 
 export async function getOMClients(params: {
@@ -493,64 +499,70 @@ export async function getOMProducts(params: {
   search?: string;
   brandId?: string;
 } = {}): Promise<PaginatedResponse<OMProduct>> {
-  const page = params.page || 1;
-  const limit = params.limit || 50;
-  const skip = (page - 1) * limit;
-  const search = params.search || "";
+  return unstable_cache(
+    async (p) => {
+      const page = p.page || 1;
+      const limit = p.limit || 50;
+      const skip = (page - 1) * limit;
+      const search = p.search || "";
 
-  const where: any = { isActive: true };
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: "insensitive" as const } },
-      { sku: { contains: search, mode: "insensitive" as const } },
-    ];
-  }
-  if (params.brandId) {
-    where.brands = { some: { id: params.brandId } };
-  }
+      const where: any = { isActive: true };
+      if (search) {
+        where.OR = [
+          { name: { contains: search, mode: "insensitive" as const } },
+          { sku: { contains: search, mode: "insensitive" as const } },
+        ];
+      }
+      if (p.brandId) {
+        where.brands = { some: { id: p.brandId } };
+      }
 
-  const [products, total, unfilteredTotal] = await Promise.all([
-    prisma.oMProduct.findMany({
-      where,
-      include: {
-        brands: true,
-        purchaseOrderItems: {
-          select: { quantity: true },
+      const [products, total, unfilteredTotal] = await Promise.all([
+        prisma.oMProduct.findMany({
+          where,
+          include: {
+            brands: true,
+            purchaseOrderItems: {
+              select: { quantity: true },
+            },
+          },
+          orderBy: { name: "asc" },
+          skip,
+          take: limit,
+        }),
+        prisma.oMProduct.count({ where }),
+        prisma.oMProduct.count(),
+      ]);
+
+      const data = products.map(({ purchaseOrderItems, brands, ...rest }) => ({
+        ...rest,
+        createdAt: rest.createdAt.toISOString(),
+        updatedAt: rest.updatedAt.toISOString(),
+        brands: brands.map((b) => ({
+          ...b,
+          createdAt: b.createdAt.toISOString(),
+          updatedAt: b.updatedAt.toISOString(),
+        })),
+        totalOrdered: purchaseOrderItems.reduce(
+          (sum, item) => sum + (item.quantity || 0),
+          0,
+        ),
+      })) as any as OMProduct[];
+
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          unfilteredTotal,
         },
-      },
-      orderBy: { name: "asc" },
-      skip,
-      take: limit,
-    }),
-    prisma.oMProduct.count({ where }),
-    prisma.oMProduct.count(),
-  ]);
-
-  const data = products.map(({ purchaseOrderItems, brands, ...rest }) => ({
-    ...rest,
-    createdAt: rest.createdAt.toISOString(),
-    updatedAt: rest.updatedAt.toISOString(),
-    brands: brands.map((b) => ({
-      ...b,
-      createdAt: b.createdAt.toISOString(),
-      updatedAt: b.updatedAt.toISOString(),
-    })),
-    totalOrdered: purchaseOrderItems.reduce(
-      (sum, item) => sum + item.quantity,
-      0,
-    ),
-  })) as any as OMProduct[];
-
-  return {
-    data,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      unfilteredTotal,
+      };
     },
-  };
+    ["om-products"],
+    { tags: ["om-products", "om-purchase-orders"], revalidate: 3600 }
+  )(params);
 }
 
 export async function getOMDispatches(params: {
@@ -713,48 +725,54 @@ export async function getOMLogisticsPartners(params: {
   limit?: number;
   search?: string;
 } = {}): Promise<PaginatedResponse<any>> {
-  const page = params.page || 1;
-  const limit = params.limit || 50;
-  const skip = (page - 1) * limit;
-  const search = params.search || "";
+  return unstable_cache(
+    async (p) => {
+      const page = p.page || 1;
+      const limit = p.limit || 50;
+      const skip = (page - 1) * limit;
+      const search = p.search || "";
 
-  const where = search 
-    ? { 
-        OR: [
-          { name: { contains: search, mode: "insensitive" as const } },
-          { contactPerson: { contains: search, mode: "insensitive" as const } },
-          { email: { contains: search, mode: "insensitive" as const } },
-        ]
-      } 
-    : {};
+      const where = search 
+        ? { 
+            OR: [
+              { name: { contains: search, mode: "insensitive" as const } },
+              { contactPerson: { contains: search, mode: "insensitive" as const } },
+              { email: { contains: search, mode: "insensitive" as const } },
+            ]
+          } 
+        : {};
 
-  const [partners, total, unfilteredTotal] = await Promise.all([
-    prisma.oMLogisticsPartner.findMany({
-      where,
-      orderBy: { name: "asc" },
-      skip,
-      take: limit,
-    }),
-    prisma.oMLogisticsPartner.count({ where }),
-    prisma.oMLogisticsPartner.count(),
-  ]);
+      const [partners, total, unfilteredTotal] = await Promise.all([
+        prisma.oMLogisticsPartner.findMany({
+          where,
+          orderBy: { name: "asc" },
+          skip,
+          take: limit,
+        }),
+        prisma.oMLogisticsPartner.count({ where }),
+        prisma.oMLogisticsPartner.count(),
+      ]);
 
-  const data = partners.map((p) => ({
-    ...p,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-  }));
+      const data = partners.map((p) => ({
+        ...p,
+        createdAt: p.createdAt.toISOString(),
+        updatedAt: p.updatedAt.toISOString(),
+      }));
 
-  return {
-    data,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      unfilteredTotal,
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          unfilteredTotal,
+        },
+      };
     },
-  };
+    ["om-logistics-partners"],
+    { tags: ["om-logistics-partners"], revalidate: 3600 }
+  )(params);
 }
 
 export async function getOMDispatchOptions(type: "invoice" | "docket"): Promise<ComboboxOption[]> {

@@ -18,39 +18,21 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Package, TrendingUp, Truck, Box } from "lucide-react";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { formatStatus, formatDisplayDate } from "@/lib/utils";
+import { formatDisplayDate } from "@/lib/utils";
 import {
-  type OMDispatchOrder,
   type OMDispatchOrderItem,
   getDispatchStatusVisuals,
 } from "@/types/order-management";
+import { useOMDispatch } from "@/data/om/admin.hooks";
 
 export default function OMDispatchDetail() {
   const params = useParams();
   const id = params.id as string;
-  const [dispatch, setDispatch] = useState<OMDispatchOrder | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { dispatch, isLoading, mutate } = useOMDispatch(id);
 
   const fetchDispatch = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/admin/om/dispatch-orders/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
-      setDispatch(data);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load dispatch details");
-    } finally {
-      setIsLoading(false);
-    }
+    mutate();
   };
-
-  useEffect(() => {
-    if (id) fetchDispatch();
-  }, [id]);
 
   if (isLoading) {
     return (

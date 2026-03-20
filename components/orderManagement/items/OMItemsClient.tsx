@@ -23,7 +23,6 @@ import { useOMFilters } from "@/hooks/use-om-filters";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { ITEM_SORT_OPTIONS } from "@/constants/om-sort-options";
-import { useOMCounts } from "@/hooks/use-om-counts";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
@@ -107,14 +106,14 @@ export function OMItemsClient({
     setHasMore(initialData.meta.page < initialData.meta.totalPages);
   }, [initialData]);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (isFetchingMore || !hasMore) return;
     setIsFetchingMore(true);
     try {
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/products", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "50");
+      url.searchParams.set("limit", "500");
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
@@ -139,7 +138,17 @@ export function OMItemsClient({
     } finally {
       setIsFetchingMore(false);
     }
-  };
+  }, [currentPage, hasMore, isFetchingMore, searchParams]);
+
+  // Silent background prefetching
+  useEffect(() => {
+    if (hasMore && !isFetchingMore) {
+      const timer = setTimeout(() => {
+        loadMore();
+      }, 2000); // 2 second delay between background fetches
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isFetchingMore, loadMore]);
 
   const valueLabels = useMemo(
     () => ({

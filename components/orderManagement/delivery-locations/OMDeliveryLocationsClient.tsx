@@ -334,13 +334,6 @@ export function OMDeliveryLocationsClient({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push("/admin/order-management")}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
         <OMPageHeader
           title="Delivery Locations"
           description="Manage city-based delivery locations for purchase orders"

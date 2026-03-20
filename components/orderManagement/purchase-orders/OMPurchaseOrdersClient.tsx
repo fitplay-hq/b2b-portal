@@ -58,7 +58,9 @@ export function OMPurchaseOrdersClient({
     (searchParams.get("view") as "client" | "item") || "client"
   );
 
-  const { purchaseOrders: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMPurchaseOrders(searchParams.toString());
+  const { purchaseOrders: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMPurchaseOrders(searchParams.toString(), {
+    fallbackData: initialData
+  });
 
   const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>(initialData.data);
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
@@ -153,7 +155,7 @@ export function OMPurchaseOrdersClient({
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/purchase-orders", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "50");
+      url.searchParams.set("limit", "500");
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
@@ -165,8 +167,8 @@ export function OMPurchaseOrdersClient({
       if (res.ok) {
         const result: PaginatedResponse<OMPurchaseOrder> = await res.json();
         setPurchaseOrders((prev) => {
-          const existingIds = new Set(prev.map(po => po.id));
-          const uniqueNewData = result.data.filter(po => !existingIds.has(po.id));
+          const existingIds = new Set(prev.map(p => p.id));
+          const uniqueNewData = result.data.filter(p => !existingIds.has(p.id));
           return [...prev, ...uniqueNewData];
         });
         setCurrentPage(result.meta.page);
@@ -179,6 +181,16 @@ export function OMPurchaseOrdersClient({
       setIsFetchingMore(false);
     }
   };
+
+  // Silent background prefetching
+  useEffect(() => {
+    if (hasMore && !isFetchingMore) {
+      const timer = setTimeout(() => {
+        loadMore();
+      }, 2000); // 2 second delay between background fetches
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isFetchingMore]);
 
   const filterFn = useCallback((po: OMPurchaseOrder, searchTerm: string, filters: Record<string, any>) => {
     const q = searchTerm.toLowerCase().trim();
@@ -596,7 +608,7 @@ export function OMPurchaseOrdersClient({
       {viewType === "client" ? (
         <POTable
           data={processedData}
-          isLoading={isSWRLoading}
+          isLoading={isSWRLoading && purchaseOrders.length === 0}
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeletePo}
@@ -605,7 +617,7 @@ export function OMPurchaseOrdersClient({
       ) : (
         <POItemTable
           data={processedItemData}
-          isLoading={isSWRLoading}
+          isLoading={isSWRLoading && purchaseOrders.length === 0}
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeletePo}

@@ -12,9 +12,13 @@ interface OMResponse<T> {
 /**
  * Hook to fetch all purchase orders
  */
-export function useOMPurchaseOrders(params?: string) {
+export function useOMPurchaseOrders(params?: string, options: any = {}) {
   const url = `/api/admin/om/purchase-orders${params ? `?${params}` : ""}`;
-  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMPurchaseOrder[]>>(url, fetcher);
+  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMPurchaseOrder[]>>(url, fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+    ...options
+  });
 
   return {
     purchaseOrders: data?.data || [],
@@ -28,9 +32,13 @@ export function useOMPurchaseOrders(params?: string) {
 /**
  * Hook to fetch a single purchase order by ID
  */
-export function useOMPurchaseOrder(id?: string) {
+export function useOMPurchaseOrder(id?: string, options: any = {}) {
   const url = id ? `/api/admin/om/purchase-orders/${id}` : null;
-  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMPurchaseOrder>>(url, fetcher);
+  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMPurchaseOrder>>(url, fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+    ...options
+  });
 
   return {
     purchaseOrder: data?.data,
@@ -43,9 +51,13 @@ export function useOMPurchaseOrder(id?: string) {
 /**
  * Hook to fetch all dispatch orders
  */
-export function useOMDispatches(params?: string) {
+export function useOMDispatches(params?: string, options: any = {}) {
   const url = `/api/admin/om/dispatch-orders${params ? `?${params}` : ""}`;
-  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMDispatchOrder[]>>(url, fetcher);
+  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMDispatchOrder[]>>(url, fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+    ...options
+  });
 
   return {
     dispatches: data?.data || [],
@@ -59,9 +71,13 @@ export function useOMDispatches(params?: string) {
 /**
  * Hook to fetch a single dispatch order by ID
  */
-export function useOMDispatch(id?: string) {
+export function useOMDispatch(id?: string, options: any = {}) {
   const url = id ? `/api/admin/om/dispatch-orders/${id}` : null;
-  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMDispatchOrder>>(url, fetcher);
+  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMDispatchOrder>>(url, fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+    ...options
+  });
 
   return {
     dispatch: data?.data,

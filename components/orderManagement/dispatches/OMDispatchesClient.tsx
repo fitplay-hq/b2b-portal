@@ -27,6 +27,7 @@ import { DispatchesTable } from "./DispatchesTable";
 import { DispatchItemTable } from "./DispatchItemTable";
 import { Grid3x3, Table as TableIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useOMDispatches } from "@/data/om/admin.hooks";
 
 interface OMDispatchesClientProps {
   initialData: PaginatedResponse<OMDispatchOrder>;
@@ -47,17 +48,35 @@ export function OMDispatchesClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  const [dispatches, setDispatches] = useState<OMDispatchOrder[]>(initialData.data);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "dispatch_date_desc");
   const [showFilters, setShowFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(initialData.meta.page);
-  const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [viewType, setViewType] = useState<"client" | "item">(
     (searchParams.get("view") as "client" | "item") || "client"
   );
+
+  const { dispatches: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMDispatches(searchParams.toString(), {
+    fallbackData: initialData
+  });
+
+  const [dispatches, setDispatches] = useState<OMDispatchOrder[]>(initialData.data);
+  const [currentPage, setCurrentPage] = useState(initialData.meta.page);
+  const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+  // Sync SWR data to local state for infinite scroll
+  useEffect(() => {
+    if (swrData && swrData.length > 0) {
+      // If page is 1, reset. Otherwise, append (handled by loadMore)
+      if (searchParams.get("page") === "1" || !searchParams.get("page")) {
+        setDispatches(swrData);
+        if (swrMeta) {
+          setCurrentPage(swrMeta.page);
+          setHasMore(swrMeta.page < swrMeta.totalPages);
+        }
+      }
+    }
+  }, [swrData, swrMeta, searchParams]);
 
   // Helper to update URL
   const updateUrl = useCallback((newParams: Record<string, string | null>) => {
@@ -86,10 +105,13 @@ export function OMDispatchesClient({
 
 
   useEffect(() => {
-    setDispatches(initialData.data);
-    setCurrentPage(initialData.meta.page);
-    setHasMore(initialData.meta.page < initialData.meta.totalPages);
-  }, [initialData]);
+    // Only reset if no SWR data yet (initial load)
+    if (!swrData || swrData.length === 0) {
+      setDispatches(initialData.data);
+      setCurrentPage(initialData.meta.page);
+      setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    }
+  }, [initialData, swrData]);
 
   const loadMore = async () => {
     if (isFetchingMore || !hasMore) return;
@@ -124,6 +146,16 @@ export function OMDispatchesClient({
       setIsFetchingMore(false);
     }
   };
+
+  // Silent background prefetching
+  useEffect(() => {
+    if (hasMore && !isFetchingMore) {
+      const timer = setTimeout(() => {
+        loadMore();
+      }, 2000); // 2 second delay between background fetches
+      return () => clearTimeout(timer);
+    }
+  }, [hasMore, isFetchingMore]);
 
   const { filters, setFilters, resetFilters, activeFilters, removeFilter } =
     useOMFilters({
@@ -373,7 +405,7 @@ export function OMDispatchesClient({
       });
       if (res.ok) {
         toast.success("Dispatch Order deleted successfully");
-        router.refresh();
+        mutate(); // Revalidate SWR
         setDeleteDispatchId(null);
       } else {
         const error = await res.json();
@@ -498,7 +530,7 @@ export function OMDispatchesClient({
       {viewType === "client" ? (
         <DispatchesTable
           data={processedData}
-          isLoading={isLoading}
+          isLoading={isSWRLoading && dispatches.length === 0}
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeleteDispatchId}
@@ -508,7 +540,7 @@ export function OMDispatchesClient({
       ) : (
         <DispatchItemTable
           data={processedItemData}
-          isLoading={isLoading}
+          isLoading={isSWRLoading && dispatches.length === 0}
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeleteDispatchId}
