@@ -9,12 +9,13 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OMPurchaseOrderForm } from "@/components/orderManagement/OMPurchaseOrderForm";
-import type {
-  OMClient,
-  OMDeliveryLocation,
-  OMProduct,
-  OMBrand,
-} from "@/types/order-management";
+import { 
+  useOMMutate, 
+  useOMClients, 
+  useOMDeliveryLocations, 
+  useOMProducts, 
+  useOMBrands 
+} from "@/data/om/admin.hooks";
 
 function LoadingSkeleton() {
   return (
@@ -42,51 +43,19 @@ function LoadingSkeleton() {
 
 export default function OMCreatePurchaseOrder() {
   const router = useRouter();
-  const [clients, setClients] = useState<OMClient[]>([]);
-  const [locations, setLocations] = useState<OMDeliveryLocation[]>([]);
-  const [products, setProducts] = useState<OMProduct[]>([]);
-  const [brands, setBrands] = useState<OMBrand[]>([]);
-  const [isDataLoading, setIsDataLoading] = useState(true);
+  const { revalidateOM } = useOMMutate();
+  
+  const { clients, isLoading: loadingClients } = useOMClients();
+  const { locations, isLoading: loadingLocations } = useOMDeliveryLocations();
+  const { products, isLoading: loadingProducts } = useOMProducts("limit=1000"); // High limit for options
+  const { brands, isLoading: loadingBrands } = useOMBrands();
+  
+  const isDataLoading = loadingClients || loadingLocations || loadingProducts || loadingBrands;
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchData = async (isSilent = false) => {
-    if (!isSilent) setIsDataLoading(true);
-    try {
-      const [clientsRes, locationsRes, productsRes, brandsRes] =
-        await Promise.all([
-          fetch("/api/admin/om/clients"),
-          fetch("/api/admin/om/delivery-locations"),
-          fetch("/api/admin/om/products"),
-          fetch("/api/admin/om/brands"),
-        ]);
-
-      if (clientsRes.ok) {
-        const res = await clientsRes.json();
-        setClients(res.data || res);
-      }
-      if (locationsRes.ok) {
-        const res = await locationsRes.json();
-        setLocations(res.data || res);
-      }
-      if (productsRes.ok) {
-        const res = await productsRes.json();
-        setProducts(res.data || res);
-      }
-      if (brandsRes.ok) {
-        const res = await brandsRes.json();
-        setBrands(res.data || res);
-      }
-    } catch (err) {
-      console.error("Error fetching master data:", err);
-      toast.error("Failed to load form data");
-    } finally {
-      if (!isSilent) setIsDataLoading(false);
-    }
+  
+  const refreshData = async () => {
+    revalidateOM(); // Simple wrapper to invalidate caches
   };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const handleSubmit = async (payload: any) => {
     setIsSubmitting(true);
@@ -99,6 +68,7 @@ export default function OMCreatePurchaseOrder() {
 
       if (res.ok) {
         toast.success("Purchase Order created successfully");
+        revalidateOM(); // Trigger global revalidation
         router.push("/admin/order-management/purchase-orders");
       } else {
         const err = await res.json();
@@ -142,7 +112,7 @@ export default function OMCreatePurchaseOrder() {
             brands={brands}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
-            onRefreshData={fetchData}
+            onRefreshData={refreshData}
           />
         )}
       </div>

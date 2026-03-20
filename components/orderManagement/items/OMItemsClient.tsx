@@ -29,6 +29,7 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { ItemsTable } from "./ItemsTable";
 import { ItemForm } from "./ItemForm";
 import { ItemViewDialog } from "./ItemViewDialog";
+import { useOMProducts, useOMBrands, useOMMutate } from "@/data/om/admin.hooks";
 
 function skuBrandPart(brandName: string | undefined): string {
   return brandName
@@ -59,9 +60,6 @@ export function OMItemsClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  const [items, setItems] = useState<OMProduct[]>(initialData.data);
-  const [brands, setBrands] = useState<OMBrand[]>(initialBrands.data);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -70,6 +68,14 @@ export function OMItemsClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
+  
+  // SWR Hook for products - used for the core list and data meta
+  const { products: swrProducts, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMProducts(searchParams.toString());
+  const { brands: swrBrands } = useOMBrands();
+  const { revalidateOM } = useOMMutate();
+
+  const [items, setItems] = useState<OMProduct[]>(initialData.data);
+  const [brands, setBrands] = useState<OMBrand[]>(initialBrands.data || swrBrands || []);
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -100,10 +106,28 @@ export function OMItemsClient({
   }, [searchParams, pathname, router]);
 
 
+  // Sync SWR data to local state for infinite scroll
   useEffect(() => {
-    setItems(initialData.data);
-    setCurrentPage(initialData.meta.page);
-    setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    if (swrProducts && swrProducts.length > 0) {
+      // If page is 1 or not set, reset the list. 
+      // Otherwise search/filters changed and we need the new data.
+      if (searchParams.get("page") === "1" || !searchParams.get("page")) {
+        setItems(swrProducts);
+        if (swrMeta) {
+          setCurrentPage(swrMeta.page);
+          setHasMore(swrMeta.page < swrMeta.totalPages);
+        }
+      }
+    }
+  }, [swrProducts, swrMeta, searchParams]);
+
+  useEffect(() => {
+    // Also keep the initialData effect but maybe it's redundant now
+    if (initialData.data.length > 0) {
+      setItems(initialData.data);
+      setCurrentPage(initialData.meta.page);
+      setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    }
   }, [initialData]);
 
   const loadMore = useCallback(async () => {
@@ -355,7 +379,7 @@ export function OMItemsClient({
         toast.success(`Item ${editingItem ? "updated" : "added"} successfully`);
         setIsAddDialogOpen(false);
         resetForm();
-        router.refresh();
+        revalidateOM(); // Global revalidation
       } else {
         const error = await res.json();
         toast.error(error.error || "Something went wrong");
@@ -403,7 +427,7 @@ export function OMItemsClient({
       });
       if (res.ok) {
         toast.success("Item deleted successfully");
-        router.refresh();
+        revalidateOM(); // Global revalidation
         setIsDeleteDialogOpen(false);
       } else {
         const error = await res.json();
@@ -471,7 +495,7 @@ export function OMItemsClient({
           </Button>
           <OMNewItemDialog
             brands={brands}
-            onItemAdded={() => router.refresh()}
+            onItemAdded={() => revalidateOM()}
             trigger={<Button><Plus className="h-4 w-4 mr-2" />Add Item</Button>}
           />
         </div>
@@ -479,7 +503,7 @@ export function OMItemsClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
+        totalCount={swrMeta?.unfilteredTotal || swrMeta?.total || initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="items"
         searchPlaceholder="Search by name, SKU, or description..."
         searchTerm={searchTerm}
@@ -514,7 +538,7 @@ export function OMItemsClient({
 
       <ItemsTable
         data={processedData}
-        isLoading={isLoading}
+        isLoading={isSWRLoading && items.length === 0}
         sortBy={sortBy}
         onSort={setSortBy}
         onEdit={handleEdit}

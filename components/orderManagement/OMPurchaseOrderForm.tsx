@@ -33,6 +33,7 @@ import {
   OMPoStatus,
 } from "@/types/order-management";
 import { toast } from "sonner";
+import { useOMMutate } from "@/data/om/admin.hooks";
 
 interface OMPurchaseOrderFormProps {
   initialData?: any;
@@ -101,6 +102,7 @@ export function OMPurchaseOrderForm({
   const [nextTempId, setNextTempId] = useState(
     (initialData?.items?.length || 0) + 1,
   );
+  const { revalidateOM } = useOMMutate();
   const fyPrefixRef = useRef(
     initialData?.estimateNumber?.match(/^(FP\/\d{2}-\d{2}\/)/)?.[1] ||
       `FP/${getFinancialYearString()}/`,
@@ -267,6 +269,7 @@ export function OMPurchaseOrderForm({
           gstNumber: "",
           notes: "",
         });
+        revalidateOM();
         toast.success("Client added successfully");
       }
     } finally {
@@ -338,9 +341,10 @@ export function OMPurchaseOrderForm({
                 </div>
                 <OMNewLocationDialog
                   onLocationAdded={(loc) => {
-                    onRefreshData(true).then(() =>
-                      setDeliveryLocationIds((prev) => [...prev, loc.id]),
-                    );
+                    onRefreshData(true).then(() => {
+                      setDeliveryLocationIds((prev) => [...prev, loc.id]);
+                      revalidateOM();
+                    });
                   }}
                 />
               </div>

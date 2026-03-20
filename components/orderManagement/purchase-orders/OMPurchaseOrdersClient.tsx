@@ -27,7 +27,8 @@ import {
   useOMPurchaseOrders, 
   useOMClients, 
   useOMDeliveryLocations, 
-  useOMPONumbers 
+  useOMPONumbers,
+  useOMMutate
 } from "@/data/om/admin.hooks";
 
 const PO_STATUS_LABELS: Record<string, string> = {
@@ -59,6 +60,7 @@ export function OMPurchaseOrdersClient({
   const { purchaseOrders: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMPurchaseOrders(searchParams.toString(), {
     fallbackData: initialData
   });
+  const { revalidateOM } = useOMMutate();
 
   // 2. Fetch options via SWR
   const { clients: clientsRaw } = useOMClients();
@@ -91,7 +93,7 @@ export function OMPurchaseOrdersClient({
 
   // Sync SWR data to local state for infinite scroll
   useEffect(() => {
-    if (swrData && swrData.length > 0) {
+    if (swrData) {
       // If page is 1, reset. Otherwise, append (handled by loadMore)
       if (searchParams.get("page") === "1" || !searchParams.get("page")) {
         setPurchaseOrders(swrData);
@@ -163,7 +165,7 @@ export function OMPurchaseOrdersClient({
 
   useEffect(() => {
     // Only reset if no SWR data yet (initial load)
-    if ((!swrData || swrData.length === 0) && initialData) {
+    if (!swrData && initialData) {
       setPurchaseOrders(initialData.data);
       setCurrentPage(initialData.meta.page);
       setHasMore(initialData.meta.page < initialData.meta.totalPages);
@@ -315,8 +317,7 @@ export function OMPurchaseOrdersClient({
             if (otherDate >= currentPoDate) return false;
             return p.items?.some(oi => {
               if (oi.productId !== item.productId) return false;
-              const rem = oi.quantity - (oi.dispatchItems?.reduce((s, d: any) => s + d.quantity, 0) || 0);
-              return rem > 0;
+              return (oi.remainingQuantity || 0) > 0;
             });
           });
           if (olderPO) {
@@ -344,7 +345,7 @@ export function OMPurchaseOrdersClient({
     
     let items = processedData.flatMap((po: any) =>
       (po.items || []).map((item: any) => {
-        const itemDispatched = item.dispatchItems?.reduce((acc: number, d: any) => acc + d.quantity, 0) || 0;
+        const itemDispatched = item.dispatchedQuantity || 0;
         
         // Item-level FIFO check
         const otherClientPOs = purchaseOrders
@@ -357,8 +358,7 @@ export function OMPurchaseOrdersClient({
           if (otherDate >= currentPoDate) return false;
           return p.items?.some(oi => {
             if (oi.productId !== item.productId) return false;
-            const rem = oi.quantity - (oi.dispatchItems?.reduce((s, d: any) => s + d.quantity, 0) || 0);
-            return rem > 0;
+            return (oi.remainingQuantity || 0) > 0;
           });
         });
 
@@ -470,7 +470,8 @@ export function OMPurchaseOrdersClient({
       });
       if (res.ok) {
         toast.success("Purchase Order deleted successfully");
-        mutate(); // Revalidate SWR
+        revalidateOM(); // Global revalidation
+        router.refresh();
         setDeletePo(null);
       } else {
         const error = await res.json();

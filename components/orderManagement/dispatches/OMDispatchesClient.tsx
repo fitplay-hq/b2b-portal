@@ -32,7 +32,8 @@ import {
   useOMClients, 
   useOMLogisticsPartners, 
   useOMDeliveryLocations,
-  useOMPONumbers
+  useOMPONumbers,
+  useOMMutate
 } from "@/data/om/admin.hooks";
 
 interface OMDispatchesClientProps {
@@ -58,6 +59,7 @@ export function OMDispatchesClient({
   const { dispatches: swrData, meta: swrMeta, isLoading: isSWRLoading, mutate } = useOMDispatches(searchParams.toString(), {
     fallbackData: initialData
   });
+  const { revalidateOM } = useOMMutate();
 
   // 2. Fetch options via SWR
   const { clients: clientsRaw } = useOMClients();
@@ -408,6 +410,7 @@ export function OMDispatchesClient({
 
       if (res.ok) {
         toast.success(`Status updated to ${OM_DISPATCH_STATUS_CONFIG[newStatus].label}`);
+        revalidateOM(); // Revalidate all OM data (POs, Dispatches, etc.)
       } else {
         const err = await res.json();
         toast.error(err.error || "Failed to update status");
@@ -436,7 +439,7 @@ export function OMDispatchesClient({
       });
       if (res.ok) {
         toast.success("Dispatch Order deleted successfully");
-        mutate(); // Revalidate SWR
+        revalidateOM(); // Global revalidation
         setDeleteDispatchId(null);
       } else {
         const error = await res.json();

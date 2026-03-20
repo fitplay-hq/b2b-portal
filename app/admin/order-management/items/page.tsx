@@ -14,19 +14,13 @@ interface PageProps {
   }>;
 }
 
-export default async function OMItemsPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const page = params.page ? parseInt(params.page as string) : 1;
-  const limit = params.limit ? parseInt(params.limit as string) : 50;
-  const search = (params.q as string) || (params.search as string) || "";
-  const brandId = params.brandId as string;
-
-  const [itemsData, brandsData] = await Promise.all([
-    getOMProducts({ page, limit, search, brandId }),
-    getOMBrands({ limit: 500 }), // Fetch more brands for filtering
-  ]);
+export default async function OMItemsPage() {
+  const dummyMeta = { total: 0, page: 1, limit: 50, totalPages: 0 };
 
   return (
-    <OMItemsClient initialData={itemsData} initialBrands={brandsData} />
+    <OMItemsClient
+      initialData={{ data: [], meta: dummyMeta }}
+      initialBrands={{ data: [], meta: dummyMeta }}
+    />
   );
 }

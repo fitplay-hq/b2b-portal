@@ -25,6 +25,7 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { PartnersTable } from "./PartnersTable";
 import { PartnerForm } from "./PartnerForm";
 import { PartnerViewDialog } from "./PartnerViewDialog";
+import { useOMLogisticsPartnersList, useOMMutate } from "@/data/om/admin.hooks";
 
 interface OMLogisticsPartnersClientProps {
   initialData: PaginatedResponse<OMLogisticsPartner>;
@@ -37,8 +38,11 @@ export function OMLogisticsPartnersClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
+  // SWR Hook for partners
+  const { partners: swrPartners, meta: swrMeta, isLoading: isSWRLoading } = useOMLogisticsPartnersList(searchParams.toString());
+  const { revalidateOM } = useOMMutate();
+
   const [partners, setPartners] = useState<OMLogisticsPartner[]>(initialData.data);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -77,10 +81,25 @@ export function OMLogisticsPartnersClient({
   }, [searchParams, pathname, router]);
 
 
+  // Sync SWR data to local state for infinite scroll
   useEffect(() => {
-    setPartners(initialData.data);
-    setCurrentPage(initialData.meta.page);
-    setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    if (swrPartners && swrPartners.length > 0) {
+      if (searchParams.get("page") === "1" || !searchParams.get("page")) {
+        setPartners(swrPartners);
+        if (swrMeta) {
+          setCurrentPage(swrMeta.page);
+          setHasMore(swrMeta.page < swrMeta.totalPages);
+        }
+      }
+    }
+  }, [swrPartners, swrMeta, searchParams]);
+
+  useEffect(() => {
+    if (initialData.data.length > 0) {
+      setPartners(initialData.data);
+      setCurrentPage(initialData.meta.page);
+      setHasMore(initialData.meta.page < initialData.meta.totalPages);
+    }
   }, [initialData]);
 
   const loadMore = async () => {
@@ -242,7 +261,7 @@ export function OMLogisticsPartnersClient({
         toast.success(`Partner ${editingPartner ? "updated" : "added"} successfully`);
         setIsAddDialogOpen(false);
         resetForm();
-        router.refresh();
+        revalidateOM();
       } else {
         const error = await res.json();
         toast.error(error.error || "Something went wrong");
@@ -285,7 +304,7 @@ export function OMLogisticsPartnersClient({
       });
       if (res.ok) {
         toast.success("Logistics partner deleted successfully");
-        router.refresh();
+        revalidateOM();
         setIsDeleteDialogOpen(false);
       } else {
         const error = await res.json();
@@ -348,7 +367,7 @@ export function OMLogisticsPartnersClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
+        totalCount={swrMeta?.unfilteredTotal || swrMeta?.total || initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="logistics partners"
         searchPlaceholder="Search by name, contact person, or email..."
         searchTerm={searchTerm}
@@ -383,7 +402,7 @@ export function OMLogisticsPartnersClient({
 
       <PartnersTable
         data={processedData}
-        isLoading={isLoading}
+        isLoading={isSWRLoading && partners.length === 0}
         sortBy={sortBy}
         onSort={setSortBy}
         onEdit={handleEdit}

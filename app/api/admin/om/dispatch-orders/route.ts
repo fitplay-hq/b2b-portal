@@ -147,7 +147,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Build dispatch items with computed amounts
+    let doTotalQuantity = 0;
     const processedItems = items.map((item) => {
+      doTotalQuantity += item.quantity;
       const amount = item.quantity * item.rate;
       const gstAmount = amount * (item.gstPercentage / 100);
       const totalAmount = amount + gstAmount;
@@ -168,6 +170,7 @@ export async function POST(req: NextRequest) {
       const dispatch = await tx.oMDispatchOrder.create({
         data: {
           purchaseOrderId,
+          totalQuantity: doTotalQuantity,
           invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
           invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
           logisticsPartnerId: logisticsPartnerId || null,
@@ -241,8 +244,13 @@ export async function POST(req: NextRequest) {
         ]),
       );
 
+      let totalPoDispatched = 0;
       const fullyDispatched = purchaseOrder.items.every(
-        (poItem) => (updatedDispatchMap.get(poItem.id) ?? 0) >= (poItem.quantity || 0),
+        (poItem) => {
+          const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
+          totalPoDispatched += dQty;
+          return dQty >= (poItem.quantity || 0);
+        }
       );
 
       const newStatus: OMPoStatus = fullyDispatched
@@ -251,8 +259,23 @@ export async function POST(req: NextRequest) {
 
       await tx.oMPurchaseOrder.update({
         where: { id: purchaseOrderId },
-        data: { status: newStatus },
+        data: { 
+          status: newStatus,
+          dispatchedQuantity: totalPoDispatched,
+          remainingQuantity: (purchaseOrder.totalQuantity || 0) - totalPoDispatched
+        },
       });
+
+      for (const poItem of purchaseOrder.items) {
+        const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
+        await tx.oMPurchaseOrderItem.update({
+          where: { id: poItem.id },
+          data: {
+            dispatchedQuantity: dQty,
+            remainingQuantity: Math.max(0, (poItem.quantity || 0) - dQty)
+          }
+        });
+      }
 
       return dispatch;
     });

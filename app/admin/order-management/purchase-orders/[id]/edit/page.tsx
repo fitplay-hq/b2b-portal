@@ -15,6 +15,14 @@ import type {
   OMProduct,
   OMBrand,
 } from "@/types/order-management";
+import { 
+  useOMMutate, 
+  useOMClients, 
+  useOMDeliveryLocations, 
+  useOMProducts, 
+  useOMBrands,
+  useOMPurchaseOrder
+} from "@/data/om/admin.hooks";
 
 function LoadingSkeleton() {
   return (
@@ -42,72 +50,23 @@ function LoadingSkeleton() {
 
 export default function OMEditPurchaseOrder() {
   const router = useRouter();
-  const { id } = useParams();
-  const [clients, setClients] = useState<OMClient[]>([]);
-  const [locations, setLocations] = useState<OMDeliveryLocation[]>([]);
-  const [products, setProducts] = useState<OMProduct[]>([]);
-  const [brands, setBrands] = useState<OMBrand[]>([]);
-  const [poData, setPoData] = useState<any>(null);
-  const [isDataLoading, setIsDataLoading] = useState(true);
+  const { id } = useParams() as { id: string };
+  const { revalidateOM } = useOMMutate();
+
+  const { clients, isLoading: loadingClients } = useOMClients();
+  const { locations, isLoading: loadingLocations } = useOMDeliveryLocations();
+  const { products, isLoading: loadingProducts } = useOMProducts("limit=1000");
+  const { brands, isLoading: loadingBrands } = useOMBrands();
+  
+  const { purchaseOrder: poDataResponse, isLoading: loadingPO } = useOMPurchaseOrder(id);
+  const poData = poDataResponse?.data || poDataResponse;
+  
+  const isDataLoading = loadingClients || loadingLocations || loadingProducts || loadingBrands || loadingPO;
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchData = async (isSilent = false) => {
-    if (!isSilent) setIsDataLoading(true);
-    try {
-      const fetchPageData = async () => {
-        const [clientsRes, locationsRes, productsRes, brandsRes] =
-          await Promise.all([
-            fetch("/api/admin/om/clients"),
-            fetch("/api/admin/om/delivery-locations"),
-            fetch("/api/admin/om/products"),
-            fetch("/api/admin/om/brands"),
-          ]);
-
-        if (clientsRes.ok) {
-          const res = await clientsRes.json();
-          setClients(res.data || res);
-        }
-        if (locationsRes.ok) {
-          const res = await locationsRes.json();
-          setLocations(res.data || res);
-        }
-        if (productsRes.ok) {
-          const res = await productsRes.json();
-          setProducts(res.data || res);
-        }
-        if (brandsRes.ok) {
-          const res = await brandsRes.json();
-          setBrands(res.data || res);
-        }
-      };
-
-      if (isSilent) {
-        await fetchPageData();
-      } else {
-        const [_, poRes] = await Promise.all([
-          fetchPageData(),
-          fetch(`/api/admin/om/purchase-orders/${id}`),
-        ]);
-
-        if (poRes.ok) {
-          const data = await poRes.json();
-          setPoData(data.data || data);
-        } else {
-          toast.error("Failed to load Purchase Order");
-          router.push("/admin/order-management/purchase-orders");
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      toast.error("Something went wrong");
-    } finally {
-      if (!isSilent) setIsDataLoading(false);
-    }
+  
+  const refreshData = async () => {
+    revalidateOM();
   };
-
-  useEffect(() => {
-    if (id) fetchData();
-  }, [id]);
 
   const handleSubmit = async (payload: any) => {
     setIsSubmitting(true);
@@ -120,6 +79,7 @@ export default function OMEditPurchaseOrder() {
 
       if (res.ok) {
         toast.success("Purchase Order updated successfully");
+        revalidateOM();
         router.push("/admin/order-management/purchase-orders");
       } else {
         const err = await res.json();
@@ -164,7 +124,7 @@ export default function OMEditPurchaseOrder() {
             brands={brands}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
-            onRefreshData={fetchData}
+            onRefreshData={refreshData}
           />
         )}
     </div>
