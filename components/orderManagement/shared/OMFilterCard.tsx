@@ -9,9 +9,9 @@ import {
   CardHeader,
   CardDescription,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { OMSortControl, type SortOption } from "../OMSortControl";
 import { cn } from "@/lib/utils";
+import { Label } from "recharts";
 
 interface OMFilterCardProps {
   title?: string;

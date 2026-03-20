@@ -20,7 +20,6 @@ import { DISPATCH_SORT_OPTIONS } from "@/constants/om-sort-options";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
-import { useOMCounts } from "@/hooks/use-om-counts";
 import { OMFilterCard } from "@/components/orderManagement/shared/OMFilterCard";
 import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFilters";
 import { DispatchFilters } from "./DispatchFilters";
@@ -53,8 +52,6 @@ export function OMDispatchesClient({
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "dispatch_date_desc");
   const [showFilters, setShowFilters] = useState(false);
-  const { count: fetchedCount, mutate } = useOMCounts('dispatches');
-  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -376,7 +373,6 @@ export function OMDispatchesClient({
       });
       if (res.ok) {
         toast.success("Dispatch Order deleted successfully");
-        mutate();
         router.refresh();
         setDeleteDispatchId(null);
       } else {
@@ -440,7 +436,7 @@ export function OMDispatchesClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={unfilteredTotal}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="dispatch orders"
         searchPlaceholder="Search by invoice, docket, PO #, client..."
         searchTerm={searchTerm}

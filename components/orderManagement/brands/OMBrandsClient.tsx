@@ -19,7 +19,6 @@ import type { OMBrand } from "@/types/order-management";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
-import { useOMCounts } from "@/hooks/use-om-counts";
 import { BrandForm } from "./BrandForm";
 import { BrandsTable } from "./BrandsTable";
 import { Button } from "@/components/ui/button";
@@ -48,8 +47,6 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
   const [editingBrand, setEditingBrand] = useState<OMBrand | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editName, setEditName] = useState("");
-  const { count: fetchedCount, mutate } = useOMCounts('brands');
-  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -182,7 +179,6 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
       if (res.ok) {
         toast.success("Brand added successfully");
         setBrandName("");
-        mutate();
         router.refresh();
       } else {
         const error = await res.json();
@@ -215,7 +211,6 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
       if (res.ok) {
         toast.success("Brand updated successfully");
         setIsEditDialogOpen(false);
-        mutate();
         router.refresh();
       } else {
         const error = await res.json();
@@ -238,7 +233,6 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
       });
       if (res.ok) {
         toast.success("Brand deleted successfully");
-        mutate();
         router.refresh();
         setIsDeleteDialogOpen(false);
       } else {
@@ -307,7 +301,7 @@ export function OMBrandsClient({ initialData }: OMBrandsClientProps) {
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={unfilteredTotal}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="brands"
         searchPlaceholder="Search by brand name..."
         searchTerm={searchTerm}

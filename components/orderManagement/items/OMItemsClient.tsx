@@ -71,8 +71,6 @@ export function OMItemsClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const { count: fetchedCount, mutate } = useOMCounts('items');
-  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -396,7 +394,6 @@ export function OMItemsClient({
       });
       if (res.ok) {
         toast.success("Item deleted successfully");
-        mutate();
         router.refresh();
         setIsDeleteDialogOpen(false);
       } else {
@@ -473,7 +470,7 @@ export function OMItemsClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={unfilteredTotal}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="items"
         searchPlaceholder="Search by name, SKU, or description..."
         searchTerm={searchTerm}

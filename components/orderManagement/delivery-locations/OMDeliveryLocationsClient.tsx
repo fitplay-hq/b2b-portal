@@ -25,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
-import { useOMCounts } from "@/hooks/use-om-counts";
 import { LocationsTable } from "./LocationsTable";
 import { LocationForm } from "./LocationForm";
 import { LocationViewDialog } from "./LocationViewDialog";
@@ -49,9 +48,6 @@ export function OMDeliveryLocationsClient({
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const { count: fetchedCount, mutate } = useOMCounts('locations');
-  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
-
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -233,7 +229,6 @@ export function OMDeliveryLocationsClient({
         toast.success("Delivery location added successfully");
         setLocationName("");
         setIsAddDialogOpen(false);
-        mutate();
         router.refresh();
       } else {
         const error = await res.json();
@@ -274,7 +269,6 @@ export function OMDeliveryLocationsClient({
       if (res.ok) {
         toast.success("Delivery location updated successfully");
         setIsEditDialogOpen(false);
-        mutate();
         router.refresh();
       } else {
         const error = await res.json();
@@ -297,7 +291,6 @@ export function OMDeliveryLocationsClient({
       });
       if (res.ok) {
         toast.success("Delivery location deleted successfully");
-        mutate();
         router.refresh();
         setIsDeleteDialogOpen(false);
       } else {
@@ -363,7 +356,7 @@ export function OMDeliveryLocationsClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={unfilteredTotal}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="delivery locations"
         searchPlaceholder="Search by city name..."
         searchTerm={searchTerm}

@@ -18,7 +18,6 @@ import { CLIENT_SORT_OPTIONS } from "@/constants/om-sort-options";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
-import { useOMCounts } from "@/hooks/use-om-counts";
 import { ClientsTable } from "./ClientsTable";
 import { ClientViewDialog } from "./ClientViewDialog";
 
@@ -41,8 +40,6 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const { count: fetchedCount, mutate } = useOMCounts('clients');
-  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -237,7 +234,6 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
         toast.success(`Client ${editingClient ? "updated" : "added"} successfully`);
         setIsAddDialogOpen(false);
         resetForm();
-        mutate();
         router.refresh();
       } else {
         const error = await res.json();
@@ -283,7 +279,6 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
       });
       if (res.ok) {
         toast.success("Client deleted successfully");
-        mutate();
         router.refresh();
         setIsDeleteDialogOpen(false);
       } else {
@@ -354,7 +349,7 @@ export function OMClientsClient({ initialData }: OMClientsClientProps) {
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={unfilteredTotal}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="clients"
         searchPlaceholder="Search by name, contact, email, or GST number..."
         searchTerm={searchTerm}

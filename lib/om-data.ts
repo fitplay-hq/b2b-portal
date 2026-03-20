@@ -21,6 +21,7 @@ export interface PaginatedResponse<T> {
     page: number;
     limit: number;
     totalPages: number;
+    unfilteredTotal?: number;
   };
 }
 
@@ -397,11 +398,11 @@ export async function getOMBrands(params: {
   const skip = (page - 1) * limit;
   const search = params.search || "";
 
-  const where = search 
-    ? { name: { contains: search, mode: "insensitive" as const } } 
+  const where = search
+    ? { name: { contains: search, mode: "insensitive" as const } }
     : {};
 
-  const [brands, total] = await Promise.all([
+  const [brands, total, unfilteredTotal] = await Promise.all([
     prisma.oMBrand.findMany({
       where,
       orderBy: { name: "asc" },
@@ -409,6 +410,7 @@ export async function getOMBrands(params: {
       take: limit,
     }),
     prisma.oMBrand.count({ where }),
+    prisma.oMBrand.count(),
   ]);
 
   const data = brands.map((b) => ({
@@ -424,6 +426,7 @@ export async function getOMBrands(params: {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      unfilteredTotal,
     },
   };
 }
@@ -451,7 +454,7 @@ export async function getOMClients(params: {
           } 
         : {};
 
-      const [clients, total] = await Promise.all([
+      const [clients, total, unfilteredTotal] = await Promise.all([
         prisma.oMClient.findMany({
           where,
           orderBy: { name: "asc" },
@@ -459,6 +462,7 @@ export async function getOMClients(params: {
           take: limit,
         }),
         prisma.oMClient.count({ where }),
+        prisma.oMClient.count(),
       ]);
 
       const data = clients.map((c) => ({
@@ -474,6 +478,7 @@ export async function getOMClients(params: {
           page,
           limit,
           totalPages: Math.ceil(total / limit),
+          unfilteredTotal,
         },
       };
     },
@@ -504,7 +509,7 @@ export async function getOMProducts(params: {
     where.brands = { some: { id: params.brandId } };
   }
 
-  const [products, total] = await Promise.all([
+  const [products, total, unfilteredTotal] = await Promise.all([
     prisma.oMProduct.findMany({
       where,
       include: {
@@ -518,6 +523,7 @@ export async function getOMProducts(params: {
       take: limit,
     }),
     prisma.oMProduct.count({ where }),
+    prisma.oMProduct.count(),
   ]);
 
   const data = products.map(({ purchaseOrderItems, brands, ...rest }) => ({
@@ -542,6 +548,7 @@ export async function getOMProducts(params: {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      unfilteredTotal,
     },
   };
 }
@@ -608,74 +615,93 @@ export async function getOMDispatches(params: {
         else if (field === "created") orderBy = { createdAt: direction };
       }
 
-      const [dispatches, total] = await Promise.all([
-    prisma.oMDispatchOrder.findMany({
-      where,
-      include: {
-        purchaseOrder: {
+      const [dispatches, total, unfilteredTotal] = await Promise.all([
+        prisma.oMDispatchOrder.findMany({
+          where,
           include: {
-            client: true,
-            deliveryLocations: true,
+            purchaseOrder: { include: { client: true, deliveryLocations: true } },
+            deliveryLocation: true,
+            logisticsPartner: true,
+            items: { include: { purchaseOrderItem: { include: { product: true, OMBrand: true } } } },
           },
-        },
-        logisticsPartner: true,
-        deliveryLocation: true,
-        items: {
-          include: {
-            purchaseOrderItem: {
-              include: { product: true },
+          orderBy,
+          skip,
+          take: limit,
+        }),
+        prisma.oMDispatchOrder.count({ where }),
+        prisma.oMDispatchOrder.count(),
+      ]);
+
+      const data = dispatches.map((d) => ({
+        ...d,
+        expectedDeliveryDate: d.expectedDeliveryDate?.toISOString() || null,
+        dispatchDate: d.dispatchDate?.toISOString() || null,
+        deliveryDate: d.deliveryDate?.toISOString() || null,
+        createdAt: d.createdAt.toISOString(),
+        updatedAt: d.updatedAt.toISOString(),
+        purchaseOrder: d.purchaseOrder
+          ? {
+              ...d.purchaseOrder,
+              poDate: d.purchaseOrder.poDate?.toISOString() || null,
+              createdAt: d.purchaseOrder.createdAt.toISOString(),
+              updatedAt: d.purchaseOrder.updatedAt.toISOString(),
+              client: d.purchaseOrder.client
+                ? {
+                    ...d.purchaseOrder.client,
+                    createdAt: d.purchaseOrder.client.createdAt.toISOString(),
+                    updatedAt: d.purchaseOrder.client.updatedAt.toISOString(),
+                  }
+                : null,
+            }
+          : null,
+        logisticsPartner: d.logisticsPartner
+          ? {
+              ...d.logisticsPartner,
+              createdAt: d.logisticsPartner.createdAt.toISOString(),
+              updatedAt: d.logisticsPartner.updatedAt.toISOString(),
+            }
+          : null,
+        deliveryLocation: d.deliveryLocation
+          ? {
+              ...d.deliveryLocation,
+              createdAt: d.deliveryLocation.createdAt.toISOString(),
+              updatedAt: d.deliveryLocation.updatedAt.toISOString(),
+            }
+          : null,
+        items: d.items.map((i) => ({
+          ...i,
+          createdAt: i.createdAt.toISOString(),
+          updatedAt: i.updatedAt.toISOString(),
+          purchaseOrderItem: {
+            ...i.purchaseOrderItem,
+            createdAt: i.purchaseOrderItem.createdAt.toISOString(),
+            updatedAt: i.purchaseOrderItem.updatedAt.toISOString(),
+            product: {
+              ...i.purchaseOrderItem.product,
+              createdAt: i.purchaseOrderItem.product.createdAt.toISOString(),
+              updatedAt: i.purchaseOrderItem.product.updatedAt.toISOString(),
             },
+            OMBrand: i.purchaseOrderItem.OMBrand
+              ? {
+                  ...i.purchaseOrderItem.OMBrand,
+                  createdAt: i.purchaseOrderItem.OMBrand.createdAt.toISOString(),
+                  updatedAt: i.purchaseOrderItem.OMBrand.updatedAt.toISOString(),
+                }
+              : null,
           },
+        })),
+      })) as any as OMDispatchOrder[];
+
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          unfilteredTotal,
         },
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-    }),
-    prisma.oMDispatchOrder.count({ where }),
-  ]);
-
-  const data = dispatches.map((d) => ({
-    ...d,
-    invoiceDate: d.invoiceDate?.toISOString() || null,
-    expectedDeliveryDate: d.expectedDeliveryDate?.toISOString() || null,
-    dispatchDate: d.dispatchDate?.toISOString() || null,
-    deliveryDate: d.deliveryDate?.toISOString() || null,
-    createdAt: d.createdAt.toISOString(),
-    updatedAt: d.updatedAt.toISOString(),
-    purchaseOrder: d.purchaseOrder
-      ? {
-          ...d.purchaseOrder,
-          poDate: d.purchaseOrder.poDate?.toISOString() || null,
-          createdAt: d.purchaseOrder.createdAt.toISOString(),
-          updatedAt: d.purchaseOrder.updatedAt.toISOString(),
-          client: d.purchaseOrder.client
-            ? {
-                ...d.purchaseOrder.client,
-                createdAt: d.purchaseOrder.client.createdAt.toISOString(),
-                updatedAt: d.purchaseOrder.client.updatedAt.toISOString(),
-              }
-            : null,
-        }
-      : null,
-    logisticsPartner: d.logisticsPartner
-      ? {
-          ...d.logisticsPartner,
-          createdAt: d.logisticsPartner.createdAt.toISOString(),
-          updatedAt: d.logisticsPartner.updatedAt.toISOString(),
-        }
-      : null,
-  })) as any as OMDispatchOrder[];
-
-  return {
-    data,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
+      };
     },
     ["om-dispatches"],
     { tags: ["om-dispatch-orders"], revalidate: 3600 }
@@ -702,7 +728,7 @@ export async function getOMLogisticsPartners(params: {
       } 
     : {};
 
-  const [partners, total] = await Promise.all([
+  const [partners, total, unfilteredTotal] = await Promise.all([
     prisma.oMLogisticsPartner.findMany({
       where,
       orderBy: { name: "asc" },
@@ -710,6 +736,7 @@ export async function getOMLogisticsPartners(params: {
       take: limit,
     }),
     prisma.oMLogisticsPartner.count({ where }),
+    prisma.oMLogisticsPartner.count(),
   ]);
 
   const data = partners.map((p) => ({
@@ -725,6 +752,7 @@ export async function getOMLogisticsPartners(params: {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      unfilteredTotal,
     },
   };
 }
@@ -822,7 +850,7 @@ export async function getOMPurchaseOrders(params: {
         else if (field === "created") orderBy = { createdAt: direction };
       }
 
-      const [purchaseOrders, total] = await Promise.all([
+  const [purchaseOrders, total, unfilteredTotal] = await Promise.all([
     prisma.oMPurchaseOrder.findMany({
       where,
       include: {
@@ -840,11 +868,12 @@ export async function getOMPurchaseOrders(params: {
           },
         },
       },
-      orderBy: { poDate: "desc" },
+      orderBy,
       skip,
       take: limit,
     }),
     prisma.oMPurchaseOrder.count({ where }),
+    prisma.oMPurchaseOrder.count(),
   ]);
 
   const data = purchaseOrders.map((po) => ({
@@ -880,6 +909,7 @@ export async function getOMPurchaseOrders(params: {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      unfilteredTotal,
     },
   };
     },
@@ -917,7 +947,7 @@ export async function getOMDeliveryLocations(params: {
         ? { name: { contains: search, mode: "insensitive" as const } } 
         : {};
 
-      const [locations, total] = await Promise.all([
+      const [locations, total, unfilteredTotal] = await Promise.all([
         prisma.oMDeliveryLocation.findMany({
           where,
           orderBy: { name: "asc" },
@@ -925,6 +955,7 @@ export async function getOMDeliveryLocations(params: {
           take: limit,
         }),
         prisma.oMDeliveryLocation.count({ where }),
+        prisma.oMDeliveryLocation.count(),
       ]);
 
       const data = locations.map((l) => ({
@@ -940,6 +971,7 @@ export async function getOMDeliveryLocations(params: {
           page,
           limit,
           totalPages: Math.ceil(total / limit),
+          unfilteredTotal,
         },
       };
     },

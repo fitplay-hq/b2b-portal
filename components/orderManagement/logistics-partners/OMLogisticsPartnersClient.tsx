@@ -19,7 +19,6 @@ import { useOMFilters } from "@/hooks/use-om-filters";
 import { OMInfiniteScroll } from "@/components/orderManagement/shared/OMInfiniteScroll";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { LOGISTICS_SORT_OPTIONS } from "@/constants/om-sort-options";
-import { useOMCounts } from "@/hooks/use-om-counts";
 import { OMPageHeader } from "@/components/orderManagement/shared/parts/OMPageHeader";
 import { useOMClientData } from "@/hooks/use-om-client-data";
 import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
@@ -48,8 +47,6 @@ export function OMLogisticsPartnersClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<string>((searchParams.get("sortBy")) || "name_asc");
   const [showFilters, setShowFilters] = useState(false);
-  const { count: fetchedCount, mutate } = useOMCounts('logisticsPartners');
-  const unfilteredTotal = fetchedCount ?? initialData.meta.total;
   const [currentPage, setCurrentPage] = useState(initialData.meta.page);
   const [hasMore, setHasMore] = useState(initialData.meta.page < initialData.meta.totalPages);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -245,7 +242,6 @@ export function OMLogisticsPartnersClient({
         toast.success(`Partner ${editingPartner ? "updated" : "added"} successfully`);
         setIsAddDialogOpen(false);
         resetForm();
-        mutate();
         router.refresh();
       } else {
         const error = await res.json();
@@ -289,7 +285,6 @@ export function OMLogisticsPartnersClient({
       });
       if (res.ok) {
         toast.success("Logistics partner deleted successfully");
-        mutate();
         router.refresh();
         setIsDeleteDialogOpen(false);
       } else {
@@ -353,7 +348,7 @@ export function OMLogisticsPartnersClient({
 
       <OMFilterCard
         filteredCount={processedData.length}
-        totalCount={unfilteredTotal}
+        totalCount={initialData.meta.unfilteredTotal || initialData.meta.total}
         unit="logistics partners"
         searchPlaceholder="Search by name, contact person, or email..."
         searchTerm={searchTerm}
