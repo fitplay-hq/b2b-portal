@@ -1,12 +1,15 @@
-import useSWR, { useSWRConfig } from "swr";
+import useSWR, { useSWRConfig, mutate } from "swr";
 import { useCallback } from "react";
 import { OMPurchaseOrder, OMDispatchOrder, OMPaginationMeta } from "@/types/order-management";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { fetcher } from "@/lib/fetcher";
 const EMPTY_ARRAY: any[] = [];
 
-export const PO_CACHE_KEY = "/api/admin/om/purchase-orders?limit=500";
-export const DISPATCH_CACHE_KEY = "/api/admin/om/dispatch-orders?limit=500";
+export const PO_API_URL = "/api/admin/om/purchase-orders?limit=500";
+export const DISPATCH_API_URL = "/api/admin/om/dispatch-orders?limit=500";
+
+export const PO_CACHE_KEY = "/api/orders/purchase-orders";
+export const DISPATCH_CACHE_KEY = "/api/orders/dispatch-orders";
 
 export interface OMResponse<T> {
   success: boolean;
@@ -18,12 +21,19 @@ export interface OMResponse<T> {
  * Hook to fetch all purchase orders
  */
 export function useOMPurchaseOrders(params?: string, options: any = {}) {
-  const url = `/api/admin/om/purchase-orders${params ? `?${params}` : ""}`;
-  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMPurchaseOrder[]>>(url, fetcher, {
-    revalidateOnFocus: false,
-    revalidateIfStale: true,
-    ...options
-  });
+  const apiUrl = `/api/admin/om/purchase-orders${params ? `?${params}` : ""}`;
+  const cacheKey = params ? `${PO_CACHE_KEY}?${params}` : PO_CACHE_KEY;
+  
+  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMPurchaseOrder[]>>(
+    cacheKey, 
+    () => fetcher(apiUrl), 
+    {
+      revalidateOnFocus: false,
+      revalidateIfStale: true,
+      keepPreviousData: true,
+      ...options
+    }
+  );
 
   return {
     purchaseOrders: data?.data || EMPTY_ARRAY,
@@ -39,22 +49,25 @@ export function useOMPurchaseOrders(params?: string, options: any = {}) {
  */
 export function useOMPurchaseOrder(id?: string, options: any = {}) {
   const { cache } = useSWRConfig();
-  const url = id ? `/api/admin/om/purchase-orders/${id}` : null;
+  const apiUrl = id ? `/api/admin/om/purchase-orders/${id}` : null;
+  const cacheKey = id ? `/api/orders/purchase-orders/${id}` : null;
   
-  // Try to find the PO in the list cache (used by OMPurchaseOrdersClient)
-  // This allows the detail page to show data instantly while the full version loads
+  // Try to find the PO in the list cache
   const listState = cache.get(PO_CACHE_KEY) as any;
-  // SWR cache.get returns the State object in SWR 2.x
-  // State.data is the PaginatedResponse, PaginatedResponse.data is the array
   const listData = listState?.data?.data || listState?.data || [];
   const foundInList = Array.isArray(listData) ? listData.find((po: any) => po.id === id) : null;
 
-  const { data, error, isLoading, mutate } = useSWR<OMPurchaseOrder>(url, fetcher, {
-    fallbackData: foundInList,
-    revalidateOnFocus: false,
-    revalidateIfStale: true,
-    ...options
-  });
+  const { data, error, isLoading, mutate } = useSWR<OMPurchaseOrder>(
+    cacheKey, 
+    apiUrl ? () => fetcher(apiUrl) : null,
+    {
+      fallbackData: foundInList,
+      revalidateOnFocus: false,
+      revalidateIfStale: true,
+      keepPreviousData: true,
+      ...options
+    }
+  );
 
   return {
     purchaseOrder: data,
@@ -68,12 +81,19 @@ export function useOMPurchaseOrder(id?: string, options: any = {}) {
  * Hook to fetch all dispatch orders
  */
 export function useOMDispatches(params?: string, options: any = {}) {
-  const url = `/api/admin/om/dispatch-orders${params ? `?${params}` : ""}`;
-  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMDispatchOrder[]>>(url, fetcher, {
-    revalidateOnFocus: false,
-    revalidateIfStale: true,
-    ...options
-  });
+  const apiUrl = `/api/admin/om/dispatch-orders${params ? `?${params}` : ""}`;
+  const cacheKey = params ? `${DISPATCH_CACHE_KEY}?${params}` : DISPATCH_CACHE_KEY;
+  
+  const { data, error, isLoading, mutate } = useSWR<OMResponse<OMDispatchOrder[]>>(
+    cacheKey, 
+    () => fetcher(apiUrl), 
+    {
+      revalidateOnFocus: false,
+      revalidateIfStale: true,
+      keepPreviousData: true,
+      ...options
+    }
+  );
 
   return {
     dispatches: data?.data || EMPTY_ARRAY,
@@ -89,20 +109,25 @@ export function useOMDispatches(params?: string, options: any = {}) {
  */
 export function useOMDispatch(id?: string, options: any = {}) {
   const { cache } = useSWRConfig();
-  const url = id ? `/api/admin/om/dispatch-orders/${id}` : null;
+  const apiUrl = id ? `/api/admin/om/dispatch-orders/${id}` : null;
+  const cacheKey = id ? `/api/orders/dispatch-orders/${id}` : null;
 
-  // Try to find the Dispatch in the list cache (used by OMDispatchesClient)
-  // This allows the detail page to show data instantly while the full version loads
+  // Try to find the Dispatch in the list cache
   const listState = cache.get(DISPATCH_CACHE_KEY) as any;
   const listData = listState?.data?.data || listState?.data || [];
   const foundInList = Array.isArray(listData) ? listData.find((d: any) => d.id === id) : null;
 
-  const { data, error, isLoading, mutate } = useSWR<OMDispatchOrder>(url, fetcher, {
-    fallbackData: foundInList,
-    revalidateOnFocus: false,
-    revalidateIfStale: true,
-    ...options
-  });
+  const { data, error, isLoading, mutate } = useSWR<OMDispatchOrder>(
+    cacheKey, 
+    apiUrl ? () => fetcher(apiUrl) : null,
+    {
+      fallbackData: foundInList,
+      revalidateOnFocus: false,
+      revalidateIfStale: true,
+      keepPreviousData: true,
+      ...options
+    }
+  );
 
   return {
     dispatch: data,
@@ -119,6 +144,7 @@ export function useOMClients() {
   const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/clients?limit=500", fetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
+    keepPreviousData: true,
   });
 
   return {
@@ -135,6 +161,7 @@ export function useOMDeliveryLocations() {
   const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/delivery-locations?limit=500", fetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
+    keepPreviousData: true,
   });
 
   return {
@@ -151,6 +178,7 @@ export function useOMLogisticsPartners() {
   const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/logistics-partners?limit=500", fetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
+    keepPreviousData: true,
   });
 
   return {
@@ -168,6 +196,7 @@ export function useOMDeliveryLocationsList(params?: string, options: any = {}) {
   const { data, error, isLoading, mutate } = useSWR<OMResponse<any[]>>(url, fetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
+    keepPreviousData: true,
     ...options
   });
 
@@ -188,6 +217,7 @@ export function useOMLogisticsPartnersList(params?: string, options: any = {}) {
   const { data, error, isLoading, mutate } = useSWR<OMResponse<any[]>>(url, fetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
+    keepPreviousData: true,
     ...options
   });
 
@@ -207,6 +237,7 @@ export function useOMBrands(options: any = {}) {
   const { data, error, isLoading } = useSWR<OMResponse<any[]>>("/api/admin/om/brands?limit=500", fetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
+    keepPreviousData: true,
     ...options
   });
 
@@ -224,6 +255,7 @@ export function useOMPONumbers() {
   const { data, error, isLoading } = useSWR<any[]>("/api/admin/om/purchase-orders/options", fetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
+    keepPreviousData: true,
   });
 
   return {
@@ -241,6 +273,7 @@ export function useOMProducts(params?: string, options: any = {}) {
   const { data, error, isLoading, mutate } = useSWR<OMResponse<any[]>>(url, fetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
+    keepPreviousData: true,
     ...options
   });
 
@@ -284,7 +317,20 @@ export function useMutatePurchaseOrders() {
           method: "DELETE",
         });
         if (res.ok) {
-          revalidateOM();
+          // Update specific cache
+          mutate(PO_CACHE_KEY, (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            return {
+              ...prev,
+              data: prev.data.filter((po: any) => po.id !== id)
+            };
+          }, false);
+          
+          // Update unified orders cache as requested
+          mutate("/api/orders", (prev: any) => {
+            if (!Array.isArray(prev)) return prev;
+            return prev.filter((o: any) => o.id !== id);
+          }, false);
           return true;
         }
         return false;
@@ -293,10 +339,46 @@ export function useMutatePurchaseOrders() {
         return false;
       }
     },
-    [revalidateOM]
+    [mutate]
   );
 
-  return { deletePurchaseOrder };
+  const updatePOStatus = useCallback(
+    async (id: string, status: string) => {
+      try {
+        const res = await fetch(`/api/admin/om/purchase-orders/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        if (res.ok) {
+          // Update specific cache
+          mutate(PO_CACHE_KEY, (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            return {
+              ...prev,
+              data: prev.data.map((po: any) => 
+                po.id === id ? { ...po, status } : po
+              )
+            };
+          }, false);
+
+          // Update unified orders cache
+          mutate("/api/orders", (prev: any) => {
+            if (!Array.isArray(prev)) return prev;
+            return prev.map((o: any) => o.id === id ? { ...o, status } : o);
+          }, false);
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error updating PO status:", error);
+        return false;
+      }
+    },
+    []
+  );
+
+  return { deletePurchaseOrder, updatePOStatus };
 }
 
 /**
@@ -315,7 +397,22 @@ export function useMutateDispatches() {
           body: JSON.stringify({ status }),
         });
         if (res.ok) {
-          revalidateOM();
+          // Update specific cache
+          mutate(DISPATCH_CACHE_KEY, (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            return {
+              ...prev,
+              data: prev.data.map((d: any) => 
+                d.id === id ? { ...d, status } : d
+              )
+            };
+          }, false);
+
+          // Update unified orders cache
+          mutate("/api/orders", (prev: any) => {
+            if (!Array.isArray(prev)) return prev;
+            return prev.map((o: any) => o.id === id ? { ...o, status } : o);
+          }, false);
           return true;
         }
         return false;
@@ -324,7 +421,7 @@ export function useMutateDispatches() {
         return false;
       }
     },
-    [revalidateOM]
+    [mutate]
   );
 
   const deleteDispatch = useCallback(
@@ -334,7 +431,20 @@ export function useMutateDispatches() {
           method: "DELETE",
         });
         if (res.ok) {
-          revalidateOM();
+          // Update specific cache
+          mutate(DISPATCH_CACHE_KEY, (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            return {
+              ...prev,
+              data: prev.data.filter((d: any) => d.id !== id)
+            };
+          }, false);
+
+          // Update unified orders cache as requested
+          mutate("/api/orders", (prev: any) => {
+            if (!Array.isArray(prev)) return prev;
+            return prev.filter((o: any) => o.id !== id);
+          }, false);
           return true;
         }
         return false;
@@ -343,7 +453,7 @@ export function useMutateDispatches() {
         return false;
       }
     },
-    [revalidateOM]
+    [mutate]
   );
 
   return { updateDispatchStatus, deleteDispatch };
@@ -366,7 +476,16 @@ export function useMutateItems() {
           body: JSON.stringify(data),
         });
         if (res.ok) {
-          revalidateOM();
+          const savedItem = await res.json();
+          // Update cache manually
+          mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/om/products"), (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            if (id) {
+              return { ...prev, data: prev.data.map((i: any) => i.id === id ? savedItem : i) };
+            } else {
+              return { ...prev, data: [savedItem, ...prev.data] };
+            }
+          }, false);
           return { success: true };
         }
         const error = await res.json();
@@ -376,7 +495,7 @@ export function useMutateItems() {
         return { success: false, error: "Something went wrong" };
       }
     },
-    [revalidateOM]
+    [mutate]
   );
 
   const deleteItem = useCallback(
@@ -386,7 +505,11 @@ export function useMutateItems() {
           method: "DELETE",
         });
         if (res.ok) {
-          revalidateOM();
+          // Update cache manually
+          mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/om/products"), (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            return { ...prev, data: prev.data.filter((i: any) => i.id !== id) };
+          }, false);
           return true;
         }
         return false;
@@ -395,7 +518,7 @@ export function useMutateItems() {
         return false;
       }
     },
-    [revalidateOM]
+    [mutate]
   );
 
   return { saveItem, deleteItem };
@@ -418,7 +541,16 @@ export function useMutateClients() {
           body: JSON.stringify(data),
         });
         if (res.ok) {
-          revalidateOM();
+          const saved = await res.json();
+          // Update cache manually
+          mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/om/clients"), (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            if (id) {
+              return { ...prev, data: prev.data.map((c: any) => c.id === id ? saved : c) };
+            } else {
+              return { ...prev, data: [saved, ...prev.data] };
+            }
+          }, false);
           return { success: true };
         }
         const error = await res.json();
@@ -428,7 +560,7 @@ export function useMutateClients() {
         return { success: false, error: "Something went wrong" };
       }
     },
-    [revalidateOM]
+    [mutate]
   );
 
   const deleteClient = useCallback(
@@ -438,7 +570,11 @@ export function useMutateClients() {
           method: "DELETE",
         });
         if (res.ok) {
-          revalidateOM();
+          // Update cache manually
+          mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/om/clients"), (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            return { ...prev, data: prev.data.filter((c: any) => c.id !== id) };
+          }, false);
           return true;
         }
         return false;
@@ -447,7 +583,7 @@ export function useMutateClients() {
         return false;
       }
     },
-    [revalidateOM]
+    [mutate]
   );
 
   return { saveClient, deleteClient };
@@ -470,7 +606,16 @@ export function useMutateLocations() {
           body: JSON.stringify({ name }),
         });
         if (res.ok) {
-          revalidateOM();
+          const saved = await res.json();
+          // Update cache manually
+          mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/om/delivery-locations"), (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            if (id) {
+              return { ...prev, data: prev.data.map((l: any) => l.id === id ? saved : l) };
+            } else {
+              return { ...prev, data: [saved, ...prev.data] };
+            }
+          }, false);
           return { success: true };
         }
         const error = await res.json();
@@ -480,7 +625,7 @@ export function useMutateLocations() {
         return { success: false, error: "Something went wrong" };
       }
     },
-    [revalidateOM]
+    []
   );
 
   const deleteLocation = useCallback(
@@ -490,7 +635,11 @@ export function useMutateLocations() {
           method: "DELETE",
         });
         if (res.ok) {
-          revalidateOM();
+          // Update cache manually
+          mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/om/delivery-locations"), (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            return { ...prev, data: prev.data.filter((l: any) => l.id !== id) };
+          }, false);
           return true;
         }
         return false;
@@ -499,7 +648,7 @@ export function useMutateLocations() {
         return false;
       }
     },
-    [revalidateOM]
+    []
   );
 
   return { saveLocation, deleteLocation };
@@ -522,7 +671,16 @@ export function useMutatePartners() {
           body: JSON.stringify(data),
         });
         if (res.ok) {
-          revalidateOM();
+          const saved = await res.json();
+          // Update cache manually
+          mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/om/logistics-partners"), (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            if (id) {
+              return { ...prev, data: prev.data.map((p: any) => p.id === id ? saved : p) };
+            } else {
+              return { ...prev, data: [saved, ...prev.data] };
+            }
+          }, false);
           return { success: true };
         }
         const error = await res.json();
@@ -532,7 +690,7 @@ export function useMutatePartners() {
         return { success: false, error: "Something went wrong" };
       }
     },
-    [revalidateOM]
+    []
   );
 
   const deletePartner = useCallback(
@@ -542,7 +700,11 @@ export function useMutatePartners() {
           method: "DELETE",
         });
         if (res.ok) {
-          revalidateOM();
+          // Update cache manually
+          mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/om/logistics-partners"), (prev: any) => {
+            if (!prev || !prev.data) return prev;
+            return { ...prev, data: prev.data.filter((p: any) => p.id !== id) };
+          }, false);
           return true;
         }
         return false;
@@ -551,7 +713,7 @@ export function useMutatePartners() {
         return false;
       }
     },
-    [revalidateOM]
+    []
   );
 
   return { savePartner, deletePartner };
@@ -566,10 +728,10 @@ export function useOMMutate() {
   const { mutate } = useSWRConfig();
 
   const revalidateOM = useCallback(() => {
-    // Revalidate all keys starting with /api/admin/om/
-    // This clears caches for POs, Dispatches, Clients, Items, etc.
+    // Revalidate all keys starting with /api/orders
+    // This clears caches for POs, Dispatches, etc. that now use the new prefix
     mutate(
-      (key: any) => typeof key === "string" && key.startsWith("/api/admin/om/"),
+      (key: any) => typeof key === "string" && key.startsWith("/api/orders"),
       undefined,
       { revalidate: true }
     );
@@ -585,20 +747,36 @@ export function useOMMutate() {
  * - Re-navigation: SWR serves cached data instantly (snappy!)
  * - Background revalidation keeps data fresh
  */
+const KEY_TO_API_MAP: Record<string, string> = {
+  [PO_CACHE_KEY]: PO_API_URL,
+  [DISPATCH_CACHE_KEY]: DISPATCH_API_URL,
+};
+
 export function useOMSWRCache<T>(
-  apiUrl: string | null,
+  cacheKey: string | null,
   initialData?: PaginatedResponse<T>
 ) {
+  const apiUrl = cacheKey ? (KEY_TO_API_MAP[cacheKey] || cacheKey) : null;
   const { data, mutate } = useSWR<PaginatedResponse<T>>(
-    apiUrl,
-    fetcher,
+    cacheKey,
+    apiUrl ? () => fetcher(apiUrl) : null,
     {
       fallbackData: initialData,
       revalidateOnFocus: false,
       revalidateIfStale: true,
-      dedupingInterval: 10000,
+      keepPreviousData: true,
+      dedupingInterval: 1000 * 60 * 5, // 5 min cache
     }
   );
 
   return data || initialData;
 }
+
+/**
+ * Consistent Order key hook as requested by user
+ */
+export const useOrders = () => {
+  return useSWR("/api/orders", () => fetcher("/api/admin/orders"), {
+    keepPreviousData: true,
+  });
+};

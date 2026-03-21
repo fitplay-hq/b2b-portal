@@ -3,7 +3,12 @@
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useSWRConfig } from "swr";
-import { PO_CACHE_KEY, DISPATCH_CACHE_KEY } from "@/data/om/admin.hooks";
+import { 
+  PO_CACHE_KEY, 
+  DISPATCH_CACHE_KEY,
+  PO_API_URL,
+  DISPATCH_API_URL
+} from "@/data/om/admin.hooks";
 
 /**
  * Resource Hints and Preloading for Ultra-Fast Performance
@@ -164,9 +169,9 @@ export function CriticalResourcePreloader() {
     ];
     
     // OM API URLs that need SWR cache priming
-    const omApiUrls = [
-      PO_CACHE_KEY,
-      DISPATCH_CACHE_KEY
+    const omPreloadConfigs = [
+      { key: PO_CACHE_KEY, url: PO_API_URL },
+      { key: DISPATCH_CACHE_KEY, url: DISPATCH_API_URL }
     ];
 
     criticalResources.forEach((resource) => {
@@ -188,10 +193,10 @@ export function CriticalResourcePreloader() {
       }
     });
 
-    // Prefetch OM APIs into SWR cache
-    omApiUrls.forEach(url => {
-      mutate(url, async () => {
-        const res = await fetch(url);
+    // Prefetch OM APIs into SWR cache using mapping
+    omPreloadConfigs.forEach(config => {
+      mutate(config.key, async () => {
+        const res = await fetch(config.url);
         return res.json();
       }).catch(() => {});
     });
