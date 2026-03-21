@@ -597,16 +597,9 @@ export function useOMSWRCache<T>(
       fallbackData: initialData,
       revalidateOnFocus: false,
       revalidateIfStale: true,
-      dedupingInterval: 0,
+      dedupingInterval: 10000,
     }
   );
-
-  // Sync SWR cache when server data changes (after router.refresh)
-  useEffect(() => {
-    if (initialData) {
-      mutate(initialData, false);
-    }
-  }, [initialData, mutate]);
 
   return data || initialData;
 }
