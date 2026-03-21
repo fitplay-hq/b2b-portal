@@ -1,9 +1,8 @@
 import useSWR, { useSWRConfig } from "swr";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { OMPurchaseOrder, OMDispatchOrder, OMPaginationMeta } from "@/types/order-management";
 import { type PaginatedResponse } from "@/lib/om-data";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { fetcher } from "@/lib/fetcher";
 const EMPTY_ARRAY: any[] = [];
 
 export const PO_CACHE_KEY = "/api/admin/om/purchase-orders?limit=500";
