@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useSWRConfig } from "swr";
 
 /**
  * Resource Hints and Preloading for Ultra-Fast Performance
@@ -148,11 +149,23 @@ function setupServiceWorkerCaching() {
  * Critical Resource Preloader - runs immediately on app start
  */
 export function CriticalResourcePreloader() {
+  const { mutate } = useSWRConfig();
+  
   useEffect(() => {
     // Immediate preload of absolutely critical resources
     const criticalResources = [
       { url: "/api/auth/session", type: "fetch" },
       { url: "/admin", type: "page" },
+      // Order Management Prefetching
+      { url: "/admin/order-management", type: "page" },
+      { url: "/admin/order-management/purchase-orders", type: "page" },
+      { url: "/admin/order-management/dispatches", type: "page" },
+    ];
+    
+    // OM API URLs that need SWR cache priming
+    const omApiUrls = [
+      "/api/admin/om/purchase-orders?limit=500",
+      "/api/admin/om/dispatch-orders?limit=500"
     ];
 
     criticalResources.forEach((resource) => {
@@ -173,7 +186,15 @@ export function CriticalResourcePreloader() {
         }
       }
     });
-  }, []);
+
+    // Prefetch OM APIs into SWR cache
+    omApiUrls.forEach(url => {
+      mutate(url, async () => {
+        const res = await fetch(url);
+        return res.json();
+      }).catch(() => {});
+    });
+  }, [mutate]);
 
   return null;
 }

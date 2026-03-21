@@ -19,12 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 import {
   Select,
@@ -79,7 +74,9 @@ export function OMDashboardClient({
 
   const [isLoading, setIsLoading] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [timeRange, setTimeRange] = useState((searchParams.timeRange as string) || "all");
+  const [timeRange, setTimeRange] = useState(
+    (searchParams.timeRange as string) || "all",
+  );
 
   const {
     clientOptions,
@@ -125,7 +122,11 @@ export function OMDashboardClient({
       gstPercentage: (searchParams.gstPercentage as string) || "",
       minAmount: (searchParams.minAmount as string) || "",
       maxAmount: (searchParams.maxAmount as string) || "",
-      status: (Array.isArray(searchParams.status) ? searchParams.status : searchParams.status ? [searchParams.status] : []) as string[],
+      status: (Array.isArray(searchParams.status)
+        ? searchParams.status
+        : searchParams.status
+          ? [searchParams.status]
+          : []) as string[],
     },
     labels: {
       fromDate: "From",
@@ -161,9 +162,13 @@ export function OMDashboardClient({
     }));
   };
 
-  const updateUrl = (newFilters: any, newQuery?: string, newTimeRange?: string) => {
+  const updateUrl = (
+    newFilters: any,
+    newQuery?: string,
+    newTimeRange?: string,
+  ) => {
     const params = new URLSearchParams();
-    
+
     // Persist current query if not being updated
     if (newQuery !== undefined) {
       if (newQuery) params.set("q", newQuery);
@@ -174,13 +179,14 @@ export function OMDashboardClient({
 
     // Persist current timeRange if not being updated
     if (newTimeRange) params.set("timeRange", newTimeRange);
-    else if (timeRange && timeRange !== "all") params.set("timeRange", timeRange);
+    else if (timeRange && timeRange !== "all")
+      params.set("timeRange", timeRange);
 
     // Apply filters
     Object.entries(newFilters).forEach(([key, value]) => {
       if (value) {
         if (Array.isArray(value)) {
-          value.forEach(v => params.append(key, v));
+          value.forEach((v) => params.append(key, v));
         } else {
           params.set(key, value as string);
         }
@@ -188,7 +194,9 @@ export function OMDashboardClient({
     });
 
     setIsLoading(true);
-    router.push(`/admin/order-management?${params.toString()}`, { scroll: false });
+    router.push(`/admin/order-management?${params.toString()}`, {
+      scroll: false,
+    });
   };
 
   useEffect(() => {
@@ -217,7 +225,8 @@ export function OMDashboardClient({
     initialData.dispatches.forEach((d) => {
       byPoId[d.poId] = (byPoId[d.poId] || 0) + d.totalDispatchQty;
       d.lineItems.forEach((li) => {
-        byPoLineItemId[li.poLineItemId] = (byPoLineItemId[li.poLineItemId] || 0) + li.dispatchQty;
+        byPoLineItemId[li.poLineItemId] =
+          (byPoLineItemId[li.poLineItemId] || 0) + li.dispatchQty;
       });
     });
 
@@ -271,12 +280,16 @@ export function OMDashboardClient({
       }
 
       // Add to total ordered value for applicable statuses
-      if (["CONFIRMED", "PARTIALLY_DISPATCHED", "FULLY_DISPATCHED"].includes(po.status)) {
+      if (
+        ["CONFIRMED", "PARTIALLY_DISPATCHED", "FULLY_DISPATCHED"].includes(
+          po.status,
+        )
+      ) {
         totalOrderedValue += po.grandTotal;
       }
 
       orderedQty += po.totalQuantity;
-      
+
       const dispatchedForPO = dispatchMaps.byPoId[po.id] || 0;
       dispatchedTotal += dispatchedForPO;
 
@@ -319,7 +332,8 @@ export function OMDashboardClient({
 
         // Calculate value dispatched for this item
         if (item.quantity > 0) {
-          const itemDispatchedValue = (dispatchedForItem / item.quantity) * item.totalAmount;
+          const itemDispatchedValue =
+            (dispatchedForItem / item.quantity) * item.totalAmount;
           fulfillmentValue += itemDispatchedValue;
         }
       });
@@ -328,10 +342,18 @@ export function OMDashboardClient({
     const statusBreakdownData = [
       { name: "Draft", value: statusCounts.DRAFT, color: "#94a3b8" },
       { name: "Confirmed", value: statusCounts.CONFIRMED, color: "#3b82f6" },
-      { name: "Partially Dispatched", value: statusCounts.PARTIALLY_DISPATCHED, color: "#f59e0b" },
-      { name: "Fully Dispatched", value: statusCounts.FULLY_DISPATCHED, color: "#10b981" },
+      {
+        name: "Partially Dispatched",
+        value: statusCounts.PARTIALLY_DISPATCHED,
+        color: "#f59e0b",
+      },
+      {
+        name: "Fully Dispatched",
+        value: statusCounts.FULLY_DISPATCHED,
+        color: "#10b981",
+      },
       { name: "Closed", value: statusCounts.CLOSED, color: "#ef4444" },
-    ].filter(item => item.value > 0);
+    ].filter((item) => item.value > 0);
 
     return {
       inProgressCount,
@@ -362,42 +384,46 @@ export function OMDashboardClient({
         clientName: po.clientName,
         status: po.status,
         deliveryLocations: po.deliveryLocations,
-      }))
+      })),
     );
 
-    return [...flattened].sort((a, b) => {
-      const [key, direction] = poSortBy.split("_");
-      const isAsc = direction === "asc";
-      let comparison = 0;
+    return [...flattened]
+      .sort((a, b) => {
+        const [key, direction] = poSortBy.split("_");
+        const isAsc = direction === "asc";
+        let comparison = 0;
 
-      switch (key) {
-        case "date":
-          comparison = new Date(a.poDate || 0).getTime() - new Date(b.poDate || 0).getTime();
-          break;
-        case "po":
-          comparison = (a.poNumber || "").localeCompare(b.poNumber || "");
-          break;
-        case "client":
-          comparison = (a.clientName || "").localeCompare(b.clientName || "");
-          break;
-        case "item":
-          comparison = (a.itemName || "").localeCompare(b.itemName || "");
-          break;
-        case "qty":
-          comparison = a.quantity - b.quantity;
-          break;
-        case "value":
-          comparison = a.totalAmount - b.totalAmount;
-          break;
-        case "status":
-          comparison = (a.status || "").localeCompare(b.status || "");
-          break;
-        default:
-          comparison = 0;
-      }
+        switch (key) {
+          case "date":
+            comparison =
+              new Date(a.poDate || 0).getTime() -
+              new Date(b.poDate || 0).getTime();
+            break;
+          case "po":
+            comparison = (a.poNumber || "").localeCompare(b.poNumber || "");
+            break;
+          case "client":
+            comparison = (a.clientName || "").localeCompare(b.clientName || "");
+            break;
+          case "item":
+            comparison = (a.itemName || "").localeCompare(b.itemName || "");
+            break;
+          case "qty":
+            comparison = a.quantity - b.quantity;
+            break;
+          case "value":
+            comparison = a.totalAmount - b.totalAmount;
+            break;
+          case "status":
+            comparison = (a.status || "").localeCompare(b.status || "");
+            break;
+          default:
+            comparison = 0;
+        }
 
-      return isAsc ? comparison : -comparison;
-    }).slice(0, 5); // Show top 5 recent
+        return isAsc ? comparison : -comparison;
+      })
+      .slice(0, 5); // Show top 5 recent
   }, [initialData.pos, poSortBy]);
 
   const recentDispatches = useMemo(() => {
@@ -420,66 +446,95 @@ export function OMDashboardClient({
           orderedQty,
           uniqueKey: `${dispatch.id}-${idx}`,
         };
-      })
+      }),
     );
 
-    return [...flattened].sort((a, b) => {
-      const [key, direction] = dispatchSortBy.split("_");
-      const isAsc = direction === "asc";
-      let comparison = 0;
+    return [...flattened]
+      .sort((a, b) => {
+        const [key, direction] = dispatchSortBy.split("_");
+        const isAsc = direction === "asc";
+        let comparison = 0;
 
-      switch (key) {
-        case "date":
-          comparison = new Date(a.dispatchDate || 0).getTime() - new Date(b.dispatchDate || 0).getTime();
-          break;
-        case "inv":
-          comparison = (a.invoiceNumber || "").localeCompare(b.invoiceNumber || "");
-          break;
-        case "po":
-          comparison = (a.poNumber || "").localeCompare(b.poNumber || "");
-          break;
-        case "client":
-          comparison = (a.clientName || "").localeCompare(b.clientName || "");
-          break;
-        case "item":
-          comparison = (a.itemName || "").localeCompare(b.itemName || "");
-          break;
-        case "status":
-          comparison = (a.status || "").localeCompare(b.status || "");
-          break;
-        default:
-          comparison = 0;
-      }
+        switch (key) {
+          case "date":
+            comparison =
+              new Date(a.dispatchDate || 0).getTime() -
+              new Date(b.dispatchDate || 0).getTime();
+            break;
+          case "inv":
+            comparison = (a.invoiceNumber || "").localeCompare(
+              b.invoiceNumber || "",
+            );
+            break;
+          case "po":
+            comparison = (a.poNumber || "").localeCompare(b.poNumber || "");
+            break;
+          case "client":
+            comparison = (a.clientName || "").localeCompare(b.clientName || "");
+            break;
+          case "item":
+            comparison = (a.itemName || "").localeCompare(b.itemName || "");
+            break;
+          case "status":
+            comparison = (a.status || "").localeCompare(b.status || "");
+            break;
+          default:
+            comparison = 0;
+        }
 
-      return isAsc ? comparison : -comparison;
-    }).slice(0, 5); // Show top 5 recent
+        return isAsc ? comparison : -comparison;
+      })
+      .slice(0, 5); // Show top 5 recent
   }, [initialData.dispatches, dispatchSortBy, initialData.pos]);
 
-  const overallFulfillment = useMemo(() => totalOrderedValue > 0 ? ((fulfillmentValue / totalOrderedValue) * 100).toFixed(1) : "0", [totalOrderedValue, fulfillmentValue]);
+  const overallFulfillment = useMemo(
+    () =>
+      totalOrderedValue > 0
+        ? ((fulfillmentValue / totalOrderedValue) * 100).toFixed(1)
+        : "0",
+    [totalOrderedValue, fulfillmentValue],
+  );
 
-  const getTotalDispatchedForItem = useCallback((poLineItemId: string) => {
-    return dispatchMaps.byPoLineItemId[poLineItemId] || 0;
-  }, [dispatchMaps]);
+  const getTotalDispatchedForItem = useCallback(
+    (poLineItemId: string) => {
+      return dispatchMaps.byPoLineItemId[poLineItemId] || 0;
+    },
+    [dispatchMaps],
+  );
 
   const filteredBrandOptions = useMemo(() => {
     if (!advancedFilters.itemName) return brandOptions;
-    const selectedProduct = products.find(p => p.name === advancedFilters.itemName);
-    return selectedProduct?.brands?.map((b: any) => ({ value: b.name, label: b.name })) || brandOptions;
+    const selectedProduct = products.find(
+      (p) => p.name === advancedFilters.itemName,
+    );
+    return (
+      selectedProduct?.brands?.map((b: any) => ({
+        value: b.name,
+        label: b.name,
+      })) || brandOptions
+    );
   }, [advancedFilters.itemName, products, brandOptions]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold">Order Management Dashboard</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Overview of all purchase orders and dispatches</p>
+          <h1 className="text-xl sm:text-2xl font-bold">
+            Order Management Dashboard
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Overview of all purchase orders and dispatches
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
-          <Select value={timeRange} onValueChange={(val: string) => {
-            setTimeRange(val);
-            updateUrl(advancedFilters, undefined, val);
-          }}>
+          <Select
+            value={timeRange}
+            onValueChange={(val: string) => {
+              setTimeRange(val);
+              updateUrl(advancedFilters, undefined, val);
+            }}
+          >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Time Range" />
             </SelectTrigger>
@@ -511,81 +566,160 @@ export function OMDashboardClient({
           <div className="mt-6 pt-6 border-t animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">From Date</label>
-                <Input type="date" value={advancedFilters.fromDate} onChange={(e) => {
-                  const next = { ...advancedFilters, fromDate: e.target.value };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} className="text-xs" />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+                  From Date
+                </label>
+                <Input
+                  type="date"
+                  value={advancedFilters.fromDate}
+                  onChange={(e) => {
+                    const next = {
+                      ...advancedFilters,
+                      fromDate: e.target.value,
+                    };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  className="text-xs"
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">To Date</label>
-                <Input type="date" value={advancedFilters.toDate} onChange={(e) => {
-                  const next = { ...advancedFilters, toDate: e.target.value };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} className="text-xs" />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+                  To Date
+                </label>
+                <Input
+                  type="date"
+                  value={advancedFilters.toDate}
+                  onChange={(e) => {
+                    const next = { ...advancedFilters, toDate: e.target.value };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  className="text-xs"
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client Name</label>
-                <SearchableSelect options={clientOptions} value={advancedFilters.clientName} onValueChange={(val) => {
-                  const next = { ...advancedFilters, clientName: val };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} placeholder="Select client..." />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Client Name
+                </label>
+                <SearchableSelect
+                  options={clientOptions}
+                  value={advancedFilters.clientName}
+                  onValueChange={(val) => {
+                    const next = { ...advancedFilters, clientName: val };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="Select client..."
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Item Name</label>
-                <SearchableSelect options={itemOptions} value={advancedFilters.itemName} onValueChange={(val) => {
-                  const next = { ...advancedFilters, itemName: val };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} placeholder="Select item..." />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Item Name
+                </label>
+                <SearchableSelect
+                  options={itemOptions}
+                  value={advancedFilters.itemName}
+                  onValueChange={(val) => {
+                    const next = { ...advancedFilters, itemName: val };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="Select item..."
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PO Number</label>
-                <Input value={advancedFilters.poNumber} onChange={(e) => {
-                  const next = { ...advancedFilters, poNumber: e.target.value };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} placeholder="PO Number..." className="text-xs" />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  PO Number
+                </label>
+                <Input
+                  value={advancedFilters.poNumber}
+                  onChange={(e) => {
+                    const next = {
+                      ...advancedFilters,
+                      poNumber: e.target.value,
+                    };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="PO Number..."
+                  className="text-xs"
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Invoice Number</label>
-                <Input value={advancedFilters.invoiceNumber} onChange={(e) => {
-                  const next = { ...advancedFilters, invoiceNumber: e.target.value };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} placeholder="Invoice Number..." className="text-xs" />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Invoice Number
+                </label>
+                <Input
+                  value={advancedFilters.invoiceNumber}
+                  onChange={(e) => {
+                    const next = {
+                      ...advancedFilters,
+                      invoiceNumber: e.target.value,
+                    };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="Invoice Number..."
+                  className="text-xs"
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</label>
-                <Input value={advancedFilters.sku} onChange={(e) => {
-                  const next = { ...advancedFilters, sku: e.target.value };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} placeholder="SKU..." className="text-xs" />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  SKU
+                </label>
+                <Input
+                  value={advancedFilters.sku}
+                  onChange={(e) => {
+                    const next = { ...advancedFilters, sku: e.target.value };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="SKU..."
+                  className="text-xs"
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Logistics Partner</label>
-                <SearchableSelect options={logisticsOptions} value={advancedFilters.logisticsPartnerId} onValueChange={(val) => {
-                  const next = { ...advancedFilters, logisticsPartnerId: val };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} placeholder="Select partner..." />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Logistics Partner
+                </label>
+                <SearchableSelect
+                  options={logisticsOptions}
+                  value={advancedFilters.logisticsPartnerId}
+                  onValueChange={(val) => {
+                    const next = {
+                      ...advancedFilters,
+                      logisticsPartnerId: val,
+                    };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="Select partner..."
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location</label>
-                <SearchableSelect options={locationOptions} value={advancedFilters.locationId} onValueChange={(val) => {
-                  const next = { ...advancedFilters, locationId: val };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} placeholder="Select location..." />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Location
+                </label>
+                <SearchableSelect
+                  options={locationOptions}
+                  value={advancedFilters.locationId}
+                  onValueChange={(val) => {
+                    const next = { ...advancedFilters, locationId: val };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="Select location..."
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Status
+                </label>
                 <MultiSearchableSelect
-                  options={Object.entries(PO_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+                  options={Object.entries(PO_STATUS_LABELS).map(
+                    ([value, label]) => ({ value, label }),
+                  )}
                   value={advancedFilters.status}
                   onValueChange={(val: string[]) => {
                     const next = { ...advancedFilters, status: val };
@@ -596,28 +730,55 @@ export function OMDashboardClient({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Min Amount</label>
-                <Input type="number" value={advancedFilters.minAmount} onChange={(e) => {
-                  const next = { ...advancedFilters, minAmount: e.target.value };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} placeholder="Min ₹" className="text-xs" />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Min Amount
+                </label>
+                <Input
+                  type="number"
+                  value={advancedFilters.minAmount}
+                  onChange={(e) => {
+                    const next = {
+                      ...advancedFilters,
+                      minAmount: e.target.value,
+                    };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="Min ₹"
+                  className="text-xs"
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Max Amount</label>
-                <Input type="number" value={advancedFilters.maxAmount} onChange={(e) => {
-                  const next = { ...advancedFilters, maxAmount: e.target.value };
-                  setAdvancedFilters(next);
-                  updateUrl(next);
-                }} placeholder="Max ₹" className="text-xs" />
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Max Amount
+                </label>
+                <Input
+                  type="number"
+                  value={advancedFilters.maxAmount}
+                  onChange={(e) => {
+                    const next = {
+                      ...advancedFilters,
+                      maxAmount: e.target.value,
+                    };
+                    setAdvancedFilters(next);
+                    updateUrl(next);
+                  }}
+                  placeholder="Max ₹"
+                  className="text-xs"
+                />
               </div>
             </div>
 
             <div className="flex justify-end mt-6 pt-4 border-t">
-              <Button variant="ghost" size="sm" onClick={() => {
-                resetFilters();
-                updateUrl({});
-              }} className="text-xs gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  resetFilters();
+                  updateUrl({});
+                }}
+                className="text-xs gap-2"
+              >
                 <RotateCcw className="h-3 w-3" />
                 Reset Filters
               </Button>
@@ -636,8 +797,11 @@ export function OMDashboardClient({
             fulfillmentValue={fulfillmentValue}
             overallFulfillment={overallFulfillment}
           />
-          <DashboardCharts statusBreakdown={statusBreakdown} clientSummaryArray={clientSummaryArray.slice(0, 10)} />
-          
+          <DashboardCharts
+            statusBreakdown={statusBreakdown}
+            clientSummaryArray={clientSummaryArray.slice(0, 10)}
+          />
+
           {/* Recent Purchase Orders */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -725,10 +889,17 @@ export function OMDashboardClient({
                       {recentPOs.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell className="text-left px-3 text-xs">
-                            {item.poDate ? new Date(item.poDate).toLocaleDateString("en-IN") : "N/A"}
+                            {item.poDate
+                              ? new Date(item.poDate).toLocaleDateString(
+                                  "en-IN",
+                                )
+                              : "N/A"}
                           </TableCell>
                           <TableCell className="text-left px-3 font-medium text-xs">
-                            <Link href={`/admin/order-management/purchase-orders/${item.poId}`} className="hover:underline">
+                            <Link
+                              href={`/admin/order-management/purchase-orders/${item.poId}`}
+                              className="hover:underline"
+                            >
                               {item.poNumber}
                             </Link>
                           </TableCell>
@@ -845,10 +1016,17 @@ export function OMDashboardClient({
                       {recentDispatches.map((item) => (
                         <TableRow key={item.uniqueKey}>
                           <TableCell className="text-left px-3 text-xs">
-                            {item.dispatchDate ? new Date(item.dispatchDate).toLocaleDateString("en-IN") : "N/A"}
+                            {item.dispatchDate
+                              ? new Date(item.dispatchDate).toLocaleDateString(
+                                  "en-IN",
+                                )
+                              : "N/A"}
                           </TableCell>
                           <TableCell className="text-left px-3 font-medium text-xs">
-                            <Link href={`/admin/order-management/dispatches/${item.dispatchId}`} className="hover:underline">
+                            <Link
+                              href={`/admin/order-management/dispatches/${item.dispatchId}`}
+                              className="hover:underline"
+                            >
                               {item.invoiceNumber}
                             </Link>
                           </TableCell>
@@ -865,8 +1043,11 @@ export function OMDashboardClient({
                             {item.dispatchQty}
                           </TableCell>
                           <TableCell className="text-left px-3 text-xs">
-                            <Badge className={getDispatchStatusClass(item.status)}>
-                              {item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase()}
+                            <Badge
+                              className={getDispatchStatusClass(item.status)}
+                            >
+                              {item.status.charAt(0).toUpperCase() +
+                                item.status.slice(1).toLowerCase()}
                             </Badge>
                           </TableCell>
                         </TableRow>
