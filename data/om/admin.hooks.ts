@@ -4,8 +4,10 @@ import { OMPurchaseOrder, OMDispatchOrder, OMPaginationMeta } from "@/types/orde
 import { type PaginatedResponse } from "@/lib/om-data";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 const EMPTY_ARRAY: any[] = [];
+
+export const PO_CACHE_KEY = "/api/admin/om/purchase-orders?limit=500";
+export const DISPATCH_CACHE_KEY = "/api/admin/om/dispatch-orders?limit=500";
 
 export interface OMResponse<T> {
   success: boolean;
@@ -42,8 +44,7 @@ export function useOMPurchaseOrder(id?: string, options: any = {}) {
   
   // Try to find the PO in the list cache (used by OMPurchaseOrdersClient)
   // This allows the detail page to show data instantly while the full version loads
-  const listCacheKey = "/api/admin/om/purchase-orders?limit=500";
-  const listState = cache.get(listCacheKey) as any;
+  const listState = cache.get(PO_CACHE_KEY) as any;
   // SWR cache.get returns the State object in SWR 2.x
   // State.data is the PaginatedResponse, PaginatedResponse.data is the array
   const listData = listState?.data?.data || listState?.data || [];
@@ -93,8 +94,7 @@ export function useOMDispatch(id?: string, options: any = {}) {
 
   // Try to find the Dispatch in the list cache (used by OMDispatchesClient)
   // This allows the detail page to show data instantly while the full version loads
-  const listCacheKey = "/api/admin/om/dispatch-orders?limit=500";
-  const listState = cache.get(listCacheKey) as any;
+  const listState = cache.get(DISPATCH_CACHE_KEY) as any;
   const listData = listState?.data?.data || listState?.data || [];
   const foundInList = Array.isArray(listData) ? listData.find((d: any) => d.id === id) : null;
 

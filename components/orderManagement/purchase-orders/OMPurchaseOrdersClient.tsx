@@ -23,9 +23,11 @@ import { exportToExcel, exportToPDF } from "@/lib/om-export-utils";
 import { POTable } from "./POTable";
 import { POItemTable } from "./POItemTable";
 import { Grid3x3, Table as TableIcon } from "lucide-react";
+import { useSWRConfig } from "swr";
 import { 
   useMutatePurchaseOrders,
-  useOMSWRCache
+  useOMSWRCache,
+  PO_CACHE_KEY
 } from "@/data/om/admin.hooks";
 
 const PO_STATUS_LABELS: Record<string, string> = {
@@ -53,9 +55,11 @@ export function OMPurchaseOrdersClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   
+  const { mutate: globalMutate } = useSWRConfig();
+  
   // SWR cache layer for snappy navigation
   // We use a larger limit (500) for the background cache to make search/filter instant
-  const cachedData = useOMSWRCache("/api/admin/om/purchase-orders?limit=500", initialData);
+  const cachedData = useOMSWRCache(PO_CACHE_KEY, initialData);
 
   const clientOptions = useMemo(() => propsClientOptions || [], [propsClientOptions]);
   const locationOptions = useMemo(() => propsLocationOptions || [], [propsLocationOptions]);
@@ -68,9 +72,12 @@ export function OMPurchaseOrdersClient({
     (searchParams.get("view") as "client" | "item") || "client"
   );
 
-  const [purchaseOrders, setPurchaseOrders] = useState<OMPurchaseOrder[]>(cachedData?.data || []);
-  const [currentPage, setCurrentPage] = useState(cachedData?.meta.page || 1);
-  const [hasMore, setHasMore] = useState(cachedData ? cachedData.meta.page < cachedData.meta.totalPages : false);
+  // Derive data from SWR cache
+  const purchaseOrders = useMemo(() => cachedData?.data || [], [cachedData]);
+  const currentPage = useMemo(() => cachedData?.meta?.page || 1, [cachedData]);
+  const hasMore = useMemo(() => 
+    cachedData ? (cachedData.meta?.page || 0) < (cachedData.meta?.totalPages || 0) : false, 
+  [cachedData]);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
 
@@ -133,15 +140,6 @@ export function OMPurchaseOrdersClient({
   }, [searchParams, pathname, router]);
 
 
-  useEffect(() => {
-    // Sync from cached/server data (Fresh from router.refresh() or SWR cache)
-    if (cachedData) {
-      setPurchaseOrders(cachedData.data);
-      setCurrentPage(cachedData.meta.page);
-      setHasMore(cachedData.meta.page < cachedData.meta.totalPages);
-    }
-  }, [cachedData]);
-
   const loadMore = async () => {
     if (isFetchingMore || !hasMore) return;
     setIsFetchingMore(true);
@@ -160,13 +158,18 @@ export function OMPurchaseOrdersClient({
       const res = await fetch(url.toString());
       if (res.ok) {
         const result: PaginatedResponse<OMPurchaseOrder> = await res.json();
-        setPurchaseOrders((prev) => {
-          const existingIds = new Set(prev.map(p => p.id));
+        
+        // Persist to SWR cache instead of local state
+        globalMutate(PO_CACHE_KEY, (current: any) => {
+          if (!current || !current.data) return result;
+          const existingIds = new Set(current.data.map((p: any) => p.id));
           const uniqueNewData = result.data.filter(p => !existingIds.has(p.id));
-          return [...prev, ...uniqueNewData];
-        });
-        setCurrentPage(result.meta.page);
-        setHasMore(result.meta.page < result.meta.totalPages);
+          return {
+            ...current,
+            data: [...current.data, ...uniqueNewData],
+            meta: result.meta
+          };
+        }, false);
       }
     } catch (err) {
       console.error("Error loading more POs:", err);
@@ -184,7 +187,7 @@ export function OMPurchaseOrdersClient({
       }, 2000); // 2 second delay between background fetches
       return () => clearTimeout(timer);
     }
-  }, [hasMore, isFetchingMore]);
+  }, [hasMore, isFetchingMore, loadMore]);
 
   const filterFn = useCallback((po: OMPurchaseOrder, searchTerm: string, filters: Record<string, any>) => {
     const q = searchTerm.toLowerCase().trim();

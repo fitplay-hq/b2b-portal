@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useSWRConfig } from "swr";
+import { PO_CACHE_KEY, DISPATCH_CACHE_KEY } from "@/data/om/admin.hooks";
 
 /**
  * Resource Hints and Preloading for Ultra-Fast Performance
@@ -164,8 +165,8 @@ export function CriticalResourcePreloader() {
     
     // OM API URLs that need SWR cache priming
     const omApiUrls = [
-      "/api/admin/om/purchase-orders?limit=500",
-      "/api/admin/om/dispatch-orders?limit=500"
+      PO_CACHE_KEY,
+      DISPATCH_CACHE_KEY
     ];
 
     criticalResources.forEach((resource) => {
