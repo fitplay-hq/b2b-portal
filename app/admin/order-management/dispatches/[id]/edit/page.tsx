@@ -60,7 +60,9 @@ import {
 import { 
   useOMMutate, 
   useOMPurchaseOrders, 
-  useOMLogisticsPartners 
+  useOMLogisticsPartners,
+  useOMDispatch,
+  useOMPurchaseOrder
 } from "@/data/om/admin.hooks";
 
 interface DispatchLineItem {
@@ -116,7 +118,10 @@ function EditDispatchForm() {
   
   const isLoadingMaster = loadingSOs || loadingPartners;
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingDispatch, setIsLoadingDispatch] = useState(true);
+
+  // Use SWR for primary data
+  const { dispatch: swrDispatch, isLoading: loadingDispatch } = useOMDispatch(id);
+  const { purchaseOrder: swrPO, isLoading: loadingPoDetail } = useOMPurchaseOrder(swrDispatch?.purchaseOrderId || undefined);
 
   // Line items
   const [lineItems, setLineItems] = useState<DispatchLineItem[]>([]);
@@ -133,86 +138,60 @@ function EditDispatchForm() {
   // Empty line replaced
 
   // Fetch Existing Dispatch Order
+  // Sync Existing Dispatch Order to form state
   useEffect(() => {
-    if (!id) return;
+    if (!swrDispatch) return;
 
-    const fetchDispatch = async () => {
-      setIsLoadingDispatch(true);
+    const syncDispatch = () => {
       try {
-        const res = await fetch(`/api/admin/om/dispatch-orders/${id}`);
-        if (res.ok) {
-          const dispatch = await res.json();
-          setPoId(dispatch.purchaseOrderId || "");
-          setInvoiceNumber(dispatch.invoiceNumber || "");
-          setInvoiceDate(formatDateToYYYYMMDD(dispatch.invoiceDate));
-          setLogisticsPartnerId(dispatch.logisticsPartnerId || "");
-          setDeliveryLocationId(dispatch.deliveryLocationId || "");
-          setTrackingNumber(dispatch.docketNumber || "");
-          setExpectedDeliveryDate(
-            formatDateToYYYYMMDD(dispatch.expectedDeliveryDate),
-          );
-          setDispatchDate(formatDateToYYYYMMDD(dispatch.dispatchDate));
-          setDeliveryDate(formatDateToYYYYMMDD(dispatch.deliveryDate));
-          setStatus(dispatch.status || "DISPATCHED");
-          setShipmentBoxes(dispatch.shipmentBoxes || []);
+        const dispatch = swrDispatch;
+        setPoId(dispatch.purchaseOrderId || "");
+        setInvoiceNumber(dispatch.invoiceNumber || "");
+        setInvoiceDate(formatDateToYYYYMMDD(dispatch.invoiceDate));
+        setLogisticsPartnerId(dispatch.logisticsPartnerId || "");
+        setDeliveryLocationId(dispatch.deliveryLocationId || "");
+        setTrackingNumber(dispatch.docketNumber || "");
+        setExpectedDeliveryDate(formatDateToYYYYMMDD(dispatch.expectedDeliveryDate));
+        setDispatchDate(formatDateToYYYYMMDD(dispatch.dispatchDate));
+        setDeliveryDate(formatDateToYYYYMMDD(dispatch.deliveryDate));
+        setStatus(dispatch.status || "DISPATCHED");
+        setShipmentBoxes(dispatch.shipmentBoxes || []);
 
-          if (dispatch.shipmentBoxes && dispatch.shipmentBoxes.length > 0) {
-            const maxBoxNum = Math.max(
-              ...dispatch.shipmentBoxes.map((b: OMShipmentBox) => b.boxNumber),
-            );
-            setNextBoxNumber(maxBoxNum + 1);
-          }
-
-          if (dispatch.purchaseOrderId) {
-            await fetchPoDetail(dispatch.purchaseOrderId, dispatch.items);
-          }
-        } else {
-          toast.error("Failed to load dispatch details");
+        if (dispatch.shipmentBoxes && dispatch.shipmentBoxes.length > 0) {
+          const maxBoxNum = Math.max(...dispatch.shipmentBoxes.map((b: OMShipmentBox) => Number(b.boxNumber)));
+          setNextBoxNumber(maxBoxNum + 1);
         }
       } catch (err) {
-        console.error(err);
-        toast.error("Failed to load dispatch details");
-      } finally {
-        setIsLoadingDispatch(false);
+        console.error("Error syncing dispatch details:", err);
       }
     };
 
-    fetchDispatch();
-  }, [id]);
+    syncDispatch();
+  }, [swrDispatch]);
 
-  const fetchPoDetail = async (
-    fetchPoId: string,
-    dispatchItems: OMDispatchOrderItem[] = [],
-  ) => {
-    setIsLoadingPoDetail(true);
-    try {
-      const res = await fetch(`/api/admin/om/purchase-orders/${fetchPoId}`);
-      if (res.ok) {
-        const po = await res.json();
+  // Sync PO Item Details for the form
+  useEffect(() => {
+    if (!swrPO || !swrDispatch) return;
+
+    const syncPoDetails = () => {
+      try {
+        const po = swrPO;
+        const dispatchItems = swrDispatch.items || [];
         setSelectedPO(po);
 
         // Calculate remaining quantity for each item
-        const items = po.items
+        const items = (po.items || [])
           .map((item: OMPurchaseOrderItem) => {
-            // Find if this item was in the current dispatch we are editing
-            const currentDispatchItemQty =
-              dispatchItems.find(
-                (di: OMDispatchOrderItem) => di.purchaseOrderItemId === item.id,
-              )?.quantity || 0;
+            const currentDispatchItemQty = dispatchItems.find(
+              (di: OMDispatchOrderItem) => di.purchaseOrderItemId === item.id,
+            )?.quantity || 0;
 
-            const totalDispatched =
-              item.dispatchItems?.reduce(
-                (sum: number, di: { quantity: number }) =>
-                  sum + (di.quantity || 0),
-                0,
-              ) || 0;
+            const totalDispatched = item.dispatchItems?.reduce(
+              (sum: number, di: { quantity: number }) => sum + (di.quantity || 0),
+              0,
+            ) || 0;
 
-            // The true remaining is (Total PO Qty) - (Total Dispatched *except* what was in this specific dispatch)
-            // Or simpler: (Total PO Qty - Total Dispatched) + (What was in this dispatch)
-            const remaining =
-              Number(item.quantity) -
-              Number(totalDispatched) +
-              Number(currentDispatchItemQty);
+            const remaining = Number(item.quantity) - Number(totalDispatched) + Number(currentDispatchItemQty);
 
             return {
               ...item,
@@ -220,53 +199,37 @@ function EditDispatchForm() {
               currentDispatchItemQty: Number(currentDispatchItemQty),
             };
           })
-          .filter(
-            (
-              i: OMPurchaseOrderItem & {
-                remainingQty: number;
-                currentDispatchItemQty: number;
-              },
-            ) => i.remainingQty > 0 || i.currentDispatchItemQty > 0,
-          );
+          .filter((i: any) => i.remainingQty > 0 || i.currentDispatchItemQty > 0);
 
         // Initialize dispatch line items
-        const newLineItems: DispatchLineItem[] = items.map(
-          (
-            item: OMPurchaseOrderItem & {
-              remainingQty: number;
-              currentDispatchItemQty: number;
-            },
-            index: number,
-          ) => {
-            const qty = item.currentDispatchItemQty;
-            const amt = qty * item.rate;
-            const gst = (amt * item.gstPercentage) / 100;
+        const newLineItems: DispatchLineItem[] = items.map((item: any, index: number) => {
+          const qty = item.currentDispatchItemQty;
+          const amt = qty * item.rate;
+          const gst = (amt * item.gstPercentage) / 100;
 
-            return {
-              tempId: `dispatch-${index}`,
-              poLineItemId: item.id,
-              productId: item.productId,
-              itemName: item.product?.name || "Unknown Item",
-              remainingQty: item.remainingQty,
-              dispatchQty: qty,
-              rate: item.rate,
-              amount: amt,
-              gstPercentage: item.gstPercentage,
-              gstAmount: gst,
-              totalAmount: amt + gst,
-            };
-          },
-        );
+          return {
+            tempId: `dispatch-${index}`,
+            poLineItemId: item.id,
+            productId: item.productId,
+            itemName: item.product?.name || "Unknown Item",
+            remainingQty: item.remainingQty,
+            dispatchQty: qty,
+            rate: item.rate,
+            amount: amt,
+            gstPercentage: item.gstPercentage,
+            gstAmount: gst,
+            totalAmount: amt + gst,
+          };
+        });
 
         setLineItems(newLineItems);
+      } catch (err) {
+        console.error("Error syncing PO details:", err);
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load PO details");
-    } finally {
-      setIsLoadingPoDetail(false);
-    }
-  };
+    };
+
+    syncPoDetails();
+  }, [swrPO, swrDispatch]);
 
   const updateLineItem = (
     tempId: string,
@@ -574,7 +537,7 @@ function EditDispatchForm() {
     }
   };
 
-  if (isLoadingDispatch) {
+  if (!swrDispatch && loadingDispatch) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

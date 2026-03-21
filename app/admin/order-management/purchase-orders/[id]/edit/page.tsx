@@ -61,7 +61,9 @@ export default function OMEditPurchaseOrder() {
   const { purchaseOrder: poDataResponse, isLoading: loadingPO } = useOMPurchaseOrder(id);
   const poData = poDataResponse;
   
-  const isDataLoading = loadingClients || loadingLocations || loadingProducts || loadingBrands || loadingPO;
+  // Optimization: If we have the PO data (even from cache), we can show the form
+  // The form's internal components handle their own loading states for options
+  const isDataLoading = !poData && loadingPO;
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const refreshData = async () => {
