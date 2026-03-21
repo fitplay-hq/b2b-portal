@@ -1,4 +1,5 @@
-import { OMPurchaseOrderDetailClient } from "./OMPurchaseOrderDetailClient";
+import { OMPurchaseOrderDetailClient } from "@/components/orderManagement/purchase-orders/OMPurchaseOrderDetailClient";
+
 
 interface PageProps {
   params: Promise<{ id: string }>;

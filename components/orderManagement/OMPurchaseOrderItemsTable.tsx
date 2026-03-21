@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { OMDispatchHistory } from "./OMDispatchHistory";
@@ -20,6 +20,7 @@ import {
   OMDispatchOrderItem,
   OMDispatchOrder,
 } from "@/types/order-management";
+import { getPoStatusClass } from "@/constants/order-management";
 
 interface OMPurchaseOrderItemsTableProps {
   poId: string;
@@ -38,9 +39,13 @@ export function OMPurchaseOrderItemsTable({
     setExpandedItemId(expandedItemId === itemId ? null : itemId);
   };
 
-  const subtotal = items?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
-  const totalGst = items?.reduce((sum, item) => sum + (item.gstAmount || 0), 0) || 0;
-  const grandTotal = items?.reduce((sum, item) => sum + (item.totalAmount || 0), 0) || 0;
+  const { subtotal, totalGst, grandTotal } = useMemo(() => {
+    return {
+      subtotal: items?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0,
+      totalGst: items?.reduce((sum, item) => sum + (item.gstAmount || 0), 0) || 0,
+      grandTotal: items?.reduce((sum, item) => sum + (item.totalAmount || 0), 0) || 0,
+    };
+  }, [items]);
 
   return (
     <div className="space-y-4">
