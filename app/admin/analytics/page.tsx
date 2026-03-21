@@ -53,6 +53,8 @@ import { useAnalytics, type AnalyticsFilters } from '@/hooks/use-analytics';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/use-permissions';
+import { SearchableSelect } from '@/components/ui/combobox';
+import { useCompanies } from '@/data/company/admin.hooks';
 import useSWR from 'swr';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
@@ -68,6 +70,7 @@ export default function AnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { hasPermission, isAdmin, actions } = usePermissions();
+  const { companies } = useCompanies();
   const [filters, setFilters] = useState<AnalyticsFilters>({
     period: 'all'
   });
@@ -101,6 +104,11 @@ export default function AnalyticsPage() {
   // Add stock status filter
   if (filters.stockStatus) {
     analyticsFilters.stockStatus = filters.stockStatus;
+  }
+  
+  // Add company filter
+  if (filters.companyId) {
+    analyticsFilters.companyId = filters.companyId;
   }
   
   // Add custom date filters if dates are set (regardless of period)
@@ -284,7 +292,19 @@ export default function AnalyticsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="space-y-2">
+                  <Label>Company</Label>
+                  <SearchableSelect
+                    options={(companies || []).map((c: any) => ({
+                      value: c.id,
+                      label: c.name,
+                    }))}
+                    value={filters.companyId || ""}
+                    onValueChange={(value: string) => handleFilterChange('companyId', value === "" ? undefined : value)}
+                    placeholder="All Companies"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Time Period</Label>
                   <Select
@@ -713,7 +733,19 @@ export default function AnalyticsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="space-y-2">
+                  <Label>Company</Label>
+                  <SearchableSelect
+                    options={(companies || []).map((c: any) => ({
+                      value: c.id,
+                      label: c.name,
+                    }))}
+                    value={filters.companyId || ""}
+                    onValueChange={(value: string) => handleFilterChange('companyId', value === "" ? undefined : value)}
+                    placeholder="All Companies"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Category</Label>
                   <Select

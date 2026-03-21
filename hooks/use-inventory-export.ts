@@ -8,6 +8,7 @@ interface InventoryExportFilters {
   reason?: string;
   search?: string;
   period?: string;
+  companyId?: string;
 }
 
 export function useInventoryExport() {
@@ -26,6 +27,7 @@ export function useInventoryExport() {
       if (filters.reason) exportParams.set('reason', filters.reason);
       if (filters.search) exportParams.set('search', filters.search);
       if (filters.period) exportParams.set('period', filters.period);
+      if (filters.companyId) exportParams.set('companyId', filters.companyId);
 
       const exportUrl = format === 'pdf' 
         ? `/api/inventoryLogs/export/pdf?${exportParams.toString()}`

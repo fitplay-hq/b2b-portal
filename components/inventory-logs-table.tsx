@@ -23,6 +23,7 @@ import {
   RotateCcw,
   Loader2
 } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/combobox";
 import { InventoryLogEntry } from "@/data/inventory/admin.hooks";
 interface InventoryLogsTableProps {
   logs: InventoryLogEntry[];
@@ -58,7 +59,9 @@ interface InventoryLogsTableProps {
     productName: string;
     sku: string;
     reason: string;
+    companyId?: string;
   };
+  companies?: any[];
 }
 
 export function InventoryLogsTable({
@@ -78,6 +81,7 @@ export function InventoryLogsTable({
   onResetFilters,
   activeFilters = [],
   currentFilters,
+  companies = [],
 }: InventoryLogsTableProps) {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [localFilters, setLocalFilters] = useState({
@@ -86,12 +90,16 @@ export function InventoryLogsTable({
     productName: "",
     sku: "",
     reason: "",
+    companyId: "",
   });
   
   // Sync local filters with current filters from parent
   useEffect(() => {
     if (currentFilters) {
-      setLocalFilters(currentFilters);
+      setLocalFilters({
+        ...currentFilters,
+        companyId: currentFilters.companyId || "",
+      });
     }
   }, [currentFilters]);
   
@@ -281,7 +289,19 @@ export function InventoryLogsTable({
             </div>
 
             {showAdvancedFilters && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4 border rounded-lg bg-muted/20">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 p-4 border rounded-lg bg-muted/20">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Company</label>
+                  <SearchableSelect
+                    options={companies.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    }))}
+                    value={displayFilters.companyId || ""}
+                    onValueChange={(val: string) => onFilterChange?.({ companyId: val })}
+                    placeholder="All Companies"
+                  />
+                </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">From Date</label>
                   <Input

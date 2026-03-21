@@ -15,6 +15,8 @@ interface InventoryLogEntry {
   role: string;
   productId: string;
   currentStock: number;
+  minStockThreshold?: number | null;
+  companies: { id: string; name: string }[];
 }
 
 // GET /api/admin/inventory/logs
@@ -43,7 +45,9 @@ export async function GET(req: NextRequest) {
     const sku = searchParams.get("sku");
     const reason = searchParams.get("reason");
 
-    // Get all products with their inventory logs and current stock
+    const companyId = searchParams.get("companyId");
+
+    // Get all products with their inventory logs, current stock, and companies
     const products = await prisma.product.findMany({
       select: {
         id: true,
@@ -52,6 +56,12 @@ export async function GET(req: NextRequest) {
         inventoryLogs: true,
         availableStock: true,
         minStockThreshold: true,
+        companies: {
+          select: {
+            id: true,
+            name: true,
+          }
+        }
       },
     });
 
@@ -144,6 +154,7 @@ export async function GET(req: NextRequest) {
             productId: product.id,
             currentStock: runningStock, // This is now the stock AFTER this change
             minStockThreshold: product.minStockThreshold,
+            companies: product.companies.map(c => ({ id: c.id, name: c.name })),
           });
         });
       }
@@ -198,14 +209,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Company filter
+    if (companyId) {
+      filteredLogs = filteredLogs.filter(log => 
+        log.companies.some(c => c.id === companyId)
+      );
+    }
+
     // Apply sorting
     const allowedSortFields = ["date", "productName", "sku", "change", "reason", "user", "currentStock"];
     const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "date";
     const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
     filteredLogs.sort((a, b) => {
-      let aValue: string | number = a[safeSortBy as keyof InventoryLogEntry];
-      let bValue: string | number = b[safeSortBy as keyof InventoryLogEntry];
+      let aValue: any = a[safeSortBy as keyof InventoryLogEntry];
+      let bValue: any = b[safeSortBy as keyof InventoryLogEntry];
 
       // Special handling for date sorting
       if (safeSortBy === "date") {
@@ -261,13 +279,13 @@ export async function GET(req: NextRequest) {
         productName,
         sku,
         reason,
+        companyId,
       },
       sorting: {
         sortBy: safeSortBy,
         sortOrder: safeSortOrder,
       },
     });
-
   } catch (error: unknown) {
     console.error("Error fetching inventory logs:", error);
     return NextResponse.json(

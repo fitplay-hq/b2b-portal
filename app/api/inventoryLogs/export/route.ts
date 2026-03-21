@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         const search = searchParams.get('search');
         const period = searchParams.get('period') || '30d';
 
-        let companyID: string | null = null;
+        let companyID: string | null = searchParams.get('companyId');
 
         if (session.user.role === 'CLIENT') {
             const client = await prisma.client.findUnique({
@@ -97,7 +97,7 @@ async function exportInventoryLogsData({
     const productWhere: any = {};
     if (productId) productWhere.id = productId;
 
-    if (session.user.role === 'CLIENT' && companyID) {
+    if (companyID) {
         productWhere.companies = { some: { id: companyID } };
     }
 

@@ -79,6 +79,19 @@ export async function GET(request: NextRequest) {
     if (status) {
       orderFilters.status = status;
     }
+    if (companyId) {
+      orderFilters.orderItems = {
+        some: {
+          product: {
+            companies: {
+              some: {
+                id: companyId
+              }
+            }
+          }
+        }
+      };
+    }
 
     // Get orders data
     const orders = await prisma.order.findMany({
@@ -115,6 +128,15 @@ export async function GET(request: NextRequest) {
     // Date filter (createdAt)
     if (Object.keys(dateFilter).length > 0) {
       inventoryFilters.createdAt = dateFilter;
+    }
+
+    // Company filter
+    if (companyId) {
+      inventoryFilters.companies = {
+        some: {
+          id: companyId
+        }
+      };
     }
 
     const inventory = await prisma.product.findMany({
@@ -247,8 +269,7 @@ export async function GET(request: NextRequest) {
     console.error('Analytics API Error:', error);
     console.error('Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      filters: { dateFrom, dateTo, clientId, companyId, status, period, categoryName, stockStatus }
+      stack: error instanceof Error ? error.stack : undefined
     });
     return NextResponse.json(
       { 

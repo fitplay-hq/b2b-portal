@@ -5,6 +5,7 @@ import Layout from "@/components/layout";
 import PageGuard from "@/components/page-guard";
 import { InventoryLogsTable } from "@/components/inventory-logs-table";
 import { useInventoryLogs, InventoryLogsFilters } from "@/data/inventory/admin.hooks";
+import { useCompanies } from "@/data/company/admin.hooks";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useInventoryExport } from "@/hooks/use-inventory-export";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import { OMActiveFilters } from "@/components/orderManagement/shared/OMActiveFil
 export default function InventoryLogsPage() {
   const { RESOURCES } = usePermissions();
   const { exportData, exportLoading } = useInventoryExport();
+  const { companies } = useCompanies();
   
   const [filters, setFilters] = useState<InventoryLogsFilters>({
     page: 1,
@@ -51,6 +53,7 @@ export default function InventoryLogsPage() {
       productName: "",
       sku: "",
       reason: "",
+      companyId: "",
     },
     labels: {
       dateFrom: "From Date",
@@ -58,10 +61,12 @@ export default function InventoryLogsPage() {
       productName: "Product",
       sku: "SKU",
       reason: "Reason",
+      companyId: "Company",
     },
     valueLabels: {
       dateFrom: (val) => new Date(val).toLocaleDateString('en-GB'),
       dateTo: (val) => new Date(val).toLocaleDateString('en-GB'),
+      companyId: (val) => companies?.find((c: any) => c.id === val)?.name || val,
     }
   });
 
@@ -233,6 +238,7 @@ export default function InventoryLogsPage() {
               onResetFilters={resetFilters}
               activeFilters={activeFiltersWithIcons}
               currentFilters={advancedFilters}
+              companies={companies}
             />
           </div>
         </div>

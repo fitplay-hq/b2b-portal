@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
 
     let client;
 
-    if (session.user.role === 'CLIENT') {
+    if (session?.user?.role === 'CLIENT') {
       client = await prisma.client.findUnique({
         where: { id: session.user.id }
       });
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
       // Use productDateFrom/productDateTo if available, otherwise fall back to dateFrom/dateTo
       const inventoryDateFrom = productDateFrom || dateFrom;
       const inventoryDateTo = productDateTo || dateTo;
-      return await exportInventoryData(format, search, client, category, subCategory, inventoryDateFrom, inventoryDateTo, stockStatus, sortBy);
+      return await exportInventoryData(format, search, client, category, subCategory, inventoryDateFrom, inventoryDateTo, stockStatus, sortBy, companyId);
     } else {
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
     }
@@ -195,7 +195,15 @@ async function exportOrdersData(
     orderFilters.clientId = clientId;
   }
   if (companyId) {
-    orderFilters.companyId = companyId;
+    orderFilters.orderItems = {
+      some: {
+        product: {
+          companies: {
+            some: { id: companyId }
+          }
+        }
+      }
+    };
   }
   if (status) {
     orderFilters.status = status;
@@ -522,7 +530,8 @@ async function exportInventoryData(
   dateFrom: string | null = null,
   dateTo: string | null = null,
   stockStatus: string | null = null,
-  sortBy: string | null = null
+  sortBy: string | null = null,
+  companyId: string | null = null
 ) {
   // console.log('📋 Starting inventory export with filters:', { search, category, sortBy });
 
@@ -566,6 +575,15 @@ async function exportInventoryData(
   // Attach AND conditions
   if (andConditions.length > 0) {
     inventoryFilters.AND = andConditions;
+  }
+
+  // Company filter
+  if (companyId) {
+    inventoryFilters.companies = {
+      some: {
+        id: companyId
+      }
+    };
   }
 
   // Category filter - filter by category name
@@ -836,6 +854,7 @@ async function exportInventoryData(
         ];
       }
 
+      console.log('Launching puppeteer with path:', executablePath);
       const browser = await puppeteer.launch({
         args: browserArgs,
         executablePath: executablePath,
@@ -843,7 +862,7 @@ async function exportInventoryData(
       });
 
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setContent(html, { waitUntil: 'load', timeout: 30000 }); // Changed to load to avoid timeout on bad images
 
       const pdfBuffer = await page.pdf({
         format: 'A4',
@@ -861,7 +880,7 @@ async function exportInventoryData(
       return new NextResponse(Buffer.from(pdfBuffer), {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename=inventory_${Date.now()}.pdf`,
+          'Content-Disposition': `attachment; filename="inventory_${Date.now()}.pdf"`,
         },
       });
 
@@ -870,10 +889,8 @@ async function exportInventoryData(
       return NextResponse.json(
         {
           error: 'Inventory PDF generation failed',
-          details:
-            error instanceof Error
-              ? error.message
-              : 'Unknown PDF error',
+          details: error instanceof Error ? error.message : 'Unknown PDF error',
+          stack: error instanceof Error ? error.stack : undefined,
         },
         { status: 500 }
       );

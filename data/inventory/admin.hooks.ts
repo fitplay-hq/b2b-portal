@@ -33,6 +33,7 @@ export interface InventoryLogsResponse {
     productName?: string;
     sku?: string;
     reason?: string;
+    companyId?: string;
   };
   sorting: {
     sortBy: string;
@@ -51,6 +52,7 @@ export interface InventoryLogsFilters {
   productName?: string;
   sku?: string;
   reason?: string;
+  companyId?: string;
 }
 
 export function useInventoryLogs(filters?: InventoryLogsFilters) {
@@ -66,6 +68,7 @@ export function useInventoryLogs(filters?: InventoryLogsFilters) {
   if (filters?.productName) queryParams.set("productName", filters.productName);
   if (filters?.sku) queryParams.set("sku", filters.sku);
   if (filters?.reason) queryParams.set("reason", filters.reason);
+  if (filters?.companyId) queryParams.set("companyId", filters.companyId);
 
   const url = `/api/admin/inventory/logs?${queryParams.toString()}`;
   
