@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSWRConfig } from "swr";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
@@ -28,7 +29,8 @@ import { Grid3x3, Table as TableIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   useMutateDispatches,
-  useOMSWRCache
+  useOMSWRCache,
+  DISPATCH_CACHE_KEY
 } from "@/data/om/admin.hooks";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 
@@ -53,9 +55,11 @@ export function OMDispatchesClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
+  const { mutate: globalMutate } = useSWRConfig();
+  
   // SWR cache layer for snappy navigation
   // Cache a larger set (500) in the background to make search/filter instant
-  const cachedData = useOMSWRCache("/api/admin/om/dispatch-orders?limit=500", initialData);
+  const cachedData = useOMSWRCache(DISPATCH_CACHE_KEY, initialData);
 
   // 2. Fetch options via SWR
 
@@ -73,19 +77,13 @@ export function OMDispatchesClient({
     (searchParams.get("view") as "client" | "item") || "client"
   );
 
-  const [dispatches, setDispatches] = useState<OMDispatchOrder[]>(cachedData?.data || []);
-  const [currentPage, setCurrentPage] = useState(cachedData?.meta.page || 1);
-  const [hasMore, setHasMore] = useState(cachedData ? cachedData.meta.page < cachedData.meta.totalPages : false);
+  // Derive data from SWR cache
+  const dispatches = useMemo(() => cachedData?.data || [], [cachedData]);
+  const currentPage = useMemo(() => cachedData?.meta?.page || 1, [cachedData]);
+  const hasMore = useMemo(() => 
+    cachedData ? (cachedData.meta?.page || 0) < (cachedData.meta?.totalPages || 0) : false, 
+  [cachedData]);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
-
-  // Sync from cached/server data (for router.refresh() or SWR cache)
-  useEffect(() => {
-    if (cachedData) {
-      setDispatches(cachedData.data);
-      setCurrentPage(cachedData.meta.page);
-      setHasMore(cachedData.meta.page < cachedData.meta.totalPages);
-    }
-  }, [cachedData]);
 
 
   // Helper to update URL
@@ -120,7 +118,7 @@ export function OMDispatchesClient({
       const nextPage = currentPage + 1;
       const url = new URL("/api/admin/om/dispatch-orders", window.location.origin);
       url.searchParams.set("page", nextPage.toString());
-      url.searchParams.set("limit", "50");
+      url.searchParams.set("limit", "500"); // Use 500 for consistency with cache key
       
       searchParams.forEach((value, key) => {
         if (key !== "page" && key !== "limit") {
@@ -131,13 +129,18 @@ export function OMDispatchesClient({
       const res = await fetch(url.toString());
       if (res.ok) {
         const result: PaginatedResponse<OMDispatchOrder> = await res.json();
-        setDispatches((prev) => {
-          const existingIds = new Set(prev.map(d => d.id));
+        
+        // Persist to SWR cache instead of local state
+        globalMutate(DISPATCH_CACHE_KEY, (current: any) => {
+          if (!current || !current.data) return result;
+          const existingIds = new Set(current.data.map((d: any) => d.id));
           const uniqueNewData = result.data.filter(d => !existingIds.has(d.id));
-          return [...prev, ...uniqueNewData];
-        });
-        setCurrentPage(result.meta.page);
-        setHasMore(result.meta.page < result.meta.totalPages);
+          return {
+            ...current,
+            data: [...current.data, ...uniqueNewData],
+            meta: result.meta
+          };
+        }, false);
       }
     } catch (err) {
       console.error("Error loading more dispatches:", err);
@@ -155,7 +158,7 @@ export function OMDispatchesClient({
       }, 2000); // 2 second delay between background fetches
       return () => clearTimeout(timer);
     }
-  }, [hasMore, isFetchingMore]);
+  }, [hasMore, isFetchingMore, loadMore]);
 
   const initialFilters = useMemo(() => ({
     fromDate: searchParams.get("fromDate") || "",
@@ -370,10 +373,14 @@ export function OMDispatchesClient({
 
     const oldStatus = currentDispatch.status;
 
-    // Optimistic update
-    setDispatches(prev =>
-      prev.map(d => d.id === dispatchId ? { ...d, status: newStatus } : d)
-    );
+    // Optimistic update in SWR cache
+    globalMutate(DISPATCH_CACHE_KEY, (current: any) => {
+      if (!current || !current.data) return current;
+      return {
+        ...current,
+        data: current.data.map((d: any) => d.id === dispatchId ? { ...d, status: newStatus } : d)
+      };
+    }, false);
 
     const success = await updateDispatchStatus(dispatchId, newStatus);
     if (success) {
@@ -381,11 +388,16 @@ export function OMDispatchesClient({
       router.refresh(); // Refresh server components
     } else {
       toast.error("Failed to update status");
-      setDispatches(prev =>
-        prev.map(d => d.id === dispatchId ? { ...d, status: oldStatus } : d)
-      );
+      // Rollback on error
+      globalMutate(DISPATCH_CACHE_KEY, (current: any) => {
+        if (!current || !current.data) return current;
+        return {
+          ...current,
+          data: current.data.map((d: any) => d.id === dispatchId ? { ...d, status: oldStatus } : d)
+        };
+      }, false);
     }
-  }, [dispatches, updateDispatchStatus, router]);
+  }, [dispatches, updateDispatchStatus, router, globalMutate]);
 
   const [deleteDispatchId, setDeleteDispatchId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

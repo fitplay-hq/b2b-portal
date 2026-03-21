@@ -2,6 +2,14 @@
 
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { mutate } from "swr";
+import { fetcher } from "@/lib/fetcher";
+import { 
+  PO_CACHE_KEY, 
+  DISPATCH_CACHE_KEY,
+  PO_API_URL,
+  DISPATCH_API_URL,
+} from "@/data/om/admin.hooks";
 import { MasterSearch } from "@/components/dashboard/master-search/MasterSearch";
 import { useMasterSearch } from "@/components/dashboard/master-search/useMasterSearch";
 import { useOMFilters } from "@/hooks/use-om-filters";
@@ -71,6 +79,15 @@ export function OMDashboardClient({
 }: OMDashboardClientProps) {
   const router = useRouter();
   const searchParamsObj = useSearchParams();
+
+  // Prefetch critical list data when dashboard loads
+  useEffect(() => {
+    // Prefetch POs into cache
+    mutate(PO_CACHE_KEY, fetcher(PO_API_URL));
+    
+    // Prefetch Dispatches into cache
+    mutate(DISPATCH_CACHE_KEY, fetcher(DISPATCH_API_URL));
+  }, []);
 
   const [isLoading, setIsLoading] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
