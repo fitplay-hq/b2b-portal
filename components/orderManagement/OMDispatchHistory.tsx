@@ -88,13 +88,15 @@ export function OMDispatchHistory({
 
           // Track running total for this specific PO item
           const poItemId = item.purchaseOrderItemId;
-          runningTotals[poItemId] =
-            (runningTotals[poItemId] || 0) + (item.quantity || 0);
+          if (poItemId) {
+            runningTotals[poItemId] =
+              (runningTotals[poItemId] || 0) + (item.quantity || 0);
+          }
 
-          const remainingQty = Math.max(
+          const remainingQty = poItemId ? Math.max(
             0,
-            (poItem?.quantity || 0) - runningTotals[poItemId],
-          );
+            (poItem?.quantity || 0) - (runningTotals[poItemId] || 0),
+          ) : 0;
 
           return {
             id: item.id,
@@ -264,6 +266,7 @@ export function OMDispatchHistory({
       renderRow={(item: FlattenedDispatchItem) => (
         <TableRow
           key={item.id}
+          className="cursor-pointer hover:bg-muted/50"
         >
           <TableCell className="pr-2">
             {item.date ? format(new Date(item.date), "dd MMM yyyy") : "N/A"}
