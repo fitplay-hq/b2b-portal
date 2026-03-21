@@ -27,7 +27,10 @@ import { useSWRConfig } from "swr";
 import { 
   useMutatePurchaseOrders,
   useOMSWRCache,
-  PO_CACHE_KEY
+  PO_CACHE_KEY,
+  useOMClients,
+  useOMDeliveryLocations,
+  useOMPONumbers
 } from "@/data/om/admin.hooks";
 
 const PO_STATUS_LABELS: Record<string, string> = {
@@ -40,16 +43,10 @@ const PO_STATUS_LABELS: Record<string, string> = {
 
 interface OMPurchaseOrdersClientProps {
   initialData?: PaginatedResponse<OMPurchaseOrder>;
-  clientOptions?: ComboboxOption[];
-  locationOptions?: ComboboxOption[];
-  poOptions?: ComboboxOption[];
 }
 
 export function OMPurchaseOrdersClient({
   initialData,
-  clientOptions: propsClientOptions,
-  locationOptions: propsLocationOptions,
-  poOptions: propsPoOptions,
 }: OMPurchaseOrdersClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,13 +54,17 @@ export function OMPurchaseOrdersClient({
   
   const { mutate: globalMutate } = useSWRConfig();
   
+  const { clients } = useOMClients();
+  const { locations } = useOMDeliveryLocations();
+  const { poNumbers } = useOMPONumbers();
+  
   // SWR cache layer for snappy navigation
   // We use a larger limit (500) for the background cache to make search/filter instant
   const cachedData = useOMSWRCache(PO_CACHE_KEY, initialData);
 
-  const clientOptions = useMemo(() => propsClientOptions || [], [propsClientOptions]);
-  const locationOptions = useMemo(() => propsLocationOptions || [], [propsLocationOptions]);
-  const poOptions = useMemo(() => propsPoOptions || [], [propsPoOptions]);
+  const clientOptions = useMemo(() => clients?.map((c: any) => ({ value: c.id, label: c.name })) || [], [clients]);
+  const locationOptions = useMemo(() => locations?.map((l: any) => ({ value: l.id, label: l.name })) || [], [locations]);
+  const poOptions = useMemo(() => poNumbers?.map((p: any) => ({ value: p.value || p.poNumber || p, label: p.label || p.poNumber || p })) || [], [poNumbers]);
 
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "po_date_desc");

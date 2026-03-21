@@ -266,6 +266,23 @@ export function useOMPONumbers() {
 }
 
 /**
+ * Hook to fetch dispatch options (dockets, invoices)
+ */
+export function useOMDispatchOptions(type: "invoice" | "docket") {
+  const { data, error, isLoading } = useSWR<any[]>(`/api/admin/om/dispatch-orders/options?type=${type}`, fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: true,
+    keepPreviousData: true,
+  });
+
+  return {
+    options: data || EMPTY_ARRAY,
+    isLoading,
+    error,
+  };
+}
+
+/**
  * Hook to fetch products (items)
  */
 export function useOMProducts(params?: string, options: any = {}) {

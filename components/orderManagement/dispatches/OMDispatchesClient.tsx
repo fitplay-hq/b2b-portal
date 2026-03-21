@@ -30,26 +30,19 @@ import { Button } from "@/components/ui/button";
 import { 
   useMutateDispatches,
   useOMSWRCache,
-  DISPATCH_CACHE_KEY
+  DISPATCH_CACHE_KEY,
+  useOMClients,
+  useOMLogisticsPartners,
+  useOMDispatchOptions
 } from "@/data/om/admin.hooks";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 
 interface OMDispatchesClientProps {
   initialData?: PaginatedResponse<OMDispatchOrder>;
-  clientOptions?: ComboboxOption[];
-  logisticsOptions?: ComboboxOption[];
-  deliveryLocationOptions?: ComboboxOption[];
-  invoiceOptions?: ComboboxOption[];
-  docketOptions?: ComboboxOption[];
 }
 
 export function OMDispatchesClient({
   initialData,
-  clientOptions: propsClientOptions,
-  logisticsOptions: propsLogisticsOptions,
-  deliveryLocationOptions: propsDeliveryLocationOptions,
-  invoiceOptions: propsInvoiceOptions,
-  docketOptions: propsDocketOptions,
 }: OMDispatchesClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,13 +55,15 @@ export function OMDispatchesClient({
   const cachedData = useOMSWRCache(DISPATCH_CACHE_KEY, initialData);
 
   // 2. Fetch options via SWR
+  const { clients } = useOMClients();
+  const { partners: logistics } = useOMLogisticsPartners();
+  const { options: invoices } = useOMDispatchOptions("invoice");
+  const { options: dockets } = useOMDispatchOptions("docket");
 
-  const clientOptions = useMemo(() => propsClientOptions || [], [propsClientOptions]);
-  const logisticsOptions = useMemo(() => propsLogisticsOptions || [], [propsLogisticsOptions]);
-  const deliveryLocationOptions = useMemo(() => propsDeliveryLocationOptions || [], [propsDeliveryLocationOptions]);
-
-  const invoiceOptions = useMemo(() => propsInvoiceOptions || [], [propsInvoiceOptions]);
-  const docketOptions = useMemo(() => propsDocketOptions || [], [propsDocketOptions]);
+  const clientOptions = useMemo(() => clients?.map((c: any) => ({ value: c.id, label: c.name })) || [], [clients]);
+  const logisticsOptions = useMemo(() => logistics?.map((l: any) => ({ value: l.id, label: l.name })) || [], [logistics]);
+  const invoiceOptions = useMemo(() => invoices || [], [invoices]);
+  const docketOptions = useMemo(() => dockets || [], [dockets]);
 
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [sortBy, setSortBy] = useState<SortOption>((searchParams.get("sortBy") as SortOption) || "dispatch_date_desc");
