@@ -32,7 +32,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useOMMutate, useOMPurchaseOrders, useOMLogisticsPartners } from "@/data/om/admin.hooks";
+import { useOMMutate, useOMPurchaseOrders, useOMLogisticsPartners, useOMProducts, useOMBrands } from "@/data/om/admin.hooks";
 import { formatDateForApi, formatDateToYYYYMMDD } from "@/lib/utils";
 import { getFinancialYearString } from "@/lib/utils/financial-year";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -49,10 +49,14 @@ import {
   type OMPurchaseOrderItem,
   type OMDispatchOrderItem,
   type OMLogisticsPartner,
+  type OMDispatchType,
+  type OMProduct,
+  type OMBrand,
   OM_DISPATCH_STATUS_CONFIG,
   type OMShipmentBox,
   OMShipmentHelpers,
 } from "@/types/order-management";
+import { OMPurchaseOrderLineItems, type LineItem } from "@/components/orderManagement/OMPurchaseOrderLineItems";
 
 interface DispatchLineItem {
   tempId: string;
@@ -80,6 +84,7 @@ function CreateDispatchForm() {
   const preSelectedPoId = searchParams.get("poId");
 
   // Form state
+  const [dispatchType, setDispatchType] = useState<OMDispatchType>(preSelectedPoId ? "ORDER" : "ORDER");
   const [poId, setPoId] = useState(preSelectedPoId || "");
   const fyPrefix = `FP/LLP/${getFinancialYearString()}/`;
   const [invoiceNumber, setInvoiceNumber] = useState(fyPrefix);
@@ -105,17 +110,20 @@ function CreateDispatchForm() {
   // Master data via SWR
   const { purchaseOrders: rawPos, isLoading: loadingSOs } = useOMPurchaseOrders("status=active&limit=1000");
   const { partners: logisticsPartners, isLoading: loadingPartners } = useOMLogisticsPartners();
+  const { products: allProducts, isLoading: loadingProducts } = useOMProducts("limit=1000");
+  const { brands: allBrands, isLoading: loadingBrands } = useOMBrands();
   
   // Filter out fully dispatched or closed POs for the initial selection
   const availablePOs = rawPos.filter((po: any) => 
     po.status !== "FULLY_DISPATCHED" && po.status !== "CLOSED"
   );
   
-  const isLoadingMaster = loadingSOs || loadingPartners;
+  const isLoadingMaster = loadingSOs || loadingPartners || loadingProducts || loadingBrands;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Line items
+  // Line items (ORDER) / Sample line items (SAMPLE)
   const [lineItems, setLineItems] = useState<DispatchLineItem[]>([]);
+  const [sampleLineItems, setSampleLineItems] = useState<LineItem[]>([]);
   const [nextId, setNextId] = useState(1);
 
   // Selected PO full details
@@ -284,14 +292,76 @@ function CreateDispatchForm() {
     );
   };
 
-  // Calculate totals
-  const totalDispatchQty = lineItems.reduce(
-    (sum, item) => sum + item.dispatchQty,
-    0,
-  );
-  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-  const totalGst = lineItems.reduce((sum, item) => sum + item.gstAmount, 0);
+  // Calculate totals (either ORDER or SAMPLE)
+  const activeItems = dispatchType === "ORDER" ? lineItems : sampleLineItems;
+  const totalDispatchQty = dispatchType === "ORDER" 
+    ? lineItems.reduce((sum, item) => sum + item.dispatchQty, 0)
+    : sampleLineItems.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotal = activeItems.reduce((sum, item) => sum + item.amount, 0);
+  const totalGst = activeItems.reduce((sum, item) => sum + item.gstAmount, 0);
   const grandTotal = subtotal + totalGst;
+
+  // Sample dispatch: add/remove/update items using LineItem type (same as PO creation)
+  const addSampleItem = () => {
+    const newItem: LineItem = {
+      tempId: `sample-${nextId}`,
+      productId: "",
+      itemName: "",
+      quantity: 1,
+      rate: 0,
+      amount: 0,
+      gstPercentage: 0,
+      gstAmount: 0,
+      totalAmount: 0,
+      brandId: "",
+      description: "",
+    };
+    setSampleLineItems([...sampleLineItems, newItem]);
+    setNextId(nextId + 1);
+  };
+
+  const removeSampleItem = (tempId: string) => {
+    setSampleLineItems(sampleLineItems.filter((i) => i.tempId !== tempId));
+  };
+
+  const updateSampleItem = (
+    tempId: string,
+    field: keyof LineItem,
+    value: any,
+    productOverride?: Partial<OMProduct>,
+  ) => {
+    setSampleLineItems((prevItems) =>
+      prevItems.map((item) => {
+        if (item.tempId !== tempId) return item;
+        const updated = { ...item, [field]: value };
+
+        if (field === "productId") {
+          const selectedProduct = productOverride || allProducts.find((p: any) => p.id === value);
+          if (selectedProduct) {
+            updated.itemName = selectedProduct.name || "";
+            updated.rate = selectedProduct.price || 0;
+            updated.gstPercentage = (selectedProduct as any).defaultGstPct ?? 0;
+            updated.brandId = (selectedProduct as any).brandId || "";
+          }
+        }
+
+        updated.amount = updated.quantity * updated.rate;
+        updated.gstAmount = (updated.amount * updated.gstPercentage) / 100;
+        updated.totalAmount = updated.amount + updated.gstAmount;
+        return updated;
+      }),
+    );
+  };
+
+  const handleSampleNewItemAdded = (tempId: string, product: OMProduct) => {
+    revalidateOM();
+    updateSampleItem(tempId, "productId", product.id, product);
+  };
+
+  const handleSampleNewBrandAdded = (tempId: string, brand: OMBrand) => {
+    revalidateOM();
+    updateSampleItem(tempId, "brandId", brand.id);
+  };
 
   // Shipment box functions
   const addNewBox = () => {
@@ -381,11 +451,18 @@ function CreateDispatchForm() {
 
   const isPackingComplete =
     totalDispatchQty > 0 &&
-    lineItems
-      .filter((item) => item.dispatchQty > 0)
-      .every(
-        (item) => getPackedQuantity(item.poLineItemId) === item.dispatchQty,
-      );
+    (dispatchType === "ORDER" 
+      ? lineItems
+          .filter((item) => item.dispatchQty > 0)
+          .every(
+            (item) => getPackedQuantity(item.poLineItemId) === item.dispatchQty,
+          )
+      : sampleLineItems
+          .filter((item) => item.quantity > 0)
+          .every(
+            (item) => getPackedQuantity(item.productId) === item.quantity,
+          )
+    );
 
   const getTotalBoxes = () => OMShipmentHelpers.getTotalBoxes(shipmentBoxes);
   const getVolumetricWeight = () =>
@@ -396,8 +473,7 @@ function CreateDispatchForm() {
     e.preventDefault();
 
     // Validation
-    // Validation - Only PO and Items are strictly required now
-    if (!poId) {
+    if (dispatchType === "ORDER" && !poId) {
       toast.error("Please select a Purchase Order");
       return;
     }
@@ -407,7 +483,7 @@ function CreateDispatchForm() {
       return;
     }
 
-    if (invoiceDate && selectedPO?.poDate) {
+    if (dispatchType === "ORDER" && invoiceDate && selectedPO?.poDate) {
       const invDateObj = new Date(invoiceDate);
       const poDateObj = new Date(selectedPO.poDate);
       invDateObj.setHours(0, 0, 0, 0);
@@ -464,20 +540,42 @@ function CreateDispatchForm() {
 
     setIsSubmitting(true);
     try {
-      const processedItems = lineItems
-        .filter((item) => item.dispatchQty > 0)
-        .map((item) => ({
-          purchaseOrderItemId: item.poLineItemId,
-          quantity: item.dispatchQty,
-          rate: item.rate,
-          amount: item.amount,
-          gstPercentage: item.gstPercentage,
-          gstAmount: item.gstAmount,
-          totalAmount: item.totalAmount,
-        }));
+      let processedItems;
+      if (dispatchType === "ORDER") {
+        processedItems = lineItems
+          .filter((item) => item.dispatchQty > 0)
+          .map((item) => ({
+            purchaseOrderItemId: item.poLineItemId,
+            quantity: item.dispatchQty,
+            rate: item.rate,
+            amount: item.amount,
+            gstPercentage: item.gstPercentage,
+            gstAmount: item.gstAmount,
+            totalAmount: item.totalAmount,
+          }));
+      } else {
+        // Find brand names from allBrands for SAMPLE dispatch items
+        processedItems = sampleLineItems
+          .filter((item) => item.quantity > 0)
+          .map((item) => {
+            const brand = allBrands.find((b: any) => b.id === item.brandId);
+            return {
+              productId: item.productId || null,
+              itemName: item.itemName,
+              brandName: brand?.name || null,
+              quantity: item.quantity,
+              rate: item.rate,
+              amount: item.amount,
+              gstPercentage: item.gstPercentage,
+              gstAmount: item.gstAmount,
+              totalAmount: item.totalAmount,
+            };
+          });
+      }
 
       const payload = {
-        purchaseOrderId: poId,
+        dispatchType,
+        purchaseOrderId: dispatchType === "ORDER" ? poId : null,
         invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
         invoiceDate: invoiceDate ? formatDateForApi(invoiceDate) : null,
         logisticsPartnerId: logisticsPartnerId || null,
@@ -567,16 +665,74 @@ function CreateDispatchForm() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
+      <div>
           <h1 className="text-2xl font-semibold">Create Dispatch Order</h1>
           <p className="text-muted-foreground">
-            Create a new dispatch for a purchase order
+            Create a new dispatch order
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Select PO */}
+        {/* Dispatch Type Selector */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Dispatch Type</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => { setDispatchType("ORDER"); setSampleLineItems([]); }}
+                className={`relative flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all duration-200 
+                  ${dispatchType === "ORDER" 
+                    ? "border-indigo-500 bg-indigo-50 shadow-md ring-2 ring-indigo-200" 
+                    : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"}`}
+              >
+                <Package className={`h-8 w-8 ${dispatchType === "ORDER" ? "text-indigo-600" : "text-gray-400"}`} />
+                <div className="text-center">
+                  <p className={`text-lg font-semibold ${dispatchType === "ORDER" ? "text-indigo-900" : "text-gray-900"}`}>
+                    Order Dispatch
+                  </p>
+                  <p className={`text-sm mt-1 ${dispatchType === "ORDER" ? "text-indigo-600" : "text-gray-500"}`}>
+                    Linked to a Purchase Order
+                  </p>
+                </div>
+                {dispatchType === "ORDER" && (
+                  <div className="absolute top-3 right-3 h-4 w-4 rounded-full bg-indigo-500 flex items-center justify-center">
+                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setDispatchType("SAMPLE"); setPoId(""); setSelectedPO(null); setLineItems([]); }}
+                className={`relative flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all duration-200 
+                  ${dispatchType === "SAMPLE" 
+                    ? "border-purple-500 bg-purple-50 shadow-md ring-2 ring-purple-200" 
+                    : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"}`}
+              >
+                <Package className={`h-8 w-8 ${dispatchType === "SAMPLE" ? "text-purple-600" : "text-gray-400"}`} />
+                <div className="text-center">
+                  <p className={`text-lg font-semibold ${dispatchType === "SAMPLE" ? "text-purple-900" : "text-gray-900"}`}>
+                    Sample Dispatch
+                  </p>
+                  <p className={`text-sm mt-1 ${dispatchType === "SAMPLE" ? "text-purple-600" : "text-gray-500"}`}>
+                    Not linked to any Purchase Order
+                  </p>
+                </div>
+                {dispatchType === "SAMPLE" && (
+                  <div className="absolute top-3 right-3 h-4 w-4 rounded-full bg-purple-500 flex items-center justify-center">
+                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                )}
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Select PO (ORDER type only) */}
+        {dispatchType === "ORDER" && (
         <Card>
           <CardHeader>
             <CardTitle>Select Purchase Order</CardTitle>
@@ -639,9 +795,10 @@ function CreateDispatchForm() {
             )}
           </CardContent>
         </Card>
+        )}
 
-        {/* FIFO Blocking Warning */}
-        {selectedPO && lineItems.some((li) => li.blockedByFifo) && (
+        {/* FIFO Blocking Warning (ORDER only) */}
+        {dispatchType === "ORDER" && selectedPO && lineItems.some((li) => li.blockedByFifo) && (
           <Alert variant="destructive" className="border-orange-500 bg-orange-50 text-orange-900">
             <AlertCircle className="h-5 w-5 text-orange-600" />
             <AlertDescription>
@@ -681,8 +838,8 @@ function CreateDispatchForm() {
           </Alert>
         )}
 
-        {/* Dispatch Line Items */}
-        {selectedPO && (
+        {/* Dispatch Line Items (ORDER) */}
+        {dispatchType === "ORDER" && selectedPO && (
           <Card>
             <CardHeader>
               <CardTitle>Dispatch Items</CardTitle>
@@ -780,8 +937,26 @@ function CreateDispatchForm() {
           </Card>
         )}
 
+        {/* Sample Dispatch Items — uses same component as PO creation */}
+        {dispatchType === "SAMPLE" && (
+          <Card>
+            <CardContent className="p-6">
+              <OMPurchaseOrderLineItems
+                lineItems={sampleLineItems}
+                products={allProducts}
+                brands={allBrands}
+                onAddLineItem={addSampleItem}
+                onRemoveLineItem={removeSampleItem}
+                onUpdateLineItem={updateSampleItem}
+                onNewItemAdded={handleSampleNewItemAdded}
+                onNewBrandAdded={handleSampleNewBrandAdded}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Invoice Information */}
-        {selectedPO && (
+        {(selectedPO || dispatchType === "SAMPLE") && (
           <Card>
             <CardHeader>
               <CardTitle>Invoice Information</CardTitle>
@@ -828,7 +1003,7 @@ function CreateDispatchForm() {
         )}
 
         {/* Logistics Details */}
-        {selectedPO && (
+        {(selectedPO || dispatchType === "SAMPLE") && (
           <Card>
             <CardHeader>
               <CardTitle>Logistics Details</CardTitle>
@@ -908,7 +1083,7 @@ function CreateDispatchForm() {
                   />
                 </div>
 
-                {selectedPO.deliveryLocations &&
+                {selectedPO?.deliveryLocations &&
                   selectedPO.deliveryLocations.length > 0 && (
                     <div>
                       <Label className="mb-2 block">Delivery Location</Label>
@@ -983,7 +1158,7 @@ function CreateDispatchForm() {
         )}
 
         {/* Shipment / Packing Details */}
-        {selectedPO &&
+        {(selectedPO || dispatchType === "SAMPLE") &&
           totalDispatchQty > 0 &&
           (!logisticsPartnerId ? (
             <Card className="px-6">
@@ -1345,7 +1520,7 @@ function CreateDispatchForm() {
           ))}
 
         {/* Dispatch Summary */}
-        {selectedPO && totalDispatchQty > 0 && (
+        {(selectedPO || dispatchType === "SAMPLE") && totalDispatchQty > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Dispatch Summary</CardTitle>

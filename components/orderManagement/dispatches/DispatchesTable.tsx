@@ -12,8 +12,10 @@ import { OMSortableHeader } from "@/components/orderManagement/shared/OMSortable
 import {
   getDispatchStatusVisuals,
   OM_DISPATCH_STATUS_CONFIG,
+  OM_DISPATCH_TYPE_CONFIG,
   type OMDispatchOrder,
   type OMDispatchStatus,
+  type OMDispatchType,
 } from "@/types/order-management";
 import type { SortOption } from "@/components/orderManagement/OMSortControl";
 import { formatStatus } from "@/lib/utils";
@@ -119,6 +121,7 @@ export const DispatchesTable = memo(function DispatchesTable({
             descOption="status_desc"
             className="px-3"
           />
+          <TableHead className="px-3">Type</TableHead>
           <TableHead className="text-right pr-7">Actions</TableHead>
         </TableRow>
       }
@@ -136,8 +139,8 @@ export const DispatchesTable = memo(function DispatchesTable({
               {dispatch.invoiceNumber || "N/A"}
             </Link>
           </TableCell>
-          <TableCell className="px-3">{dispatch.purchaseOrder?.poNumber || "N/A"}</TableCell>
-          <TableCell className="px-3">{dispatch.purchaseOrder?.client?.name || "N/A"}</TableCell>
+          <TableCell className="px-3">{dispatch.purchaseOrder?.poNumber || "—"}</TableCell>
+          <TableCell className="px-3">{dispatch.purchaseOrder?.client?.name || "—"}</TableCell>
           <TableCell className="text-left px-3">{dispatch.totalQuantity || 0}</TableCell>
           <TableCell className="px-3">{dispatch.logisticsPartner?.name || "N/A"}</TableCell>
           <TableCell className="font-mono text-sm px-3 max-w-32 wrap-break-word">
@@ -197,6 +200,14 @@ export const DispatchesTable = memo(function DispatchesTable({
                 {formatStatus(dispatch.status || "PENDING")}
               </Badge>
             )}
+          </TableCell>
+          <TableCell className="px-3">
+            <Badge
+              variant="outline"
+              className={OM_DISPATCH_TYPE_CONFIG[dispatch.dispatchType || "ORDER"]?.color || ""}
+            >
+              {OM_DISPATCH_TYPE_CONFIG[dispatch.dispatchType || "ORDER"]?.label || "Order"}
+            </Badge>
           </TableCell>
           <TableCell className="text-right pr-2" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-end gap-2">

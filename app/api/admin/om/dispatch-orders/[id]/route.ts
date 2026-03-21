@@ -88,8 +88,8 @@ export async function GET(
         numberOfBoxes: box.numberOfBoxes,
         contents: (box.contents || []).map((c: any) => ({
           contentId: c.id,
-          itemId: c.dispatchOrderItem?.purchaseOrderItemId || "unknown",
-          itemName: c.dispatchOrderItem?.purchaseOrderItem?.product?.name || "Unknown Item",
+          itemId: c.dispatchOrderItem?.purchaseOrderItemId || c.dispatchOrderItem?.productId || "unknown",
+          itemName: c.dispatchOrderItem?.purchaseOrderItem?.product?.name || c.dispatchOrderItem?.itemName || "Unknown Item",
           quantity: c.quantityPerBox,
           dispatchOrderItemId: c.dispatchOrderItemId,
         })),
@@ -138,15 +138,15 @@ export async function PUT(
       shipmentBoxes,
     } = validatedData;
 
-    // Validate that invoice date is not before PO date
+    // Validate that invoice date is not before PO date (ORDER dispatches only)
     if (invoiceDate) {
       let poId = validatedData.purchaseOrderId;
       if (!poId) {
         const existingDispatch = await prisma.oMDispatchOrder.findUnique({
           where: { id },
-          select: { purchaseOrderId: true },
+          select: { purchaseOrderId: true, dispatchType: true },
         });
-        if (existingDispatch) poId = existingDispatch.purchaseOrderId;
+        if (existingDispatch?.dispatchType === "ORDER") poId = existingDispatch.purchaseOrderId ?? undefined;
       }
 
       if (poId) {
@@ -158,7 +158,6 @@ export async function PUT(
         if (purchaseOrder?.poDate) {
           const invDateObj = new Date(invoiceDate);
           const poDateObj = new Date(purchaseOrder.poDate);
-          // Normalize dates to start of day for accurate comparison if time isn't critical
           if (invDateObj < poDateObj) {
             return NextResponse.json(
               { error: "Invoice Date cannot be earlier than the Purchase Order Date." },
@@ -176,9 +175,29 @@ export async function PUT(
         where: { dispatchOrderId: id },
       });
 
+      // Fetch existing dispatch to check type
+      const existingDispatch = await tx.oMDispatchOrder.findUnique({
+        where: { id },
+        select: { dispatchType: true, purchaseOrderId: true },
+      });
+      const isSample = existingDispatch?.dispatchType === "SAMPLE";
+
       let doTotalQuantity = 0;
       const createItems = (items || []).map((item: any) => {
         doTotalQuantity += (item.quantity || item.dispatchQty);
+        if (isSample) {
+          return {
+            productId: item.productId || null,
+            itemName: item.itemName || null,
+            brandName: item.brandName || null,
+            quantity: item.quantity || item.dispatchQty,
+            rate: item.rate,
+            amount: item.amount,
+            gstPercentage: item.gstPercentage,
+            gstAmount: item.gstAmount,
+            totalAmount: item.totalAmount,
+          };
+        }
         return {
           purchaseOrderItemId: item.purchaseOrderItemId || item.poLineItemId,
           quantity: item.quantity || item.dispatchQty,
@@ -253,57 +272,59 @@ export async function PUT(
         }
       }
 
-      // Re-aggregate and update PO and PO items
-      const purchaseOrder = await tx.oMPurchaseOrder.findUnique({
-        where: { id: dispatch.purchaseOrderId },
-        include: { items: true },
-      });
-
-      if (purchaseOrder) {
-        const updatedDispatches = await tx.oMDispatchOrderItem.groupBy({
-          by: ["purchaseOrderItemId"],
-          where: { purchaseOrderItemId: { in: purchaseOrder.items.map(i => i.id) } },
-          _sum: { quantity: true },
-        });
-
-        const updatedDispatchMap = new Map(
-          updatedDispatches.map((d) => [
-            d.purchaseOrderItemId,
-            d._sum.quantity ?? 0,
-          ]),
-        );
-
-        let totalPoDispatched = 0;
-        const fullyDispatched = purchaseOrder.items.every(
-          (poItem) => {
-            const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
-            totalPoDispatched += dQty;
-            return dQty >= (poItem.quantity || 0);
-          }
-        );
-
-        const newStatus: OMPoStatus = fullyDispatched
-          ? OMPoStatus.FULLY_DISPATCHED
-          : OMPoStatus.PARTIALLY_DISPATCHED;
-
-        await tx.oMPurchaseOrder.update({
+      // Re-aggregate and update PO and PO items (ORDER dispatches only)
+      if (!isSample && dispatch.purchaseOrderId) {
+        const purchaseOrder = await tx.oMPurchaseOrder.findUnique({
           where: { id: dispatch.purchaseOrderId },
-          data: { 
-            status: newStatus,
-            dispatchedQuantity: totalPoDispatched,
-            remainingQuantity: (purchaseOrder.totalQuantity || 0) - totalPoDispatched
-          },
+          include: { items: true },
         });
 
-        for (const poItem of purchaseOrder.items) {
-          const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
-          await tx.oMPurchaseOrderItem.update({
-            where: { id: poItem.id },
-            data: {
-              dispatchedQuantity: dQty,
-              remainingQuantity: Math.max(0, (poItem.quantity || 0) - dQty)
-            }
+        if (purchaseOrder) {
+          const updatedDispatches = await tx.oMDispatchOrderItem.groupBy({
+            by: ["purchaseOrderItemId"],
+            where: { purchaseOrderItemId: { in: purchaseOrder.items.map(i => i.id) } },
+            _sum: { quantity: true },
           });
+
+          const updatedDispatchMap = new Map(
+            updatedDispatches.map((d) => [
+              d.purchaseOrderItemId,
+              d._sum.quantity ?? 0,
+            ]),
+          );
+
+          let totalPoDispatched = 0;
+          const fullyDispatched = purchaseOrder.items.every(
+            (poItem) => {
+              const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
+              totalPoDispatched += dQty;
+              return dQty >= (poItem.quantity || 0);
+            }
+          );
+
+          const newStatus: OMPoStatus = fullyDispatched
+            ? OMPoStatus.FULLY_DISPATCHED
+            : OMPoStatus.PARTIALLY_DISPATCHED;
+
+          await tx.oMPurchaseOrder.update({
+            where: { id: dispatch.purchaseOrderId },
+            data: { 
+              status: newStatus,
+              dispatchedQuantity: totalPoDispatched,
+              remainingQuantity: (purchaseOrder.totalQuantity || 0) - totalPoDispatched
+            },
+          });
+
+          for (const poItem of purchaseOrder.items) {
+            const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
+            await tx.oMPurchaseOrderItem.update({
+              where: { id: poItem.id },
+              data: {
+                dispatchedQuantity: dQty,
+                remainingQuantity: Math.max(0, (poItem.quantity || 0) - dQty)
+              }
+            });
+          }
         }
       }
 
@@ -395,7 +416,7 @@ export async function DELETE(
     // We need the PO ID to revert quantities
     const dispatchOrder = await prisma.oMDispatchOrder.findUnique({
       where: { id },
-      select: { purchaseOrderId: true }
+      select: { purchaseOrderId: true, dispatchType: true }
     });
 
     if (!dispatchOrder) {
@@ -408,57 +429,59 @@ export async function DELETE(
         where: { id },
       });
 
-      // 2. Re-aggregate PO items
-      const purchaseOrder = await tx.oMPurchaseOrder.findUnique({
-        where: { id: dispatchOrder.purchaseOrderId },
-        include: { items: true },
-      });
-
-      if (purchaseOrder) {
-        const updatedDispatches = await tx.oMDispatchOrderItem.groupBy({
-          by: ["purchaseOrderItemId"],
-          where: { purchaseOrderItemId: { in: purchaseOrder.items.map(i => i.id) } },
-          _sum: { quantity: true },
-        });
-
-        const updatedDispatchMap = new Map(
-          updatedDispatches.map((d) => [
-            d.purchaseOrderItemId,
-            d._sum.quantity ?? 0,
-          ]),
-        );
-
-        let totalPoDispatched = 0;
-        const fullyDispatched = purchaseOrder.items.every(
-          (poItem) => {
-            const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
-            totalPoDispatched += dQty;
-            return dQty >= (poItem.quantity || 0);
-          }
-        );
-
-        const newStatus: OMPoStatus = (totalPoDispatched === 0 && purchaseOrder.status !== "DRAFT") 
-          ? OMPoStatus.CONFIRMED 
-          : fullyDispatched ? OMPoStatus.FULLY_DISPATCHED : OMPoStatus.PARTIALLY_DISPATCHED;
-
-        await tx.oMPurchaseOrder.update({
+      // 2. Re-aggregate PO items (ORDER dispatches only)
+      if (dispatchOrder.dispatchType === "ORDER" && dispatchOrder.purchaseOrderId) {
+        const purchaseOrder = await tx.oMPurchaseOrder.findUnique({
           where: { id: dispatchOrder.purchaseOrderId },
-          data: { 
-            status: newStatus,
-            dispatchedQuantity: totalPoDispatched,
-            remainingQuantity: (purchaseOrder.totalQuantity || 0) - totalPoDispatched
-          },
+          include: { items: true },
         });
 
-        for (const poItem of purchaseOrder.items) {
-          const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
-          await tx.oMPurchaseOrderItem.update({
-            where: { id: poItem.id },
-            data: {
-              dispatchedQuantity: dQty,
-              remainingQuantity: Math.max(0, (poItem.quantity || 0) - dQty)
-            }
+        if (purchaseOrder) {
+          const updatedDispatches = await tx.oMDispatchOrderItem.groupBy({
+            by: ["purchaseOrderItemId"],
+            where: { purchaseOrderItemId: { in: purchaseOrder.items.map((i: any) => i.id) } },
+            _sum: { quantity: true },
           });
+
+          const updatedDispatchMap = new Map(
+            updatedDispatches.map((d) => [
+              d.purchaseOrderItemId,
+              d._sum.quantity ?? 0,
+            ]),
+          );
+
+          let totalPoDispatched = 0;
+          const fullyDispatched = purchaseOrder.items.every(
+            (poItem: any) => {
+              const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
+              totalPoDispatched += dQty;
+              return dQty >= (poItem.quantity || 0);
+            }
+          );
+
+          const newStatus: OMPoStatus = (totalPoDispatched === 0 && purchaseOrder.status !== "DRAFT") 
+            ? OMPoStatus.CONFIRMED 
+            : fullyDispatched ? OMPoStatus.FULLY_DISPATCHED : OMPoStatus.PARTIALLY_DISPATCHED;
+
+          await tx.oMPurchaseOrder.update({
+            where: { id: dispatchOrder.purchaseOrderId },
+            data: { 
+              status: newStatus,
+              dispatchedQuantity: totalPoDispatched,
+              remainingQuantity: (purchaseOrder.totalQuantity || 0) - totalPoDispatched
+            },
+          });
+
+          for (const poItem of purchaseOrder.items) {
+            const dQty = updatedDispatchMap.get(poItem.id) ?? 0;
+            await tx.oMPurchaseOrderItem.update({
+              where: { id: poItem.id },
+              data: {
+                dispatchedQuantity: dQty,
+                remainingQuantity: Math.max(0, ((poItem as any).quantity || 0) - dQty)
+              }
+            });
+          }
         }
       }
     });

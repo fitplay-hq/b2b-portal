@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
     const validatedData = OMDispatchOrderCreateSchema.parse(body);
 
     const {
+      dispatchType,
       purchaseOrderId,
       invoiceNumber,
       invoiceDate,
@@ -38,6 +39,128 @@ export async function POST(req: NextRequest) {
       items,
       shipmentBoxes,
     } = validatedData;
+
+    // Verify Logistics Partner exists if provided
+    if (logisticsPartnerId) {
+      const logisticsPartner = await prisma.oMLogisticsPartner.findUnique({
+        where: { id: logisticsPartnerId },
+      });
+      if (!logisticsPartner) {
+        return NextResponse.json(
+          { error: "Logistics Partner not found" },
+          { status: 404 },
+        );
+      }
+    }
+
+    // Verify Delivery Location exists if provided
+    if (deliveryLocationId) {
+      const deliveryLocation = await prisma.oMDeliveryLocation.findUnique({
+        where: { id: deliveryLocationId },
+      });
+      if (!deliveryLocation) {
+        return NextResponse.json(
+          { error: "Delivery Location not found" },
+          { status: 404 },
+        );
+      }
+    }
+
+    // ===== SAMPLE DISPATCH =====
+    if (dispatchType === "SAMPLE") {
+      let doTotalQuantity = 0;
+      const processedItems = items.map((item) => {
+        doTotalQuantity += item.quantity;
+        const amount = item.quantity * item.rate;
+        const gstAmount = amount * (item.gstPercentage / 100);
+        const totalAmount = amount + gstAmount;
+        return {
+          productId: item.productId || null,
+          itemName: item.itemName || null,
+          brandName: item.brandName || null,
+          quantity: item.quantity,
+          rate: item.rate,
+          amount,
+          gstPercentage: item.gstPercentage,
+          gstAmount,
+          totalAmount,
+        };
+      });
+
+      const dispatchOrder = await prisma.$transaction(async (tx) => {
+        const dispatch = await tx.oMDispatchOrder.create({
+          data: {
+            dispatchType: "SAMPLE",
+            purchaseOrderId: null,
+            totalQuantity: doTotalQuantity,
+            invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
+            invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
+            logisticsPartnerId: logisticsPartnerId || null,
+            deliveryLocationId: deliveryLocationId || null,
+            docketNumber: docketNumber || null,
+            expectedDeliveryDate: expectedDeliveryDate
+              ? new Date(expectedDeliveryDate)
+              : null,
+            dispatchDate: dispatchDate ? new Date(dispatchDate) : null,
+            deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
+            status,
+            items: { create: processedItems },
+          },
+          include: { items: true },
+        });
+
+        // Create shipment boxes if provided
+        if (shipmentBoxes && shipmentBoxes.length > 0) {
+          for (const box of shipmentBoxes) {
+            const createdBox = await tx.oMShipmentBox.create({
+              data: {
+                dispatchOrderId: dispatch.id,
+                boxLabel: box.boxNumber?.toString() || "1",
+                length: box.length,
+                width: box.width,
+                height: box.height,
+                weight: box.weight || 0,
+                numberOfBoxes: box.numberOfBoxes,
+              },
+            });
+            for (const content of box.contents) {
+              const dispatchItem = dispatch.items.find(
+                (di) => di.productId === content.itemId,
+              );
+              if (dispatchItem) {
+                await tx.oMShipmentBoxContent.create({
+                  data: {
+                    shipmentBoxId: createdBox.id,
+                    dispatchOrderItemId: dispatchItem.id,
+                    quantityPerBox: content.quantity,
+                  },
+                });
+              }
+            }
+          }
+        }
+
+        return dispatch;
+      });
+
+      revalidateTag("om-dispatch-orders", "max");
+      revalidateTag("om-dashboard", "max");
+      revalidatePath("/admin/order-management/dispatches");
+      revalidatePath("/admin/dashboard");
+
+      return NextResponse.json(
+        { message: "Sample Dispatch created successfully", id: dispatchOrder.id, data: dispatchOrder },
+        { status: 201 },
+      );
+    }
+
+    // ===== ORDER DISPATCH =====
+    if (!purchaseOrderId) {
+      return NextResponse.json(
+        { error: "Purchase Order ID is required for Order Dispatches" },
+        { status: 400 },
+      );
+    }
 
     // 1. Verify Purchase Order exists and is not CLOSED
     const purchaseOrder = await prisma.oMPurchaseOrder.findUnique({
@@ -63,41 +186,10 @@ export async function POST(req: NextRequest) {
     if (invoiceDate && purchaseOrder.poDate) {
       const invDateObj = new Date(invoiceDate);
       const poDateObj = new Date(purchaseOrder.poDate);
-      
-      // Normalize dates to start of day for accurate comparison if time isn't critical
-      // Assuming exact timestamp comparison might be too strict, but let's do direct comparison first
       if (invDateObj < poDateObj) {
         return NextResponse.json(
           { error: "Invoice Date cannot be earlier than the Purchase Order Date." },
           { status: 400 },
-        );
-      }
-    }
-
-    // 2. Verify Logistics Partner exists if provided
-    if (logisticsPartnerId) {
-      const logisticsPartner = await prisma.oMLogisticsPartner.findUnique({
-        where: { id: logisticsPartnerId },
-      });
-
-      if (!logisticsPartner) {
-        return NextResponse.json(
-          { error: "Logistics Partner not found" },
-          { status: 404 },
-        );
-      }
-    }
-
-    // Verify Delivery Location exists if provided
-    if (deliveryLocationId) {
-      const deliveryLocation = await prisma.oMDeliveryLocation.findUnique({
-        where: { id: deliveryLocationId },
-      });
-
-      if (!deliveryLocation) {
-        return NextResponse.json(
-          { error: "Delivery Location not found" },
-          { status: 404 },
         );
       }
     }
@@ -107,7 +199,7 @@ export async function POST(req: NextRequest) {
       purchaseOrder.items.map((item) => [item.id, item]),
     );
 
-    const poItemIds = items.map((i) => i.purchaseOrderItemId);
+    const poItemIds = items.map((i) => i.purchaseOrderItemId).filter(Boolean) as string[];
     const existingDispatches = await prisma.oMDispatchOrderItem.groupBy({
       by: ["purchaseOrderItemId"],
       where: { purchaseOrderItemId: { in: poItemIds } },
@@ -122,6 +214,7 @@ export async function POST(req: NextRequest) {
     );
 
     for (const item of items) {
+      if (!item.purchaseOrderItemId) continue;
       const poItem = poItemMap.get(item.purchaseOrderItemId);
       if (!poItem) {
         return NextResponse.json(
@@ -169,6 +262,7 @@ export async function POST(req: NextRequest) {
     const dispatchOrder = await prisma.$transaction(async (tx) => {
       const dispatch = await tx.oMDispatchOrder.create({
         data: {
+          dispatchType: "ORDER",
           purchaseOrderId,
           totalQuantity: doTotalQuantity,
           invoiceNumber: invoiceNumber ? invoiceNumber.trim() : null,
@@ -229,7 +323,6 @@ export async function POST(req: NextRequest) {
       }
 
       // 6. Re-aggregate all dispatched quantities (including this new dispatch)
-      //    to determine whether PO is fully or partially dispatched
       const allPoItemIds = purchaseOrder.items.map((i) => i.id);
       const updatedDispatches = await tx.oMDispatchOrderItem.groupBy({
         by: ["purchaseOrderItemId"],
@@ -319,6 +412,7 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "500");
     const search = searchParams.get("search") || searchParams.get("q") || "";
     const status = searchParams.get("status");
+    const dispatchType = searchParams.get("dispatchType");
     const purchaseOrderId = searchParams.get("purchaseOrderId");
     const clientId = searchParams.get("clientId");
     const fromDate = searchParams.get("fromDate");
@@ -332,6 +426,7 @@ export async function GET(req: NextRequest) {
       limit,
       search,
       status: status || undefined,
+      dispatchType: dispatchType || undefined,
       purchaseOrderId: purchaseOrderId || undefined,
       clientId: clientId || undefined,
       logisticsPartnerId: logisticsPartnerId || undefined,

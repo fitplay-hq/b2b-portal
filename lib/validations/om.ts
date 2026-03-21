@@ -128,7 +128,10 @@ export const OMPurchaseOrderUpdateSchema =
 
 // --- OMDispatchOrderItem Validation ---
 export const OMDispatchOrderItemCreateSchema = z.object({
-  purchaseOrderItemId: z.string().min(1, "Purchase Order Item ID is required"),
+  purchaseOrderItemId: z.string().optional().nullable(),
+  productId: z.string().optional().nullable(),
+  itemName: z.string().optional().nullable(),
+  brandName: z.string().optional().nullable(),
   quantity: z.number().int().min(1, "Dispatch quantity must be at least 1"),
   rate: z.number().min(0, "Rate must be a non-negative number"),
   gstPercentage: z.number().min(0, "GST percentage must be non-negative"),
@@ -139,7 +142,8 @@ export const OMDispatchOrderItemCreateSchema = z.object({
 
 // --- OMDispatchOrder Validation ---
 export const OMDispatchOrderCreateSchema = z.object({
-  purchaseOrderId: z.string().min(1, "Purchase Order ID is required"),
+  dispatchType: z.enum(["ORDER", "SAMPLE"]).default("ORDER"),
+  purchaseOrderId: z.string().optional().nullable(),
   invoiceNumber: z
     .string()
     .transform((val) => (val === "" ? null : val))

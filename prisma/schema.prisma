@@ -325,6 +325,7 @@ model OMProduct {
   isActive           Boolean               @default(true)
   brands             OMBrand[]             @relation("OMProductBrands")
   purchaseOrderItems OMPurchaseOrderItem[]
+  dispatchOrderItems OMDispatchOrderItem[]
   ombrands           OMBrand[]
 }
 
@@ -364,7 +365,8 @@ model OMLogisticsPartner {
 
 model OMDispatchOrder {
   id                   String                @id @default(uuid())
-  purchaseOrderId      String
+  dispatchType         OMDispatchType        @default(ORDER)
+  purchaseOrderId      String?
   totalQuantity        Int?
   invoiceNumber        String?
   invoiceDate          DateTime?
@@ -377,19 +379,23 @@ model OMDispatchOrder {
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   logisticsPartner     OMLogisticsPartner?   @relation(fields: [logisticsPartnerId], references: [id])
-  purchaseOrder        OMPurchaseOrder       @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrder        OMPurchaseOrder?      @relation(fields: [purchaseOrderId], references: [id])
   deliveryLocationId   String?
   deliveryLocation     OMDeliveryLocation?   @relation(fields: [deliveryLocationId], references: [id])
   items                OMDispatchOrderItem[]
   shipmentBoxes        OMShipmentBox[]
 
   @@index([invoiceNumber])
+  @@index([dispatchType])
 }
 
 model OMDispatchOrderItem {
   id                  String              @id @default(uuid())
   dispatchOrderId     String
-  purchaseOrderItemId String
+  purchaseOrderItemId String?
+  productId           String?
+  itemName            String?
+  brandName           String?
   quantity            Int
   rate                Float
   amount              Float
@@ -399,7 +405,8 @@ model OMDispatchOrderItem {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   dispatchOrder       OMDispatchOrder     @relation(fields: [dispatchOrderId], references: [id], onDelete: Cascade)
-  purchaseOrderItem   OMPurchaseOrderItem   @relation(fields: [purchaseOrderItemId], references: [id])
+  purchaseOrderItem   OMPurchaseOrderItem?  @relation(fields: [purchaseOrderItemId], references: [id])
+  product             OMProduct?          @relation(fields: [productId], references: [id])
   shipmentBoxContents OMShipmentBoxContent[]
 }
 
@@ -511,4 +518,9 @@ enum OMDispatchStatus {
   AT_DESTINATION
   DELIVERED
   CANCELLED
+}
+
+enum OMDispatchType {
+  ORDER
+  SAMPLE
 }

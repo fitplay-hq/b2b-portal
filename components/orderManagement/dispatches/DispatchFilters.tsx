@@ -16,7 +16,9 @@ import {
 import { Label } from "@/components/ui/label";
 import {
   OM_DISPATCH_STATUS_CONFIG,
+  OM_DISPATCH_TYPE_CONFIG,
   type OMDispatchStatus,
+  type OMDispatchType,
 } from "@/types/order-management";
 import type { SortOption } from "../OMSortControl";
 
@@ -27,6 +29,7 @@ interface DispatchFiltersProps {
     clientName: string;
     logisticsPartnerId: string;
     status: string;
+    dispatchType: string;
     invoiceNumber: string;
     docketNumber: string;
   };
@@ -55,6 +58,33 @@ export function DispatchFilters({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="space-y-2">
+        <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1.5 block ml-1">
+          Dispatch Type
+        </Label>
+        <Select
+          value={filters.dispatchType}
+          onValueChange={(val) => updateFilter("dispatchType", val)}
+        >
+          <SelectTrigger className="h-10 text-sm focus:ring-neutral-900">
+            <SelectValue placeholder="Select type..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            {(
+              Object.entries(OM_DISPATCH_TYPE_CONFIG) as [
+                string,
+                { label: string; color: string },
+              ][]
+            ).map(([key, config]) => (
+              <SelectItem key={key} value={key}>
+                {config.label} Dispatch
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="space-y-2">
         <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1.5 block ml-1">
           From Date

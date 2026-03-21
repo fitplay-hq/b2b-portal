@@ -47,6 +47,22 @@ export type OMDispatchStatus =
   | "DELIVERED"
   | "CANCELLED";
 
+export type OMDispatchType = "ORDER" | "SAMPLE";
+
+export const OM_DISPATCH_TYPE_CONFIG: Record<
+  OMDispatchType,
+  { label: string; color: string }
+> = {
+  ORDER: {
+    label: "Order",
+    color: "bg-indigo-100 text-indigo-800 hover:bg-indigo-100 border-transparent",
+  },
+  SAMPLE: {
+    label: "Sample",
+    color: "bg-purple-100 text-purple-800 hover:bg-purple-100 border-transparent",
+  },
+};
+
 export const OM_DISPATCH_STATUS_CONFIG: Record<
   OMDispatchStatus,
   { label: string; color: string }
@@ -170,7 +186,10 @@ export interface OMPurchaseOrderItem {
 
 export interface OMDispatchOrderItem {
   id: string;
-  purchaseOrderItemId: string;
+  purchaseOrderItemId?: string | null;
+  productId?: string | null;
+  itemName?: string | null;
+  brandName?: string | null;
   quantity: number;
   rate: number;
   amount: number;
@@ -182,12 +201,12 @@ export interface OMDispatchOrderItem {
     OMBrand?: OMBrand | null;
   };
   product?: { name?: string; sku?: string | null };
-  brandName?: string | null;
 }
 
 export interface OMDispatchOrder {
   id: string;
-  purchaseOrderId: string;
+  dispatchType: OMDispatchType;
+  purchaseOrderId?: string | null;
   invoiceNumber: string;
   invoiceDate: string;
   logisticsPartnerId: string;
@@ -207,7 +226,7 @@ export interface OMDispatchOrder {
     estimateNumber?: string;
     deliveryLocations?: { name?: string }[];
     client?: { name?: string };
-  };
+  } | null;
   deliveryLocationId?: string;
   deliveryLocation?: { name?: string };
   logisticsPartner?: { name?: string };

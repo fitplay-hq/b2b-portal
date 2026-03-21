@@ -160,8 +160,9 @@ export function OMDispatchesClient({
     fromDate: searchParams.get("fromDate") || "",
     toDate: searchParams.get("toDate") || "",
     status: searchParams.get("status") || "all",
+    dispatchType: searchParams.get("dispatchType") || "all",
     clientId: searchParams.get("clientId") || "",
-    clientName: "", // Local-only state for search input if needed, though we use searchParams
+    clientName: "",
     logisticsPartnerId: searchParams.get("logisticsPartnerId") || "",
     deliveryLocationId: searchParams.get("deliveryLocationId") || "",
     invoiceNumber: searchParams.get("invoiceNumber") || "",
@@ -175,6 +176,7 @@ export function OMDispatchesClient({
         fromDate: "From Date",
         toDate: "To Date",
         status: "Status",
+        dispatchType: "Dispatch Type",
         clientId: "Client",
         clientName: "Client Name",
         logisticsPartnerId: "Logistics Partner",
@@ -192,15 +194,16 @@ export function OMDispatchesClient({
       (d.purchaseOrder?.poNumber || "").toLowerCase().includes(q) || 
       (d.purchaseOrder?.client?.name || "").toLowerCase().includes(q) ||
       d.items?.some(i => 
-        (i.product?.name || i.purchaseOrderItem?.product?.name || "").toLowerCase().includes(q) || 
+        (i.itemName || i.product?.name || i.purchaseOrderItem?.product?.name || "").toLowerCase().includes(q) || 
         (i.brandName || i.purchaseOrderItem?.OMBrand?.name || "").toLowerCase().includes(q)
       );
     
     const matchesStatus = filters.status === "all" || d.status === filters.status;
+    const matchesType = !filters.dispatchType || filters.dispatchType === "all" || d.dispatchType === filters.dispatchType;
     const matchesClient = !filters.clientId || d.purchaseOrder?.clientId === filters.clientId;
     const matchesInvoice = !filters.invoiceNumber || d.invoiceNumber === filters.invoiceNumber;
     
-    return matchesSearch && matchesStatus && matchesClient && matchesInvoice;
+    return matchesSearch && matchesStatus && matchesType && matchesClient && matchesInvoice;
   }, []);
 
   const sortFn = useCallback((a: TableDispatchOrder, b: TableDispatchOrder, sortBy: SortOption) => {

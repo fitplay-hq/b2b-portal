@@ -607,6 +607,7 @@ export async function getOMDispatches(params: {
   search?: string;
   clientId?: string;
   status?: string;
+  dispatchType?: string;
   fromDate?: string;
   toDate?: string;
   purchaseOrderId?: string;
@@ -632,11 +633,14 @@ export async function getOMDispatches(params: {
             { items: { some: { purchaseOrderItem: { product: { name: { contains: search, mode: "insensitive" } } } } } },
             { items: { some: { purchaseOrderItem: { OMBrand: { name: { contains: search, mode: "insensitive" } } } } } },
             { items: { some: { purchaseOrderItem: { product: { brands: { some: { name: { contains: search, mode: "insensitive" } } } } } } } },
+            { items: { some: { itemName: { contains: search, mode: "insensitive" } } } },
+            { items: { some: { product: { name: { contains: search, mode: "insensitive" } } } } },
           ],
         });
       }
       if (p.clientId) andFilters.push({ purchaseOrder: { clientId: p.clientId } });
       if (p.status && p.status !== "all") andFilters.push({ status: p.status });
+      if (p.dispatchType && p.dispatchType !== "all") andFilters.push({ dispatchType: p.dispatchType });
       if (p.purchaseOrderId) andFilters.push({ purchaseOrderId: p.purchaseOrderId });
       if (p.logisticsPartnerId) andFilters.push({ logisticsPartnerId: p.logisticsPartnerId });
       if (p.deliveryLocationId) andFilters.push({ deliveryLocationId: p.deliveryLocationId });
@@ -720,23 +724,25 @@ export async function getOMDispatches(params: {
           ...i,
           createdAt: i.createdAt.toISOString(),
           updatedAt: i.updatedAt.toISOString(),
-          purchaseOrderItem: {
-            ...i.purchaseOrderItem,
-            createdAt: i.purchaseOrderItem.createdAt.toISOString(),
-            updatedAt: i.purchaseOrderItem.updatedAt.toISOString(),
-            product: {
-              ...i.purchaseOrderItem.product,
-              createdAt: i.purchaseOrderItem.product.createdAt.toISOString(),
-              updatedAt: i.purchaseOrderItem.product.updatedAt.toISOString(),
-            },
-            OMBrand: i.purchaseOrderItem.OMBrand
-              ? {
-                  ...i.purchaseOrderItem.OMBrand,
-                  createdAt: i.purchaseOrderItem.OMBrand.createdAt.toISOString(),
-                  updatedAt: i.purchaseOrderItem.OMBrand.updatedAt.toISOString(),
-                }
-              : null,
-          },
+          purchaseOrderItem: i.purchaseOrderItem
+            ? {
+                ...i.purchaseOrderItem,
+                createdAt: i.purchaseOrderItem.createdAt.toISOString(),
+                updatedAt: i.purchaseOrderItem.updatedAt.toISOString(),
+                product: {
+                  ...i.purchaseOrderItem.product,
+                  createdAt: i.purchaseOrderItem.product.createdAt.toISOString(),
+                  updatedAt: i.purchaseOrderItem.product.updatedAt.toISOString(),
+                },
+                OMBrand: i.purchaseOrderItem.OMBrand
+                  ? {
+                      ...i.purchaseOrderItem.OMBrand,
+                      createdAt: i.purchaseOrderItem.OMBrand.createdAt.toISOString(),
+                      updatedAt: i.purchaseOrderItem.OMBrand.updatedAt.toISOString(),
+                    }
+                  : null,
+              }
+            : null,
         })),
       })) as any as OMDispatchOrder[];
 
