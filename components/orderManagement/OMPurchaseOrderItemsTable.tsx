@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 
 import {
   Table,
@@ -71,9 +72,8 @@ export function OMPurchaseOrderItemsTable({
                   : "Partial";
 
             return (
-              <>
+              <React.Fragment key={item.id}>
                 <TableRow
-                  key={item.id}
                   className="cursor-pointer hover:bg-muted/50 group"
                   onClick={() => toggleExpand(item.id)}
                 >
@@ -165,7 +165,7 @@ export function OMPurchaseOrderItemsTable({
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </React.Fragment>
             );
           })}
         </TableBody>

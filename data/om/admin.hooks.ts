@@ -37,8 +37,20 @@ export function useOMPurchaseOrders(params?: string, options: any = {}) {
  * Hook to fetch a single purchase order by ID
  */
 export function useOMPurchaseOrder(id?: string, options: any = {}) {
+  const { cache } = useSWRConfig();
   const url = id ? `/api/admin/om/purchase-orders/${id}` : null;
+  
+  // Try to find the PO in the list cache (used by OMPurchaseOrdersClient)
+  // This allows the detail page to show data instantly while the full version loads
+  const listCacheKey = "/api/admin/om/purchase-orders?limit=500";
+  const listState = cache.get(listCacheKey) as any;
+  // SWR cache.get returns the State object in SWR 2.x
+  // State.data is the PaginatedResponse, PaginatedResponse.data is the array
+  const listData = listState?.data?.data || listState?.data || [];
+  const foundInList = Array.isArray(listData) ? listData.find((po: any) => po.id === id) : null;
+
   const { data, error, isLoading, mutate } = useSWR<OMPurchaseOrder>(url, fetcher, {
+    fallbackData: foundInList,
     revalidateOnFocus: false,
     revalidateIfStale: true,
     ...options
@@ -47,7 +59,7 @@ export function useOMPurchaseOrder(id?: string, options: any = {}) {
   return {
     purchaseOrder: data,
     error,
-    isLoading,
+    isLoading: !data && isLoading, // Only show loading if we don't even have fallback data
     mutate,
   };
 }
@@ -76,8 +88,18 @@ export function useOMDispatches(params?: string, options: any = {}) {
  * Hook to fetch a single dispatch order by ID
  */
 export function useOMDispatch(id?: string, options: any = {}) {
+  const { cache } = useSWRConfig();
   const url = id ? `/api/admin/om/dispatch-orders/${id}` : null;
+
+  // Try to find the Dispatch in the list cache (used by OMDispatchesClient)
+  // This allows the detail page to show data instantly while the full version loads
+  const listCacheKey = "/api/admin/om/dispatch-orders?limit=500";
+  const listState = cache.get(listCacheKey) as any;
+  const listData = listState?.data?.data || listState?.data || [];
+  const foundInList = Array.isArray(listData) ? listData.find((d: any) => d.id === id) : null;
+
   const { data, error, isLoading, mutate } = useSWR<OMDispatchOrder>(url, fetcher, {
+    fallbackData: foundInList,
     revalidateOnFocus: false,
     revalidateIfStale: true,
     ...options
@@ -86,7 +108,7 @@ export function useOMDispatch(id?: string, options: any = {}) {
   return {
     dispatch: data,
     error,
-    isLoading,
+    isLoading: !data && isLoading, // Only show loading if we don't even have fallback data
     mutate,
   };
 }

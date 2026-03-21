@@ -23,6 +23,7 @@ export async function GET(
       );
     }
 
+    console.log("Fetching PO with ID:", id);
     const purchaseOrder = await prisma.oMPurchaseOrder.findUnique({
       where: { id },
       include: {
@@ -45,6 +46,7 @@ export async function GET(
     });
 
     if (!purchaseOrder) {
+      console.log("PO not found:", id);
       return NextResponse.json(
         { error: "Purchase Order not found" },
         { status: 404 },
@@ -53,6 +55,7 @@ export async function GET(
 
     return NextResponse.json(purchaseOrder);
   } catch (error: unknown) {
+    console.error("Critical API Error in GET /api/admin/om/purchase-orders/[id]:", error);
     return handleApiError(error);
   }
 }
