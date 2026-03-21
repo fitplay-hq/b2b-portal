@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "OMPurchaseOrder" ADD COLUMN     "fulfillmentPercentage" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "totalDispatchedAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "totalRemainingAmount" DOUBLE PRECISION NOT NULL DEFAULT 0;

@@ -302,6 +302,9 @@ model OMPurchaseOrder {
   status                OMPoStatus            @default(DRAFT)
   totalGst              Float                 @default(0)
   grandTotal            Float                 @default(0)
+  totalDispatchedAmount Float                 @default(0)
+  totalRemainingAmount  Float                 @default(0)
+  fulfillmentPercentage Float                 @default(0)
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   dispatchOrders        OMDispatchOrder[]

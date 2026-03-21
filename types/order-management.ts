@@ -256,6 +256,9 @@ export interface OMPurchaseOrder {
   client?: OMClient;
   deliveryLocations?: OMDeliveryLocation[];
   totalAmount?: number;
+  totalDispatchedAmount?: number;
+  totalRemainingAmount?: number;
+  fulfillmentPercentage?: number;
   paymentTerms?: string;
   notes?: string;
   createdAt?: string;

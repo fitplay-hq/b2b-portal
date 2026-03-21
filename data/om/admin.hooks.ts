@@ -52,16 +52,25 @@ export function useOMPurchaseOrder(id?: string, options: any = {}) {
   const apiUrl = id ? `/api/admin/om/purchase-orders/${id}` : null;
   const cacheKey = id ? `/api/orders/purchase-orders/${id}` : null;
   
-  // Try to find the PO in the list cache using O(1) lookup if possible
-  const listState = cache.get(PO_CACHE_KEY) as any;
-  const listData = listState?.data?.data || listState?.data || [];
-  
+  // Try to find the PO in the list cache more robustly
   const foundInList = useMemo(() => {
-    if (!id || !Array.isArray(listData)) return null;
-    return listData.find((po: any) => po.id === id);
-  }, [listData, id]);
+    if (!id) return null;
+    
+    // Search through all keys in the cache to find this ID in any list (paginated, filtered, etc.)
+    for (const key of cache.keys()) {
+      if (typeof key === "string" && key.startsWith(PO_CACHE_KEY)) {
+        const listState = cache.get(key) as any;
+        const listData = listState?.data?.data || listState?.data || [];
+        if (Array.isArray(listData)) {
+          const found = listData.find((po: any) => po.id === id);
+          if (found) return found;
+        }
+      }
+    }
+    return null;
+  }, [id, cache]);
 
-  const { data, error, isLoading, mutate } = useSWR<OMPurchaseOrder>(
+  const { data, error, isLoading, mutate, isValidating } = useSWR<OMPurchaseOrder>(
     cacheKey, 
     apiUrl ? () => fetcher(apiUrl) : null,
     {
@@ -77,6 +86,7 @@ export function useOMPurchaseOrder(id?: string, options: any = {}) {
     purchaseOrder: data,
     error,
     isLoading: !data && isLoading, // Only show loading if we don't even have fallback data
+    isValidating,
     mutate,
   };
 }
@@ -116,14 +126,23 @@ export function useOMDispatch(id?: string, options: any = {}) {
   const apiUrl = id ? `/api/admin/om/dispatch-orders/${id}` : null;
   const cacheKey = id ? `/api/orders/dispatch-orders/${id}` : null;
 
-  // Try to find the Dispatch in the list cache
-  const listState = cache.get(DISPATCH_CACHE_KEY) as any;
-  const listData = listState?.data?.data || listState?.data || [];
-  
+  // Try to find the Dispatch in the list cache more robustly
   const foundInList = useMemo(() => {
-    if (!id || !Array.isArray(listData)) return null;
-    return listData.find((d: any) => d.id === id);
-  }, [listData, id]);
+    if (!id) return null;
+
+    // Search through all keys in the cache to find this ID in any list (paginated, filtered, etc.)
+    for (const key of cache.keys()) {
+      if (typeof key === "string" && key.startsWith(DISPATCH_CACHE_KEY)) {
+        const listState = cache.get(key) as any;
+        const listData = listState?.data?.data || listState?.data || [];
+        if (Array.isArray(listData)) {
+          const found = listData.find((d: any) => d.id === id);
+          if (found) return found;
+        }
+      }
+    }
+    return null;
+  }, [id, cache]);
 
   const { data, error, isLoading, mutate } = useSWR<OMDispatchOrder>(
     cacheKey, 

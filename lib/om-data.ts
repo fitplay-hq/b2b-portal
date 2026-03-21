@@ -13,6 +13,7 @@ import {
   OMProduct,
 } from "@/types/order-management";
 import { type ComboboxOption } from "@/components/ui/combobox";
+import { Prisma } from "@/lib/generated/prisma";
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -907,6 +908,16 @@ export async function getOMPurchaseOrders(params: {
         if (field === "po" && p.sortBy.includes("date")) orderBy = { poDate: direction };
         else if (field === "po" && p.sortBy.includes("number")) orderBy = { poNumber: direction };
         else if (field === "status") orderBy = { status: direction };
+        else if (field === "client") orderBy = { client: { name: direction } };
+        else if (field === "ordered") orderBy = { totalQuantity: direction };
+        else if (field === "dispatched") orderBy = { dispatchedQuantity: direction };
+        else if (field === "remaining") orderBy = { remainingQuantity: direction };
+        else if (field === "value") orderBy = { grandTotal: direction };
+        else if (field === "value" || field === "ordered") {
+          // Additional safety for field mappings
+          if (field === "value") orderBy = { grandTotal: direction };
+          else orderBy = { totalQuantity: direction };
+        }
         else if (field === "created") orderBy = { createdAt: direction };
       }
 
@@ -915,18 +926,6 @@ export async function getOMPurchaseOrders(params: {
       where,
       include: {
         client: true,
-        deliveryLocations: true,
-        items: {
-          include: {
-            product: true,
-            dispatchItems: true,
-          },
-        },
-        dispatchOrders: {
-          include: {
-            items: true,
-          },
-        },
       },
       orderBy,
       skip,
@@ -935,32 +934,44 @@ export async function getOMPurchaseOrders(params: {
     prisma.oMPurchaseOrder.count({ where }),
     prisma.oMPurchaseOrder.count(),
   ]);
-
-  const data = purchaseOrders.map((po) => ({
-    ...po,
-    poDate: po.poDate?.toISOString() || null,
-    estimateDate: po.estimateDate?.toISOString() || null,
-    poReceivedDate: po.poReceivedDate?.toISOString() || null,
-    createdAt: po.createdAt.toISOString(),
-    updatedAt: po.updatedAt.toISOString(),
-    client: po.client
-      ? {
-          ...po.client,
-          createdAt: po.client.createdAt.toISOString(),
-          updatedAt: po.client.updatedAt.toISOString(),
-        }
-      : null,
-    items: po.items.map((i) => ({
-      ...i,
-      createdAt: i.createdAt.toISOString(),
-      updatedAt: i.updatedAt.toISOString(),
-      dispatchItems: i.dispatchItems.map((d) => ({
+  const data = purchaseOrders.map((po: any) => {
+    return {
+      ...po,
+      poDate: po.poDate?.toISOString() || null,
+      estimateDate: po.estimateDate?.toISOString() || null,
+      poReceivedDate: po.poReceivedDate?.toISOString() || null,
+      createdAt: po.createdAt.toISOString(),
+      updatedAt: po.updatedAt.toISOString(),
+      totalDispatchedAmount: po.totalDispatchedAmount,
+      totalRemainingAmount: po.totalRemainingAmount,
+      fulfillmentPercentage: po.fulfillmentPercentage,
+      client: po.client
+        ? {
+            ...po.client,
+            createdAt: po.client.createdAt.toISOString(),
+            updatedAt: po.client.updatedAt.toISOString(),
+          }
+        : null,
+      items: (po.items || []).map((i: any) => ({
+        ...i,
+        createdAt: i.createdAt.toISOString(),
+        updatedAt: i.updatedAt.toISOString(),
+        dispatchItems: (i.dispatchItems || []).map((d: any) => ({
+          ...d,
+          createdAt: d.createdAt.toISOString(),
+          updatedAt: d.updatedAt.toISOString(),
+        })),
+      })),
+      dispatchOrders: (po.dispatchOrders || []).map((d: any) => ({
         ...d,
+        expectedDeliveryDate: d.expectedDeliveryDate?.toISOString() || null,
+        dispatchDate: d.dispatchDate?.toISOString() || null,
+        deliveryDate: d.deliveryDate?.toISOString() || null,
         createdAt: d.createdAt.toISOString(),
         updatedAt: d.updatedAt.toISOString(),
       })),
-    })),
-  })) as any as OMPurchaseOrder[];
+    };
+  }) as any as OMPurchaseOrder[];
 
   return {
     data,
@@ -1112,6 +1123,9 @@ export async function getOMPurchaseOrderById(id: string): Promise<OMPurchaseOrde
         poReceivedDate: po.poReceivedDate?.toISOString() || null,
         createdAt: po.createdAt.toISOString(),
         updatedAt: po.updatedAt.toISOString(),
+        totalDispatchedAmount: po.totalDispatchedAmount,
+        totalRemainingAmount: po.totalRemainingAmount,
+        fulfillmentPercentage: po.fulfillmentPercentage,
         client: po.client
           ? {
               ...po.client,
@@ -1227,4 +1241,95 @@ export async function getOMDispatchById(id: string): Promise<OMDispatchOrder | n
     [`om-dispatch-${id}`],
     { tags: ["om-dispatch-orders"], revalidate: 3600 }
   )(id);
+}
+
+/**
+ * Synchronizes a Purchase Order's totals and status based on its dispatch history.
+ * Should be called whenever a dispatch is created, updated, or deleted.
+ */
+export async function syncOMPurchaseOrderTotals(
+  poId: string,
+  tx?: Prisma.TransactionClient
+) {
+  const db = tx || prisma;
+
+  // 1. Fetch PO with items and ALL its non-cancelled dispatches
+  const po = await db.oMPurchaseOrder.findUnique({
+    where: { id: poId },
+    include: {
+      items: true,
+      dispatchOrders: {
+        where: { status: { not: "CANCELLED" } },
+        include: { items: true },
+      },
+    },
+  });
+
+  if (!po) return;
+
+  // 2. Aggregate quantities and amounts across all dispatches
+  const itemDispatchedMap = new Map<string, { quantity: number; amount: number }>();
+  let totalPoDispatchedAmount = 0;
+  let totalPoDispatchedQuantity = 0;
+
+  po.dispatchOrders.forEach((dispatch) => {
+    dispatch.items.forEach((item) => {
+      if (!item.purchaseOrderItemId) return;
+      
+      const current = itemDispatchedMap.get(item.purchaseOrderItemId) || { quantity: 0, amount: 0 };
+      const newQty = current.quantity + item.quantity;
+      const newAmount = current.amount + (item.totalAmount || 0);
+      
+      itemDispatchedMap.set(item.purchaseOrderItemId, {
+        quantity: newQty,
+        amount: newAmount,
+      });
+      
+      totalPoDispatchedAmount += (item.totalAmount || 0);
+      totalPoDispatchedQuantity += item.quantity;
+    });
+  });
+
+  // 3. Determine new PO status and fulfillment metrics
+  const grandTotal = po.grandTotal || 0;
+  const totalRemainingAmount = Math.max(0, grandTotal - totalPoDispatchedAmount);
+  const fulfillmentPercentage = grandTotal > 0 ? (totalPoDispatchedAmount / grandTotal) * 100 : 0;
+
+  let allFullyDispatched = po.items.length > 0;
+  for (const poItem of po.items) {
+    const stats = itemDispatchedMap.get(poItem.id) || { quantity: 0, amount: 0 };
+    if (stats.quantity < (poItem.quantity || 0)) {
+      allFullyDispatched = false;
+      break;
+    }
+  }
+
+  const newStatus = totalPoDispatchedQuantity === 0 
+    ? (po.status === "DRAFT" ? "DRAFT" : "CONFIRMED")
+    : allFullyDispatched ? "FULLY_DISPATCHED" : "PARTIALLY_DISPATCHED";
+
+  // 4. Atomic Update of PO
+  await db.oMPurchaseOrder.update({
+    where: { id: poId },
+    data: {
+      status: newStatus as any,
+      dispatchedQuantity: totalPoDispatchedQuantity,
+      remainingQuantity: (po.totalQuantity || 0) - totalPoDispatchedQuantity,
+      totalDispatchedAmount: totalPoDispatchedAmount,
+      totalRemainingAmount: totalRemainingAmount,
+      fulfillmentPercentage: fulfillmentPercentage,
+    },
+  });
+
+  // 5. Atomic Update of each PO Item
+  for (const poItem of po.items) {
+    const stats = itemDispatchedMap.get(poItem.id) || { quantity: 0, amount: 0 };
+    await db.oMPurchaseOrderItem.update({
+      where: { id: poItem.id },
+      data: {
+        dispatchedQuantity: stats.quantity,
+        remainingQuantity: Math.max(0, (poItem.quantity || 0) - stats.quantity),
+      },
+    });
+  }
 }

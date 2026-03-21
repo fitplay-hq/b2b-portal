@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
-import { Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, ArrowUpDown } from "lucide-react";
 import Link from "next/link";
 import { OMDispatchHistory } from "./OMDispatchHistory";
 import {
@@ -34,10 +34,36 @@ export function OMPurchaseOrderItemsTable({
   dispatches,
 }: OMPurchaseOrderItemsTableProps) {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<string>("default");
 
   const toggleExpand = (itemId: string) => {
     setExpandedItemId(expandedItemId === itemId ? null : itemId);
   };
+
+  const sortedItems = useMemo(() => {
+    if (!items) return [];
+    const result = [...items];
+    if (sortBy === "default") return result;
+
+    const [field, order] = sortBy.split("_");
+    const direction = order === "asc" ? 1 : -1;
+
+    return result.sort((a, b) => {
+      if (field === "name") {
+        return direction * (a.product?.name || "").localeCompare(b.product?.name || "");
+      }
+      if (field === "quantity") {
+        return direction * ((a.quantity || 0) - (b.quantity || 0));
+      }
+      if (field === "rate") {
+        return direction * ((a.rate || 0) - (b.rate || 0));
+      }
+      if (field === "total") {
+        return direction * ((a.totalAmount || 0) - (b.totalAmount || 0));
+      }
+      return 0;
+    });
+  }, [items, sortBy]);
 
   const { subtotal, totalGst, grandTotal } = useMemo(() => {
     return {
@@ -47,6 +73,27 @@ export function OMPurchaseOrderItemsTable({
     };
   }, [items]);
 
+  const handleSort = (field: string) => {
+    if (sortBy.startsWith(field)) {
+      setSortBy(sortBy.endsWith("_asc") ? `${field}_desc` : `${field}_asc`);
+    } else {
+      setSortBy(`${field}_asc`);
+    }
+  };
+
+  const SortIcon = ({ field }: { field: string }) => {
+    const isActive = sortBy.startsWith(field);
+    const isAsc = sortBy.endsWith("_asc");
+    return (
+      <ArrowUpDown
+        className={`ml-1 h-3 w-3 inline-block cursor-pointer ${
+          isActive ? "text-primary font-bold" : "text-muted-foreground opacity-50"
+        }`}
+        onClick={() => handleSort(field)}
+      />
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="border rounded-md">
@@ -54,11 +101,19 @@ export function OMPurchaseOrderItemsTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-10"></TableHead>
-            <TableHead>Item Details</TableHead>
+            <TableHead>
+              Item Details <SortIcon field="name" />
+            </TableHead>
             <TableHead>Brand</TableHead>
-            <TableHead className="text-right">Ordered Qty</TableHead>
-            <TableHead className="text-right">Rate</TableHead>
-            <TableHead className="text-right">Total (incl. GST)</TableHead>
+            <TableHead className="text-right">
+              Ordered Qty <SortIcon field="quantity" />
+            </TableHead>
+            <TableHead className="text-right">
+              Rate <SortIcon field="rate" />
+            </TableHead>
+            <TableHead className="text-right">
+              Total (incl. GST) <SortIcon field="total" />
+            </TableHead>
             <TableHead className="text-right">Dispatched</TableHead>
             <TableHead className="text-right">Remaining</TableHead>
             <TableHead className="text-center w-24">Status</TableHead>
@@ -66,7 +121,7 @@ export function OMPurchaseOrderItemsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items?.map((item: OMPurchaseOrderItem) => {
+          {sortedItems?.map((item: OMPurchaseOrderItem) => {
             const dispatchedQty = item.dispatchedQuantity || 0;
             const remainingQty = item.remainingQuantity || 0;
             const status =

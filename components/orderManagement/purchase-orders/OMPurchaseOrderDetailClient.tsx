@@ -19,7 +19,7 @@ interface OMPurchaseOrderDetailClientProps {
 }
 
 export function OMPurchaseOrderDetailClient({ id, initialData }: OMPurchaseOrderDetailClientProps) {
-  const { purchaseOrder: po, isLoading, mutate } = useOMPurchaseOrder(id, {
+  const { purchaseOrder: po, isLoading, isValidating, mutate } = useOMPurchaseOrder(id, {
     fallbackData: initialData,
     revalidateIfStale: true,
   });
@@ -299,10 +299,18 @@ export function OMPurchaseOrderDetailClient({ id, initialData }: OMPurchaseOrder
               <CardTitle>Dispatch History</CardTitle>
             </CardHeader>
             <CardContent>
-              <OMDispatchHistory 
-                dispatches={po.dispatchOrders || []} 
-                poItems={po.items || []}
-              />
+              {(!po.dispatchOrders || po.dispatchOrders.length === 0) && isValidating ? (
+                <div className="space-y-4">
+                  {[...Array(2)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <OMDispatchHistory 
+                  dispatches={po.dispatchOrders || []} 
+                  poItems={po.items || []}
+                />
+              )}
             </CardContent>
           </Card>
         </div>

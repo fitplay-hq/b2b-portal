@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, TrendingUp, AlertCircle, CheckCircle2 } from "lucide-react";
 import { OMPurchaseOrder, OMPurchaseOrderItem } from "@/types/order-management";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface OMPurchaseOrderSummaryCardsProps {
   po: OMPurchaseOrder;
@@ -12,18 +13,9 @@ export function OMPurchaseOrderSummaryCards({
   po,
 }: OMPurchaseOrderSummaryCardsProps) {
   const totalValue = po.grandTotal || 0;
-  const dispatchedValue =
-    po.dispatchOrders?.reduce((sum: number, d) => {
-      return (
-        sum +
-        (d.items?.reduce((s: number, i) => s + (i.totalAmount || 0), 0) || 0)
-      );
-    }, 0) || 0;
-
-  const remainingValue = totalValue - dispatchedValue;
-
-  const fulfillmentPercent =
-    totalValue > 0 ? ((dispatchedValue / totalValue) * 100).toFixed(1) : "0";
+  const dispatchedValue = po.totalDispatchedAmount || 0;
+  const remainingValue = po.totalRemainingAmount || 0;
+  const fulfillmentPercent = po.fulfillmentPercentage?.toFixed(1) || "0.0";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

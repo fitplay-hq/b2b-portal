@@ -239,12 +239,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Build dispatch items with computed amounts
+    // 4. Build dispatch items with computed amounts using PO item source of truth
     let doTotalQuantity = 0;
     const processedItems = items.map((item) => {
+      if (!item.purchaseOrderItemId) {
+        // Fallback for samples or non-PO items handled earlier, but for ORDER type:
+        return {
+          purchaseOrderItemId: null,
+          quantity: item.quantity,
+          rate: item.rate,
+          amount: item.quantity * item.rate,
+          gstPercentage: item.gstPercentage || 0,
+          gstAmount: (item.quantity * item.rate) * ((item.gstPercentage || 0) / 100),
+          totalAmount: (item.quantity * item.rate) * (1 + (item.gstPercentage || 0) / 100),
+        };
+      }
+      
+      const poItem = poItemMap.get(item.purchaseOrderItemId);
+      const gstPct = poItem?.gstPercentage ?? item.gstPercentage ?? 0;
+      
       doTotalQuantity += item.quantity;
       const amount = item.quantity * item.rate;
-      const gstAmount = amount * (item.gstPercentage / 100);
+      const gstAmount = amount * (gstPct / 100);
       const totalAmount = amount + gstAmount;
 
       return {
@@ -252,7 +268,7 @@ export async function POST(req: NextRequest) {
         quantity: item.quantity,
         rate: item.rate,
         amount,
-        gstPercentage: item.gstPercentage,
+        gstPercentage: gstPct,
         gstAmount,
         totalAmount,
       };
