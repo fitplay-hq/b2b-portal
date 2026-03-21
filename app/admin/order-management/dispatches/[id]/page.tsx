@@ -8,11 +8,8 @@ interface PageProps {
 
 export default async function OMDispatchDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const initialData = await getOMDispatchById(id);
-
-  if (!initialData) {
-    notFound();
-  }
-
-  return <DispatchDetailClient initialData={initialData} />;
+  
+  // Note: We no longer await initialData here to enable instant navigation.
+  // The client component handles data fetching via SWR.
+  return <DispatchDetailClient id={id} />;
 }

@@ -527,7 +527,7 @@ export function OMDispatchesClient({
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeleteDispatchId}
-          onRowClick={(id) => router.push(`/admin/order-management/dispatches/${id}`)}
+          onRowClick={useCallback((id: string) => router.push(`/admin/order-management/dispatches/${id}`), [router])}
           onStatusChange={handleStatusChange}
         />
       ) : (
@@ -537,7 +537,7 @@ export function OMDispatchesClient({
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeleteDispatchId}
-          onRowClick={(dispatchId) => router.push(`/admin/order-management/dispatches/${dispatchId}`)}
+          onRowClick={useCallback((dispatchId: string) => router.push(`/admin/order-management/dispatches/${dispatchId}`), [router])}
         />
       )}
 

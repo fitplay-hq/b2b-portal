@@ -19,9 +19,10 @@ interface OMPurchaseOrderDetailClientProps {
 }
 
 export function OMPurchaseOrderDetailClient({ id, initialData }: OMPurchaseOrderDetailClientProps) {
-  const { purchaseOrder: po, isLoading, mutate } = useOMPurchaseOrder(id, initialData ? {
+  const { purchaseOrder: po, isLoading, mutate } = useOMPurchaseOrder(id, {
     fallbackData: initialData,
-  } : {});
+    revalidateIfStale: true,
+  });
 
   const fetchPO = async () => {
     mutate();

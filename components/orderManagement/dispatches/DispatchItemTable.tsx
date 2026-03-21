@@ -114,7 +114,7 @@ export const DispatchItemTable = memo(function DispatchItemTable({
           <TableCell className="pr-2">
             {item.dispatchDate ? format(new Date(item.dispatchDate), "dd MMM yyyy") : "N/A"}
           </TableCell>
-          <TableCell className="px-3">
+          <TableCell className="px-3 font-medium">
             <div className="font-medium hover:underline">
               {item.invoiceNumber || "N/A"}
             </div>

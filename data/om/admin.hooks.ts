@@ -1,5 +1,5 @@
 import useSWR, { useSWRConfig, mutate } from "swr";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { OMPurchaseOrder, OMDispatchOrder, OMPaginationMeta } from "@/types/order-management";
 import { type PaginatedResponse } from "@/lib/om-data";
 import { fetcher } from "@/lib/fetcher";
@@ -52,10 +52,14 @@ export function useOMPurchaseOrder(id?: string, options: any = {}) {
   const apiUrl = id ? `/api/admin/om/purchase-orders/${id}` : null;
   const cacheKey = id ? `/api/orders/purchase-orders/${id}` : null;
   
-  // Try to find the PO in the list cache
+  // Try to find the PO in the list cache using O(1) lookup if possible
   const listState = cache.get(PO_CACHE_KEY) as any;
   const listData = listState?.data?.data || listState?.data || [];
-  const foundInList = Array.isArray(listData) ? listData.find((po: any) => po.id === id) : null;
+  
+  const foundInList = useMemo(() => {
+    if (!id || !Array.isArray(listData)) return null;
+    return listData.find((po: any) => po.id === id);
+  }, [listData, id]);
 
   const { data, error, isLoading, mutate } = useSWR<OMPurchaseOrder>(
     cacheKey, 
@@ -115,7 +119,11 @@ export function useOMDispatch(id?: string, options: any = {}) {
   // Try to find the Dispatch in the list cache
   const listState = cache.get(DISPATCH_CACHE_KEY) as any;
   const listData = listState?.data?.data || listState?.data || [];
-  const foundInList = Array.isArray(listData) ? listData.find((d: any) => d.id === id) : null;
+  
+  const foundInList = useMemo(() => {
+    if (!id || !Array.isArray(listData)) return null;
+    return listData.find((d: any) => d.id === id);
+  }, [listData, id]);
 
   const { data, error, isLoading, mutate } = useSWR<OMDispatchOrder>(
     cacheKey, 

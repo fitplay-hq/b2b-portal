@@ -601,7 +601,7 @@ export function OMPurchaseOrdersClient({
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeletePo}
-          onRowClick={(po: any) => router.push(`/admin/order-management/purchase-orders/${po.id}`)}
+          onRowClick={useCallback((po: any) => router.push(`/admin/order-management/purchase-orders/${po.id}`), [router])}
         />
       ) : (
         <POItemTable
@@ -610,7 +610,7 @@ export function OMPurchaseOrdersClient({
           sortBy={sortBy}
           onSort={setSortBy}
           onDelete={setDeletePo}
-          onRowClick={(poId) => router.push(`/admin/order-management/purchase-orders/${poId}`)}
+          onRowClick={useCallback((poId: string) => router.push(`/admin/order-management/purchase-orders/${poId}`), [router])}
         />
       )}
 

@@ -26,15 +26,16 @@ import {
 import { useOMDispatch } from "@/data/om/admin.hooks";
 
 interface DispatchDetailClientProps {
+  id: string;
   initialData?: OMDispatchOrder;
 }
 
-export default function DispatchDetailClient({ initialData }: DispatchDetailClientProps) {
+export default function DispatchDetailClient({ id, initialData }: DispatchDetailClientProps) {
   const params = useParams();
-  const id = params.id as string;
+  const dispatchId = id || (params.id as string);
   
   // Use SWR for background updates and manual mutations
-  const { dispatch: swrData, isLoading, mutate } = useOMDispatch(id, {
+  const { dispatch: swrData, isLoading } = useOMDispatch(dispatchId, {
     ...(initialData ? { fallbackData: initialData } : {})
   });
 
@@ -44,13 +45,67 @@ export default function DispatchDetailClient({ initialData }: DispatchDetailClie
   if (!dispatch && isLoading) {
     return (
       <div className="space-y-6">
-          <Skeleton className="h-10 w-full" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
+          {/* Header Skeleton */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-9 w-20" />
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-9 w-24" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
           </div>
-          <Skeleton className="h-64 w-full" />
+
+          {/* Summary Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16 mb-2" />
+                  <Skeleton className="h-3 w-32" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Details Skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Items Table Skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
       </div>
     );
   }
