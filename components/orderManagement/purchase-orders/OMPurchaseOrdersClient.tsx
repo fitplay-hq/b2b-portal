@@ -261,22 +261,44 @@ export function OMPurchaseOrdersClient({
   }, []);
 
   // 1. Group and sort POs by client once for efficient FIFO lookups across both views
-  const posByClient = useMemo(() => {
-    const map = new Map<string, OMPurchaseOrder[]>();
+  const clientOptimizedData = useMemo(() => {
+    const posByClientMap = new Map<string, OMPurchaseOrder[]>();
     purchaseOrders.forEach(p => {
-      const clientPos = map.get(p.clientId) || [];
+      const clientPos = posByClientMap.get(p.clientId) || [];
       clientPos.push(p);
-      map.set(p.clientId, clientPos);
+      posByClientMap.set(p.clientId, clientPos);
     });
 
-    map.forEach(clientPos => {
+    const earliestPendingByClientProduct = new Map<string, Map<string, { date: number; poNumber: string }>>();
+
+    posByClientMap.forEach((clientPos, clientId) => {
+      // Sort by date ascending to find the earliest
       clientPos.sort((a, b) => 
         new Date(a.poDate || a.createdAt || 0).getTime() - 
         new Date(b.poDate || b.createdAt || 0).getTime()
       );
+
+      const productMap = new Map<string, { date: number; poNumber: string }>();
+      clientPos.forEach(p => {
+        if (p.status === "CLOSED" || p.status === "FULLY_DISPATCHED") return;
+        
+        const pDate = new Date(p.poDate || p.createdAt || 0).getTime();
+        p.items?.forEach(item => {
+          if ((item.remainingQuantity || 0) > 0 && !productMap.has(item.productId)) {
+            productMap.set(item.productId, { 
+              date: pDate, 
+              poNumber: p.poNumber || p.estimateNumber || "Older PO" 
+            });
+          }
+        });
+      });
+      earliestPendingByClientProduct.set(clientId, productMap);
     });
-    return map;
+
+    return { posByClient: posByClientMap, earliestPendingByClientProduct };
   }, [purchaseOrders]);
+
+  const { posByClient, earliestPendingByClientProduct } = clientOptimizedData;
 
   const processedDataFiltered = useOMClientData({
     data: purchaseOrders,
@@ -293,26 +315,18 @@ export function OMPurchaseOrdersClient({
       const totalDispatched = po.dispatchedQuantity || 0;
       const totalAmount = po.grandTotal || 0;
 
-      // Efficient FIFO Check
-      const otherClientPOs = posByClient.get(po.clientId) || [];
+      // Efficient FIFO Check using pre-calculated map
+      const earliestPos = earliestPendingByClientProduct.get(po.clientId);
       const currentPoDate = new Date(po.poDate || po.createdAt || 0).getTime();
       let isFifoBlocked = false;
       let blockingPoNumber = "";
 
       if (po.status === "CONFIRMED" || po.status === "PARTIALLY_DISPATCHED") {
         for (const item of po.items || []) {
-          const olderPO = otherClientPOs.find(p => {
-            if (p.id === po.id) return false;
-            const otherDate = new Date(p.poDate || p.createdAt || 0).getTime();
-            if (otherDate >= currentPoDate) return false;
-            return p.items?.some(oi => 
-              oi.productId === item.productId && (oi.remainingQuantity || 0) > 0
-            );
-          });
-          
-          if (olderPO) {
+          const earliest = earliestPos?.get(item.productId);
+          if (earliest && earliest.date < currentPoDate) {
             isFifoBlocked = true;
-            blockingPoNumber = olderPO.poNumber || olderPO.estimateNumber || "Older PO";
+            blockingPoNumber = earliest.poNumber;
             break;
           }
         }
@@ -337,17 +351,12 @@ export function OMPurchaseOrdersClient({
       (po.items || []).map((item: any) => {
         const itemDispatched = item.dispatchedQuantity || 0;
         
-        // Efficient Item-level FIFO check
-        const otherClientPOs = posByClient.get(po.clientId) || [];
+        // Efficient Item-level FIFO check using pre-calculated map
+        const earliestPos = earliestPendingByClientProduct.get(po.clientId);
         const currentPoDate = new Date(po.poDate || po.createdAt || 0).getTime();
-        const olderPO = otherClientPOs.find(p => {
-          if (p.id === po.id) return false;
-          const otherDate = new Date(p.poDate || p.createdAt || 0).getTime();
-          if (otherDate >= currentPoDate) return false;
-          return p.items?.some(oi => 
-            oi.productId === item.productId && (oi.remainingQuantity || 0) > 0
-          );
-        });
+        const earliest = earliestPos?.get(item.productId);
+        const isFifoBlocked = earliest && earliest.date < currentPoDate;
+        const blockingPoNumber = earliest?.poNumber || "Older PO";
 
         return {
           ...item,
@@ -360,8 +369,8 @@ export function OMPurchaseOrdersClient({
           status: po.status,
           itemDispatched,
           itemRemaining: item.quantity - itemDispatched,
-          isFifoBlocked: !!olderPO,
-          blockingPoNumber: olderPO?.poNumber || olderPO?.estimateNumber || "Older PO",
+          isFifoBlocked,
+          blockingPoNumber,
         };
       })
     );

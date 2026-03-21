@@ -22,6 +22,80 @@ interface POItemTableProps {
   onRowClick: (poId: string) => void;
 }
 
+interface POItemTableRowProps {
+  item: any;
+  onDelete: (po: any) => void;
+  onRowClick: (poId: string) => void;
+}
+
+const POItemTableRow = memo(function POItemTableRow({
+  item,
+  onDelete,
+  onRowClick,
+}: POItemTableRowProps) {
+  return (
+    <TableRow 
+      key={item.id} 
+      className="cursor-pointer hover:bg-muted/50 transition-colors"
+      onClick={() => onRowClick(item.poId)}
+    >
+      <TableCell>
+        {item.poDate ? format(new Date(item.poDate), "dd MMM yyyy") : "N/A"}
+      </TableCell>
+      <TableCell>
+        <div className="font-medium hover:underline">
+          {item.poNumber}
+        </div>
+      </TableCell>
+      <TableCell className="truncate max-w-[150px] text-wrap wrap-break-word">
+        {item.clientName || "N/A"}
+      </TableCell>
+      <TableCell className="truncate max-w-[200px] wrap-break-word">
+        {item.itemName || "N/A"}
+      </TableCell>
+      <TableCell className="text-right">
+        {item.quantity}
+      </TableCell>
+      <TableCell className="text-right">
+        {item.itemDispatched}
+      </TableCell>
+      <TableCell className="text-right">
+        {item.itemRemaining}
+      </TableCell>
+      <TableCell>
+        <Badge className={getPoStatusClass(item.status)}>
+          {PO_STATUS_LABELS[item.status] ?? formatStatus(item.status)}
+        </Badge>
+      </TableCell>
+      <TableCell
+        className="text-right"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={`/admin/order-management/purchase-orders/${item.poId}`}>
+              <Eye className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={`/admin/order-management/purchase-orders/${item.poId}/edit`}>
+              <Edit className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-destructive h-8 w-8"
+            onClick={() => onDelete({ id: item.poId, poNumber: item.poNumber })}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+
 export const POItemTable = memo(function POItemTable({
   data,
   isLoading,
@@ -101,65 +175,12 @@ export const POItemTable = memo(function POItemTable({
         </TableRow>
       }
       renderRow={(item: any) => (
-        <TableRow 
+        <POItemTableRow 
           key={item.id} 
-          className="cursor-pointer"
-          onClick={() => onRowClick(item.poId)}
-        >
-          <TableCell>
-            {item.poDate ? format(new Date(item.poDate), "dd MMM yyyy") : "N/A"}
-          </TableCell>
-          <TableCell>
-            <div className="font-medium hover:underline">
-              {item.poNumber}
-            </div>
-          </TableCell>
-          <TableCell className="truncate max-w-[150px] text-wrap wrap-break-word">
-            {item.clientName || "N/A"}
-          </TableCell>
-          <TableCell className="truncate max-w-[200px] wrap-break-word">
-            {item.itemName || "N/A"}
-          </TableCell>
-          <TableCell className="text-right">
-            {item.quantity}
-          </TableCell>
-          <TableCell className="text-right">
-            {item.itemDispatched}
-          </TableCell>
-          <TableCell className="text-right">
-            {item.itemRemaining}
-          </TableCell>
-          <TableCell>
-            <Badge className={getPoStatusClass(item.status)}>
-              {PO_STATUS_LABELS[item.status] ?? formatStatus(item.status)}
-            </Badge>
-          </TableCell>
-          <TableCell
-            className="text-right"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="icon" asChild>
-                <Link href={`/admin/order-management/purchase-orders/${item.poId}`}>
-                  <Eye className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" asChild>
-                <Link href={`/admin/order-management/purchase-orders/${item.poId}/edit`}>
-                  <Edit className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-destructive h-8 w-8"
-                onClick={() => onDelete({ id: item.poId, poNumber: item.poNumber })}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </TableCell>
-        </TableRow>
+          item={item} 
+          onDelete={onDelete} 
+          onRowClick={onRowClick} 
+        />
       )}
     />
   );

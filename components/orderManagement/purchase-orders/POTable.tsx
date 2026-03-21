@@ -21,6 +21,91 @@ interface POTableProps {
   onRowClick: (po: any) => void;
 }
 
+interface POTableRowProps {
+  po: any;
+  onDelete: (po: any) => void;
+  onRowClick: (po: any) => void;
+}
+
+const POTableRow = memo(function POTableRow({
+  po,
+  onDelete,
+  onRowClick,
+}: POTableRowProps) {
+  return (
+    <TableRow 
+      key={po.id}
+      className="cursor-pointer hover:bg-muted/50 transition-colors"
+      onClick={() => onRowClick(po)}
+    >
+      <TableCell>
+        {po.poDate ? format(new Date(po.poDate), "dd MMM yyyy") : "N/A"}
+      </TableCell>
+      <TableCell>
+        <div className="font-medium">
+          {po.poNumber || po.estimateNumber}
+        </div>
+        {po.poNumber && po.estimateNumber && (
+          <div className="text-xs text-muted-foreground">
+            Est: {po.estimateNumber}
+          </div>
+        )}
+      </TableCell>
+      <TableCell>{po.client?.name || "N/A"}</TableCell>
+      <TableCell className="text-right">{po.totalQuantity || 0}</TableCell>
+      <TableCell className="text-right">{po.dispatchedQuantity || 0}</TableCell>
+      <TableCell className="text-right">{po.remainingQuantity || 0}</TableCell>
+      <TableCell className="text-right font-medium">
+        ₹{po._totalAmount.toLocaleString("en-IN")}
+      </TableCell>
+      <TableCell>
+        <Badge
+          className={
+            po.status === "DRAFT"
+              ? "bg-gray-100 text-gray-800"
+              : po.status === "CONFIRMED"
+                ? "bg-blue-100 text-blue-800"
+                : po.status === "PARTIALLY_DISPATCHED"
+                  ? "bg-yellow-100 text-yellow-800"
+                  : po.status === "FULLY_DISPATCHED"
+                    ? "bg-green-100 text-green-800"
+                    : po.status === "CLOSED"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-gray-100 text-gray-800"
+          }
+        >
+          {formatStatus(po.status)}
+        </Badge>
+      </TableCell>
+      <TableCell
+        className="text-right"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={`/admin/order-management/purchase-orders/${po.id}`}>
+              <Eye className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={`/admin/order-management/purchase-orders/${po.id}/edit`}>
+              <Edit className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-destructive h-8 w-8"
+            onClick={() => onDelete(po)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+
 export const POTable = memo(function POTable({
   data,
   isLoading,
@@ -35,7 +120,6 @@ export const POTable = memo(function POTable({
       isLoading={isLoading}
       columnCount={9}
       emptyMessage="No purchase orders found."
-      onRowClick={onRowClick}
       header={
         <TableRow>
           <OMSortableHeader
@@ -102,72 +186,12 @@ export const POTable = memo(function POTable({
         </TableRow>
       }
       renderRow={(po: any) => (
-        <TableRow key={po.id}>
-          <TableCell>
-            {po.poDate ? format(new Date(po.poDate), "dd MMM yyyy") : "N/A"}
-          </TableCell>
-          <TableCell>
-            <div className="font-medium">
-              {po.poNumber || po.estimateNumber}
-            </div>
-            {po.poNumber && po.estimateNumber && (
-              <div className="text-xs text-muted-foreground">
-                Est: {po.estimateNumber}
-              </div>
-            )}
-          </TableCell>
-          <TableCell>{po.client?.name || "N/A"}</TableCell>
-          <TableCell className="text-right">{po.totalQuantity || 0}</TableCell>
-          <TableCell className="text-right">{po.dispatchedQuantity || 0}</TableCell>
-          <TableCell className="text-right">{po.remainingQuantity || 0}</TableCell>
-          <TableCell className="text-right font-medium">
-            ₹{po._totalAmount.toLocaleString("en-IN")}
-          </TableCell>
-          <TableCell>
-            <Badge
-              className={
-                po.status === "DRAFT"
-                  ? "bg-gray-100 text-gray-800"
-                  : po.status === "CONFIRMED"
-                    ? "bg-blue-100 text-blue-800"
-                    : po.status === "PARTIALLY_DISPATCHED"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : po.status === "FULLY_DISPATCHED"
-                        ? "bg-green-100 text-green-800"
-                        : po.status === "CLOSED"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-gray-100 text-gray-800"
-              }
-            >
-              {formatStatus(po.status)}
-            </Badge>
-          </TableCell>
-          <TableCell
-            className="text-right"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="icon" asChild>
-                <Link href={`/admin/order-management/purchase-orders/${po.id}`}>
-                  <Eye className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" asChild>
-                <Link href={`/admin/order-management/purchase-orders/${po.id}/edit`}>
-                  <Edit className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-destructive h-8 w-8"
-                onClick={() => onDelete(po)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </TableCell>
-        </TableRow>
+        <POTableRow 
+          key={po.id} 
+          po={po} 
+          onDelete={onDelete} 
+          onRowClick={onRowClick} 
+        />
       )}
     />
   );
