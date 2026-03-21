@@ -188,7 +188,7 @@ export function OMDashboardClient({
     });
 
     setIsLoading(true);
-    router.push(`/admin/order-management?${params.toString()}`);
+    router.push(`/admin/order-management?${params.toString()}`, { scroll: false });
   };
 
   useEffect(() => {

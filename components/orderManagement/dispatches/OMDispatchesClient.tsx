@@ -54,7 +54,8 @@ export function OMDispatchesClient({
   const pathname = usePathname();
 
   // SWR cache layer for snappy navigation
-  const cachedData = useOMSWRCache("/api/admin/om/dispatch-orders?limit=50", initialData);
+  // Cache a larger set (500) in the background to make search/filter instant
+  const cachedData = useOMSWRCache("/api/admin/om/dispatch-orders?limit=500", initialData);
 
   // 2. Fetch options via SWR
 
@@ -325,7 +326,7 @@ export function OMDispatchesClient({
       if (searchTerm.trim() !== currentQ) {
         updateUrl({ q: searchTerm.trim() || null });
       }
-    }, 1000);
+    }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm, updateUrl, searchParams]);
 
@@ -341,7 +342,7 @@ export function OMDispatchesClient({
         }
       });
       if (changed) updateUrl(newParams);
-    }, 1000);
+    }, 500);
     return () => clearTimeout(timer);
   }, [filters, updateUrl, searchParams]);
 

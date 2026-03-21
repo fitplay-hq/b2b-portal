@@ -21,7 +21,7 @@ interface PageProps {
 export default async function OMPurchaseOrdersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = params.page ? parseInt(params.page as string) : 1;
-  const limit = params.limit ? parseInt(params.limit as string) : 500;
+  const limit = params.limit ? parseInt(params.limit as string) : 50;
   const search = (params.q as string) || (params.search as string) || "";
   const clientId = params.clientId as string;
   const status = params.status as string;

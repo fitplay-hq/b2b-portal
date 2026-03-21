@@ -54,9 +54,8 @@ export function OMPurchaseOrdersClient({
   const pathname = usePathname();
   
   // SWR cache layer for snappy navigation
+  // We use a larger limit (500) for the background cache to make search/filter instant
   const cachedData = useOMSWRCache("/api/admin/om/purchase-orders?limit=500", initialData);
-
-  // 2. Fetch options via SWR
 
   const clientOptions = useMemo(() => propsClientOptions || [], [propsClientOptions]);
   const locationOptions = useMemo(() => propsLocationOptions || [], [propsLocationOptions]);
@@ -128,6 +127,7 @@ export function OMPurchaseOrdersClient({
 
     if (changed) {
       params.set("page", "1");
+      // Use router.push with { scroll: false } and ensure we don't trigger full page reload if possible
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     }
   }, [searchParams, pathname, router]);

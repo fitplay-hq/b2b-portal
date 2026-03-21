@@ -240,7 +240,7 @@ export function OMItemsClient({ initialData, initialBrands }: OMItemsClientProps
       if (searchTerm.trim() !== currentQ) {
         updateUrl({ q: searchTerm.trim() || null });
       }
-    }, 1000);
+    }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm, updateUrl, searchParams]);
 
@@ -262,7 +262,7 @@ export function OMItemsClient({ initialData, initialBrands }: OMItemsClientProps
         }
       });
       if (changed) updateUrl(newParams);
-    }, 1000);
+    }, 500);
     return () => clearTimeout(timer);
   }, [filters, updateUrl, searchParams]);
 
