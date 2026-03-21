@@ -270,30 +270,45 @@ export function OMPurchaseOrdersClient({
   });
 
   const processedData = useMemo(() => {
+    // 1. Group all POs by clientId once to avoid O(n^2) inside map
+    const posByClient = new Map<string, OMPurchaseOrder[]>();
+    purchaseOrders.forEach(p => {
+      const clientPos = posByClient.get(p.clientId) || [];
+      clientPos.push(p);
+      posByClient.set(p.clientId, clientPos);
+    });
+
+    // 2. Sort each client's POs once
+    posByClient.forEach(clientPos => {
+      clientPos.sort((a, b) => 
+        new Date(a.poDate || a.createdAt || 0).getTime() - 
+        new Date(b.poDate || b.createdAt || 0).getTime()
+      );
+    });
+
     return processedDataFiltered.map((po: OMPurchaseOrder) => {
       const totalQty = po.totalQuantity || 0;
       const totalDispatched = po.dispatchedQuantity || 0;
       const totalAmount = po.grandTotal || 0;
 
-      // FIFO Check for PO level (Client View)
-      const otherClientPOs = purchaseOrders
-        .filter((p) => p.clientId === po.clientId && p.id !== po.id)
-        .sort((a, b) => new Date(a.poDate || a.createdAt || 0).getTime() - new Date(b.poDate || b.createdAt || 0).getTime());
-
+      // Efficient FIFO Check using the pre-sorted client groups
+      const otherClientPOs = posByClient.get(po.clientId) || [];
       const currentPoDate = new Date(po.poDate || po.createdAt || 0).getTime();
       let isFifoBlocked = false;
       let blockingPoNumber = "";
 
       if (po.status === "CONFIRMED" || po.status === "PARTIALLY_DISPATCHED") {
         for (const item of po.items || []) {
+          // Find the first older PO that has remaining quantity for this product
           const olderPO = otherClientPOs.find(p => {
+            if (p.id === po.id) return false;
             const otherDate = new Date(p.poDate || p.createdAt || 0).getTime();
             if (otherDate >= currentPoDate) return false;
-            return p.items?.some(oi => {
-              if (oi.productId !== item.productId) return false;
-              return (oi.remainingQuantity || 0) > 0;
-            });
+            return p.items?.some(oi => 
+              oi.productId === item.productId && (oi.remainingQuantity || 0) > 0
+            );
           });
+          
           if (olderPO) {
             isFifoBlocked = true;
             blockingPoNumber = olderPO.poNumber || olderPO.estimateNumber || "Older PO";
